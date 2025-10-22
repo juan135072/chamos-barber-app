@@ -1,0 +1,51 @@
+{
+  "name": "chamos-barber-nextjs",
+  "version": "1.0.0",
+  "description": "Chamos Barber - Sistema completo de gestión para barbería venezolana en Chile",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "export": "next export"
+  },
+  "dependencies": {
+    "next": "14.0.4",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@fortawesome/fontawesome-free": "^6.5.1",
+    "@supabase/supabase-js": "^2.38.0",
+    "@supabase/auth-helpers-react": "^0.4.2",
+    "@supabase/auth-ui-react": "^0.4.6",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "uuid": "^9.0.1",
+    "chart.js": "^4.4.1",
+    "react-chartjs-2": "^5.2.0",
+    "react-hook-form": "^7.48.2",
+    "date-fns": "^3.0.6"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@types/react": "^18.2.45",
+    "@types/react-dom": "^18.2.18",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.3",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "14.0.4",
+    "autoprefixer": "^10.4.16",
+    "postcss": "^8.4.32",
+    "tailwindcss": "^3.4.0",
+    "supabase": ">=1.8.1"
+  },
+  "keywords": [
+    "barberia",
+    "venezuela",
+    "chile",
+    "nextjs",
+    "portfolio",
+    "booking"
+  ],
+  "author": "Chamos Barber Team",
+  "license": "MIT"
+}
