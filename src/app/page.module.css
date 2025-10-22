@@ -1,0 +1,267 @@
+/* Estilos específicos para la página principal */
+
+.hero {
+    position: relative;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    overflow: hidden;
+}
+
+.heroVideo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+}
+
+.heroVideo video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.heroOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(26, 26, 26, 0.8), rgba(42, 42, 42, 0.6));
+    z-index: -1;
+}
+
+.heroContent {
+    text-align: center;
+    max-width: 800px;
+    z-index: 1;
+}
+
+.heroSubtitle {
+    font-size: 1.5rem;
+    margin-bottom: 1.5rem;
+    color: var(--primary-gold);
+    font-weight: 500;
+}
+
+.heroDescription {
+    font-size: 1.2rem;
+    margin-bottom: 2.5rem;
+    opacity: 0.9;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.heroButtons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* Servicios Grid */
+.serviciosGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+}
+
+.servicioCard {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border: 1px solid #f0f0f0;
+}
+
+.servicioCard:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 20px 60px rgba(212, 175, 55, 0.15);
+}
+
+.servicioIcon {
+    width: 80px;
+    height: 80px;
+    background: var(--gradient-gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1.5rem;
+    color: var(--primary-dark);
+    font-size: 2rem;
+}
+
+.servicioCard h3 {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+    color: var(--primary-dark);
+}
+
+.servicioCard p {
+    color: #666;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+}
+
+.servicioMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 1rem;
+    border-top: 1px solid #eee;
+}
+
+.precio {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-gold);
+}
+
+.duracion {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Equipo Preview */
+.equipoPreview {
+    background-color: var(--primary-dark);
+}
+
+.equipoGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin: 3rem 0;
+}
+
+.barberoCard {
+    text-align: center;
+    padding: 2rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(212, 175, 55, 0.2);
+}
+
+.barberoCard:hover {
+    transform: translateY(-5px);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.barberoFoto {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 1.5rem;
+    border: 3px solid var(--primary-gold);
+}
+
+.barberoFoto img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.barberoCard h3 {
+    color: white;
+    font-size: 1.3rem;
+    margin-bottom: 0.5rem;
+}
+
+.especialidad {
+    color: var(--primary-gold);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.experiencia {
+    color: #ccc;
+    font-size: 0.9rem;
+}
+
+/* CTA Section */
+.ctaSection {
+    background: var(--gradient-gold);
+    color: var(--primary-dark);
+}
+
+.ctaSection h2 {
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+}
+
+.ctaSection p {
+    font-size: 1.2rem;
+    margin-bottom: 2rem;
+    opacity: 0.8;
+}
+
+/* Loading States */
+.loading {
+    text-align: center;
+    padding: 3rem 0;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-gold);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .hero {
+        height: 80vh;
+        padding: 0 1rem;
+    }
+    
+    .heroContent h1 {
+        font-size: 2rem;
+    }
+    
+    .heroSubtitle {
+        font-size: 1.2rem;
+    }
+    
+    .heroDescription {
+        font-size: 1rem;
+    }
+    
+    .heroButtons {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .serviciosGrid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+    
+    .servicioCard {
+        padding: 2rem 1.5rem;
+    }
+    
+    .equipoGrid {
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+    }
+}
