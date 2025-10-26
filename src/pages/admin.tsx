@@ -72,15 +72,16 @@ export default function AdminPage() {
 
       // Cargar citas
       const citasData = await chamosSupabase.getCitas()
-      setCitas(citasData as Cita[])
+      const citasArray = (citasData || []) as Cita[]
+      setCitas(citasArray)
 
       // Calcular estadísticas
       const today = new Date().toISOString().split('T')[0]
-      const citasHoy = citasData?.filter(c => c.fecha === today).length || 0
-      const citasPendientes = citasData?.filter(c => c.estado === 'pendiente').length || 0
+      const citasHoy = citasArray.filter((c: Cita) => c.fecha === today).length || 0
+      const citasPendientes = citasArray.filter((c: Cita) => c.estado === 'pendiente').length || 0
       
       setStats({
-        totalCitas: citasData?.length || 0,
+        totalCitas: citasArray.length || 0,
         citasHoy,
         citasPendientes,
         ingresosMes: 0 // Se puede calcular basado en citas confirmadas

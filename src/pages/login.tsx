@@ -1,13 +1,14 @@
 import Head from 'next/head'
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Auth, ThemeSupa } from '@supabase/auth-ui-react'
+import { Auth } from '@supabase/auth-ui-react'
+import { ThemeSupa } from '@supabase/auth-ui-shared'
 import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Database } from '../../lib/database.types'
 
-export default function Login() {
+function Login() {
   const session = useSession()
   const supabase = useSupabaseClient<Database>()
   const router = useRouter()
@@ -132,7 +133,7 @@ export default function Login() {
                     },
                   }}
                   providers={[]}
-                  redirectTo={`${window.location.origin}/admin`}
+                  redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/admin` : '/admin'}
                   onlyThirdPartyProviders={false}
                   magicLink={false}
                   showLinks={false}
@@ -205,3 +206,12 @@ export default function Login() {
     </>
   )
 }
+
+// Deshabilitar SSR para esta página
+export async function getServerSideProps() {
+  return {
+    props: {},
+  }
+}
+
+export default Login
