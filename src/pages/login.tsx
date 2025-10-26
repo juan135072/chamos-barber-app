@@ -104,10 +104,10 @@ function Login() {
 
           {/* Login Form */}
           <div className="flex-1 flex items-center justify-center p-4">
-            <div className="w-full max-w-md">
+            <div className="w-full max-w-md auth-card-enter">
               <div className="bg-white rounded-xl shadow-2xl p-8 backdrop-blur-sm bg-opacity-95">
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 lock-icon-container">
                     <i className="fas fa-lock text-white text-2xl"></i>
                   </div>
                   <h2 className="text-2xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
@@ -172,34 +172,63 @@ function Login() {
         </div>
 
         <style jsx global>{`
-          .auth-container {
+          /* Video background */
+          video {
+            filter: brightness(0.7) contrast(1.1);
+          }
+
+          /* Animación de entrada para el formulario */
+          @keyframes slideUp {
+            from {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+
+          .auth-card-enter {
+            animation: slideUp 0.5s ease-out;
+          }
+
+          /* Loading spinner personalizado */
+          @keyframes rotate {
+            100% {
+              transform: rotate(360deg);
+            }
+          }
+
+          .loading-spinner {
+            animation: rotate 1s linear infinite;
+          }
+
+          /* Mejoras para el formulario en móvil */
+          @media (max-width: 640px) {
+            .bg-white {
+              max-height: 90vh;
+              overflow-y: auto;
+            }
+          }
+
+          /* Asegurar que los estilos de Supabase Auth se apliquen */
+          form {
             width: 100%;
           }
-          
-          .auth-button {
-            background-color: #d97706 !important;
-            border: none !important;
-            border-radius: 8px !important;
-            padding: 12px 24px !important;
-            font-weight: 600 !important;
-            transition: all 0.2s !important;
+
+          /* Animación para el ícono del candado */
+          @keyframes pulse-glow {
+            0%, 100% {
+              box-shadow: 0 0 20px rgba(217, 119, 6, 0.4);
+            }
+            50% {
+              box-shadow: 0 0 30px rgba(217, 119, 6, 0.6);
+            }
           }
-          
-          .auth-button:hover {
-            background-color: #b45309 !important;
-            transform: translateY(-1px) !important;
-          }
-          
-          .auth-input {
-            border: 1px solid #d1d5db !important;
-            border-radius: 8px !important;
-            padding: 12px 16px !important;
-            transition: border-color 0.2s !important;
-          }
-          
-          .auth-input:focus {
-            border-color: #d97706 !important;
-            box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1) !important;
+
+          .lock-icon-container {
+            animation: pulse-glow 2s ease-in-out infinite;
           }
         `}</style>
       </div>

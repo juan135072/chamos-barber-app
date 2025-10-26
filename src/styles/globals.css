@@ -1,3 +1,8 @@
+/* === TAILWIND CSS === */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* === VARIABLES GLOBALES === */
 :root {
     --bg-primary: #121212;
@@ -793,3 +798,107 @@ body {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* === ESTILOS PARA SUPABASE AUTH UI === */
+.supabase-auth-ui_ui-container {
+    width: 100% !important;
+}
+
+.supabase-auth-ui_ui-button {
+    background-color: #d97706 !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    transition: all 0.2s ease !important;
+    color: white !important;
+    cursor: pointer !important;
+}
+
+.supabase-auth-ui_ui-button:hover {
+    background-color: #b45309 !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.4) !important;
+}
+
+.supabase-auth-ui_ui-button:active {
+    transform: translateY(0) !important;
+}
+
+.supabase-auth-ui_ui-input {
+    border: 1px solid #d1d5db !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    background-color: white !important;
+    color: #111827 !important;
+}
+
+.supabase-auth-ui_ui-input:focus {
+    outline: none !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1) !important;
+}
+
+.supabase-auth-ui_ui-label {
+    color: #374151 !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+}
+
+.supabase-auth-ui_ui-message {
+    padding: 12px !important;
+    border-radius: 8px !important;
+    margin-top: 12px !important;
+    font-size: 14px !important;
+}
+
+.supabase-auth-ui_ui-message[data-status="error"] {
+    background-color: #fee2e2 !important;
+    color: #991b1b !important;
+    border: 1px solid #fca5a5 !important;
+}
+
+.supabase-auth-ui_ui-message[data-status="success"] {
+    background-color: #d1fae5 !important;
+    color: #065f46 !important;
+    border: 1px solid #6ee7b7 !important;
+}
+
+.supabase-auth-ui_ui-anchor {
+    color: #d97706 !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    transition: color 0.2s ease !important;
+}
+
+.supabase-auth-ui_ui-anchor:hover {
+    color: #b45309 !important;
+    text-decoration: underline !important;
+}
+
+.supabase-auth-ui_ui-divider {
+    margin: 24px 0 !important;
+    border-color: #e5e7eb !important;
+}
+
+/* Estilos adicionales para formularios */
+form > div {
+    margin-bottom: 16px !important;
+}
+
+/* Ajuste de espaciado para inputs y labels */
+label + input {
+    margin-top: 4px !important;
+}
+
+/* Loading state para el botón */
+.supabase-auth-ui_ui-button:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* === FIN ESTILOS SUPABASE AUTH UI === */
