@@ -24,8 +24,8 @@ const nextConfig = {
   },
   
   // Configuración para VPS
-  trailingSlash: true,
-  output: 'standalone',
+  trailingSlash: false,
+  // output: 'standalone', // Comentado para permitir carga correcta de CSS
   
   // Headers de seguridad
   async headers() {
