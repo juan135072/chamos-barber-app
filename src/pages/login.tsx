@@ -63,49 +63,31 @@ function Login() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900 relative overflow-hidden">
-        {/* Video Background */}
-        <video 
-          autoPlay 
-          muted 
-          loop 
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        >
-          <source src="/videos/barbershop-bg.mp4" type="video/mp4" />
-        </video>
-        
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black bg-opacity-40"></div>
-
-        {/* Content */}
-        <div className="relative z-10 min-h-screen flex flex-col">
-          {/* Header */}
-          <div className="flex justify-between items-center p-6">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900 flex flex-col">
+        {/* Header */}
+        <div className="w-full bg-black bg-opacity-30 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <Link href="/" className="flex items-center space-x-2 text-white hover:text-amber-400 transition-colors">
-              <i className="fas fa-arrow-left"></i>
-              <span>Volver al sitio</span>
+              <i className="fas fa-arrow-left text-lg"></i>
+              <span className="font-medium">Volver al sitio</span>
             </Link>
             
             <div className="flex items-center space-x-3">
-              <Image
-                src="/images/logo.png"
-                alt="Chamos Barber"
-                width={40}
-                height={40}
-                className="rounded-full"
-              />
+              <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center">
+                <i className="fas fa-cut text-white"></i>
+              </div>
               <div className="text-white">
-                <h1 className="font-bold text-lg">Chamos Barber</h1>
-                <p className="text-sm text-gray-300">Panel de Administración</p>
+                <h1 className="font-bold text-lg leading-tight">Chamos Barber</h1>
+                <p className="text-xs text-amber-300">Panel de Administración</p>
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Login Form */}
-          <div className="flex-1 flex items-center justify-center p-4">
-            <div className="w-full max-w-md auth-card-enter">
-              <div className="bg-white rounded-xl shadow-2xl p-8 backdrop-blur-sm bg-opacity-95">
+        {/* Login Form */}
+        <div className="flex-1 flex items-center justify-center p-4 py-8">
+          <div className="w-full max-w-md auth-card-enter">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm bg-opacity-98">
                 <div className="text-center mb-8">
                   <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 lock-icon-container">
                     <i className="fas fa-lock text-white text-2xl"></i>
@@ -149,34 +131,19 @@ function Login() {
             </div>
           </div>
 
-          {/* Footer */}
-          <div className="flex justify-center items-center space-x-4 p-6">
-            <div className="flex items-center space-x-2">
-              <Image
-                src="/images/venezuela-flag.png"
-                alt="Venezuela"
-                width={24}
-                height={16}
-                className="rounded"
-              />
-              <i className="fas fa-heart text-red-500"></i>
-              <Image
-                src="/images/chile-flag.png"
-                alt="Chile"
-                width={24}
-                height={16}
-                className="rounded"
-              />
+        {/* Footer */}
+        <div className="w-full bg-black bg-opacity-30 backdrop-blur-sm py-4">
+          <div className="flex justify-center items-center space-x-3">
+            <div className="flex items-center space-x-2 bg-white bg-opacity-10 px-4 py-2 rounded-full">
+              <span className="text-2xl">🇻🇪</span>
+              <i className="fas fa-heart text-red-500 text-sm"></i>
+              <span className="text-2xl">🇨🇱</span>
             </div>
           </div>
+          <p className="text-center text-white text-xs mt-2 opacity-75">Hecho con ❤️ por venezolanos en Chile</p>
         </div>
 
         <style jsx global>{`
-          /* Video background */
-          video {
-            filter: brightness(0.7) contrast(1.1);
-          }
-
           /* Animación de entrada para el formulario */
           @keyframes slideUp {
             from {
