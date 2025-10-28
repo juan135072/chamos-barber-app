@@ -12,7 +12,10 @@
     "db:test": "node scripts/test-supabase-connection.js",
     "db:schema": "node scripts/supabase-schema.js",
     "db:backup": "node scripts/backup-database.js",
-    "db:query": "node scripts/supabase-query.js"
+    "db:query": "node scripts/supabase-query.js",
+    "db:view": "node scripts/view-table.js",
+    "db:viewer": "node scripts/start-db-viewer.js",
+    "db:studio": "node scripts/open-supabase-studio.js"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.1",

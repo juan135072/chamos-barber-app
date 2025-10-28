@@ -4,7 +4,68 @@ Scripts de utilidad para gestionar la base de datos Supabase en el VPS mediante 
 
 ## 📋 Scripts Disponibles
 
-### 1. test-supabase-connection.js
+### 0. 🎨 Database Viewer (NUEVO) - Visualizador Web Interactivo
+Interfaz web moderna para explorar tu base de datos visualmente.
+
+**Uso:**
+```bash
+npm run db:viewer
+# o
+node scripts/start-db-viewer.js
+```
+
+**Qué hace:**
+- 🌐 Servidor web en http://localhost:3001
+- 📊 Visualización interactiva de todas las tablas
+- 🔍 Búsqueda en tiempo real
+- 📥 Exportación a JSON con un clic
+- 🎨 Interfaz moderna y responsive
+
+**Acceso:**
+Se abre automáticamente en tu navegador o visita:
+- **Local**: http://localhost:3001
+- **Sandbox**: Usa GetServiceUrl para obtener URL pública
+
+**Características destacadas:**
+- ✅ No requiere extensiones de VS Code
+- ✅ 100% JavaScript vanilla
+- ✅ Conexión directa a Supabase VPS
+- ✅ Filtrado y búsqueda instantánea
+- ✅ Ver todas las 9 tablas con un clic
+
+---
+
+### 1. view-table.js (NUEVO) - Visualizador en Terminal
+Muestra datos de una tabla directamente en la terminal.
+
+**Uso:**
+```bash
+npm run db:view <tabla> [límite]
+# o
+node scripts/view-table.js barberos 10
+```
+
+**Ejemplos:**
+```bash
+# Ver todas las tablas disponibles
+npm run db:view
+
+# Ver primeros 5 barberos
+npm run db:view barberos 5
+
+# Ver todos los servicios
+npm run db:view servicios 100
+```
+
+**Qué hace:**
+- 📊 Muestra datos en tabla ASCII
+- 📝 Lista columnas y tipos
+- 🔢 Cuenta registros totales
+- 💡 Sugiere límites si hay más datos
+
+---
+
+### 2. test-supabase-connection.js
 Verifica la conexión con la instancia de Supabase VPS.
 
 **Uso:**
@@ -34,7 +95,24 @@ Service Key: ✅ Configurado
 
 ---
 
-### 2. supabase-schema.js
+### 3. open-supabase-studio.js (NUEVO) - Abrir Studio
+Abre Supabase Studio en tu navegador.
+
+**Uso:**
+```bash
+npm run db:studio
+# o
+node scripts/open-supabase-studio.js
+```
+
+**Qué hace:**
+- 🎨 Abre http://supabase.chamosbarber.com/
+- 🔑 Muestra el password de acceso
+- 💡 Tips de características disponibles
+
+---
+
+### 4. supabase-schema.js
 Explora la estructura completa de la base de datos.
 
 **Uso:**
@@ -65,7 +143,7 @@ node scripts/supabase-schema.js
 
 ---
 
-### 3. backup-database.js
+### 5. backup-database.js
 Crea un backup completo de todas las tablas.
 
 **Uso:**
@@ -101,7 +179,7 @@ backups/
 
 ---
 
-### 4. supabase-query.js
+### 6. supabase-query.js
 Ejecuta consultas SQL directas en la base de datos.
 
 **Uso:**
