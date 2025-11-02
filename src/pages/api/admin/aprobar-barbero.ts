@@ -124,7 +124,7 @@ export default async function handler(
       throw new Error(`Error creando barbero: ${barberoError?.message || 'Barbero no retornado'}`)
     }
 
-    barberoId = barbero.id
+    barberoId = barbero!.id // ✅ Aserción de tipo: barbero es no-nulo aquí
     console.log('✅ [Paso 2] Barbero creado con ID:', barberoId)
 
     // PASO 3: Crear admin_user con el mismo UUID
@@ -147,7 +147,7 @@ export default async function handler(
       throw new Error(`Error creando admin_user: ${adminError?.message || 'AdminUser no retornado'}`)
     }
 
-    console.log('✅ [Paso 3] Admin_user creado con ID:', adminUser.id)
+    console.log('✅ [Paso 3] Admin_user creado con ID:', adminUser!.id) // ✅ Aserción de tipo
 
     // PASO 4: Actualizar la solicitud como aprobada
     console.log('📝 [Paso 4] Actualizando solicitud...')
