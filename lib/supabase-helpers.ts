@@ -547,7 +547,12 @@ export const chamosSupabase = {
     descripcion?: string
     experiencia_anos: number
     imagen_url?: string
-  }) => {
+  }): Promise<{
+    barbero: Barbero
+    adminUser: AdminUser
+    solicitud: Database['public']['Tables']['solicitudes_barberos']['Row']
+    password: string
+  }> => {
     // 1. Crear el barbero
     const { data: barbero, error: barberoError } = await supabase
       .from('barberos')
@@ -604,10 +609,11 @@ export const chamosSupabase = {
 
     if (solicitudError) throw solicitudError
 
+    // Non-null assertions: if we reach here, all operations succeeded
     return {
-      barbero,
-      adminUser,
-      solicitud,
+      barbero: barbero!,
+      adminUser: adminUser!,
+      solicitud: solicitud!,
       password // Devolver la contraseña generada para mostrarla al admin
     }
   },
