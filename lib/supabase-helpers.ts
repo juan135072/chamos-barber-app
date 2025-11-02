@@ -227,6 +227,57 @@ export const chamosSupabase = {
     return data
   },
 
+  // Horarios de trabajo
+  getHorariosTrabajo: async (barbero_id?: string) => {
+    let query = supabase
+      .from('horarios_trabajo')
+      .select(`
+        *,
+        barberos (nombre, apellido)
+      `)
+
+    if (barbero_id) {
+      query = query.eq('barbero_id', barbero_id)
+    }
+
+    const { data, error } = await query.order('dia_semana').order('hora_inicio')
+    
+    if (error) throw error
+    return data
+  },
+
+  createHorarioTrabajo: async (horario: Database['public']['Tables']['horarios_trabajo']['Insert']) => {
+    const { data, error } = await supabase
+      .from('horarios_trabajo')
+      .insert([horario] as any)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  updateHorarioTrabajo: async (id: string, updates: Database['public']['Tables']['horarios_trabajo']['Update']) => {
+    const { data, error } = await supabase
+      .from('horarios_trabajo')
+      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  deleteHorarioTrabajo: async (id: string) => {
+    const { error } = await supabase
+      .from('horarios_trabajo')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  },
+
   // Portfolio
   getPortfolio: async (barbero_id?: string) => {
     let query = supabase

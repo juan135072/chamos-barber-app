@@ -111,3 +111,13 @@ temp/
 *.njsproj
 *.sln
 *.sw?
+# Supabase MCP Configuration (contains sensitive keys)
+supabase-mcp-config.json
+
+# Environment files with credentials
+.env.local
+.env*.local
+
+# Database backups (contain production data)
+backups/
+CREDENCIALES-ADMIN.md

@@ -1,6 +1,6 @@
 {
   "name": "chamos-barber-nextjs",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Chamos Barber - Sistema completo de gestión para barbería venezolana en Chile",
   "private": true,
   "scripts": {
@@ -8,35 +8,46 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "export": "next export"
+    "export": "next export",
+    "db:test": "node scripts/test-supabase-connection.js",
+    "db:schema": "node scripts/supabase-schema.js",
+    "db:backup": "node scripts/backup-database.js",
+    "db:query": "node scripts/supabase-query.js",
+    "db:view": "node scripts/view-table.js",
+    "db:viewer": "node scripts/start-db-viewer.js",
+    "db:studio": "node scripts/open-supabase-studio.js"
   },
   "dependencies": {
-    "next": "14.0.4",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
     "@fortawesome/fontawesome-free": "^6.5.1",
-    "@supabase/supabase-js": "^2.38.0",
+    "@hookform/resolvers": "^5.2.2",
     "@supabase/auth-helpers-react": "^0.4.2",
     "@supabase/auth-ui-react": "^0.4.6",
     "@supabase/auth-ui-shared": "^0.1.8",
-    "uuid": "^9.0.1",
-    "chart.js": "^4.4.1",
-    "react-chartjs-2": "^5.2.0",
-    "react-hook-form": "^7.48.2",
-    "date-fns": "^3.0.6",
+    "@supabase/supabase-js": "^2.38.0",
     "autoprefixer": "^10.4.16",
+    "chart.js": "^4.4.1",
+    "date-fns": "^3.6.0",
+    "next": "14.0.4",
     "postcss": "^8.4.32",
-    "tailwindcss": "^3.4.0"
+    "react": "^18.2.0",
+    "react-chartjs-2": "^5.2.0",
+    "react-dom": "^18.2.0",
+    "react-hook-form": "^7.66.0",
+    "react-hot-toast": "^2.6.0",
+    "tailwindcss": "^3.4.0",
+    "uuid": "^9.0.1",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@types/node": "^20.10.5",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
     "@types/uuid": "^9.0.7",
-    "typescript": "^5.3.3",
+    "dotenv": "^17.2.3",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.0.4",
-    "supabase": ">=1.8.1"
+    "supabase": ">=1.8.1",
+    "typescript": "^5.3.3"
   },
   "keywords": [
     "barberia",

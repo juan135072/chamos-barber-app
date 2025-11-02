@@ -5,6 +5,7 @@ import Layout from '../../components/Layout'
 
 interface Barbero {
   id: string
+  slug?: string
   nombre: string
   biografia: string
   foto_url: string
