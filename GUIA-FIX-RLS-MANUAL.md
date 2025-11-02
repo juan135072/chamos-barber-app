@@ -89,6 +89,20 @@ WHERE email = 'admin@chamosbarber.com';
   - Solo pueden ver su propio registro (verificado en código)
   - La tabla `admin_users` no es pública
 
+## ⚠️ IMPORTANTE: Solo Afecta a admin_users
+
+**Este script SOLO modifica la tabla `admin_users`:**
+- ❌ NO toca la tabla `barberos` (tus slugs están seguros)
+- ❌ NO toca la tabla `citas`
+- ❌ NO toca la tabla `servicios`
+- ❌ NO toca la tabla `barbero_portfolio`
+- ❌ NO toca ninguna otra tabla
+
+**Los comandos SQL son específicos:**
+- `DROP POLICY ... ON admin_users` - solo elimina de admin_users
+- `ALTER TABLE admin_users DISABLE ...` - solo modifica admin_users
+- El script incluye verificación para confirmar que otras tablas no fueron afectadas
+
 ## ✅ Verificación
 
 Después de ejecutar el SQL, prueba:

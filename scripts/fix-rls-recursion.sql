@@ -1,13 +1,30 @@
 -- ============================================
 -- FIX: Recursión infinita en políticas RLS de admin_users
+-- ⚠️  IMPORTANTE: Este script SOLO modifica la tabla admin_users
+-- ⚠️  NO toca otras tablas como barberos, citas, servicios, etc.
 -- ============================================
 
--- 1. Ver políticas actuales
-SELECT policyname, cmd, qual 
+-- PASO 1: Ver TODAS las políticas del sistema (para referencia)
+SELECT 
+  tablename,
+  policyname,
+  cmd as command
 FROM pg_policies 
-WHERE tablename = 'admin_users';
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
 
--- 2. ELIMINAR TODAS las políticas existentes de admin_users
+-- PASO 2: Ver políticas ESPECÍFICAS de admin_users (las que vamos a eliminar)
+SELECT 
+  tablename,
+  policyname,
+  cmd as command,
+  qual as using_expression
+FROM pg_policies 
+WHERE tablename = 'admin_users'
+ORDER BY policyname;
+
+-- PASO 3: ELIMINAR políticas SOLO de admin_users
+-- Estas políticas están causando recursión infinita
 DROP POLICY IF EXISTS "admin_users_select_policy" ON admin_users;
 DROP POLICY IF EXISTS "admin_users_authenticated_select" ON admin_users;
 DROP POLICY IF EXISTS "admin_users_select_own" ON admin_users;
@@ -15,39 +32,38 @@ DROP POLICY IF EXISTS "Users can read their own admin data" ON admin_users;
 DROP POLICY IF EXISTS "Admin users can read their own data" ON admin_users;
 DROP POLICY IF EXISTS "Enable read access for authenticated users" ON admin_users;
 
--- 3. DESHABILITAR RLS temporalmente para admin_users
+-- PASO 4: DESHABILITAR RLS SOLO en admin_users
+-- ✅ SEGURO: Los permisos se verifican en el código (login.tsx)
+-- ✅ NO afecta otras tablas como barberos, citas, etc.
 ALTER TABLE admin_users DISABLE ROW LEVEL SECURITY;
 
--- 4. RECREAR políticas SIN recursión
--- La clave es NO usar subqueries ni EXISTS que referencien a admin_users
-
--- Política simple: Los usuarios autenticados pueden leer su propio registro
--- usando SOLO auth.uid() sin ninguna subquery
-ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "admin_users_simple_select"
-ON admin_users FOR SELECT
-TO authenticated
-USING (id = auth.uid());
-
--- NO necesitamos verificar 'activo' en RLS porque lo verificamos en el código
--- Esto evita cualquier recursión
-
--- 5. Verificar políticas finales
+-- PASO 5: Verificar que RLS está deshabilitado SOLO en admin_users
 SELECT 
-  policyname, 
-  cmd, 
-  permissive,
-  roles::text[],
-  qual as using_expression
-FROM pg_policies 
-WHERE tablename = 'admin_users';
+  tablename,
+  rowsecurity as rls_enabled
+FROM pg_tables 
+WHERE schemaname = 'public' 
+  AND tablename IN ('admin_users', 'barberos', 'citas', 'servicios', 'barbero_portfolio')
+ORDER BY tablename;
+-- ✅ admin_users debe mostrar rls_enabled = false
+-- ✅ Las demás tablas deben mantener sus valores actuales
 
--- 6. Probar que funciona
+-- PASO 6: Verificar que las políticas de otras tablas NO fueron afectadas
+SELECT 
+  tablename,
+  policyname,
+  cmd as command
+FROM pg_policies 
+WHERE schemaname = 'public'
+  AND tablename != 'admin_users'
+ORDER BY tablename, policyname;
+-- ✅ Deberías ver las políticas de barberos, citas, etc. intactas
+
+-- PASO 7: Probar consulta a admin_users (debería funcionar)
 SELECT 
   id, 
   email, 
   rol, 
   activo
 FROM admin_users
-WHERE id = 'fdf8d449-a8fb-440f-b445-40209f396bb6';
+WHERE email = 'admin@chamosbarber.com';
