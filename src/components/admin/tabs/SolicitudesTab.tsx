@@ -8,6 +8,8 @@ interface SolicitudesTabProps {
   adminUserId: string
 }
 
+// Fix: Null-check added for result.barbero to prevent TypeScript error
+
 const SolicitudesTab: React.FC<SolicitudesTabProps> = ({ adminUserId }) => {
   const [solicitudes, setSolicitudes] = useState<SolicitudBarbero[]>([])
   const [loading, setLoading] = useState(true)
