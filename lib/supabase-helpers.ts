@@ -383,7 +383,7 @@ export const chamosSupabase = {
   getAdminUsers: async () => {
     const { data, error } = await supabase
       .from('admin_users')
-      .select('id, email, nombre, rol, activo, created_at')
+      .select('id, email, nombre, rol, activo, creado_en')
       .order('nombre')
     
     if (error) throw error
@@ -406,7 +406,7 @@ export const chamosSupabase = {
     const { data, error } = await supabase
       .from('admin_users')
       .insert([user] as any)
-      .select('id, email, nombre, rol, activo, created_at')
+      .select('id, email, nombre, rol, activo, creado_en')
       .single()
     
     if (error) throw error
@@ -416,9 +416,9 @@ export const chamosSupabase = {
   updateAdminUser: async (id: string, updates: Database['public']['Tables']['admin_users']['Update']) => {
     const { data, error } = await supabase
       .from('admin_users')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .update({ ...updates, actualizado_en: new Date().toISOString() } as any)
       .eq('id', id)
-      .select('id, email, nombre, rol, activo, created_at')
+      .select('id, email, nombre, rol, activo, creado_en')
       .single()
     
     if (error) throw error
@@ -600,8 +600,7 @@ export const chamosSupabase = {
         estado: 'aprobada',
         barbero_id: barbero.id,
         revisada_por: adminId,
-        fecha_revision: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        fecha_revision: new Date().toISOString()
       } as any)
       .eq('id', solicitudId)
       .select()
@@ -625,8 +624,7 @@ export const chamosSupabase = {
         estado: 'rechazada',
         motivo_rechazo: motivo,
         revisada_por: adminId,
-        fecha_revision: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        fecha_revision: new Date().toISOString()
       } as any)
       .eq('id', solicitudId)
       .select()

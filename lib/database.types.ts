@@ -13,41 +13,41 @@ export interface Database {
         Row: {
           id: string
           email: string
-          nombre: string
+          nombre: string | null
           rol: string
           barbero_id: string | null
           activo: boolean
           telefono: string | null
           avatar_url: string | null
           ultimo_acceso: string | null
-          created_at: string
-          updated_at: string
+          creado_en: string
+          actualizado_en: string
         }
         Insert: {
           id?: string
           email: string
-          nombre: string
+          nombre?: string | null
           rol?: string
           barbero_id?: string | null
           activo?: boolean
           telefono?: string | null
           avatar_url?: string | null
           ultimo_acceso?: string | null
-          created_at?: string
-          updated_at?: string
+          creado_en?: string
+          actualizado_en?: string
         }
         Update: {
           id?: string
           email?: string
-          nombre?: string
+          nombre?: string | null
           rol?: string
           barbero_id?: string | null
           activo?: boolean
           telefono?: string | null
           avatar_url?: string | null
           ultimo_acceso?: string | null
-          created_at?: string
-          updated_at?: string
+          creado_en?: string
+          actualizado_en?: string
         }
       }
       barberos: {
