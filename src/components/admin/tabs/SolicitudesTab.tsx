@@ -69,6 +69,11 @@ const SolicitudesTab: React.FC<SolicitudesTabProps> = ({ adminUserId }) => {
         }
       )
 
+      // Validar que el barbero fue creado correctamente
+      if (!result.barbero) {
+        throw new Error('Error al crear el barbero en la base de datos')
+      }
+
       setGeneratedPassword(result.password)
       alert(
         `✅ Solicitud aprobada!\n\n` +
