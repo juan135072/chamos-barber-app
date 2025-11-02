@@ -24,25 +24,33 @@ function Login() {
     if (!session?.user?.email) return
 
     try {
+      console.log('🔍 Verificando acceso para:', session.user.email)
+      console.log('🆔 User ID:', session.user.id)
+      
       const { data: adminUser, error } = await supabase
         .from('admin_users')
         .select('*')
-        .eq('email', session.user.email)
+        .eq('id', session.user.id)
         .eq('activo', true)
         .single()
 
+      console.log('📊 Resultado de consulta:', { adminUser, error })
+
       if (error) {
-        console.error('Error checking user access:', error)
-        alert('No tienes permisos para acceder. Contacta al administrador.')
+        console.error('❌ Error checking user access:', error)
+        alert(`No tienes permisos para acceder. Error: ${error.message}\nContacta al administrador.`)
         await supabase.auth.signOut()
         return
       }
 
       if (adminUser) {
+        console.log('✅ Usuario encontrado:', adminUser.email, 'Rol:', adminUser.rol)
         // Redirigir según el rol
         if (adminUser.rol === 'admin') {
+          console.log('➡️ Redirigiendo a /admin')
           router.push('/admin')
         } else if (adminUser.rol === 'barbero') {
+          console.log('➡️ Redirigiendo a /barbero-panel')
           router.push('/barbero-panel')
         } else {
           alert('Rol no reconocido. Contacta al administrador.')
@@ -50,11 +58,12 @@ function Login() {
         }
       } else {
         // Si no existe en admin_users, cerrar sesión
+        console.log('⚠️ Usuario no encontrado en admin_users')
         alert('Usuario no autorizado. Contacta al administrador.')
         await supabase.auth.signOut()
       }
     } catch (error) {
-      console.error('Error checking access:', error)
+      console.error('💥 Error checking access:', error)
       alert('Error al verificar permisos. Intenta nuevamente.')
       await supabase.auth.signOut()
     }
