@@ -5,8 +5,35 @@
 1. [Problemas de Autenticación](#problemas-de-autenticación)
 2. [Problemas de Base de Datos](#problemas-de-base-de-datos)
 3. [Problemas de Deployment](#problemas-de-deployment)
-4. [Problemas de UI/UX](#problemas-de-uiux)
-5. [Problemas de Performance](#problemas-de-performance)
+4. [Problemas de Build](#problemas-de-build)
+5. [Problemas de UI/UX](#problemas-de-uiux)
+6. [Problemas de Performance](#problemas-de-performance)
+
+## ⚡ Problemas Resueltos Recientemente
+
+### ✅ Fix: Import Path Incorrecto en CitasSection.tsx (2025-11-02)
+
+**Síntoma**: Build fallaba con error de TypeScript:
+```
+Type error: Cannot find module '../../lib/database.types'
+File: src/components/barbero/CitasSection.tsx
+```
+
+**Causa**: Path relativo incorrecto (2 niveles en lugar de 3).
+
+**Solución aplicada**: 
+```typescript
+// ANTES (incorrecto)
+import type { Database } from '../../lib/database.types'
+
+// DESPUÉS (correcto)
+import type { Database } from '../../../lib/database.types'
+```
+
+**Commit**: [`2d91c6f`](https://github.com/juan135072/chamos-barber-app/commit/2d91c6f4bebe8ed0388dad6ed8e35bbfd11b00a5)  
+**Status**: ✅ Resuelto - Deploy exitoso en producción
+
+Ver detalles completos en [Deployment Success 2025-11-02](./DEPLOYMENT_SUCCESS_2025-11-02.md)
 
 ---
 
@@ -309,17 +336,61 @@ Error: Cannot find module '../../../lib/database.types'
     at CitasTab.tsx:3:1
 ```
 
-**Causa**: Path relativo incorrecto
+**Causa**: Path relativo incorrecto en TypeScript imports
 
-**Solución**:
-```typescript
-// Contar niveles desde archivo hasta raíz
-// src/components/admin/tabs/CitasTab.tsx
-// tabs → admin → components → src → raíz = 4 niveles
+**Casos documentados**:
+1. ✅ **CitasTab.tsx** (resuelto commit `e62550e`)
+   - Ubicación: `src/components/admin/tabs/CitasTab.tsx`
+   - Path correcto: `../../../../lib/database.types` (4 niveles)
 
-// CORRECTO
-import type { Database } from '../../../../lib/database.types'
+2. ✅ **CitasSection.tsx** (resuelto commit `2d91c6f` - 2025-11-02)
+   - Ubicación: `src/components/barbero/CitasSection.tsx`
+   - Path correcto: `../../../lib/database.types` (3 niveles)
+
+**Método de diagnóstico**:
+```bash
+# 1. Identificar ubicación exacta del archivo
+pwd  # Verificar directorio actual
+ls -la src/components/barbero/
+
+# 2. Contar niveles hasta raíz
+# Ejemplo: src/components/barbero/CitasSection.tsx
+# barbero → components → src → raíz = 3 niveles
+
+# 3. Construir path correcto
+# ../../../lib/database.types
 ```
+
+**Solución paso a paso**:
+```typescript
+// 1. Identificar el archivo con error
+// src/components/barbero/CitasSection.tsx
+
+// 2. Contar niveles correctamente
+// barbero (1) → components (2) → src (3) → raíz
+// = 3 niveles = ../../../
+
+// 3. Aplicar corrección
+// ANTES (incorrecto)
+import type { Database } from '../../lib/database.types'
+
+// DESPUÉS (correcto)
+import type { Database } from '../../../lib/database.types'
+```
+
+**Prevención**:
+```bash
+# Siempre hacer build local antes de push
+cd /home/user/webapp
+npm run build
+
+# Si build local pasa, deployment también pasará
+# Si build local falla, arreglar antes de push
+```
+
+**Referencias**:
+- [Deployment Success 2025-11-02](./DEPLOYMENT_SUCCESS_2025-11-02.md) - Caso CitasSection.tsx
+- [Commit 2d91c6f](https://github.com/juan135072/chamos-barber-app/commit/2d91c6f4bebe8ed0388dad6ed8e35bbfd11b00a5)
 
 **Verificación local**:
 ```bash

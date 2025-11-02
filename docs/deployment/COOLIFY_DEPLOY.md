@@ -452,10 +452,52 @@ Si hay problemas con el deployment:
 
 ## 📝 Historial de Deployments
 
-| Fecha | Commit | Cambio | Estado |
-|-------|--------|--------|--------|
-| 2024-XX-XX | `e62550e` | Fix import path en CitasTab | ✅ Exitoso |
-| 2024-XX-XX | `abc123` | Agregar sistema de citas | ✅ Exitoso |
-| 2024-XX-XX | `def456` | Fix login admin | ✅ Exitoso |
+| Fecha | Commit | Cambio | Build Time | Estado |
+|-------|--------|--------|------------|--------|
+| 2025-11-02 | `2d91c6f` | Fix import path en CitasSection.tsx | ~2.5 min | ✅ **EXITOSO** |
+| 2025-11-02 | `e62550e` | Fix import path en CitasTab.tsx | ~2 min | ✅ Exitoso |
+| 2025-11-02 | Previo | Implementar sistema completo de citas | ~3 min | ✅ Exitoso |
+| 2025-11-02 | Previo | Crear documentación del proyecto | N/A | ✅ Exitoso |
+| 2025-11-01 | Previo | Fix login admin y RLS policies | ~2 min | ✅ Exitoso |
 
 > **Nota**: Actualizar esta tabla después de cada deployment importante
+
+### 🎉 Último Deployment Exitoso
+
+**Fecha**: 2025-11-02 17:39:15 UTC
+**Commit**: `2d91c6f4bebe8ed0388dad6ed8e35bbfd11b00a5`
+**Mensaje**: "fix(build): corregir path de import en CitasSection.tsx"
+
+#### Detalles del Build:
+- **Imagen Base**: `ghcr.io/railwayapp/nixpacks:ubuntu-1745885067`
+- **Node Version**: 18.20.5
+- **npm Version**: 9.9.4
+- **Build Time**: 2 minutos 30 segundos
+- **Image Size**: 554.76 MiB
+- **Estado**: ✅ Build exitoso, deployment completado
+
+#### Fases del Build:
+```
+1. Setup: nodejs_18, npm-9_x, curl, wget
+2. Install: npm ci (23.9s)
+3. Build: npm run build (29.3s)
+4. Start: npm run start
+```
+
+#### Rolling Update:
+- Nuevo container: `doowogccoc04kk84kogo48gc-173611771443`
+- Container anterior: `doowogccoc04kk84kogo48gc-173251663337` (removido exitosamente)
+- Zero downtime deployment: ✅
+
+#### URLs Activas:
+- **Producción**: https://chamosbarber.com
+- **WWW**: https://www.chamosbarber.com
+
+#### Verificación Post-Deploy:
+```bash
+# Server está corriendo exitosamente
+✅ Container started
+✅ Rolling update completed
+✅ Old containers removed
+✅ Application accessible
+```
