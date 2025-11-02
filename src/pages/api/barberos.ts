@@ -1,5 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../../lib/initSupabase'
+import type { Database } from '../../../lib/database.types'
+
+type Barbero = Database['public']['Tables']['barberos']['Row']
 
 export default async function handler(
   req: NextApiRequest,
@@ -21,8 +24,12 @@ export default async function handler(
       return res.status(500).json({ error: 'Error fetching barberos', details: error.message })
     }
 
+    if (!data) {
+      return res.status(200).json({ data: [] })
+    }
+
     // Mapear los datos de la BD al formato que espera el frontend
-    const mappedData = data.map(barbero => ({
+    const mappedData = (data as Barbero[]).map(barbero => ({
       id: barbero.id,
       nombre: `${barbero.nombre} ${barbero.apellido}`,
       biografia: barbero.descripcion || '',

@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '../../lib/supabase'
+import { supabase } from '../../../lib/initSupabase'
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,7 +10,7 @@ export default async function handler(
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await (supabase as any)
       .from('configuracion_sitio')
       .select('*')
       .limit(1)
@@ -20,7 +20,11 @@ export default async function handler(
       return res.status(500).json({ error: 'Error fetching configuration', details: error.message })
     }
 
-    return res.status(200).json(data || [])
+    if (!data) {
+      return res.status(200).json([])
+    }
+
+    return res.status(200).json(data)
   } catch (error) {
     console.error('API error:', error)
     return res.status(500).json({ error: 'Internal server error' })
