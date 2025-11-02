@@ -120,3 +120,4 @@ supabase-mcp-config.json
 
 # Database backups (contain production data)
 backups/
+CREDENCIALES-ADMIN.md
