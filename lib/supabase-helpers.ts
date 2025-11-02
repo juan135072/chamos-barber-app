@@ -553,161 +553,41 @@ export const chamosSupabase = {
     solicitud: Database['public']['Tables']['solicitudes_barberos']['Row']
     password: string
   }> => {
-    // Import del admin client (lazy loading para evitar errores si no está configurado)
-    let supabaseAdmin
-    try {
-      const adminModule = await import('./supabase-admin')
-      supabaseAdmin = adminModule.supabaseAdmin
-    } catch (error) {
-      throw new Error('❌ Supabase Admin Client no está configurado. Verifica que SUPABASE_SERVICE_ROLE_KEY esté en las variables de entorno.')
+    // Llamar a la API route que se ejecuta en el servidor
+    // Esto es necesario porque SUPABASE_SERVICE_ROLE_KEY solo está disponible en el servidor
+    console.log('🔄 [aprobarSolicitudBarbero] Llamando a API route...')
+    
+    const response = await fetch('/api/admin/aprobar-barbero', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        solicitudId,
+        adminId,
+        barberoData
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }))
+      console.error('❌ Error de la API:', errorData)
+      throw new Error(errorData.error || `Error HTTP ${response.status}`)
     }
 
-    // Generar contraseña segura
-    const password = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
+    const data = await response.json()
     
-    console.log('🔄 [aprobarSolicitudBarbero] Iniciando proceso de aprobación...')
-    console.log('📧 Email:', barberoData.email)
+    if (!data.success) {
+      throw new Error(data.error || 'Error aprobando solicitud')
+    }
 
-    let authUserId: string | null = null
-    let barberoId: string | null = null
-
-    try {
-      // PASO 1: Crear usuario en Supabase Auth
-      console.log('🔐 [Paso 1] Creando usuario en Supabase Auth...')
-      const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
-        email: barberoData.email,
-        password: password,
-        email_confirm: true, // Auto-confirmar email
-        user_metadata: {
-          nombre: barberoData.nombre,
-          apellido: barberoData.apellido,
-          rol: 'barbero'
-        }
-      })
-
-      if (authError || !authUser.user) {
-        console.error('❌ [Paso 1] Error creando usuario en Auth:', authError)
-        throw new Error(`Error creando usuario en Supabase Auth: ${authError?.message || 'Usuario no retornado'}`)
-      }
-
-      authUserId = authUser.user.id
-      console.log('✅ [Paso 1] Usuario creado en Auth con ID:', authUserId)
-
-      // PASO 2: Crear barbero con el UUID de Auth
-      console.log('💈 [Paso 2] Creando barbero en tabla barberos...')
-      const { data: barbero, error: barberoError } = await supabase
-        .from('barberos')
-        .insert([{
-          id: authUserId, // ✅ Usar UUID de Auth para sincronización
-          nombre: barberoData.nombre,
-          apellido: barberoData.apellido,
-          email: barberoData.email,
-          telefono: barberoData.telefono,
-          especialidad: barberoData.especialidad,
-          descripcion: barberoData.descripcion,
-          experiencia_anos: barberoData.experiencia_anos,
-          imagen_url: barberoData.imagen_url,
-          activo: true
-        }] as any)
-        .select()
-        .single()
-
-      if (barberoError || !barbero) {
-        console.error('❌ [Paso 2] Error creando barbero:', barberoError)
-        throw new Error(`Error creando barbero: ${barberoError?.message || 'Barbero no retornado'}`)
-      }
-
-      barberoId = barbero.id
-      console.log('✅ [Paso 2] Barbero creado con ID:', barberoId)
-
-      // PASO 3: Crear admin_user con el mismo UUID
-      console.log('👤 [Paso 3] Creando admin_user...')
-      const { data: adminUser, error: adminError } = await supabase
-        .from('admin_users')
-        .insert([{
-          id: authUserId, // ✅ Mismo UUID que Auth
-          email: barberoData.email,
-          nombre: `${barberoData.nombre} ${barberoData.apellido}`,
-          rol: 'barbero',
-          barbero_id: barberoId,
-          activo: true
-        }] as any)
-        .select()
-        .single()
-
-      if (adminError || !adminUser) {
-        console.error('❌ [Paso 3] Error creando admin_user:', adminError)
-        throw new Error(`Error creando admin_user: ${adminError?.message || 'AdminUser no retornado'}`)
-      }
-
-      console.log('✅ [Paso 3] Admin_user creado con ID:', adminUser.id)
-
-      // PASO 4: Actualizar la solicitud como aprobada
-      console.log('📝 [Paso 4] Actualizando solicitud...')
-      const { data: solicitud, error: solicitudError } = await supabase
-        .from('solicitudes_barberos')
-        .update({
-          estado: 'aprobada',
-          barbero_id: barberoId,
-          revisada_por: adminId,
-          fecha_revision: new Date().toISOString()
-        } as any)
-        .eq('id', solicitudId)
-        .select()
-        .single()
-
-      if (solicitudError || !solicitud) {
-        console.error('❌ [Paso 4] Error actualizando solicitud:', solicitudError)
-        throw new Error(`Error actualizando solicitud: ${solicitudError?.message || 'Solicitud no retornada'}`)
-      }
-
-      console.log('✅ [Paso 4] Solicitud actualizada correctamente')
-      console.log('🎉 [aprobarSolicitudBarbero] Proceso completado exitosamente')
-
-      // Non-null assertions: if we reach here, all operations succeeded
-      return {
-        barbero: barbero!,
-        adminUser: adminUser!,
-        solicitud: solicitud!,
-        password
-      }
-
-    } catch (error) {
-      // ROLLBACK: Limpiar todo lo que se haya creado
-      console.error('🔄 [ROLLBACK] Error detectado, iniciando rollback...')
-      
-      if (authUserId && supabaseAdmin) {
-        console.log('🗑️ [ROLLBACK] Eliminando usuario de Auth:', authUserId)
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(authUserId)
-          console.log('✅ [ROLLBACK] Usuario de Auth eliminado')
-        } catch (rollbackError) {
-          console.error('❌ [ROLLBACK] Error eliminando usuario de Auth:', rollbackError)
-        }
-      }
-
-      if (barberoId) {
-        console.log('🗑️ [ROLLBACK] Eliminando barbero:', barberoId)
-        try {
-          await supabase.from('barberos').delete().eq('id', barberoId)
-          console.log('✅ [ROLLBACK] Barbero eliminado')
-        } catch (rollbackError) {
-          console.error('❌ [ROLLBACK] Error eliminando barbero:', rollbackError)
-        }
-      }
-
-      if (authUserId) {
-        console.log('🗑️ [ROLLBACK] Eliminando admin_user:', authUserId)
-        try {
-          await supabase.from('admin_users').delete().eq('id', authUserId)
-          console.log('✅ [ROLLBACK] Admin_user eliminado')
-        } catch (rollbackError) {
-          console.error('❌ [ROLLBACK] Error eliminando admin_user:', rollbackError)
-        }
-      }
-
-      console.error('❌ [aprobarSolicitudBarbero] Proceso fallido después de rollback')
-      throw error
+    console.log('✅ [aprobarSolicitudBarbero] Solicitud aprobada exitosamente')
+    
+    return {
+      barbero: data.barbero,
+      adminUser: data.adminUser,
+      solicitud: data.solicitud,
+      password: data.password
     }
   },
 
