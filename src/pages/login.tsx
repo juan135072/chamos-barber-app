@@ -24,21 +24,38 @@ function Login() {
     if (!session?.user?.email) return
 
     try {
-      const { data: adminUser } = await supabase
+      const { data: adminUser, error } = await supabase
         .from('admin_users')
         .select('*')
         .eq('email', session.user.email)
         .eq('activo', true)
         .single()
 
+      if (error) {
+        console.error('Error checking user access:', error)
+        alert('No tienes permisos para acceder. Contacta al administrador.')
+        await supabase.auth.signOut()
+        return
+      }
+
       if (adminUser) {
-        router.push('/admin')
+        // Redirigir según el rol
+        if (adminUser.rol === 'admin') {
+          router.push('/admin')
+        } else if (adminUser.rol === 'barbero') {
+          router.push('/barbero-panel')
+        } else {
+          alert('Rol no reconocido. Contacta al administrador.')
+          await supabase.auth.signOut()
+        }
       } else {
-        // Si no es admin, cerrar sesión
+        // Si no existe en admin_users, cerrar sesión
+        alert('Usuario no autorizado. Contacta al administrador.')
         await supabase.auth.signOut()
       }
     } catch (error) {
-      console.error('Error checking admin access:', error)
+      console.error('Error checking access:', error)
+      alert('Error al verificar permisos. Intenta nuevamente.')
       await supabase.auth.signOut()
     }
   }
