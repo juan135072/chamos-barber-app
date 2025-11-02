@@ -23,7 +23,7 @@ const ReservarPage: React.FC = () => {
     notas: ''
   })
   const [loading, setLoading] = useState(false)
-  const [availableSlots, setAvailableSlots] = useState<{hora: string, disponible: boolean}[]>([])
+  const [availableSlots, setAvailableSlots] = useState<{hora: string, disponible: boolean, motivo?: string}[]>([])
 
   const totalSteps = 5
 
