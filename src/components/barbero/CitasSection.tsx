@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
-import type { Database } from '../../lib/database.types'
+import type { Database } from '../../../lib/database.types'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   servicios?: { nombre: string; precio: number }
