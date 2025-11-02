@@ -171,28 +171,44 @@ export const chamosSupabase = {
   },
 
   createCita: async (cita: Database['public']['Tables']['citas']['Insert']) => {
+    console.log('🔍 [createCita] Iniciando validaciones con datos:', cita)
+    
     // VALIDACIÓN 1: Verificar disponibilidad antes de insertar
-    const { data: existingCitas } = await supabase
+    console.log('🔍 [createCita] VALIDACIÓN 1: Verificando citas existentes...')
+    const { data: existingCitas, error: checkError } = await supabase
       .from('citas')
       .select('id, cliente_nombre')
       .eq('barbero_id', cita.barbero_id)
       .eq('fecha', cita.fecha)
       .eq('hora', cita.hora)
       .in('estado', ['pendiente', 'confirmada']) // Solo considerar activas
+    
+    if (checkError) {
+      console.error('❌ [createCita] Error al verificar citas existentes:', checkError)
+      throw new Error(`Error al verificar disponibilidad: ${checkError.message}`)
+    }
 
+    console.log('🔍 [createCita] Citas existentes encontradas:', existingCitas?.length || 0)
     if (existingCitas && existingCitas.length > 0) {
+      console.warn('⚠️ [createCita] Horario ya reservado:', existingCitas)
       throw new Error('⚠️ Lo sentimos, este horario acaba de ser reservado por otro cliente. Por favor selecciona otro horario.')
     }
 
     // VALIDACIÓN 2: Verificar que no sea una hora pasada
+    console.log('🔍 [createCita] VALIDACIÓN 2: Verificando hora no sea pasada...')
     const fechaHora = new Date(`${cita.fecha}T${cita.hora}`)
     const ahora = new Date()
     
+    console.log('🔍 [createCita] Fecha/Hora cita:', fechaHora.toISOString())
+    console.log('🔍 [createCita] Fecha/Hora actual:', ahora.toISOString())
+    
     if (fechaHora <= ahora) {
+      console.warn('⚠️ [createCita] Intento de reservar en el pasado')
       throw new Error('⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.')
     }
 
     // VALIDACIÓN 3: Intentar insertar con manejo de race conditions
+    console.log('🔍 [createCita] VALIDACIÓN 3: Intentando insertar cita en BD...')
     const { data, error } = await supabase
       .from('citas')
       .insert([cita] as any)
@@ -200,13 +216,19 @@ export const chamosSupabase = {
       .single()
     
     if (error) {
+      console.error('❌ [createCita] Error al insertar cita:', error)
+      console.error('❌ [createCita] Código de error:', error.code)
+      console.error('❌ [createCita] Mensaje de error:', error.message)
+      console.error('❌ [createCita] Detalles completos:', JSON.stringify(error, null, 2))
+      
       // Si es un error de constraint único (race condition), mensaje más claro
       if (error.code === '23505') {
         throw new Error('⚠️ Este horario fue reservado mientras completabas el formulario. Por favor selecciona otro horario.')
       }
-      throw error
+      throw new Error(`Error de base de datos: ${error.message}`)
     }
     
+    console.log('✅ [createCita] Cita creada exitosamente:', data)
     return data as Cita
   },
 

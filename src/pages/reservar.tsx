@@ -136,8 +136,19 @@ const ReservarPage: React.FC = () => {
   const handleSubmit = async () => {
     setLoading(true)
     try {
+      console.log('🔄 Iniciando reserva con datos:', {
+        servicio_id: formData.servicio_id,
+        barbero_id: formData.barbero_id,
+        fecha: formData.fecha,
+        hora: formData.hora,
+        cliente_nombre: formData.cliente_nombre,
+        cliente_telefono: formData.cliente_telefono,
+        cliente_email: formData.cliente_email,
+        estado: 'pendiente'
+      })
+      
       // Crear cita usando helper de Supabase
-      await chamosSupabase.createCita({
+      const result = await chamosSupabase.createCita({
         servicio_id: formData.servicio_id,
         barbero_id: formData.barbero_id,
         fecha: formData.fecha,
@@ -148,7 +159,8 @@ const ReservarPage: React.FC = () => {
         notas: formData.notas || null,
         estado: 'pendiente'
       })
-
+      
+      console.log('✅ Cita creada exitosamente:', result)
       alert('¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
       
       // Reset form
@@ -164,10 +176,23 @@ const ReservarPage: React.FC = () => {
       })
       setCurrentStep(1)
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ Error completo al reservar:', error)
+      console.error('❌ Tipo de error:', typeof error)
+      console.error('❌ Error es instancia de Error:', error instanceof Error)
+      
       if (error instanceof Error) {
+        console.error('❌ Mensaje del error:', error.message)
         alert(error.message)
+      } else if (typeof error === 'object' && error !== null) {
+        console.error('❌ Error como objeto:', JSON.stringify(error, null, 2))
+        const errorObj = error as any
+        if (errorObj.message) {
+          alert(errorObj.message)
+        } else {
+          alert('Error al reservar la cita. Por favor, inténtalo de nuevo.')
+        }
       } else {
+        console.error('❌ Error desconocido:', String(error))
         alert('Error al reservar la cita. Por favor, inténtalo de nuevo.')
       }
     } finally {
