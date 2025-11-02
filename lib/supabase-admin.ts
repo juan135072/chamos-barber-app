@@ -9,14 +9,24 @@ import { createClient } from '@supabase/supabase-js'
 import type { Database } from './database.types'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+// Intentar obtener la service role key desde diferentes nombres de variables
+// (para compatibilidad con diferentes configuraciones de Supabase)
+const supabaseServiceRoleKey = 
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||           // Nombre estándar
+  process.env.SERVICE_SUPABASESERVICE_KEY ||          // Nombre alternativo en algunos setups
+  process.env.SUPABASE_SERVICE_KEY                    // Otro nombre alternativo
 
 if (!supabaseUrl) {
-  throw new Error('❌ SUPABASE_URL no está definida en variables de entorno')
+  throw new Error('❌ NEXT_PUBLIC_SUPABASE_URL no está definida en variables de entorno')
 }
 
 if (!supabaseServiceRoleKey) {
-  throw new Error('❌ SUPABASE_SERVICE_ROLE_KEY no está definida en variables de entorno')
+  throw new Error(
+    '❌ Service Role Key no está definida. ' +
+    'Intenta agregar alguna de estas variables: ' +
+    'SUPABASE_SERVICE_ROLE_KEY, SERVICE_SUPABASESERVICE_KEY, o SUPABASE_SERVICE_KEY'
+  )
 }
 
 /**
