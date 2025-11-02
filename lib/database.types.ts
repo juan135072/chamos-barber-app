@@ -15,6 +15,7 @@ export interface Database {
           email: string
           nombre: string
           rol: string
+          barbero_id: string | null
           activo: boolean
           telefono: string | null
           avatar_url: string | null
@@ -27,6 +28,7 @@ export interface Database {
           email: string
           nombre: string
           rol?: string
+          barbero_id?: string | null
           activo?: boolean
           telefono?: string | null
           avatar_url?: string | null
@@ -39,6 +41,7 @@ export interface Database {
           email?: string
           nombre?: string
           rol?: string
+          barbero_id?: string | null
           activo?: boolean
           telefono?: string | null
           avatar_url?: string | null
