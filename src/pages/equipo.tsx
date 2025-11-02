@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 
 interface Barbero {
   id: string
+  slug?: string
   nombre: string
   biografia: string
   foto_url: string
@@ -73,7 +74,7 @@ const EquipoPage: React.FC = () => {
               barberos.map((barbero) => (
                 <Link 
                   key={barbero.id} 
-                  href={`/barbero/${barbero.id}`} 
+                  href={`/barbero/${barbero.slug || barbero.id}`} 
                   className="barber-card"
                 >
                   <div 
