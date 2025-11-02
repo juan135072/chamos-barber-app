@@ -9,6 +9,7 @@ import ServiciosTab from '../components/admin/tabs/ServiciosTab'
 import HorariosTab from '../components/admin/tabs/HorariosTab'
 import ConfiguracionTab from '../components/admin/tabs/ConfiguracionTab'
 import CitasTab from '../components/admin/tabs/CitasTab'
+import SolicitudesTab from '../components/admin/tabs/SolicitudesTab'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -165,6 +166,7 @@ export default function AdminPage() {
               {[
                 { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie' },
                 { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt' },
+                { id: 'solicitudes', name: 'Solicitudes', icon: 'fas fa-user-plus' },
                 { id: 'barberos', name: 'Barberos', icon: 'fas fa-users' },
                 { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut' }
               ].map(tab => (
@@ -322,6 +324,9 @@ export default function AdminPage() {
 
           {/* Citas Tab */}
           {activeTab === 'citas' && <CitasTab />}
+
+          {/* Solicitudes Tab */}
+          {activeTab === 'solicitudes' && adminUser && <SolicitudesTab adminUserId={adminUser.id} />}
 
           {/* Usuarios Tab (placeholder) */}
           {activeTab === 'usuarios' && (

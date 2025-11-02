@@ -148,6 +148,15 @@ function Login() {
                 />
 
                 <div className="mt-6 pt-6 border-t border-gray-200">
+                  <div className="text-center mb-4">
+                    <Link 
+                      href="/registro-barbero"
+                      className="inline-flex items-center space-x-2 text-amber-600 hover:text-amber-700 font-medium transition-colors"
+                    >
+                      <i className="fas fa-user-plus"></i>
+                      <span>¿Eres barbero? Regístrate aquí</span>
+                    </Link>
+                  </div>
                   <div className="flex items-center justify-center text-sm text-gray-500">
                     <i className="fas fa-shield-alt mr-2"></i>
                     <span>Conexión segura y encriptada</span>

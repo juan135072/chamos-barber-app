@@ -449,7 +449,7 @@ export const chamosSupabase = {
   },
 
   updateConfiguracion: async (clave: string, valor: string) => {
-    const { data, error } = await supabase
+    const { data, error} = await supabase
       .from('sitio_configuracion')
       .update({ 
         valor,
@@ -459,6 +459,173 @@ export const chamosSupabase = {
       .select()
       .single()
     
+    if (error) throw error
+    return data
+  },
+
+  // Solicitudes de Barberos
+  getSolicitudesBarberos: async (filters?: {
+    estado?: string
+    email?: string
+  }) => {
+    let query = supabase
+      .from('solicitudes_barberos')
+      .select(`
+        *,
+        admin_users!revisada_por (nombre, email),
+        barberos (nombre, apellido)
+      `)
+
+    if (filters?.estado) {
+      query = query.eq('estado', filters.estado)
+    }
+    if (filters?.email) {
+      query = query.eq('email', filters.email)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+    
+    if (error) throw error
+    return data || []
+  },
+
+  getSolicitudBarbero: async (id: string) => {
+    const { data, error } = await supabase
+      .from('solicitudes_barberos')
+      .select(`
+        *,
+        admin_users!revisada_por (nombre, email),
+        barberos (nombre, apellido)
+      `)
+      .eq('id', id)
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  createSolicitudBarbero: async (solicitud: Database['public']['Tables']['solicitudes_barberos']['Insert']) => {
+    // Verificar que el email no esté ya registrado
+    const { data: existingEmail } = await supabase
+      .from('solicitudes_barberos')
+      .select('id')
+      .eq('email', solicitud.email)
+      .in('estado', ['pendiente', 'aprobada'])
+
+    if (existingEmail && existingEmail.length > 0) {
+      throw new Error('Ya existe una solicitud con este email')
+    }
+
+    const { data, error } = await supabase
+      .from('solicitudes_barberos')
+      .insert([solicitud] as any)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  updateSolicitudBarbero: async (id: string, updates: Database['public']['Tables']['solicitudes_barberos']['Update']) => {
+    const { data, error } = await supabase
+      .from('solicitudes_barberos')
+      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  aprobarSolicitudBarbero: async (solicitudId: string, adminId: string, barberoData: {
+    nombre: string
+    apellido: string
+    email: string
+    telefono: string
+    especialidad: string
+    descripcion?: string
+    experiencia_anos: number
+    imagen_url?: string
+  }) => {
+    // 1. Crear el barbero
+    const { data: barbero, error: barberoError } = await supabase
+      .from('barberos')
+      .insert([{
+        nombre: barberoData.nombre,
+        apellido: barberoData.apellido,
+        email: barberoData.email,
+        telefono: barberoData.telefono,
+        especialidad: barberoData.especialidad,
+        descripcion: barberoData.descripcion,
+        experiencia_anos: barberoData.experiencia_anos,
+        imagen_url: barberoData.imagen_url,
+        activo: true
+      }] as any)
+      .select()
+      .single()
+
+    if (barberoError) throw barberoError
+
+    // 2. Crear usuario admin para el barbero
+    const password = `Chamos${Math.random().toString(36).slice(-8)}!`
+    
+    const { data: adminUser, error: adminError } = await supabase
+      .from('admin_users')
+      .insert([{
+        email: barberoData.email,
+        nombre: `${barberoData.nombre} ${barberoData.apellido}`,
+        rol: 'barbero',
+        barbero_id: barbero.id,
+        activo: true
+      }] as any)
+      .select()
+      .single()
+
+    if (adminError) {
+      // Si falla crear el admin_user, eliminar el barbero creado
+      await supabase.from('barberos').delete().eq('id', barbero.id)
+      throw adminError
+    }
+
+    // 3. Actualizar la solicitud como aprobada
+    const { data: solicitud, error: solicitudError } = await supabase
+      .from('solicitudes_barberos')
+      .update({
+        estado: 'aprobada',
+        barbero_id: barbero.id,
+        revisada_por: adminId,
+        fecha_revision: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as any)
+      .eq('id', solicitudId)
+      .select()
+      .single()
+
+    if (solicitudError) throw solicitudError
+
+    return {
+      barbero,
+      adminUser,
+      solicitud,
+      password // Devolver la contraseña generada para mostrarla al admin
+    }
+  },
+
+  rechazarSolicitudBarbero: async (solicitudId: string, adminId: string, motivo: string) => {
+    const { data, error } = await supabase
+      .from('solicitudes_barberos')
+      .update({
+        estado: 'rechazada',
+        motivo_rechazo: motivo,
+        revisada_por: adminId,
+        fecha_revision: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      } as any)
+      .eq('id', solicitudId)
+      .select()
+      .single()
+
     if (error) throw error
     return data
   }

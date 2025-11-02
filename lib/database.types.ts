@@ -396,6 +396,68 @@ export interface Database {
           updated_at?: string
         }
       }
+      solicitudes_barberos: {
+        Row: {
+          id: string
+          nombre: string
+          apellido: string
+          email: string
+          telefono: string
+          anos_experiencia: number
+          especialidades: string | null
+          biografia: string | null
+          foto_perfil_url: string | null
+          portfolio_urls: string | null
+          estado: string
+          motivo_rechazo: string | null
+          revisada_por: string | null
+          fecha_revision: string | null
+          barbero_id: string | null
+          notas_admin: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          apellido: string
+          email: string
+          telefono: string
+          anos_experiencia: number
+          especialidades?: string | null
+          biografia?: string | null
+          foto_perfil_url?: string | null
+          portfolio_urls?: string | null
+          estado?: string
+          motivo_rechazo?: string | null
+          revisada_por?: string | null
+          fecha_revision?: string | null
+          barbero_id?: string | null
+          notas_admin?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          apellido?: string
+          email?: string
+          telefono?: string
+          anos_experiencia?: number
+          especialidades?: string | null
+          biografia?: string | null
+          foto_perfil_url?: string | null
+          portfolio_urls?: string | null
+          estado?: string
+          motivo_rechazo?: string | null
+          revisada_por?: string | null
+          fecha_revision?: string | null
+          barbero_id?: string | null
+          notas_admin?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
