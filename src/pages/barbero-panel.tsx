@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
 import Layout from '../components/Layout'
 import toast, { Toaster } from 'react-hot-toast'
+import CitasSection from '../components/barbero/CitasSection'
 
 interface BarberoProfile {
   id: string
@@ -35,7 +36,7 @@ const BarberoPanelPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<BarberoProfile | null>(null)
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
-  const [activeTab, setActiveTab] = useState<'perfil' | 'portfolio'>('perfil')
+  const [activeTab, setActiveTab] = useState<'perfil' | 'portfolio' | 'citas'>('citas')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -216,6 +217,22 @@ const BarberoPanelPage: React.FC = () => {
             <i className="fas fa-user"></i> Mi Perfil
           </button>
           <button
+            onClick={() => setActiveTab('citas')}
+            style={{
+              padding: '1rem 2rem',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'citas' ? '3px solid var(--accent-color)' : 'none',
+              color: activeTab === 'citas' ? 'var(--accent-color)' : 'var(--text-primary)',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '1rem',
+              transition: 'all 0.3s'
+            }}
+          >
+            <i className="fas fa-calendar-alt"></i> Mis Citas
+          </button>
+          <button
             onClick={() => setActiveTab('portfolio')}
             style={{
               padding: '1rem 2rem',
@@ -234,6 +251,10 @@ const BarberoPanelPage: React.FC = () => {
         </div>
 
         {/* Content */}
+        {activeTab === 'citas' && profile && (
+          <CitasSection barberoId={profile.id} />
+        )}
+
         {activeTab === 'perfil' && (
           <div style={{ 
             maxWidth: '800px', 

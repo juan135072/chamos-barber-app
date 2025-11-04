@@ -15,6 +15,7 @@ export interface Database {
           email: string
           nombre: string
           rol: string
+          barbero_id: string | null
           activo: boolean
           telefono: string | null
           avatar_url: string | null
@@ -27,6 +28,7 @@ export interface Database {
           email: string
           nombre: string
           rol?: string
+          barbero_id?: string | null
           activo?: boolean
           telefono?: string | null
           avatar_url?: string | null
@@ -39,6 +41,7 @@ export interface Database {
           email?: string
           nombre?: string
           rol?: string
+          barbero_id?: string | null
           activo?: boolean
           telefono?: string | null
           avatar_url?: string | null
@@ -143,6 +146,65 @@ export interface Database {
           imagen_url?: string | null
           popular?: boolean
           orden_display?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      solicitudes_barberos: {
+        Row: {
+          id: string
+          nombre: string
+          apellido: string
+          email: string
+          telefono: string
+          especialidad: string
+          descripcion: string | null
+          experiencia_anos: number
+          imagen_url: string | null
+          estado: string
+          barbero_id: string | null
+          revisada_por: string | null
+          fecha_solicitud: string
+          fecha_revision: string | null
+          notas_revision: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          apellido: string
+          email: string
+          telefono: string
+          especialidad: string
+          descripcion?: string | null
+          experiencia_anos?: number
+          imagen_url?: string | null
+          estado?: string
+          barbero_id?: string | null
+          revisada_por?: string | null
+          fecha_solicitud?: string
+          fecha_revision?: string | null
+          notas_revision?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          apellido?: string
+          email?: string
+          telefono?: string
+          especialidad?: string
+          descripcion?: string | null
+          experiencia_anos?: number
+          imagen_url?: string | null
+          estado?: string
+          barbero_id?: string | null
+          revisada_por?: string | null
+          fecha_solicitud?: string
+          fecha_revision?: string | null
+          notas_revision?: string | null
           created_at?: string
           updated_at?: string
         }

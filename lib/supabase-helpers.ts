@@ -171,26 +171,42 @@ export const chamosSupabase = {
   },
 
   createCita: async (cita: Database['public']['Tables']['citas']['Insert']) => {
-    // Verificar disponibilidad
+    // VALIDACIÓN 1: Verificar disponibilidad antes de insertar
     const { data: existingCitas } = await supabase
       .from('citas')
-      .select('*')
+      .select('id, cliente_nombre')
       .eq('barbero_id', cita.barbero_id)
       .eq('fecha', cita.fecha)
       .eq('hora', cita.hora)
-      .neq('estado', 'cancelada')
+      .in('estado', ['pendiente', 'confirmada']) // Solo considerar activas
 
     if (existingCitas && existingCitas.length > 0) {
-      throw new Error('El horario seleccionado no está disponible')
+      throw new Error('⚠️ Lo sentimos, este horario acaba de ser reservado por otro cliente. Por favor selecciona otro horario.')
     }
 
+    // VALIDACIÓN 2: Verificar que no sea una hora pasada
+    const fechaHora = new Date(`${cita.fecha}T${cita.hora}`)
+    const ahora = new Date()
+    
+    if (fechaHora <= ahora) {
+      throw new Error('⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.')
+    }
+
+    // VALIDACIÓN 3: Intentar insertar con manejo de race conditions
     const { data, error } = await supabase
       .from('citas')
       .insert([cita] as any)
       .select()
       .single()
     
-    if (error) throw error
+    if (error) {
+      // Si es un error de constraint único (race condition), mensaje más claro
+      if (error.code === '23505') {
+        throw new Error('⚠️ Este horario fue reservado mientras completabas el formulario. Por favor selecciona otro horario.')
+      }
+      throw error
+    }
+    
     return data as Cita
   },
 
@@ -217,14 +233,24 @@ export const chamosSupabase = {
 
   // Horarios disponibles
   getHorariosDisponibles: async (barbero_id: string, fecha: string) => {
-    const { data, error } = await supabase
-      .rpc('get_horarios_disponibles', {
-        barbero_id,
-        fecha
-      })
-    
-    if (error) throw error
-    return data
+    try {
+      const { data, error } = await supabase
+        .rpc('get_horarios_disponibles', {
+          barbero_id_param: barbero_id,
+          fecha_param: fecha
+        })
+      
+      if (error) {
+        console.error('Error en getHorariosDisponibles:', error)
+        throw error
+      }
+      
+      return data || []
+    } catch (error) {
+      console.error('Error calling get_horarios_disponibles:', error)
+      // Si la función no existe aún, retornar null para usar horarios por defecto
+      return null
+    }
   },
 
   // Horarios de trabajo

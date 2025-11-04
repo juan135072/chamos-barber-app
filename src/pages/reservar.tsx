@@ -53,30 +53,65 @@ const ReservarPage: React.FC = () => {
 
   const loadAvailableSlots = async () => {
     try {
+      console.log('🔍 Cargando horarios disponibles para:', {
+        barbero_id: formData.barbero_id,
+        fecha: formData.fecha
+      })
+      
       const data = await chamosSupabase.getHorariosDisponibles(formData.barbero_id, formData.fecha)
-      setAvailableSlots(data || [])
+      
+      if (data && data.length > 0) {
+        console.log('✅ Horarios recibidos:', data.length, 'slots')
+        console.log('📊 Disponibles:', data.filter((s: any) => s.disponible).length)
+        console.log('❌ Ocupados:', data.filter((s: any) => !s.disponible).length)
+        setAvailableSlots(data)
+      } else {
+        console.warn('⚠️ No se recibieron horarios, usando defaults')
+        // Horarios por defecto si la función no existe o falla
+        const defaultSlots = [
+          { hora: '09:00', disponible: true, motivo: 'Disponible' },
+          { hora: '09:30', disponible: true, motivo: 'Disponible' },
+          { hora: '10:00', disponible: true, motivo: 'Disponible' },
+          { hora: '10:30', disponible: true, motivo: 'Disponible' },
+          { hora: '11:00', disponible: true, motivo: 'Disponible' },
+          { hora: '11:30', disponible: true, motivo: 'Disponible' },
+          { hora: '12:00', disponible: true, motivo: 'Disponible' },
+          { hora: '12:30', disponible: true, motivo: 'Disponible' },
+          { hora: '14:00', disponible: true, motivo: 'Disponible' },
+          { hora: '14:30', disponible: true, motivo: 'Disponible' },
+          { hora: '15:00', disponible: true, motivo: 'Disponible' },
+          { hora: '15:30', disponible: true, motivo: 'Disponible' },
+          { hora: '16:00', disponible: true, motivo: 'Disponible' },
+          { hora: '16:30', disponible: true, motivo: 'Disponible' },
+          { hora: '17:00', disponible: true, motivo: 'Disponible' },
+          { hora: '17:30', disponible: true, motivo: 'Disponible' },
+          { hora: '18:00', disponible: true, motivo: 'Disponible' },
+          { hora: '18:30', disponible: true, motivo: 'Disponible' }
+        ]
+        setAvailableSlots(defaultSlots)
+      }
     } catch (error) {
-      console.error('Error loading available slots:', error)
-      // Horarios por defecto si no hay función
+      console.error('❌ Error loading available slots:', error)
+      // Horarios por defecto en caso de error
       const defaultSlots = [
-        { hora: '09:00', disponible: true },
-        { hora: '09:30', disponible: true },
-        { hora: '10:00', disponible: true },
-        { hora: '10:30', disponible: true },
-        { hora: '11:00', disponible: true },
-        { hora: '11:30', disponible: true },
-        { hora: '12:00', disponible: true },
-        { hora: '12:30', disponible: true },
-        { hora: '14:00', disponible: true },
-        { hora: '14:30', disponible: true },
-        { hora: '15:00', disponible: true },
-        { hora: '15:30', disponible: true },
-        { hora: '16:00', disponible: true },
-        { hora: '16:30', disponible: true },
-        { hora: '17:00', disponible: true },
-        { hora: '17:30', disponible: true },
-        { hora: '18:00', disponible: true },
-        { hora: '18:30', disponible: true }
+        { hora: '09:00', disponible: true, motivo: 'Disponible' },
+        { hora: '09:30', disponible: true, motivo: 'Disponible' },
+        { hora: '10:00', disponible: true, motivo: 'Disponible' },
+        { hora: '10:30', disponible: true, motivo: 'Disponible' },
+        { hora: '11:00', disponible: true, motivo: 'Disponible' },
+        { hora: '11:30', disponible: true, motivo: 'Disponible' },
+        { hora: '12:00', disponible: true, motivo: 'Disponible' },
+        { hora: '12:30', disponible: true, motivo: 'Disponible' },
+        { hora: '14:00', disponible: true, motivo: 'Disponible' },
+        { hora: '14:30', disponible: true, motivo: 'Disponible' },
+        { hora: '15:00', disponible: true, motivo: 'Disponible' },
+        { hora: '15:30', disponible: true, motivo: 'Disponible' },
+        { hora: '16:00', disponible: true, motivo: 'Disponible' },
+        { hora: '16:30', disponible: true, motivo: 'Disponible' },
+        { hora: '17:00', disponible: true, motivo: 'Disponible' },
+        { hora: '17:30', disponible: true, motivo: 'Disponible' },
+        { hora: '18:00', disponible: true, motivo: 'Disponible' },
+        { hora: '18:30', disponible: true, motivo: 'Disponible' }
       ]
       setAvailableSlots(defaultSlots)
     }
@@ -270,18 +305,102 @@ const ReservarPage: React.FC = () => {
 
                   {formData.fecha && (
                     <div>
-                      <label className="form-label">Horarios disponibles:</label>
-                      <div className="time-slots">
-                        {availableSlots.filter(slot => slot.disponible).map(slot => (
-                          <div 
-                            key={slot.hora}
-                            className={`time-slot ${formData.hora === slot.hora ? 'selected' : ''}`}
-                            onClick={() => handleInputChange('hora', slot.hora)}
-                          >
-                            {slot.hora}
+                      <label className="form-label">
+                        Horarios disponibles:
+                        {availableSlots.filter(slot => slot.disponible).length > 0 && (
+                          <span style={{ fontSize: '0.85rem', opacity: 0.8, marginLeft: '0.5rem' }}>
+                            ({availableSlots.filter(slot => slot.disponible).length} disponibles)
+                          </span>
+                        )}
+                      </label>
+                      
+                      {availableSlots.filter(slot => slot.disponible).length === 0 ? (
+                        <div style={{ 
+                          padding: '2rem', 
+                          textAlign: 'center',
+                          background: 'rgba(239, 68, 68, 0.1)',
+                          borderRadius: 'var(--border-radius)',
+                          border: '1px solid rgba(239, 68, 68, 0.3)'
+                        }}>
+                          <i className="fas fa-calendar-times" style={{ fontSize: '2rem', color: '#ef4444', marginBottom: '1rem' }}></i>
+                          <p style={{ margin: 0, fontWeight: '600' }}>
+                            No hay horarios disponibles para esta fecha
+                          </p>
+                          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
+                            Por favor selecciona otra fecha o prueba con otro barbero
+                          </p>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="time-slots">
+                            {availableSlots.filter(slot => slot.disponible).map(slot => (
+                              <div 
+                                key={slot.hora}
+                                className={`time-slot ${formData.hora === slot.hora ? 'selected' : ''}`}
+                                onClick={() => handleInputChange('hora', slot.hora)}
+                                title="Click para seleccionar"
+                              >
+                                <span style={{ fontWeight: '600' }}>{slot.hora}</span>
+                                <i className="fas fa-check-circle" style={{ 
+                                  fontSize: '0.8rem', 
+                                  marginLeft: '0.5rem',
+                                  opacity: formData.hora === slot.hora ? 1 : 0
+                                }}></i>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                          
+                          {/* Mostrar horarios ocupados (informativo) */}
+                          {availableSlots.filter(slot => !slot.disponible).length > 0 && (
+                            <details style={{ marginTop: '1rem' }}>
+                              <summary style={{ 
+                                cursor: 'pointer', 
+                                fontSize: '0.9rem', 
+                                opacity: 0.7,
+                                padding: '0.5rem',
+                                userSelect: 'none'
+                              }}>
+                                <i className="fas fa-info-circle"></i> Ver horarios no disponibles ({availableSlots.filter(slot => !slot.disponible).length})
+                              </summary>
+                              <div style={{ 
+                                marginTop: '0.5rem',
+                                padding: '1rem',
+                                background: 'rgba(107, 114, 128, 0.1)',
+                                borderRadius: 'var(--border-radius)',
+                                fontSize: '0.85rem'
+                              }}>
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.5rem' }}>
+                                  {availableSlots.filter(slot => !slot.disponible).map(slot => (
+                                    <div 
+                                      key={slot.hora}
+                                      style={{
+                                        padding: '0.5rem',
+                                        background: 'rgba(239, 68, 68, 0.1)',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                                        borderRadius: '0.375rem',
+                                        opacity: 0.6,
+                                        cursor: 'not-allowed',
+                                        textAlign: 'center'
+                                      }}
+                                      title={slot.motivo || 'No disponible'}
+                                    >
+                                      <div style={{ fontWeight: '600', textDecoration: 'line-through' }}>
+                                        {slot.hora}
+                                      </div>
+                                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                                        {slot.motivo === 'Ya reservado' && '🔒 Ocupado'}
+                                        {slot.motivo === 'Hora pasada' && '⏰ Pasada'}
+                                        {slot.motivo === 'Fuera de horario de trabajo' && '🚫 Cerrado'}
+                                        {!slot.motivo && '❌ No disponible'}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </details>
+                          )}
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
