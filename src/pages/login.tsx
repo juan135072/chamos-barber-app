@@ -89,37 +89,42 @@ function Login() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900 flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <div className="w-full bg-black bg-opacity-30 backdrop-blur-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2 text-white hover:text-amber-400 transition-colors">
-              <i className="fas fa-arrow-left text-lg"></i>
-              <span className="font-medium">Volver al sitio</span>
+        <div className="navbar">
+          <div className="nav-container">
+            <Link href="/" className="nav-link" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <i className="fas fa-arrow-left"></i>
+              <span>Volver al sitio</span>
             </Link>
             
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center">
-                <i className="fas fa-cut text-white"></i>
-              </div>
-              <div className="text-white">
-                <h1 className="font-bold text-lg leading-tight">Chamos Barber</h1>
-                <p className="text-xs text-amber-300">Panel de Administración</p>
-              </div>
+            <div className="nav-brand">
+              <i className="fas fa-cut"></i>
+              <span>Chamos Barber</span>
             </div>
           </div>
         </div>
 
         {/* Login Form */}
-        <div className="flex-1 flex items-center justify-center p-4 py-8">
+        <div className="flex-1 flex items-center justify-center p-4 py-8" style={{ paddingTop: '100px' }}>
           <div className="w-full max-w-md auth-card-enter">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm bg-opacity-98">
-                <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 lock-icon-container">
-                    <i className="fas fa-lock text-white text-2xl"></i>
+            <div className="booking-form" style={{ margin: '0' }}>
+                <div className="step-header">
+                  <div style={{ 
+                    width: '80px', 
+                    height: '80px', 
+                    backgroundColor: 'var(--accent-color)', 
+                    borderRadius: '50%', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center',
+                    margin: '0 auto 1.5rem',
+                    boxShadow: '0 0 20px rgba(212, 175, 55, 0.4)'
+                  }}>
+                    <i className="fas fa-lock" style={{ color: 'var(--bg-primary)', fontSize: '2rem' }}></i>
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
-                  <p className="text-gray-600">Accede al panel de administración</p>
+                  <h2 className="step-title">Iniciar Sesión</h2>
+                  <p className="step-subtitle">Accede al panel de administración</p>
                 </div>
 
                 <Auth
@@ -167,15 +172,23 @@ function Login() {
           </div>
 
         {/* Footer */}
-        <div className="w-full bg-black bg-opacity-30 backdrop-blur-sm py-4">
-          <div className="flex justify-center items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-white bg-opacity-10 px-4 py-2 rounded-full">
-              <span className="text-2xl">🇻🇪</span>
-              <i className="fas fa-heart text-red-500 text-sm"></i>
-              <span className="text-2xl">🇨🇱</span>
+        <div style={{ width: '100%', backgroundColor: 'var(--bg-secondary)', padding: '2rem 0', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem', 
+              backgroundColor: 'rgba(212, 175, 55, 0.1)', 
+              padding: '0.75rem 1.5rem', 
+              borderRadius: '50px',
+              border: '1px solid var(--accent-color)'
+            }}>
+              <span style={{ fontSize: '1.5rem' }}>🇻🇪</span>
+              <i className="fas fa-heart" style={{ color: '#ef4444', fontSize: '0.875rem' }}></i>
+              <span style={{ fontSize: '1.5rem' }}>🇨🇱</span>
             </div>
           </div>
-          <p className="text-center text-white text-xs mt-2 opacity-75">Hecho con ❤️ por venezolanos en Chile</p>
+          <p style={{ textAlign: 'center', fontSize: '0.75rem', marginTop: '1rem', opacity: '0.7' }}>Hecho con ❤️ por venezolanos en Chile</p>
         </div>
 
         <style jsx global>{`
