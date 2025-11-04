@@ -125,44 +125,39 @@ export default function AdminPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-4">
-                <img
-                  src="/images/logo.png"
-                  alt="Chamos Barber"
-                  className="h-8 w-8 rounded-full"
-                />
-                <div>
-                  <h1 className="text-lg font-semibold text-gray-900">Panel de Administración</h1>
-                  <p className="text-sm text-gray-500">Chamos Barber</p>
-                </div>
+        <header className="navbar" style={{ backgroundColor: 'var(--bg-secondary)' }}>
+          <div className="nav-container">
+            <div className="nav-brand">
+              <i className="fas fa-cut"></i>
+              <div>
+                <span style={{ display: 'block', fontSize: '1.25rem', fontWeight: '700' }}>Panel de Administración</span>
+                <span style={{ display: 'block', fontSize: '0.75rem', opacity: '0.8' }}>Chamos Barber</span>
               </div>
+            </div>
 
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{adminUser.nombre}</p>
-                  <p className="text-xs text-gray-500">{adminUser.rol}</p>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
-                >
-                  <i className="fas fa-sign-out-alt mr-2"></i>
-                  Cerrar Sesión
-                </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+              <div style={{ textAlign: 'right' }}>
+                <p style={{ fontSize: '0.875rem', fontWeight: '600', color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
+                <p style={{ fontSize: '0.75rem', opacity: '0.7', color: 'var(--accent-color)' }}>{adminUser.rol}</p>
               </div>
+              <button
+                onClick={handleLogout}
+                className="btn btn-primary"
+                style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+              >
+                <i className="fas fa-sign-out-alt"></i>
+                <span>Cerrar Sesión</span>
+              </button>
             </div>
           </div>
         </header>
 
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <div className="container" style={{ paddingTop: '100px', paddingBottom: '3rem' }}>
           {/* Navigation Tabs */}
-          <div className="border-b border-gray-200 mb-6">
-            <nav className="-mb-px flex space-x-8">
+          <div style={{ borderBottom: '1px solid var(--border-color)', marginBottom: '2rem' }}>
+            <nav style={{ display: 'flex', gap: '2rem', marginBottom: '-1px', overflowX: 'auto' }}>
               {[
                 { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie' },
                 { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt' },
@@ -173,11 +168,23 @@ export default function AdminPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`${
-                    activeTab === tab.id
-                      ? 'border-amber-500 text-amber-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    padding: '1rem 0.25rem',
+                    borderBottom: activeTab === tab.id ? '2px solid var(--accent-color)' : '2px solid transparent',
+                    color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-primary)',
+                    fontWeight: '600',
+                    fontSize: '0.875rem',
+                    background: 'none',
+                    cursor: 'pointer',
+                    transition: 'var(--transition)',
+                    opacity: activeTab === tab.id ? '1' : '0.7',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                  onMouseLeave={(e) => e.currentTarget.style.opacity = activeTab === tab.id ? '1' : '0.7'}
                 >
                   <i className={tab.icon}></i>
                   <span>{tab.name}</span>
@@ -189,122 +196,101 @@ export default function AdminPage() {
           {/* Dashboard Content */}
           {activeTab === 'dashboard' && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
+              <h2 className="section-title" style={{ textAlign: 'left', marginBottom: '2rem' }}>Dashboard</h2>
               
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-calendar-check text-2xl text-amber-600"></i>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Total Citas</dt>
-                          <dd className="text-lg font-medium text-gray-900">{stats.totalCitas}</dd>
-                        </dl>
-                      </div>
-                    </div>
+              <div className="services-grid" style={{ marginBottom: '3rem' }}>
+                <div className="service-card">
+                  <div className="service-icon">
+                    <i className="fas fa-calendar-check"></i>
                   </div>
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: '0.8' }}>Total Citas</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: '700', color: 'var(--accent-color)' }}>{stats.totalCitas}</p>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-clock text-2xl text-blue-600"></i>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Citas Hoy</dt>
-                          <dd className="text-lg font-medium text-gray-900">{stats.citasHoy}</dd>
-                        </dl>
-                      </div>
-                    </div>
+                <div className="service-card">
+                  <div className="service-icon" style={{ color: '#3b82f6' }}>
+                    <i className="fas fa-clock"></i>
                   </div>
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: '0.8' }}>Citas Hoy</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: '700', color: '#3b82f6' }}>{stats.citasHoy}</p>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-hourglass-half text-2xl text-yellow-600"></i>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Pendientes</dt>
-                          <dd className="text-lg font-medium text-gray-900">{stats.citasPendientes}</dd>
-                        </dl>
-                      </div>
-                    </div>
+                <div className="service-card">
+                  <div className="service-icon" style={{ color: '#eab308' }}>
+                    <i className="fas fa-hourglass-half"></i>
                   </div>
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: '0.8' }}>Pendientes</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: '700', color: '#eab308' }}>{stats.citasPendientes}</p>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-users text-2xl text-green-600"></i>
-                      </div>
-                      <div className="ml-5 w-0 flex-1">
-                        <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Barberos</dt>
-                          <dd className="text-lg font-medium text-gray-900">{barberos.length}</dd>
-                        </dl>
-                      </div>
-                    </div>
+                <div className="service-card">
+                  <div className="service-icon" style={{ color: '#10b981' }}>
+                    <i className="fas fa-users"></i>
                   </div>
+                  <h3 style={{ fontSize: '0.875rem', fontWeight: '600', marginBottom: '0.5rem', opacity: '0.8' }}>Barberos</h3>
+                  <p style={{ fontSize: '2rem', fontWeight: '700', color: '#10b981' }}>{barberos.length}</p>
                 </div>
               </div>
 
               {/* Recent Citas */}
-              <div className="bg-white shadow rounded-lg">
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
-                    Citas Recientes
-                  </h3>
-                  <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barbero</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servicio</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+              <div className="booking-form">
+                <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--accent-color)', marginBottom: '1.5rem' }}>
+                  Citas Recientes
+                </h3>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--border-color)' }}>
+                        <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Cliente</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Barbero</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Servicio</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Fecha</th>
+                        <th style={{ padding: '1rem', textAlign: 'left', fontSize: '0.75rem', fontWeight: '600', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estado</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {citas.slice(0, 5).map((cita) => (
+                        <tr key={cita.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '1rem', fontSize: '0.875rem', fontWeight: '600' }}>
+                            {cita.cliente_nombre}
+                          </td>
+                          <td style={{ padding: '1rem', fontSize: '0.875rem', opacity: '0.8' }}>
+                            {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'N/A'}
+                          </td>
+                          <td style={{ padding: '1rem', fontSize: '0.875rem', opacity: '0.8' }}>
+                            {cita.servicios?.nombre || 'N/A'}
+                          </td>
+                          <td style={{ padding: '1rem', fontSize: '0.875rem', opacity: '0.8' }}>
+                            {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES')}
+                          </td>
+                          <td style={{ padding: '1rem' }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              padding: '0.25rem 0.75rem',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              borderRadius: '9999px',
+                              backgroundColor: cita.estado === 'confirmada' ? 'rgba(16, 185, 129, 0.1)' :
+                                              cita.estado === 'pendiente' ? 'rgba(234, 179, 8, 0.1)' :
+                                              cita.estado === 'cancelada' ? 'rgba(239, 68, 68, 0.1)' :
+                                              'rgba(156, 163, 175, 0.1)',
+                              color: cita.estado === 'confirmada' ? '#10b981' :
+                                     cita.estado === 'pendiente' ? '#eab308' :
+                                     cita.estado === 'cancelada' ? '#ef4444' :
+                                     '#9ca3af',
+                              border: `1px solid ${cita.estado === 'confirmada' ? 'rgba(16, 185, 129, 0.3)' :
+                                                   cita.estado === 'pendiente' ? 'rgba(234, 179, 8, 0.3)' :
+                                                   cita.estado === 'cancelada' ? 'rgba(239, 68, 68, 0.3)' :
+                                                   'rgba(156, 163, 175, 0.3)'}`
+                            }}>
+                              {cita.estado}
+                            </span>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {citas.slice(0, 5).map((cita) => (
-                          <tr key={cita.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                              {cita.cliente_nombre}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {cita.servicios?.nombre || 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                              {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
-                                cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                                cita.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {cita.estado}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -330,19 +316,43 @@ export default function AdminPage() {
 
           {/* Usuarios Tab (placeholder) */}
           {activeTab === 'usuarios' && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <i className="fas fa-user-shield text-6xl text-gray-400 mb-4"></i>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Gestión de Usuarios</h3>
-              <p className="text-gray-500">Creación de cuentas de barberos en desarrollo.</p>
+            <div className="booking-form" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <div style={{ 
+                width: '80px', 
+                height: '80px', 
+                backgroundColor: 'rgba(212, 175, 55, 0.1)', 
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.5rem',
+                border: '2px solid var(--accent-color)'
+              }}>
+                <i className="fas fa-user-shield" style={{ fontSize: '2.5rem', color: 'var(--accent-color)' }}></i>
+              </div>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--accent-color)', marginBottom: '0.5rem' }}>Gestión de Usuarios</h3>
+              <p style={{ opacity: '0.8' }}>Creación de cuentas de barberos en desarrollo.</p>
             </div>
           )}
 
           {/* Portfolio Tab (placeholder) */}
           {activeTab === 'portfolio' && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <i className="fas fa-images text-6xl text-gray-400 mb-4"></i>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Gestión de Portfolio</h3>
-              <p className="text-gray-500">Upload de trabajos en desarrollo.</p>
+            <div className="booking-form" style={{ textAlign: 'center', padding: '4rem 2rem' }}>
+              <div style={{ 
+                width: '80px', 
+                height: '80px', 
+                backgroundColor: 'rgba(212, 175, 55, 0.1)', 
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 1.5rem',
+                border: '2px solid var(--accent-color)'
+              }}>
+                <i className="fas fa-images" style={{ fontSize: '2.5rem', color: 'var(--accent-color)' }}></i>
+              </div>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: '600', color: 'var(--accent-color)', marginBottom: '0.5rem' }}>Gestión de Portfolio</h3>
+              <p style={{ opacity: '0.8' }}>Upload de trabajos en desarrollo.</p>
             </div>
           )}
         </div>

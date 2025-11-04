@@ -147,10 +147,19 @@ function Login() {
                   showLinks={false}
                 />
 
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="flex items-center justify-center text-sm text-gray-500">
-                    <i className="fas fa-shield-alt mr-2"></i>
-                    <span>Conexión segura y encriptada</span>
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem', opacity: '0.8' }}>
+                      <i className="fas fa-shield-alt" style={{ marginRight: '0.5rem', color: 'var(--accent-color)' }}></i>
+                      <span>Conexión segura y encriptada</span>
+                    </div>
+                    <div style={{ fontSize: '0.875rem', textAlign: 'center' }}>
+                      <span style={{ opacity: '0.8' }}>¿Quieres unirte al equipo?</span>
+                      {' '}
+                      <Link href="/registro-barbero" style={{ color: 'var(--accent-color)', fontWeight: '600', textDecoration: 'none' }}>
+                        Regístrate como barbero
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>
