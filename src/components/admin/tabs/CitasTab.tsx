@@ -118,7 +118,7 @@ export default function CitasTab() {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
       </div>
     )
   }
@@ -126,10 +126,15 @@ export default function CitasTab() {
   return (
     <div>
       <div className="mb-6 flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Gestión de Citas</h2>
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Citas</h2>
         <button
           onClick={loadCitas}
-          className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium"
+          style={{ 
+            backgroundColor: 'var(--accent-color)', 
+            color: 'var(--bg-primary)',
+            border: 'none'
+          }}
         >
           <i className="fas fa-sync-alt mr-2"></i>
           Actualizar
@@ -138,33 +143,33 @@ export default function CitasTab() {
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow">
-          <div className="text-sm text-gray-500">Total</div>
-          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+        <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="p-4 rounded-lg shadow">
+          <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total</div>
+          <div className="text-2xl font-bold" style={{ color: 'var(--text-primary)' }}>{stats.total}</div>
         </div>
-        <div className="bg-yellow-50 p-4 rounded-lg shadow">
-          <div className="text-sm text-yellow-600">Pendientes</div>
-          <div className="text-2xl font-bold text-yellow-700">{stats.pendientes}</div>
+        <div style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.3)' }} className="p-4 rounded-lg shadow">
+          <div className="text-sm text-yellow-500">Pendientes</div>
+          <div className="text-2xl font-bold text-yellow-400">{stats.pendientes}</div>
         </div>
-        <div className="bg-green-50 p-4 rounded-lg shadow">
-          <div className="text-sm text-green-600">Confirmadas</div>
-          <div className="text-2xl font-bold text-green-700">{stats.confirmadas}</div>
+        <div style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.3)' }} className="p-4 rounded-lg shadow">
+          <div className="text-sm text-green-500">Confirmadas</div>
+          <div className="text-2xl font-bold text-green-400">{stats.confirmadas}</div>
         </div>
-        <div className="bg-blue-50 p-4 rounded-lg shadow">
-          <div className="text-sm text-blue-600">Completadas</div>
-          <div className="text-2xl font-bold text-blue-700">{stats.completadas}</div>
+        <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.3)' }} className="p-4 rounded-lg shadow">
+          <div className="text-sm text-blue-500">Completadas</div>
+          <div className="text-2xl font-bold text-blue-400">{stats.completadas}</div>
         </div>
-        <div className="bg-red-50 p-4 rounded-lg shadow">
-          <div className="text-sm text-red-600">Canceladas</div>
-          <div className="text-2xl font-bold text-red-700">{stats.canceladas}</div>
+        <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }} className="p-4 rounded-lg shadow">
+          <div className="text-sm text-red-500">Canceladas</div>
+          <div className="text-2xl font-bold text-red-400">{stats.canceladas}</div>
         </div>
       </div>
 
       {/* Filtros */}
-      <div className="bg-white p-4 rounded-lg shadow mb-6">
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="p-4 rounded-lg shadow mb-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
               Buscar
             </label>
             <input
@@ -172,17 +177,27 @@ export default function CitasTab() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Nombre, email, barbero..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
+              className="w-full px-3 py-2 rounded-md shadow-sm"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
               Estado
             </label>
             <select
               value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
+              className="w-full px-3 py-2 rounded-md shadow-sm"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
             >
               <option value="todas">Todas</option>
               <option value="pendiente">Pendientes</option>
@@ -192,13 +207,18 @@ export default function CitasTab() {
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)', opacity: 0.9 }}>
               Fecha
             </label>
             <select
               value={filtroFecha}
               onChange={(e) => setFiltroFecha(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-amber-500 focus:border-amber-500"
+              className="w-full px-3 py-2 rounded-md shadow-sm"
+              style={{
+                background: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
             >
               <option value="todas">Todas</option>
               <option value="hoy">Hoy</option>
@@ -210,64 +230,64 @@ export default function CitasTab() {
       </div>
 
       {/* Tabla de Citas */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+            <thead style={{ background: 'var(--bg-tertiary)' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   Cliente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   Barbero
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   Servicio
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   Fecha y Hora
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   Acciones
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody style={{ background: 'var(--bg-secondary)' }}>
               {citasFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center" style={{ color: 'var(--text-primary)', opacity: 0.7, borderTop: '1px solid var(--border-color)' }}>
                     No se encontraron citas
                   </td>
                 </tr>
               ) : (
                 citasFiltradas.map((cita) => (
-                  <tr key={cita.id} className="hover:bg-gray-50">
+                  <tr key={cita.id} style={{ borderTop: '1px solid var(--border-color)' }}>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                         {cita.cliente_nombre}
                       </div>
-                      <div className="text-sm text-gray-500">{cita.cliente_email}</div>
-                      <div className="text-sm text-gray-500">{cita.cliente_telefono}</div>
+                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.cliente_email}</div>
+                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.cliente_telefono}</div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                       {cita.barberos 
                         ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
                         : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">
+                      <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
                         {cita.servicios?.nombre || 'N/A'}
                       </div>
-                      <div className="text-sm text-gray-500">
+                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                         ${cita.servicios?.precio || 0}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                       <div>{new Date(cita.fecha).toLocaleDateString('es-ES')}</div>
-                      <div className="text-gray-500">{cita.hora}</div>
+                      <div style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.hora}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
@@ -305,7 +325,7 @@ export default function CitasTab() {
       </div>
 
       {/* Resumen */}
-      <div className="mt-4 text-sm text-gray-500 text-center">
+      <div className="mt-4 text-sm text-center" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
         Mostrando {citasFiltradas.length} de {citas.length} citas
       </div>
     </div>
