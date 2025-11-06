@@ -71,10 +71,10 @@ function Login() {
 
   if (session) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verificando acceso de administrador...</p>
+          <div className="animate-spin rounded-full h-32 w-32 mx-auto mb-4" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
+          <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Verificando acceso de administrador...</p>
         </div>
       </div>
     )
@@ -89,22 +89,22 @@ function Login() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
       
-      <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-amber-900 flex flex-col">
+      <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <div className="w-full bg-black bg-opacity-30 backdrop-blur-sm">
+        <div className="w-full" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2 text-white hover:text-amber-400 transition-colors">
+            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" style={{ color: 'var(--text-primary)' }}>
               <i className="fas fa-arrow-left text-lg"></i>
               <span className="font-medium">Volver al sitio</span>
             </Link>
             
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-amber-600 rounded-full flex items-center justify-center">
-                <i className="fas fa-cut text-white"></i>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
+                <i className="fas fa-cut" style={{ color: 'var(--bg-primary)' }}></i>
               </div>
-              <div className="text-white">
+              <div style={{ color: 'var(--text-primary)' }}>
                 <h1 className="font-bold text-lg leading-tight">Chamos Barber</h1>
-                <p className="text-xs text-amber-300">Panel de Administración</p>
+                <p className="text-xs" style={{ color: 'var(--accent-color)' }}>Panel de Administración</p>
               </div>
             </div>
           </div>
@@ -113,13 +113,13 @@ function Login() {
         {/* Login Form */}
         <div className="flex-1 flex items-center justify-center p-4 py-8">
           <div className="w-full max-w-md auth-card-enter">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 backdrop-blur-sm bg-opacity-98">
+            <div className="rounded-2xl shadow-2xl p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 bg-amber-600 rounded-full flex items-center justify-center mx-auto mb-4 lock-icon-container">
-                    <i className="fas fa-lock text-white text-2xl"></i>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 lock-icon-container" style={{ backgroundColor: 'var(--accent-color)' }}>
+                    <i className="fas fa-lock text-2xl" style={{ color: 'var(--bg-primary)' }}></i>
                   </div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Iniciar Sesión</h2>
-                  <p className="text-gray-600">Accede al panel de administración</p>
+                  <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>Iniciar Sesión</h2>
+                  <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Accede al panel de administración</p>
                 </div>
 
                 <Auth
@@ -147,8 +147,8 @@ function Login() {
                   showLinks={false}
                 />
 
-                <div className="mt-6 pt-6 border-t border-gray-200">
-                  <div className="flex items-center justify-center text-sm text-gray-500">
+                <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <div className="flex items-center justify-center text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                     <i className="fas fa-shield-alt mr-2"></i>
                     <span>Conexión segura y encriptada</span>
                   </div>
@@ -158,15 +158,15 @@ function Login() {
           </div>
 
         {/* Footer */}
-        <div className="w-full bg-black bg-opacity-30 backdrop-blur-sm py-4">
+        <div className="w-full py-4" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
           <div className="flex justify-center items-center space-x-3">
-            <div className="flex items-center space-x-2 bg-white bg-opacity-10 px-4 py-2 rounded-full">
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-full" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
               <span className="text-2xl">🇻🇪</span>
               <i className="fas fa-heart text-red-500 text-sm"></i>
               <span className="text-2xl">🇨🇱</span>
             </div>
           </div>
-          <p className="text-center text-white text-xs mt-2 opacity-75">Hecho con ❤️ por venezolanos en Chile</p>
+          <p className="text-center text-xs mt-2" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Hecho con ❤️ por venezolanos en Chile</p>
         </div>
 
         <style jsx global>{`
@@ -213,10 +213,10 @@ function Login() {
           /* Animación para el ícono del candado */
           @keyframes pulse-glow {
             0%, 100% {
-              box-shadow: 0 0 20px rgba(217, 119, 6, 0.4);
+              box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
             }
             50% {
-              box-shadow: 0 0 30px rgba(217, 119, 6, 0.6);
+              box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
             }
           }
 

@@ -34,18 +34,36 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
       <div className="flex min-h-screen items-center justify-center p-4">
         {/* Overlay */}
         <div 
-          className="fixed inset-0 bg-black bg-opacity-50 transition-opacity"
+          className="fixed inset-0 transition-opacity"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
           onClick={onClose}
         />
         
         {/* Modal */}
-        <div className={`relative bg-white rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}>
+        <div 
+          className={`relative rounded-lg shadow-xl w-full ${sizeClasses[size]} max-h-[90vh] overflow-y-auto`}
+          style={{ 
+            backgroundColor: 'var(--bg-secondary)', 
+            border: '1px solid var(--border-color)' 
+          }}
+        >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b">
-            <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
+          <div 
+            className="flex items-center justify-between p-6"
+            style={{ borderBottom: '1px solid var(--border-color)' }}
+          >
+            <h3 
+              className="text-xl font-semibold"
+              style={{ color: 'var(--accent-color)' }}
+            >
+              {title}
+            </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors"
+              className="transition-colors"
+              style={{ color: 'var(--text-primary)', opacity: 0.7 }}
+              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
             >
               <i className="fas fa-times text-xl"></i>
             </button>

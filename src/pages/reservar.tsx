@@ -4,6 +4,8 @@ import Layout from '../components/Layout'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 import type { Database } from '../../lib/database.types'
 
+// Build Version: 2025-11-06-v3 - Improved error handling for API calls
+
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
 
@@ -23,7 +25,7 @@ const ReservarPage: React.FC = () => {
     notas: ''
   })
   const [loading, setLoading] = useState(false)
-  const [availableSlots, setAvailableSlots] = useState<{hora: string, disponible: boolean}[]>([])
+  const [availableSlots, setAvailableSlots] = useState<{hora: string, disponible: boolean, motivo?: string}[]>([])
 
   const totalSteps = 5
 
@@ -136,20 +138,45 @@ const ReservarPage: React.FC = () => {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // Crear cita usando helper de Supabase
-      await chamosSupabase.createCita({
-        servicio_id: formData.servicio_id,
-        barbero_id: formData.barbero_id,
-        fecha: formData.fecha,
-        hora: formData.hora,
-        cliente_nombre: formData.cliente_nombre,
-        cliente_telefono: formData.cliente_telefono,
-        cliente_email: formData.cliente_email || null,
-        notas: formData.notas || null,
-        estado: 'pendiente'
+      console.log('📤 Enviando solicitud de cita...')
+      
+      // Usar API route en vez de helper directo
+      // Esto bypassa el problema de RLS usando SERVICE_ROLE_KEY en el backend
+      const response = await fetch('/api/crear-cita', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          servicio_id: formData.servicio_id,
+          barbero_id: formData.barbero_id,
+          fecha: formData.fecha,
+          hora: formData.hora,
+          cliente_nombre: formData.cliente_nombre,
+          cliente_telefono: formData.cliente_telefono,
+          cliente_email: formData.cliente_email || null,
+          notas: formData.notas || null,
+          estado: 'pendiente'
+        })
       })
 
-      alert('¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
+      console.log('📥 Respuesta recibida:', response.status, response.statusText)
+
+      // Verificar si la respuesta es JSON válido
+      const contentType = response.headers.get('content-type')
+      if (!contentType || !contentType.includes('application/json')) {
+        console.error('❌ Respuesta no es JSON:', contentType)
+        throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La respuesta no es JSON. Esto puede indicar un problema con el servidor o la configuración de Coolify.`)
+      }
+
+      const result = await response.json()
+      console.log('📋 Resultado:', result)
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al crear la cita')
+      }
+
+      alert(result.message || '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
       
       // Reset form
       setFormData({
@@ -164,9 +191,9 @@ const ReservarPage: React.FC = () => {
       })
       setCurrentStep(1)
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ Error completo:', error)
       if (error instanceof Error) {
-        alert(error.message)
+        alert(`Error: ${error.message}`)
       } else {
         alert('Error al reservar la cita. Por favor, inténtalo de nuevo.')
       }

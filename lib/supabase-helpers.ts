@@ -439,5 +439,85 @@ export const chamosSupabase = {
     
     if (error) throw error
     return data
+  },
+
+  // Storage - Subir imagen de barbero
+  uploadBarberoFoto: async (file: File, barberoId: string) => {
+    try {
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, WEBP, GIF)')
+      }
+
+      // Validar tamaño (5MB máximo)
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      if (file.size > maxSize) {
+        throw new Error('La imagen es muy grande. Tamaño máximo: 5MB')
+      }
+
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${barberoId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      console.log('📤 [uploadBarberoFoto] Subiendo archivo:', fileName)
+
+      // Subir archivo a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('barberos-fotos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        console.error('❌ [uploadBarberoFoto] Error subiendo:', error)
+        throw error
+      }
+
+      console.log('✅ [uploadBarberoFoto] Archivo subido:', data.path)
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('barberos-fotos')
+        .getPublicUrl(data.path)
+
+      console.log('🔗 [uploadBarberoFoto] URL pública:', urlData.publicUrl)
+
+      return {
+        path: data.path,
+        publicUrl: urlData.publicUrl
+      }
+    } catch (error: any) {
+      console.error('❌ [uploadBarberoFoto] Error:', error)
+      throw error
+    }
+  },
+
+  // Storage - Eliminar imagen de barbero
+  deleteBarberoFoto: async (filePath: string) => {
+    try {
+      console.log('🗑️ [deleteBarberoFoto] Eliminando archivo:', filePath)
+
+      const { error } = await supabase.storage
+        .from('barberos-fotos')
+        .remove([filePath])
+
+      if (error) {
+        console.error('❌ [deleteBarberoFoto] Error eliminando:', error)
+        throw error
+      }
+
+      console.log('✅ [deleteBarberoFoto] Archivo eliminado')
+    } catch (error: any) {
+      console.error('❌ [deleteBarberoFoto] Error:', error)
+      // No lanzar error si el archivo no existe
+      if (error.message?.includes('not found')) {
+        console.log('⚠️ [deleteBarberoFoto] Archivo no encontrado, continuando...')
+        return
+      }
+      throw error
+    }
   }
 }

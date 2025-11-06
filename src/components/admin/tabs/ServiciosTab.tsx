@@ -102,7 +102,7 @@ const ServiciosTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
       </div>
     )
   }
@@ -111,14 +111,17 @@ const ServiciosTab: React.FC = () => {
     <div>
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de Servicios</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Servicios</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             {servicios.length} servicios totales
           </p>
         </div>
         <button
           onClick={handleCreate}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md"
+          style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)', transition: 'var(--transition)' }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
         >
           <i className="fas fa-plus mr-2"></i>
           Nuevo Servicio

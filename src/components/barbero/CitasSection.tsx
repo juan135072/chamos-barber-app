@@ -90,37 +90,81 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
   return (
     <div style={{ marginTop: '40px' }}>
-      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px' }}>Mis Citas</h2>
+      <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '24px', color: 'var(--accent-color)' }}>Mis Citas</h2>
 
       {/* Estadísticas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ background: 'white', padding: '16px', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-          <div style={{ fontSize: '14px', color: '#666' }}>Total</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold' }}>{stats.total}</div>
+        <div style={{ 
+          background: 'var(--bg-secondary)', 
+          padding: '16px', 
+          borderRadius: '8px', 
+          border: '1px solid var(--border-color)'
+        }}>
+          <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7 }}>Total</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.total}</div>
         </div>
-        <div style={{ background: '#EFF6FF', padding: '16px', borderRadius: '8px' }}>
-          <div style={{ fontSize: '14px', color: '#2563EB' }}>Hoy</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#1E40AF' }}>{stats.hoy}</div>
+        <div style={{ 
+          background: 'var(--bg-secondary)', 
+          padding: '16px', 
+          borderRadius: '8px',
+          border: '1px solid rgba(59, 130, 246, 0.3)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)'
+        }}>
+          <div style={{ fontSize: '14px', color: '#60A5FA' }}>Hoy</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#93C5FD' }}>{stats.hoy}</div>
         </div>
-        <div style={{ background: '#FEF9C3', padding: '16px', borderRadius: '8px' }}>
-          <div style={{ fontSize: '14px', color: '#CA8A04' }}>Pendientes</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#A16207' }}>{stats.pendientes}</div>
+        <div style={{ 
+          background: 'var(--bg-secondary)', 
+          padding: '16px', 
+          borderRadius: '8px',
+          border: '1px solid rgba(234, 179, 8, 0.3)',
+          backgroundColor: 'rgba(234, 179, 8, 0.1)'
+        }}>
+          <div style={{ fontSize: '14px', color: '#FACC15' }}>Pendientes</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FDE047' }}>{stats.pendientes}</div>
         </div>
-        <div style={{ background: '#DCFCE7', padding: '16px', borderRadius: '8px' }}>
-          <div style={{ fontSize: '14px', color: '#16A34A' }}>Confirmadas</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#15803D' }}>{stats.confirmadas}</div>
+        <div style={{ 
+          background: 'var(--bg-secondary)', 
+          padding: '16px', 
+          borderRadius: '8px',
+          border: '1px solid rgba(34, 197, 94, 0.3)',
+          backgroundColor: 'rgba(34, 197, 94, 0.1)'
+        }}>
+          <div style={{ fontSize: '14px', color: '#4ADE80' }}>Confirmadas</div>
+          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#86EFAC' }}>{stats.confirmadas}</div>
         </div>
       </div>
 
       {/* Filtro */}
-      <div style={{ background: 'white', padding: '16px', borderRadius: '8px', marginBottom: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
-        <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', marginBottom: '8px' }}>
+      <div style={{ 
+        background: 'var(--bg-secondary)', 
+        padding: '16px', 
+        borderRadius: '8px', 
+        marginBottom: '24px', 
+        border: '1px solid var(--border-color)' 
+      }}>
+        <label style={{ 
+          display: 'block', 
+          fontSize: '14px', 
+          fontWeight: '500', 
+          marginBottom: '8px',
+          color: 'var(--text-primary)',
+          opacity: 0.9
+        }}>
           Filtrar por Estado
         </label>
         <select
           value={filtroEstado}
           onChange={(e) => setFiltroEstado(e.target.value)}
-          style={{ width: '100%', maxWidth: '300px', padding: '8px 12px', border: '1px solid #ddd', borderRadius: '6px' }}
+          style={{ 
+            width: '100%', 
+            maxWidth: '300px', 
+            padding: '8px 12px', 
+            border: '1px solid var(--border-color)', 
+            borderRadius: '6px',
+            backgroundColor: 'var(--bg-primary)',
+            color: 'var(--text-primary)'
+          }}
         >
           <option value="todas">Todas</option>
           <option value="pendiente">Pendientes</option>
@@ -132,17 +176,30 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
       {/* Lista de Citas */}
       {citasFiltradas.length === 0 ? (
-        <div style={{ background: 'white', padding: '48px', textAlign: 'center', borderRadius: '8px', color: '#666' }}>
+        <div style={{ 
+          background: 'var(--bg-secondary)', 
+          padding: '48px', 
+          textAlign: 'center', 
+          borderRadius: '8px', 
+          border: '1px solid var(--border-color)',
+          color: 'var(--text-primary)',
+          opacity: 0.7
+        }}>
           <p>No tienes citas {filtroEstado !== 'todas' ? `en estado "${filtroEstado}"` : ''}</p>
         </div>
       ) : (
-        <div style={{ background: 'white', borderRadius: '8px', overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+        <div style={{ 
+          background: 'var(--bg-secondary)', 
+          borderRadius: '8px', 
+          overflow: 'hidden', 
+          border: '1px solid var(--border-color)'
+        }}>
           {citasFiltradas.map((cita, index) => (
             <div 
               key={cita.id} 
               style={{ 
                 padding: '24px', 
-                borderBottom: index < citasFiltradas.length - 1 ? '1px solid #eee' : 'none',
+                borderBottom: index < citasFiltradas.length - 1 ? '1px solid var(--border-color)' : 'none',
                 display: 'flex',
                 flexDirection: 'column',
                 gap: '16px'
@@ -150,23 +207,37 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
                 <div style={{ flex: '1', minWidth: '250px' }}>
-                  <div style={{ fontSize: '18px', fontWeight: 'bold', marginBottom: '8px' }}>
+                  <div style={{ 
+                    fontSize: '18px', 
+                    fontWeight: 'bold', 
+                    marginBottom: '8px',
+                    color: 'var(--text-primary)'
+                  }}>
                     {cita.cliente_nombre}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '4px' }}>
                     📧 {cita.cliente_email}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#666', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7, marginBottom: '4px' }}>
                     📞 {cita.cliente_telefono}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7, marginTop: '8px' }}>
                     📅 {new Date(cita.fecha).toLocaleDateString('es-ES')} a las {cita.hora}
                   </div>
-                  <div style={{ fontSize: '14px', color: '#666' }}>
+                  <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7 }}>
                     ✂️ {cita.servicios?.nombre || 'N/A'} - ${cita.servicios?.precio || 0}
                   </div>
                   {cita.notas && (
-                    <div style={{ fontSize: '13px', color: '#666', marginTop: '8px', padding: '8px', background: '#f9fafb', borderRadius: '4px' }}>
+                    <div style={{ 
+                      fontSize: '13px', 
+                      color: 'var(--text-primary)', 
+                      opacity: 0.8,
+                      marginTop: '8px', 
+                      padding: '8px', 
+                      background: 'var(--bg-primary)', 
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '4px' 
+                    }}>
                       📝 <strong>Notas:</strong> {cita.notas}
                     </div>
                   )}
@@ -177,10 +248,12 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
                     onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
                     style={{ 
                       padding: '8px 12px', 
-                      border: '1px solid #ddd', 
+                      border: '1px solid var(--border-color)', 
                       borderRadius: '6px',
                       fontSize: '14px',
-                      fontWeight: '500'
+                      fontWeight: '500',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)'
                     }}
                   >
                     <option value="pendiente">Pendiente</option>
@@ -196,7 +269,13 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       )}
 
       {/* Resumen */}
-      <div style={{ marginTop: '16px', textAlign: 'center', fontSize: '14px', color: '#666' }}>
+      <div style={{ 
+        marginTop: '16px', 
+        textAlign: 'center', 
+        fontSize: '14px', 
+        color: 'var(--text-primary)',
+        opacity: 0.7
+      }}>
         Mostrando {citasFiltradas.length} de {citas.length} citas
       </div>
     </div>

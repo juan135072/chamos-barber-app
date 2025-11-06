@@ -104,10 +104,10 @@ export default function AdminPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-amber-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Verificando acceso de administrador...</p>
+          <div className="animate-spin rounded-full h-32 w-32 mx-auto mb-4" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
+          <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Verificando acceso de administrador...</p>
         </div>
       </div>
     )
@@ -125,31 +125,36 @@ export default function AdminPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <header className="bg-white shadow-sm border-b">
+        <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               <div className="flex items-center space-x-4">
-                <img
-                  src="/images/logo.png"
-                  alt="Chamos Barber"
-                  className="h-8 w-8 rounded-full"
-                />
+                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
+                  <i className="fas fa-cut" style={{ color: 'var(--bg-primary)' }}></i>
+                </div>
                 <div>
-                  <h1 className="text-lg font-semibold text-gray-900">Panel de Administración</h1>
-                  <p className="text-sm text-gray-500">Chamos Barber</p>
+                  <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Administración</h1>
+                  <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
                 </div>
               </div>
 
               <div className="flex items-center space-x-4">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">{adminUser.nombre}</p>
-                  <p className="text-xs text-gray-500">{adminUser.rol}</p>
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
+                  <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500"
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{ 
+                    backgroundColor: 'var(--accent-color)', 
+                    color: 'var(--bg-primary)',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
                 >
                   <i className="fas fa-sign-out-alt mr-2"></i>
                   Cerrar Sesión
@@ -161,7 +166,7 @@ export default function AdminPage() {
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           {/* Navigation Tabs */}
-          <div className="border-b border-gray-200 mb-6">
+          <div className="mb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
             <nav className="-mb-px flex space-x-8">
               {[
                 { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie' },
@@ -173,11 +178,13 @@ export default function AdminPage() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`${
-                    activeTab === tab.id
-                      ? 'border-amber-500 text-amber-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  } whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2`}
+                  className="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2"
+                  style={{
+                    borderColor: activeTab === tab.id ? 'var(--accent-color)' : 'transparent',
+                    color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-primary)',
+                    opacity: activeTab === tab.id ? 1 : 0.7,
+                    transition: 'var(--transition)'
+                  }}
                 >
                   <i className={tab.icon}></i>
                   <span>{tab.name}</span>
@@ -189,68 +196,68 @@ export default function AdminPage() {
           {/* Dashboard Content */}
           {activeTab === 'dashboard' && (
             <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Dashboard</h2>
+              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--accent-color)' }}>Dashboard</h2>
               
               {/* Stats Grid */}
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <i className="fas fa-calendar-check text-2xl text-amber-600"></i>
+                        <i className="fas fa-calendar-check text-2xl" style={{ color: 'var(--accent-color)' }}></i>
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Total Citas</dt>
-                          <dd className="text-lg font-medium text-gray-900">{stats.totalCitas}</dd>
+                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Citas</dt>
+                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.totalCitas}</dd>
                         </dl>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <i className="fas fa-clock text-2xl text-blue-600"></i>
+                        <i className="fas fa-clock text-2xl text-blue-400"></i>
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Citas Hoy</dt>
-                          <dd className="text-lg font-medium text-gray-900">{stats.citasHoy}</dd>
+                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Citas Hoy</dt>
+                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasHoy}</dd>
                         </dl>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <i className="fas fa-hourglass-half text-2xl text-yellow-600"></i>
+                        <i className="fas fa-hourglass-half text-2xl text-yellow-400"></i>
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Pendientes</dt>
-                          <dd className="text-lg font-medium text-gray-900">{stats.citasPendientes}</dd>
+                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Pendientes</dt>
+                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasPendientes}</dd>
                         </dl>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
                   <div className="p-5">
                     <div className="flex items-center">
                       <div className="flex-shrink-0">
-                        <i className="fas fa-users text-2xl text-green-600"></i>
+                        <i className="fas fa-users text-2xl text-green-400"></i>
                       </div>
                       <div className="ml-5 w-0 flex-1">
                         <dl>
-                          <dt className="text-sm font-medium text-gray-500 truncate">Barberos</dt>
-                          <dd className="text-lg font-medium text-gray-900">{barberos.length}</dd>
+                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barberos</dt>
+                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{barberos.length}</dd>
                         </dl>
                       </div>
                     </div>
@@ -259,35 +266,35 @@ export default function AdminPage() {
               </div>
 
               {/* Recent Citas */}
-              <div className="bg-white shadow rounded-lg">
+              <div className="shadow rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium text-gray-900 mb-4">
+                  <h3 className="text-lg leading-6 font-medium mb-4" style={{ color: 'var(--accent-color)' }}>
                     Citas Recientes
                   </h3>
                   <div className="overflow-x-auto">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
+                    <table className="min-w-full" style={{ borderTop: '1px solid var(--border-color)' }}>
+                      <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
                         <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cliente</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Barbero</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servicio</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Cliente</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barbero</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Servicio</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Fecha</th>
+                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Estado</th>
                         </tr>
                       </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {citas.slice(0, 5).map((cita) => (
-                          <tr key={cita.id}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <tbody>
+                        {citas.slice(0, 5).map((cita, index) => (
+                          <tr key={cita.id} style={{ borderTop: index > 0 ? '1px solid var(--border-color)' : 'none' }}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                               {cita.cliente_nombre}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                               {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'N/A'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                               {cita.servicios?.nombre || 'N/A'}
                             </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                               {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap">
@@ -330,26 +337,23 @@ export default function AdminPage() {
 
           {/* Usuarios Tab (placeholder) */}
           {activeTab === 'usuarios' && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <i className="fas fa-user-shield text-6xl text-gray-400 mb-4"></i>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Gestión de Usuarios</h3>
-              <p className="text-gray-500">Creación de cuentas de barberos en desarrollo.</p>
+            <div className="text-center py-12 rounded-lg shadow" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <i className="fas fa-user-shield text-6xl mb-4" style={{ color: 'var(--accent-color)', opacity: 0.5 }}></i>
+              <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Gestión de Usuarios</h3>
+              <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Creación de cuentas de barberos en desarrollo.</p>
             </div>
           )}
 
           {/* Portfolio Tab (placeholder) */}
           {activeTab === 'portfolio' && (
-            <div className="text-center py-12 bg-white rounded-lg shadow">
-              <i className="fas fa-images text-6xl text-gray-400 mb-4"></i>
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Gestión de Portfolio</h3>
-              <p className="text-gray-500">Upload de trabajos en desarrollo.</p>
+            <div className="text-center py-12 rounded-lg shadow" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+              <i className="fas fa-images text-6xl mb-4" style={{ color: 'var(--accent-color)', opacity: 0.5 }}></i>
+              <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Gestión de Portfolio</h3>
+              <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Upload de trabajos en desarrollo.</p>
             </div>
           )}
         </div>
       </div>
-    </>
-  )
-}iv>
     </>
   )
 }

@@ -4,6 +4,7 @@ import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
 import Layout from '../components/Layout'
 import toast, { Toaster } from 'react-hot-toast'
 import CitasSection from '../components/barbero/CitasSection'
+import { chamosSupabase } from '../../lib/supabase-helpers'
 
 interface BarberoProfile {
   id: string
@@ -18,15 +19,6 @@ interface BarberoProfile {
   imagen_url: string
 }
 
-interface PortfolioItem {
-  id: string
-  imagen_url: string
-  titulo: string
-  descripcion: string
-  categoria: string
-  aprobado: boolean
-  activo: boolean
-}
 
 const BarberoPanelPage: React.FC = () => {
   const session = useSession()
@@ -35,9 +27,11 @@ const BarberoPanelPage: React.FC = () => {
   
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<BarberoProfile | null>(null)
-  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([])
-  const [activeTab, setActiveTab] = useState<'perfil' | 'portfolio' | 'citas'>('citas')
+  const [activeTab, setActiveTab] = useState<'perfil' | 'citas'>('citas')
   const [saving, setSaving] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
 
   useEffect(() => {
     if (!session) {
@@ -75,17 +69,6 @@ const BarberoPanelPage: React.FC = () => {
 
       setProfile(barbero)
 
-      // Cargar portfolio
-      const { data: portfolioData, error: portfolioError } = await supabase
-        .from('barbero_portfolio')
-        .select('*')
-        .eq('barbero_id', adminUser.barbero_id)
-        .order('orden_display', { ascending: true })
-
-      if (!portfolioError && portfolioData) {
-        setPortfolio(portfolioData)
-      }
-
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Error al cargar tus datos')
@@ -94,24 +77,95 @@ const BarberoPanelPage: React.FC = () => {
     }
   }
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de archivo
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Tipo de archivo no válido. Usa JPG, PNG, WEBP o GIF')
+      return
+    }
+
+    // Validar tamaño (5MB máximo)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('El archivo es demasiado grande. Máximo 5MB')
+      return
+    }
+
+    setSelectedFile(file)
+
+    // Crear preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleClearImage = () => {
+    setSelectedFile(null)
+    setImagePreview(null)
+  }
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!profile) return
 
     try {
       setSaving(true)
+      let newImageUrl = profile.imagen_url
+
+      // Si hay una nueva imagen seleccionada, subirla primero
+      if (selectedFile) {
+        setUploadingImage(true)
+        toast.loading('Subiendo imagen...')
+
+        try {
+          // Eliminar imagen anterior si existe
+          if (profile.imagen_url) {
+            const oldPath = profile.imagen_url.split('/').pop()
+            if (oldPath) {
+              await chamosSupabase.deleteBarberoFoto(oldPath)
+            }
+          }
+
+          // Subir nueva imagen
+          const uploadResult = await chamosSupabase.uploadBarberoFoto(selectedFile, profile.id)
+          newImageUrl = uploadResult.publicUrl
+          toast.dismiss()
+          toast.success('Imagen subida exitosamente')
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError)
+          toast.dismiss()
+          toast.error('Error al subir la imagen')
+          setUploadingImage(false)
+          setSaving(false)
+          return
+        } finally {
+          setUploadingImage(false)
+        }
+      }
       
+      // Actualizar perfil
       const { error } = await supabase
         .from('barberos')
         .update({
           telefono: profile.telefono,
           instagram: profile.instagram,
           descripcion: profile.descripcion,
+          imagen_url: newImageUrl,
           updated_at: new Date().toISOString()
         })
         .eq('id', profile.id)
 
       if (error) throw error
+
+      // Actualizar estado local
+      setProfile({ ...profile, imagen_url: newImageUrl })
+      setSelectedFile(null)
+      setImagePreview(null)
 
       toast.success('Perfil actualizado exitosamente')
     } catch (error) {
@@ -181,7 +235,7 @@ const BarberoPanelPage: React.FC = () => {
               Mi Panel - {profile.nombre} {profile.apellido}
             </h1>
             <p style={{ opacity: 0.7 }}>
-              Gestiona tu perfil y portfolio
+              Gestiona tu perfil y citas
             </p>
           </div>
           <button 
@@ -232,22 +286,6 @@ const BarberoPanelPage: React.FC = () => {
           >
             <i className="fas fa-calendar-alt"></i> Mis Citas
           </button>
-          <button
-            onClick={() => setActiveTab('portfolio')}
-            style={{
-              padding: '1rem 2rem',
-              background: 'none',
-              border: 'none',
-              borderBottom: activeTab === 'portfolio' ? '3px solid var(--accent-color)' : 'none',
-              color: activeTab === 'portfolio' ? 'var(--accent-color)' : 'var(--text-primary)',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '1rem',
-              transition: 'all 0.3s'
-            }}
-          >
-            <i className="fas fa-images"></i> Mi Portfolio ({portfolio.length})
-          </button>
         </div>
 
         {/* Content */}
@@ -292,6 +330,139 @@ const BarberoPanelPage: React.FC = () => {
               </div>
 
               {/* Campos editables */}
+              
+              {/* Foto de Perfil */}
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{ 
+                  display: 'block', 
+                  marginBottom: '0.75rem',
+                  color: 'var(--text-primary)',
+                  opacity: 0.9
+                }}>
+                  <i className="fas fa-camera"></i> Foto de Perfil
+                </label>
+
+                {/* Imagen actual o preview */}
+                {(imagePreview || profile.imagen_url) && (
+                  <div style={{ 
+                    marginBottom: '1rem', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: '1rem' 
+                  }}>
+                    <img 
+                      src={imagePreview || profile.imagen_url} 
+                      alt="Preview" 
+                      style={{ 
+                        width: '120px', 
+                        height: '120px', 
+                        borderRadius: '50%', 
+                        objectFit: 'cover',
+                        border: '3px solid var(--accent-color)'
+                      }} 
+                    />
+                    {imagePreview && (
+                      <button 
+                        type="button"
+                        onClick={handleClearImage}
+                        style={{
+                          padding: '0.5rem 1rem',
+                          background: 'rgba(220, 38, 38, 0.15)',
+                          color: '#fca5a5',
+                          border: '1px solid rgba(220, 38, 38, 0.3)',
+                          borderRadius: 'var(--border-radius)',
+                          cursor: 'pointer',
+                          fontSize: '0.9rem',
+                          transition: 'all 0.3s'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.background = 'rgba(220, 38, 38, 0.25)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.background = 'rgba(220, 38, 38, 0.15)'
+                        }}
+                      >
+                        <i className="fas fa-times"></i> Quitar nueva imagen
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {/* Área de drag & drop */}
+                <div
+                  style={{
+                    border: '2px dashed var(--border-color)',
+                    borderRadius: 'var(--border-radius)',
+                    padding: '2rem',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s',
+                    backgroundColor: 'rgba(212, 175, 55, 0.03)'
+                  }}
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    e.currentTarget.style.borderColor = 'var(--accent-color)'
+                    e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.1)'
+                  }}
+                  onDragLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'var(--border-color)'
+                    e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.03)'
+                  }}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    e.currentTarget.style.borderColor = 'var(--border-color)'
+                    e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.03)'
+                    const file = e.dataTransfer.files[0]
+                    if (file) {
+                      const input = document.createElement('input')
+                      input.type = 'file'
+                      const dt = new DataTransfer()
+                      dt.items.add(file)
+                      input.files = dt.files
+                      handleFileSelect({ target: input } as any)
+                    }
+                  }}
+                >
+                  <i 
+                    className="fas fa-cloud-upload-alt" 
+                    style={{ 
+                      fontSize: '3rem', 
+                      color: 'var(--accent-color)', 
+                      marginBottom: '1rem',
+                      opacity: 0.7,
+                      display: 'block'
+                    }}
+                  ></i>
+                  <p style={{ 
+                    marginBottom: '0.5rem',
+                    color: 'var(--text-primary)',
+                    opacity: 0.9
+                  }}>
+                    Arrastra una imagen aquí o{' '}
+                    <label style={{ 
+                      color: 'var(--accent-color)', 
+                      cursor: 'pointer',
+                      textDecoration: 'underline'
+                    }}>
+                      selecciona un archivo
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                        onChange={handleFileSelect}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  </p>
+                  <p style={{ 
+                    fontSize: '0.85rem', 
+                    color: 'var(--text-primary)',
+                    opacity: 0.6,
+                    margin: 0
+                  }}>
+                    PNG, JPG, WEBP, GIF hasta 5MB
+                  </p>
+                </div>
+              </div>
               <div className="form-group">
                 <label className="form-label">
                   <i className="fas fa-phone"></i> Teléfono / WhatsApp
@@ -341,10 +512,15 @@ const BarberoPanelPage: React.FC = () => {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={saving}
+                disabled={saving || uploadingImage}
                 style={{ width: '100%', marginTop: '1rem' }}
               >
-                {saving ? (
+                {uploadingImage ? (
+                  <>
+                    <div className="spinner"></div>
+                    Subiendo imagen...
+                  </>
+                ) : saving ? (
                   <>
                     <div className="spinner"></div>
                     Guardando...
@@ -360,170 +536,7 @@ const BarberoPanelPage: React.FC = () => {
           </div>
         )}
 
-        {activeTab === 'portfolio' && (
-          <div>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              marginBottom: '2rem',
-              flexWrap: 'wrap',
-              gap: '1rem'
-            }}>
-              <h2 style={{ color: 'var(--accent-color)', margin: 0 }}>
-                <i className="fas fa-images"></i> Mi Portfolio
-              </h2>
-              <button
-                className="btn btn-primary"
-                onClick={() => toast('Función de subida en desarrollo', { icon: '🚧' })}
-                style={{ padding: '10px 20px' }}
-              >
-                <i className="fas fa-plus"></i> Subir Nuevo Trabajo
-              </button>
-            </div>
 
-            {portfolio.length === 0 ? (
-              <div style={{ 
-                textAlign: 'center', 
-                padding: '4rem 2rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: 'var(--border-radius)',
-                border: '1px solid var(--border-color)'
-              }}>
-                <i className="fas fa-images" style={{ 
-                  fontSize: '4rem', 
-                  color: 'var(--accent-color)', 
-                  marginBottom: '1rem',
-                  opacity: 0.5
-                }}></i>
-                <h3>No tienes trabajos en tu portfolio</h3>
-                <p style={{ opacity: 0.7, marginBottom: '2rem' }}>
-                  Comienza a subir fotos de tus mejores trabajos
-                </p>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => toast('Función de subida en desarrollo', { icon: '🚧' })}
-                >
-                  <i className="fas fa-plus"></i> Subir Primer Trabajo
-                </button>
-              </div>
-            ) : (
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '1.5rem'
-              }}>
-                {portfolio.map((item) => (
-                  <div 
-                    key={item.id}
-                    style={{
-                      background: 'var(--bg-secondary)',
-                      borderRadius: 'var(--border-radius)',
-                      overflow: 'hidden',
-                      border: '1px solid var(--border-color)',
-                      transition: 'transform 0.3s'
-                    }}
-                  >
-                    <div style={{ 
-                      width: '100%', 
-                      height: '250px',
-                      backgroundImage: `url(${item.imagen_url})`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
-                      position: 'relative'
-                    }}>
-                      {!item.aprobado && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          background: 'rgba(255, 165, 0, 0.9)',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.8rem',
-                          fontWeight: '600'
-                        }}>
-                          <i className="fas fa-clock"></i> Pendiente
-                        </div>
-                      )}
-                      {item.aprobado && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          background: 'rgba(76, 175, 80, 0.9)',
-                          color: 'white',
-                          padding: '4px 8px',
-                          borderRadius: '4px',
-                          fontSize: '0.8rem',
-                          fontWeight: '600'
-                        }}>
-                          <i className="fas fa-check"></i> Aprobado
-                        </div>
-                      )}
-                    </div>
-                    <div style={{ padding: '1rem' }}>
-                      <h4 style={{ marginBottom: '0.5rem' }}>{item.titulo || 'Sin título'}</h4>
-                      <p style={{ 
-                        fontSize: '0.9rem', 
-                        opacity: 0.7,
-                        marginBottom: '0.5rem'
-                      }}>
-                        {item.descripcion || 'Sin descripción'}
-                      </p>
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '0.5rem',
-                        marginTop: '1rem'
-                      }}>
-                        <button 
-                          className="btn btn-secondary"
-                          style={{ flex: 1, padding: '8px', fontSize: '0.9rem' }}
-                          onClick={() => toast('Función de edición en desarrollo', { icon: '🚧' })}
-                        >
-                          <i className="fas fa-edit"></i>
-                        </button>
-                        <button 
-                          className="btn btn-secondary"
-                          style={{ flex: 1, padding: '8px', fontSize: '0.9rem' }}
-                          onClick={() => toast('Función de eliminación en desarrollo', { icon: '🚧' })}
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {portfolio.length > 0 && (
-              <div style={{ 
-                marginTop: '2rem',
-                padding: '1.5rem',
-                background: 'var(--bg-secondary)',
-                borderRadius: 'var(--border-radius)',
-                border: '1px solid var(--border-color)'
-              }}>
-                <h4 style={{ color: 'var(--accent-color)', marginBottom: '1rem' }}>
-                  <i className="fas fa-info-circle"></i> Información
-                </h4>
-                <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                  <li style={{ marginBottom: '0.5rem' }}>
-                    <i className="fas fa-check" style={{ color: 'var(--accent-color)' }}></i> Total de trabajos: <strong>{portfolio.length}</strong>
-                  </li>
-                  <li style={{ marginBottom: '0.5rem' }}>
-                    <i className="fas fa-check-circle" style={{ color: '#4CAF50' }}></i> Aprobados: <strong>{portfolio.filter(p => p.aprobado).length}</strong>
-                  </li>
-                  <li style={{ marginBottom: '0.5rem' }}>
-                    <i className="fas fa-clock" style={{ color: '#FFA500' }}></i> Pendientes: <strong>{portfolio.filter(p => !p.aprobado).length}</strong>
-                  </li>
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </Layout>
   )

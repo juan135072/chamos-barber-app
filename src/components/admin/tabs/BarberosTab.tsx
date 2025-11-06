@@ -88,7 +88,7 @@ const BarberosTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
       </div>
     )
   }
@@ -96,65 +96,81 @@ const BarberosTab: React.FC = () => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Gestión de Barberos</h2>
+        <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Barberos</h2>
         <button
           onClick={handleCreate}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700"
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md"
+          style={{ 
+            backgroundColor: 'var(--accent-color)', 
+            color: 'var(--bg-primary)',
+            transition: 'var(--transition)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
         >
           <i className="fas fa-plus mr-2"></i>
           Nuevo Barbero
         </button>
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="shadow rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+        <table className="min-w-full" style={{ borderTop: '1px solid var(--border-color)' }}>
+          <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                 Barbero
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                 Especialidad
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                 Contacto
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                 Experiencia
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                 Estado
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                 Acciones
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody>
             {barberos.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-4 text-center" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   No hay barberos registrados
                 </td>
               </tr>
             ) : (
-              barberos.map((barbero) => (
-                <tr key={barbero.id} className="hover:bg-gray-50">
+              barberos.map((barbero, index) => (
+                <tr 
+                  key={barbero.id}
+                  style={{ 
+                    borderTop: index > 0 ? '1px solid var(--border-color)' : 'none',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="flex-shrink-0 h-10 w-10">
                         <img
                           className="h-10 w-10 rounded-full object-cover"
+                          style={{ border: '2px solid var(--border-color)' }}
                           src={barbero.imagen_url || 'https://via.placeholder.com/40'}
                           alt={`${barbero.nombre} ${barbero.apellido}`}
                         />
                       </div>
                       <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900">
+                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                           {barbero.nombre} {barbero.apellido}
                         </div>
                         {barbero.instagram && (
-                          <div className="text-sm text-gray-500">
+                          <div className="text-sm" style={{ color: 'var(--accent-color)', opacity: 0.8 }}>
                             <i className="fab fa-instagram mr-1"></i>
                             {barbero.instagram}
                           </div>
@@ -163,17 +179,17 @@ const BarberosTab: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{barbero.especialidad}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.especialidad}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{barbero.telefono || 'N/A'}</div>
-                    <div className="text-sm text-gray-500">{barbero.email || 'N/A'}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.telefono || 'N/A'}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{barbero.email || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900">{barbero.experiencia_anos} años</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.experiencia_anos} años</div>
                     <div className="flex items-center">
                       <i className="fas fa-star text-yellow-400 text-xs mr-1"></i>
-                      <span className="text-sm text-gray-500">{barbero.calificacion.toFixed(1)}</span>
+                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{barbero.calificacion.toFixed(1)}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -191,14 +207,20 @@ const BarberosTab: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                     <button
                       onClick={() => handleEdit(barbero)}
-                      className="text-amber-600 hover:text-amber-900 mr-4"
+                      className="mr-4"
+                      style={{ color: 'var(--accent-color)', transition: 'var(--transition)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                       title="Editar"
                     >
                       <i className="fas fa-edit"></i>
                     </button>
                     <button
                       onClick={() => handleDelete(barbero)}
-                      className="text-red-600 hover:text-red-900"
+                      className="text-red-400"
+                      style={{ transition: 'var(--transition)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                       title="Eliminar"
                     >
                       <i className="fas fa-trash"></i>
