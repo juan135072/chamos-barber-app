@@ -220,32 +220,46 @@ const BarberoPanelPage: React.FC = () => {
     <Layout title={`Panel de ${profile.nombre} - Chamos Barber`}>
       <Toaster position="top-right" />
       
-      <div className="container" style={{ paddingTop: '6rem', paddingBottom: '4rem' }}>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'space-between', 
-          alignItems: 'center',
-          marginBottom: '2rem',
-          flexWrap: 'wrap',
-          gap: '1rem'
-        }}>
-          <div>
-            <h1 style={{ marginBottom: '0.5rem' }}>
-              Mi Panel - {profile.nombre} {profile.apellido}
-            </h1>
-            <p style={{ opacity: 0.7 }}>
-              Gestiona tu perfil y citas
-            </p>
+        <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <div className="flex items-center space-x-4">
+                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
+                  <i className="fas fa-scissors" style={{ color: 'var(--bg-primary)' }}></i>
+                </div>
+                <div>
+                  <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Barbero</h1>
+                  <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
+                </div>
+              </div>
+
+              <div className="flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{profile.nombre} {profile.apellido}</p>
+                  <p className="text-xs" style={{ color: 'var(--accent-color)' }}>barbero</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{ 
+                    backgroundColor: 'var(--accent-color)', 
+                    color: 'var(--bg-primary)',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
+                >
+                  <i className="fas fa-sign-out-alt mr-2"></i>
+                  Cerrar Sesión
+                </button>
+              </div>
+            </div>
           </div>
-          <button 
-            onClick={handleLogout}
-            className="btn btn-secondary"
-            style={{ padding: '10px 20px' }}
-          >
-            <i className="fas fa-sign-out-alt"></i> Cerrar Sesión
-          </button>
-        </div>
+        </header>
+
+        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
         {/* Tabs */}
         <div style={{ 
@@ -536,7 +550,7 @@ const BarberoPanelPage: React.FC = () => {
           </div>
         )}
 
-
+        </div>
       </div>
     </Layout>
   )
