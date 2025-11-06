@@ -3,13 +3,45 @@
 **Proyecto:** chamos-barber-app  
 **Usuario:** juan135072  
 **Estado Actual:** ✅ Producción funcionando al 100%  
-**Última Actualización:** 2025-11-06
+**Última Actualización:** 2025-11-06 (v1.5.0)
 
 ---
 
 ## 🎯 GUÍAS RÁPIDAS (Inicio Aquí)
 
-### 1. **RESTAURACION_RAPIDA.md** ⚡ (~2 min lectura)
+### 1. **DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md** 📚 (~25 min lectura) 🆕
+**Cuándo usar:** Necesitas documentación completa y actualizada del sistema
+
+**Contenido:**
+- Estado funcional completo del sistema (v1.5.0)
+- Estructura detallada del proyecto
+- Base de datos y Supabase Storage
+- Configuración de entorno y deployment
+- Problemas conocidos y soluciones
+- Checklist de verificación funcional
+- Guía de estilo y UX
+- Métricas y seguridad
+
+**Ideal para:** Referencia completa, onboarding de nuevos desarrolladores, documentación exhaustiva
+
+---
+
+### 2. **PROMPT_RESTAURACION_COMPLETA.md** 🔄 (~20 min lectura) 🆕
+**Cuándo usar:** Necesitas restaurar el sistema al estado actual funcional
+
+**Contenido:**
+- Prompt completo para copiar/pegar a IA
+- Casos de uso específicos (6 escenarios)
+- Checklist de restauración en 5 pasos
+- Instrucciones de emergencia
+- Scripts útiles y contactos
+- Validación final del proceso
+
+**Ideal para:** Restauración después de errores, pérdida de contexto, nuevo desarrollador/IA
+
+---
+
+### 3. **RESTAURACION_RAPIDA.md** ⚡ (~2 min lectura)
 **Cuándo usar:** Necesitas restaurar rápidamente sin leer mucho
 
 **Contenido:**
@@ -21,7 +53,7 @@
 
 ---
 
-### 2. **EXITO_COMPLETO_RESERVAS.md** 🎉 (~15 min lectura)
+### 4. **EXITO_COMPLETO_RESERVAS.md** 🎉 (~15 min lectura)
 **Cuándo usar:** Quieres entender el estado exitoso completo
 
 **Contenido:**
@@ -39,8 +71,8 @@
 
 ## 🔄 RESTAURACIÓN
 
-### 3. **PROMPT_RESTAURACION_ESTADO_EXITOSO.md** 📋 (~20 min lectura)
-**Cuándo usar:** Necesitas restaurar el proyecto a estado funcional
+### 5. **PROMPT_RESTAURACION_ESTADO_EXITOSO.md** 📋 (~20 min lectura)
+**Cuándo usar:** Necesitas restaurar el proyecto a estado funcional (versión anterior)
 
 **Contenido:**
 - Prompt completo para IA asistente (Claude, etc.)
@@ -51,13 +83,15 @@
 - Comandos de verificación
 - Troubleshooting extensivo
 
-**Ideal para:** Restauración completa con verificación paso a paso
+**Nota:** Para la versión más actualizada (v1.5.0), usa `PROMPT_RESTAURACION_COMPLETA.md`
+
+**Ideal para:** Restauración completa con verificación paso a paso (legacy)
 
 ---
 
 ## 🚨 SOLUCIÓN DE PROBLEMAS
 
-### 4. **FIX_RLS_CLAVES_INCORRECTAS.md** 🔑 (~15 min lectura)
+### 6. **FIX_RLS_CLAVES_INCORRECTAS.md** 🔑 (~15 min lectura)
 **Cuándo usar:** Error RLS causado por claves incorrectas
 
 **Contenido:**
@@ -71,7 +105,7 @@
 
 ---
 
-### 5. **FIX_RLS_CHECKLIST.md** ✅ (~5 min lectura)
+### 7. **FIX_RLS_CHECKLIST.md** ✅ (~5 min lectura)
 **Cuándo usar:** Necesitas solucionar error RLS rápidamente
 
 **Contenido:**
@@ -84,7 +118,7 @@
 
 ---
 
-### 6. **SOLUCION_ERROR_RLS.md** 📖 (~12 min lectura)
+### 8. **SOLUCION_ERROR_RLS.md** 📖 (~12 min lectura)
 **Cuándo usar:** Quieres entender el error RLS en profundidad
 
 **Contenido:**
@@ -100,7 +134,7 @@
 
 ## 🐳 CONFIGURACIÓN COOLIFY
 
-### 7. **COOLIFY_CONFIGURACION.md** 🔧 (~15 min lectura)
+### 9. **COOLIFY_CONFIGURACION.md** 🔧 (~15 min lectura)
 **Cuándo usar:** Necesitas configurar o troubleshoot Coolify
 
 **Contenido:**
@@ -117,7 +151,7 @@
 
 ## 📜 HISTORIA Y CONTEXTO
 
-### 8. **EXITO_DEPLOYMENT_COOLIFY.md** 📚 (~30 min lectura)
+### 10. **EXITO_DEPLOYMENT_COOLIFY.md** 📚 (~30 min lectura)
 **Cuándo usar:** Quieres entender toda la historia del deployment
 
 **Contenido:**
@@ -133,7 +167,7 @@
 
 ---
 
-### 9. **PROMPT_RESTAURACION.md** 📝 (~15 min lectura)
+### 11. **PROMPT_RESTAURACION.md** 📝 (~15 min lectura)
 **Cuándo usar:** Prompt de restauración original (pre-éxito completo)
 
 **Contenido:**
@@ -142,11 +176,13 @@
 - Procedimientos de verificación
 - Troubleshooting común
 
-**Nota:** Este es el prompt original. Para restauración actualizada usa `PROMPT_RESTAURACION_ESTADO_EXITOSO.md`
+**Nota:** Este es el prompt original. Para restauración actualizada usa:
+- **Más reciente (v1.5.0)**: `PROMPT_RESTAURACION_COMPLETA.md`
+- **Versión anterior**: `PROMPT_RESTAURACION_ESTADO_EXITOSO.md`
 
 ---
 
-### 10. **RESUMEN_SOLUCION_FINAL.md** 🎯 (~10 min lectura)
+### 12. **RESUMEN_SOLUCION_FINAL.md** 🎯 (~10 min lectura)
 **Cuándo usar:** Necesitas un resumen ejecutivo de la solución
 
 **Contenido:**
@@ -167,6 +203,7 @@
 
 **Situación 1: Sistema roto, necesito restaurar YA**
 → Lee: `RESTAURACION_RAPIDA.md` (2 min)
+→ O usa: `PROMPT_RESTAURACION_COMPLETA.md` con IA (20 min)
 
 **Situación 2: Error RLS al crear citas**
 → Lee: `FIX_RLS_CHECKLIST.md` (5 min) → Si no funciona: `FIX_RLS_CLAVES_INCORRECTAS.md`
@@ -179,24 +216,32 @@
 
 **Situación 5: Quiero entender todo el proyecto**
 → Lee en orden:
-1. `EXITO_COMPLETO_RESERVAS.md` (15 min)
-2. `EXITO_DEPLOYMENT_COOLIFY.md` (30 min)
-3. `FIX_RLS_CLAVES_INCORRECTAS.md` (15 min)
+1. `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` (25 min) 🆕
+2. `EXITO_COMPLETO_RESERVAS.md` (15 min)
+3. `EXITO_DEPLOYMENT_COOLIFY.md` (30 min)
+4. `FIX_RLS_CLAVES_INCORRECTAS.md` (15 min)
 
 **Situación 6: Necesito restaurar con verificación completa**
-→ Lee: `PROMPT_RESTAURACION_ESTADO_EXITOSO.md` (20 min)
+→ Lee: `PROMPT_RESTAURACION_COMPLETA.md` (20 min) 🆕
+→ O versión anterior: `PROMPT_RESTAURACION_ESTADO_EXITOSO.md` (20 min)
+
+**Situación 7: Nuevo desarrollador/IA incorporándose al proyecto**
+→ Lee: `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` (25 min) 🆕
+→ Luego usa: `PROMPT_RESTAURACION_COMPLETA.md` para verificar setup
 
 ---
 
 ## 🗂️ ORGANIZACIÓN POR TIPO
 
 ### 📖 DOCUMENTACIÓN DE ÉXITO
+- `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` - Estado completo v1.5.0 🆕
 - `EXITO_COMPLETO_RESERVAS.md` - Estado exitoso completo
 - `EXITO_DEPLOYMENT_COOLIFY.md` - Historia del deployment
 
 ### 🔄 RESTAURACIÓN
+- `PROMPT_RESTAURACION_COMPLETA.md` - Restauración v1.5.0 🆕
 - `RESTAURACION_RAPIDA.md` - Restauración rápida
-- `PROMPT_RESTAURACION_ESTADO_EXITOSO.md` - Restauración completa
+- `PROMPT_RESTAURACION_ESTADO_EXITOSO.md` - Restauración completa (anterior)
 - `PROMPT_RESTAURACION.md` - Restauración original (legacy)
 
 ### 🚨 TROUBLESHOOTING
@@ -219,6 +264,8 @@
 |-----------|----------|----------------|-----------|
 | RESTAURACION_RAPIDA.md | ~500 | 2 min | 🔥 Alta |
 | FIX_RLS_CHECKLIST.md | ~1,500 | 5 min | 🔥 Alta |
+| DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md 🆕 | ~5,500 | 25 min | ⭐ Media |
+| PROMPT_RESTAURACION_COMPLETA.md 🆕 | ~3,500 | 20 min | ⭐ Media |
 | EXITO_COMPLETO_RESERVAS.md | ~3,500 | 15 min | ⭐ Media |
 | RESUMEN_SOLUCION_FINAL.md | ~2,000 | 10 min | ⭐ Media |
 | FIX_RLS_CLAVES_INCORRECTAS.md | ~3,000 | 15 min | ⭐ Media |
@@ -228,7 +275,7 @@
 | EXITO_DEPLOYMENT_COOLIFY.md | ~7,000 | 30 min | 📖 Baja |
 | PROMPT_RESTAURACION.md | ~3,000 | 15 min | 📖 Baja |
 
-**Total:** ~30,000 palabras | ~2-3 horas de lectura completa
+**Total:** ~39,000 palabras | ~3-4 horas de lectura completa
 
 ---
 
@@ -241,15 +288,17 @@ Para resolver problemas inmediatos:
 3. EXITO_COMPLETO_RESERVAS.md (15 min)
 4. RESUMEN_SOLUCION_FINAL.md (10 min)
 
-### 📚 Ruta Completa (2-3 horas)
+### 📚 Ruta Completa (3-4 horas) 🆕
 Para entendimiento profundo:
-1. EXITO_COMPLETO_RESERVAS.md (15 min)
-2. EXITO_DEPLOYMENT_COOLIFY.md (30 min)
-3. FIX_RLS_CLAVES_INCORRECTAS.md (15 min)
-4. SOLUCION_ERROR_RLS.md (12 min)
-5. COOLIFY_CONFIGURACION.md (15 min)
-6. PROMPT_RESTAURACION_ESTADO_EXITOSO.md (20 min)
-7. Resto de documentos según necesidad
+1. DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md (25 min) 🆕
+2. PROMPT_RESTAURACION_COMPLETA.md (20 min) 🆕
+3. EXITO_COMPLETO_RESERVAS.md (15 min)
+4. EXITO_DEPLOYMENT_COOLIFY.md (30 min)
+5. FIX_RLS_CLAVES_INCORRECTAS.md (15 min)
+6. SOLUCION_ERROR_RLS.md (12 min)
+7. COOLIFY_CONFIGURACION.md (15 min)
+8. PROMPT_RESTAURACION_ESTADO_EXITOSO.md (20 min)
+9. Resto de documentos según necesidad
 
 ### 🔧 Ruta de Troubleshooting (45 min)
 Para solucionar problemas específicos:
@@ -266,8 +315,9 @@ Para solucionar problemas específicos:
 
 1. **Empieza por la guía rápida:** `RESTAURACION_RAPIDA.md`
 2. **Si no funciona:** Lee el documento específico del problema
-3. **Para entender contexto:** Lee `EXITO_COMPLETO_RESERVAS.md`
-4. **Para restaurar:** Usa `PROMPT_RESTAURACION_ESTADO_EXITOSO.md`
+3. **Para entender contexto completo:** Lee `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` 🆕
+4. **Para restaurar con IA:** Usa `PROMPT_RESTAURACION_COMPLETA.md` 🆕
+5. **Para entender historia:** Lee `EXITO_COMPLETO_RESERVAS.md`
 
 ### 🔍 Búsqueda Eficiente
 
@@ -299,18 +349,20 @@ grep -l "NEXT_PUBLIC" *.md
 ### 🔑 Valores Importantes
 
 **Variables de Entorno:**
-- Ver: `RESUMEN_SOLUCION_FINAL.md` sección "Valores Correctos"
+- Ver: `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` sección "Configuración de Entorno" 🆕
+- O: `RESUMEN_SOLUCION_FINAL.md` sección "Valores Correctos"
 - O: `EXITO_COMPLETO_RESERVAS.md` sección "Configuración Final"
 
 **Commits Importantes:**
-- Ver: `EXITO_COMPLETO_RESERVAS.md` sección "Commits Clave"
-- Commit exitoso actual: `8898d4b`
+- Ver: `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` sección "Workflow de Git" 🆕
+- Commit actual v1.5.0: `feat: sistema completo con reservas, tema oscuro, fotos y configuración de Storage`
+- Commit exitoso anterior: `8898d4b`
 - Commit de referencia: `407fcce`
 
 **Archivos Críticos:**
-- Ver: `PROMPT_RESTAURACION_ESTADO_EXITOSO.md` sección "Archivos Críticos"
-- API: `src/pages/api/crear-cita.ts` (149 líneas)
-- Frontend: `src/pages/reservar.tsx` (línea ~141)
+- Ver: `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` sección "Estructura del Proyecto" 🆕
+- Ver: `PROMPT_RESTAURACION_COMPLETA.md` sección "Estructura Clave" 🆕
+- O: `PROMPT_RESTAURACION_ESTADO_EXITOSO.md` sección "Archivos Críticos"
 
 ---
 
@@ -318,26 +370,38 @@ grep -l "NEXT_PUBLIC" *.md
 
 ### Historial de Cambios
 
-**2025-11-06:**
+**2025-11-06 (v1.5.0):** 🆕
+- ✅ Tema oscuro aplicado a CitasSection
+- ✅ Tab de Portfolio eliminado del panel barbero
+- ✅ Upload de foto implementado en perfil barbero
+- ✅ Fix de import chamosSupabase
+- ✅ Documentación exhaustiva del estado actual
+- ✅ Prompt de restauración completa actualizado
+
+**Documentos Creados v1.5.0:**
+1. DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md 🆕
+2. PROMPT_RESTAURACION_COMPLETA.md 🆕
+
+**2025-11-06 (v1.0):**
 - ✅ Éxito completo confirmado
 - ✅ Sistema funcionando 100%
 - ✅ Documentación completa generada
 - ✅ Prompts de restauración creados
 
-**Documentos Creados:**
-1. EXITO_COMPLETO_RESERVAS.md
-2. PROMPT_RESTAURACION_ESTADO_EXITOSO.md
-3. RESTAURACION_RAPIDA.md
-4. INDICE_DOCUMENTACION.md (este archivo)
+**Documentos Creados v1.0:**
+3. EXITO_COMPLETO_RESERVAS.md
+4. PROMPT_RESTAURACION_ESTADO_EXITOSO.md
+5. RESTAURACION_RAPIDA.md
+6. INDICE_DOCUMENTACION.md (este archivo)
 
 **Documentos Previos:**
-5. EXITO_DEPLOYMENT_COOLIFY.md
-6. PROMPT_RESTAURACION.md
-7. SOLUCION_ERROR_RLS.md
-8. COOLIFY_CONFIGURACION.md
-9. FIX_RLS_CLAVES_INCORRECTAS.md
-10. FIX_RLS_CHECKLIST.md
-11. RESUMEN_SOLUCION_FINAL.md
+7. EXITO_DEPLOYMENT_COOLIFY.md
+8. PROMPT_RESTAURACION.md
+9. SOLUCION_ERROR_RLS.md
+10. COOLIFY_CONFIGURACION.md
+11. FIX_RLS_CLAVES_INCORRECTAS.md
+12. FIX_RLS_CHECKLIST.md
+13. RESUMEN_SOLUCION_FINAL.md
 
 ---
 
@@ -348,12 +412,14 @@ grep -l "NEXT_PUBLIC" *.md
 │  CHAMOS BARBER APP                      │
 ├─────────────────────────────────────────┤
 │  Estado: ✅ PRODUCCIÓN FUNCIONANDO      │
-│  Commit: 8898d4b                        │
+│  Versión: v1.5.0 🆕                     │
 │  Fecha:  2025-11-06                     │
 │  Build:  ✅ Sin errores                 │
 │  Deploy: ✅ Coolify exitoso             │
 │  Reservas: ✅ 100% funcional            │
-│  Docs:   ✅ Completa (11 documentos)    │
+│  Storage: ✅ Upload fotos activo        │
+│  Tema:   ✅ Oscuro unificado            │
+│  Docs:   ✅ Completa (13 documentos)    │
 └─────────────────────────────────────────┘
 ```
 
@@ -363,15 +429,17 @@ grep -l "NEXT_PUBLIC" *.md
 
 ### Para Desarrolladores
 
-- **Antes de hacer cambios:** Leer `EXITO_COMPLETO_RESERVAS.md`
-- **Si algo se rompe:** Usar `RESTAURACION_RAPIDA.md`
+- **Antes de hacer cambios:** Leer `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` 🆕
+- **Si algo se rompe:** Usar `RESTAURACION_RAPIDA.md` o `PROMPT_RESTAURACION_COMPLETA.md` 🆕
 - **Para entender errores:** Leer `EXITO_DEPLOYMENT_COOLIFY.md`
+- **Referencia de código:** `EXITO_COMPLETO_RESERVAS.md`
 
 ### Para Operaciones
 
 - **Deployment:** Seguir `COOLIFY_CONFIGURACION.md`
 - **Troubleshooting:** Usar `FIX_RLS_CHECKLIST.md`
-- **Restauración:** Usar `PROMPT_RESTAURACION_ESTADO_EXITOSO.md`
+- **Restauración:** Usar `PROMPT_RESTAURACION_COMPLETA.md` 🆕
+- **Configuración:** Ver `DOCUMENTACION_ESTADO_ACTUAL_COMPLETO.md` 🆕
 
 ### Para Mantenimiento
 
@@ -385,22 +453,27 @@ grep -l "NEXT_PUBLIC" *.md
 
 Ahora que tienes documentación completa:
 
-1. ✅ Sistema funcionando
-2. ✅ Documentación completa
-3. ✅ Prompts de restauración listos
+1. ✅ Sistema funcionando (v1.5.0)
+2. ✅ Documentación exhaustiva actualizada 🆕
+3. ✅ Prompts de restauración completos 🆕
 4. ✅ Troubleshooting documentado
+5. ✅ Tema oscuro unificado 🆕
+6. ✅ Upload de fotos implementado 🆕
+7. ✅ Configuración de Supabase Storage 🆕
 
 **Puedes:**
 - Desarrollar nuevas features con confianza
-- Restaurar rápidamente si algo falla
+- Restaurar rápidamente si algo falla (con IA o manualmente)
 - Entender cualquier problema que surja
 - Configurar nuevos ambientes fácilmente
+- Incorporar nuevos desarrolladores rápidamente 🆕
+- Mantener consistencia visual en toda la app 🆕
 
 ---
 
-**Última Actualización:** 2025-11-06  
+**Última Actualización:** 2025-11-06 (v1.5.0) 🆕  
 **Mantenedor:** juan135072  
 **Estado:** ✅ Activo y completo  
-**Versión:** 1.0
+**Versión:** 1.5
 
 **🎊 ¡Documentación completa y lista para usar! 🎊**
