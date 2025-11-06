@@ -29,23 +29,30 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   useEffect(() => {
     const checkAdminRole = async () => {
       if (!session?.user?.id) {
+        console.log('[Navbar] No hay sesión activa')
         setIsAdmin(false)
         return
       }
 
       try {
+        console.log('[Navbar] Verificando rol para user:', session.user.id)
         const { data, error } = await supabase
           .from('admin_users')
           .select('rol')
           .eq('id', session.user.id)
           .single()
 
+        console.log('[Navbar] Resultado query:', { data, error })
+
         if (!error && data && data.rol === 'admin') {
+          console.log('[Navbar] ✅ Usuario es ADMIN - Mostrando botón')
           setIsAdmin(true)
         } else {
+          console.log('[Navbar] ❌ Usuario NO es admin - Ocultando botón. Rol:', data?.rol)
           setIsAdmin(false)
         }
       } catch (error) {
+        console.error('[Navbar] Error verificando rol:', error)
         setIsAdmin(false)
       }
     }

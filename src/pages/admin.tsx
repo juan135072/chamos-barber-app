@@ -52,22 +52,25 @@ export default function AdminPage() {
     if (!session?.user?.email) return
 
     try {
+      console.log('[Admin] Verificando acceso para email:', session.user.email)
       const adminData = await chamosSupabase.getAdminUser(session.user.email)
+      console.log('[Admin] Datos obtenidos:', { email: adminData?.email, rol: adminData?.rol, activo: adminData?.activo })
       
       // IMPORTANTE: Verificar explícitamente que el rol sea 'admin'
       if (!adminData || adminData.rol !== 'admin') {
-        console.error('Usuario sin permisos de administrador')
+        console.error('[Admin] ❌ ACCESO DENEGADO - Rol:', adminData?.rol)
         await supabase.auth.signOut()
         router.push('/login')
         return
       }
       
+      console.log('[Admin] ✅ Acceso autorizado - Usuario es admin')
       setAdminUser(adminData)
       
       // Cargar datos iniciales
       loadDashboardData()
     } catch (error) {
-      console.error('Error checking admin access:', error)
+      console.error('[Admin] Error checking admin access:', error)
       await supabase.auth.signOut()
       router.push('/login')
     } finally {
