@@ -10,6 +10,7 @@ import HorariosTab from '../components/admin/tabs/HorariosTab'
 import ConfiguracionTab from '../components/admin/tabs/ConfiguracionTab'
 import CitasTab from '../components/admin/tabs/CitasTab'
 import SolicitudesTab from '../components/admin/tabs/SolicitudesTab'
+import CategoriasTab from '../components/admin/tabs/CategoriasTab'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -185,6 +186,7 @@ export default function AdminPage() {
                 { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt' },
                 { id: 'barberos', name: 'Barberos', icon: 'fas fa-users' },
                 { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut' },
+                { id: 'categorias', name: 'Categorías', icon: 'fas fa-tags' },
                 { id: 'solicitudes', name: 'Solicitudes', icon: 'fas fa-user-plus' }
               ].map(tab => (
                 <button
@@ -334,6 +336,9 @@ export default function AdminPage() {
 
           {/* Servicios Tab */}
           {activeTab === 'servicios' && <ServiciosTab />}
+
+          {/* Categorías Tab */}
+          {activeTab === 'categorias' && <CategoriasTab />}
 
           {/* Horarios Tab */}
           {activeTab === 'horarios' && <HorariosTab />}

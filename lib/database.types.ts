@@ -150,6 +150,38 @@ export interface Database {
           updated_at?: string
         }
       }
+      categorias_servicios: {
+        Row: {
+          id: string
+          nombre: string
+          descripcion: string | null
+          icono: string | null
+          orden: number
+          activa: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          descripcion?: string | null
+          icono?: string | null
+          orden?: number
+          activa?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          descripcion?: string | null
+          icono?: string | null
+          orden?: number
+          activa?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
       solicitudes_barberos: {
         Row: {
           id: string

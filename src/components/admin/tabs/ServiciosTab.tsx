@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import { chamosSupabase } from '../../../../lib/supabase-helpers'
 import type { Database } from '../../../../lib/database.types'
 import ServicioModal from '../modals/ServicioModal'
@@ -8,6 +9,7 @@ import toast from 'react-hot-toast'
 type Servicio = Database['public']['Tables']['servicios']['Row']
 
 const ServiciosTab: React.FC = () => {
+  const supabase = useSupabaseClient<Database>()
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedServicio, setSelectedServicio] = useState<Servicio | null>(null)
@@ -16,11 +18,11 @@ const ServiciosTab: React.FC = () => {
   const [servicioToDelete, setServicioToDelete] = useState<Servicio | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [filterCategoria, setFilterCategoria] = useState<string>('all')
-
-  const categorias = ['all', 'cortes', 'barbas', 'tintes', 'tratamientos', 'combos']
+  const [categorias, setCategorias] = useState<Array<{ nombre: string; icono: string | null }>>([])
 
   useEffect(() => {
     loadServicios()
+    loadCategorias()
   }, [])
 
   const loadServicios = async () => {
@@ -33,6 +35,29 @@ const ServiciosTab: React.FC = () => {
       toast.error('Error al cargar servicios')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadCategorias = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('categorias_servicios')
+        .select('nombre, icono')
+        .eq('activa', true)
+        .order('orden', { ascending: true })
+
+      if (error) throw error
+      setCategorias(data || [])
+    } catch (error) {
+      console.error('Error loading categorias:', error)
+      // Fallback a categorías por defecto si hay error
+      setCategorias([
+        { nombre: 'cortes', icono: '✂️' },
+        { nombre: 'barbas', icono: '🧔' },
+        { nombre: 'tintes', icono: '🎨' },
+        { nombre: 'tratamientos', icono: '💆' },
+        { nombre: 'combos', icono: '⭐' }
+      ])
     }
   }
 
@@ -130,12 +155,27 @@ const ServiciosTab: React.FC = () => {
 
       {/* Filtros */}
       <div className="mb-4 flex gap-2 overflow-x-auto">
+        <button
+          key="all"
+          onClick={() => setFilterCategoria('all')}
+          className="px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap"
+          style={filterCategoria === 'all' ? {
+            backgroundColor: 'var(--accent-color)',
+            color: 'var(--bg-primary)'
+          } : {
+            background: 'var(--bg-secondary)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)'
+          }}
+        >
+          Todos
+        </button>
         {categorias.map(cat => (
           <button
-            key={cat}
-            onClick={() => setFilterCategoria(cat)}
-            className="px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap"
-            style={filterCategoria === cat ? {
+            key={cat.nombre}
+            onClick={() => setFilterCategoria(cat.nombre)}
+            className="px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap flex items-center gap-2"
+            style={filterCategoria === cat.nombre ? {
               backgroundColor: 'var(--accent-color)',
               color: 'var(--bg-primary)'
             } : {
@@ -144,7 +184,8 @@ const ServiciosTab: React.FC = () => {
               border: '1px solid var(--border-color)'
             }}
           >
-            {cat === 'all' ? 'Todos' : cat.charAt(0).toUpperCase() + cat.slice(1)}
+            {cat.icono && <span>{cat.icono}</span>}
+            <span>{cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1)}</span>
           </button>
         ))}
       </div>
