@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
+import Head from 'next/head'
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
-import Layout from '../components/Layout'
 import toast, { Toaster } from 'react-hot-toast'
 import CitasSection from '../components/barbero/CitasSection'
 import { chamosSupabase } from '../../lib/supabase-helpers'
@@ -183,41 +183,51 @@ const BarberoPanelPage: React.FC = () => {
 
   if (loading) {
     return (
-      <Layout title="Cargando...">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '60vh' 
-        }}>
-          <div className="spinner"></div>
+      <>
+        <Head>
+          <title>Cargando... - Chamos Barber</title>
+        </Head>
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-32 w-32 mx-auto mb-4" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
+            <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Cargando tu panel...</p>
+          </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   if (!profile) {
     return (
-      <Layout title="Error">
-        <div style={{ 
-          display: 'flex', 
-          justifyContent: 'center', 
-          alignItems: 'center', 
-          minHeight: '60vh',
-          flexDirection: 'column',
-          gap: '2rem'
-        }}>
-          <h2>No se pudo cargar tu perfil</h2>
-          <button onClick={() => router.push('/login')} className="btn btn-primary">
-            Volver al Login
-          </button>
+      <>
+        <Head>
+          <title>Error - Chamos Barber</title>
+        </Head>
+        <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            minHeight: '60vh',
+            flexDirection: 'column',
+            gap: '2rem'
+          }}>
+            <h2 style={{ color: 'var(--text-primary)' }}>No se pudo cargar tu perfil</h2>
+            <button onClick={() => router.push('/login')} className="btn btn-primary">
+              Volver al Login
+            </button>
+          </div>
         </div>
-      </Layout>
+      </>
     )
   }
 
   return (
-    <Layout title={`Panel de ${profile.nombre} - Chamos Barber`}>
+    <>
+      <Head>
+        <title>{`Panel de ${profile.nombre} - Chamos Barber`}</title>
+        <meta name="description" content="Panel de control para barberos" />
+      </Head>
       <Toaster position="top-right" />
       
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -552,7 +562,7 @@ const BarberoPanelPage: React.FC = () => {
 
         </div>
       </div>
-    </Layout>
+    </>
   )
 }
 
