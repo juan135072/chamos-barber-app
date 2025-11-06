@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../lib/database.types'
+import NotasClienteModal from './NotasClienteModal'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   servicios?: { nombre: string; precio: number }
 }
+
+type NotaCliente = Database['public']['Tables']['notas_clientes']['Row']
 
 interface CitasSectionProps {
   barberoId: string
@@ -15,10 +18,19 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
   const [citas, setCitas] = useState<Cita[]>([])
   const [loading, setLoading] = useState(true)
   const [filtroEstado, setFiltroEstado] = useState<string>('todas')
+  const [notasClientes, setNotasClientes] = useState<Record<string, number>>({})
+  const [modalNotasOpen, setModalNotasOpen] = useState(false)
+  const [clienteSeleccionado, setClienteSeleccionado] = useState<{
+    email: string
+    nombre: string
+    telefono: string
+    citaId?: string
+  } | null>(null)
 
   useEffect(() => {
     if (barberoId) {
       loadCitas()
+      loadNotasCount()
     }
   }, [barberoId])
 
@@ -46,6 +58,45 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const loadNotasCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notas_clientes')
+        .select('cliente_email')
+        .eq('barbero_id', barberoId)
+
+      if (error) throw error
+
+      // Contar notas por cliente
+      const counts: Record<string, number> = {}
+      data?.forEach(nota => {
+        counts[nota.cliente_email] = (counts[nota.cliente_email] || 0) + 1
+      })
+      setNotasClientes(counts)
+    } catch (error) {
+      console.error('Error loading notas count:', error)
+    }
+  }
+
+  const handleOpenNotas = (cita: Cita) => {
+    setClienteSeleccionado({
+      email: cita.cliente_email || '',
+      nombre: cita.cliente_nombre,
+      telefono: cita.cliente_telefono,
+      citaId: cita.id
+    })
+    setModalNotasOpen(true)
+  }
+
+  const handleCloseNotas = () => {
+    setModalNotasOpen(false)
+    setClienteSeleccionado(null)
+  }
+
+  const handleNotaSaved = () => {
+    loadNotasCount()
   }
 
   const handleUpdateEstado = async (citaId: string, nuevoEstado: string) => {
@@ -242,7 +293,49 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
                     </div>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '180px' }}>
+                  <button
+                    onClick={() => handleOpenNotas(cita)}
+                    style={{
+                      padding: '10px 16px',
+                      background: notasClientes[cita.cliente_email || ''] 
+                        ? 'rgba(212, 175, 55, 0.2)' 
+                        : 'var(--bg-primary)',
+                      border: notasClientes[cita.cliente_email || '']
+                        ? '1px solid rgba(212, 175, 55, 0.4)'
+                        : '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      color: notasClientes[cita.cliente_email || ''] 
+                        ? 'var(--accent-color)' 
+                        : 'var(--text-primary)',
+                      cursor: 'pointer',
+                      fontSize: '14px',
+                      fontWeight: '500',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      transition: 'all 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.transform = 'translateY(-1px)'
+                      e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.2)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = 'none'
+                    }}
+                    title={notasClientes[cita.cliente_email || ''] 
+                      ? `Ver ${notasClientes[cita.cliente_email || '']} nota(s)` 
+                      : 'Agregar nota'}
+                  >
+                    <i className="fas fa-sticky-note"></i>
+                    <span>
+                      {notasClientes[cita.cliente_email || ''] 
+                        ? `${notasClientes[cita.cliente_email || '']} Notas` 
+                        : 'Agregar Nota'}
+                    </span>
+                  </button>
                   <select
                     value={cita.estado}
                     onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
@@ -278,6 +371,20 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       }}>
         Mostrando {citasFiltradas.length} de {citas.length} citas
       </div>
+
+      {/* Modal de Notas */}
+      {clienteSeleccionado && (
+        <NotasClienteModal
+          isOpen={modalNotasOpen}
+          onClose={handleCloseNotas}
+          barberoId={barberoId}
+          clienteEmail={clienteSeleccionado.email}
+          clienteNombre={clienteSeleccionado.nombre}
+          clienteTelefono={clienteSeleccionado.telefono}
+          citaId={clienteSeleccionado.citaId}
+          onNotaSaved={handleNotaSaved}
+        />
+      )}
     </div>
   )
 }

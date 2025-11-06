@@ -265,6 +265,44 @@ export interface Database {
           updated_at?: string
         }
       }
+      notas_clientes: {
+        Row: {
+          id: string
+          barbero_id: string
+          cliente_email: string
+          cliente_nombre: string
+          cliente_telefono: string | null
+          notas: string
+          cita_id: string | null
+          tags: string[] | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          barbero_id: string
+          cliente_email: string
+          cliente_nombre: string
+          cliente_telefono?: string | null
+          notas: string
+          cita_id?: string | null
+          tags?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          barbero_id?: string
+          cliente_email?: string
+          cliente_nombre?: string
+          cliente_telefono?: string | null
+          notas?: string
+          cita_id?: string | null
+          tags?: string[] | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
       horarios_trabajo: {
         Row: {
           id: string
