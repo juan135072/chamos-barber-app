@@ -136,20 +136,34 @@ const ReservarPage: React.FC = () => {
   const handleSubmit = async () => {
     setLoading(true)
     try {
-      // Crear cita usando helper de Supabase
-      await chamosSupabase.createCita({
-        servicio_id: formData.servicio_id,
-        barbero_id: formData.barbero_id,
-        fecha: formData.fecha,
-        hora: formData.hora,
-        cliente_nombre: formData.cliente_nombre,
-        cliente_telefono: formData.cliente_telefono,
-        cliente_email: formData.cliente_email || null,
-        notas: formData.notas || null,
-        estado: 'pendiente'
+      console.log('🔄 Enviando reserva...', formData)
+      
+      // Usar nuestra API route en lugar de llamar directamente a Supabase
+      const response = await fetch('/api/crear-cita', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          servicio_id: formData.servicio_id,
+          barbero_id: formData.barbero_id,
+          fecha: formData.fecha,
+          hora: formData.hora,
+          cliente_nombre: formData.cliente_nombre,
+          cliente_telefono: formData.cliente_telefono,
+          cliente_email: formData.cliente_email || null,
+          notas: formData.notas || null
+        })
       })
 
-      alert('¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al reservar la cita')
+      }
+
+      console.log('✅ Reserva exitosa:', data)
+      alert(data.message || '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
       
       // Reset form
       setFormData({
@@ -164,7 +178,7 @@ const ReservarPage: React.FC = () => {
       })
       setCurrentStep(1)
     } catch (error) {
-      console.error('Error:', error)
+      console.error('❌ Error al reservar:', error)
       if (error instanceof Error) {
         alert(error.message)
       } else {
