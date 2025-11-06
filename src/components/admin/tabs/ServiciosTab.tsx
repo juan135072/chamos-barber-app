@@ -134,44 +134,48 @@ const ServiciosTab: React.FC = () => {
           <button
             key={cat}
             onClick={() => setFilterCategoria(cat)}
-            className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap ${
-              filterCategoria === cat
-                ? 'bg-amber-600 text-white'
-                : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
-            }`}
+            className="px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap"
+            style={filterCategoria === cat ? {
+              backgroundColor: 'var(--accent-color)',
+              color: 'var(--bg-primary)'
+            } : {
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)'
+            }}
           >
             {cat === 'all' ? 'Todos' : cat.charAt(0).toUpperCase() + cat.slice(1)}
           </button>
         ))}
       </div>
 
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-hidden">
+        <table className="min-w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead style={{ background: 'var(--bg-tertiary)' }}>
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Servicio</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Precio</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duración</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Acciones</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Servicio</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Categoría</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Precio</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Duración</th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Estado</th>
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Acciones</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody style={{ background: 'var(--bg-secondary)' }}>
             {filteredServicios.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-4 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-4 text-center" style={{ color: 'var(--text-primary)', opacity: 0.7, borderTop: '1px solid var(--border-color)' }}>
                   No hay servicios en esta categoría
                 </td>
               </tr>
             ) : (
               filteredServicios.map((servicio) => (
-                <tr key={servicio.id} className="hover:bg-gray-50">
+                <tr key={servicio.id} style={{ borderTop: '1px solid var(--border-color)' }}>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
                       <div>
-                        <div className="text-sm font-medium text-gray-900">{servicio.nombre}</div>
-                        <div className="text-sm text-gray-500 line-clamp-1">{servicio.descripcion}</div>
+                        <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{servicio.nombre}</div>
+                        <div className="text-sm line-clamp-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{servicio.descripcion}</div>
                         {servicio.popular && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
                             <i className="fas fa-star mr-1"></i>
@@ -186,10 +190,10 @@ const ServiciosTab: React.FC = () => {
                       {servicio.categoria}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                     ${servicio.precio.toLocaleString()}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                     {servicio.duracion_minutos} min
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
