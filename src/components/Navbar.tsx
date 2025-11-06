@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
+import type { Database } from '../../lib/database.types'
 
 interface NavbarProps {
   transparent?: boolean
@@ -9,7 +11,10 @@ interface NavbarProps {
 const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
   const router = useRouter()
+  const session = useSession()
+  const supabase = useSupabaseClient<Database>()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -19,6 +24,34 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Verificar si el usuario actual es admin
+  useEffect(() => {
+    const checkAdminRole = async () => {
+      if (!session?.user?.id) {
+        setIsAdmin(false)
+        return
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('admin_users')
+          .select('rol')
+          .eq('id', session.user.id)
+          .single()
+
+        if (!error && data && data.rol === 'admin') {
+          setIsAdmin(true)
+        } else {
+          setIsAdmin(false)
+        }
+      } catch (error) {
+        setIsAdmin(false)
+      }
+    }
+
+    checkAdminRole()
+  }, [session, supabase])
 
   const isActive = (path: string) => {
     return router.pathname === path
@@ -49,9 +82,12 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           <Link href="/consultar" className={`nav-link ${isActive('/consultar') ? 'active' : ''}`}>
             Consultar Cita
           </Link>
-          <Link href="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>
-            Admin
-          </Link>
+          {/* Solo mostrar Admin si el usuario tiene rol de admin */}
+          {isAdmin && (
+            <Link href="/admin" className={`nav-link ${isActive('/admin') ? 'active' : ''}`}>
+              Admin
+            </Link>
+          )}
         </div>
 
         <div 

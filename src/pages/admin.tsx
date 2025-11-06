@@ -53,6 +53,15 @@ export default function AdminPage() {
 
     try {
       const adminData = await chamosSupabase.getAdminUser(session.user.email)
+      
+      // IMPORTANTE: Verificar explícitamente que el rol sea 'admin'
+      if (!adminData || adminData.rol !== 'admin') {
+        console.error('Usuario sin permisos de administrador')
+        await supabase.auth.signOut()
+        router.push('/login')
+        return
+      }
+      
       setAdminUser(adminData)
       
       // Cargar datos iniciales
