@@ -140,6 +140,20 @@ function Login() {
                       input: 'auth-input',
                     },
                   }}
+                  localization={{
+                    variables: {
+                      sign_in: {
+                        email_label: 'Correo electrónico',
+                        password_label: 'Contraseña',
+                        email_input_placeholder: 'Tu correo electrónico',
+                        password_input_placeholder: 'Tu contraseña',
+                        button_label: 'Iniciar sesión',
+                        loading_button_label: 'Iniciando sesión...',
+                        social_provider_text: 'Iniciar sesión con {{provider}}',
+                        link_text: '¿Ya tienes una cuenta? Inicia sesión',
+                      },
+                    },
+                  }}
                   providers={[]}
                   redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/admin` : '/admin'}
                   onlyThirdPartyProviders={false}
@@ -148,6 +162,18 @@ function Login() {
                 />
 
                 <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <div className="text-center mb-4">
+                    <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                      ¿No tienes cuenta?{' '}
+                      <Link 
+                        href="/registro-barbero" 
+                        className="font-medium hover:underline transition-all"
+                        style={{ color: 'var(--accent-color)' }}
+                      >
+                        Regístrate como barbero
+                      </Link>
+                    </p>
+                  </div>
                   <div className="flex items-center justify-center text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                     <i className="fas fa-shield-alt mr-2"></i>
                     <span>Conexión segura y encriptada</span>
