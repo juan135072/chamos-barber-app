@@ -32,8 +32,9 @@ DROP TABLE IF EXISTS public.barbero_estadisticas CASCADE;
 -- PASO 2: Eliminar SOLO funciones del dashboard profesional
 -- =====================================================
 
--- Función de slug automático (no usada si slug ya existe)
-DROP FUNCTION IF EXISTS public.generar_slug_barbero() CASCADE;
+-- ⚠️ NOTA: La función generar_slug_barbero() NO se elimina
+-- porque es NECESARIA para URLs amigables (/barbero/miguel-torres)
+-- Si la eliminaste por error, ejecuta: restaurar-funcion-slug.sql
 
 -- Función de actualización de calificaciones (vinculada a barbero_resenas)
 DROP FUNCTION IF EXISTS public.actualizar_promedio_calificacion_barbero() CASCADE;
