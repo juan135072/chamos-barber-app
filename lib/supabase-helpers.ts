@@ -38,18 +38,26 @@ export const chamosSupabase = {
   },
 
   createBarbero: async (barbero: Database['public']['Tables']['barberos']['Insert']) => {
-    const { data, error } = await supabase
-      .from('barberos')
-      .insert([barbero] as any)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data as Barbero
+    // Usar API route con service_role key para bypasear RLS
+    const response = await fetch('/api/barberos/create', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(barbero)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Error al crear barbero')
+    }
+
+    const result = await response.json()
+    return result.barbero as Barbero
   },
 
   updateBarbero: async (id: string, updates: Database['public']['Tables']['barberos']['Update']) => {
-    // Si solo se está actualizando el campo 'activo', usar la API route
+    // Si solo se está actualizando el campo 'activo', usar la API route específica
     if (Object.keys(updates).length === 1 && 'activo' in updates) {
       const response = await fetch('/api/barberos/toggle-active', {
         method: 'POST',
@@ -71,16 +79,25 @@ export const chamosSupabase = {
       return result.barbero as Barbero
     }
 
-    // Para otras actualizaciones, usar el cliente normal
-    const { data, error } = await supabase
-      .from('barberos')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
-      .eq('id', id)
-      .select()
-      .single()
-    
-    if (error) throw error
-    return data as Barbero
+    // Para otras actualizaciones, usar API route general con service_role
+    const response = await fetch('/api/barberos/update', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        barberoId: id,
+        updates 
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Error al actualizar barbero')
+    }
+
+    const result = await response.json()
+    return result.barbero as Barbero
   },
 
   deleteBarbero: async (id: string) => {
