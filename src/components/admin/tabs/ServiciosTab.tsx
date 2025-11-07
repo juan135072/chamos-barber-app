@@ -63,7 +63,21 @@ const ServiciosTab: React.FC = () => {
 
   const filteredServicios = filterCategoria === 'all' 
     ? servicios 
-    : servicios.filter(s => s.categoria?.toLowerCase() === filterCategoria.toLowerCase())
+    : servicios.filter(s => {
+        if (!s.categoria) return false
+        const servicioCategoria = s.categoria.toLowerCase().trim()
+        const filtroCategoria = filterCategoria.toLowerCase().trim()
+        
+        // Intenta match exacto primero
+        if (servicioCategoria === filtroCategoria) return true
+        
+        // Intenta match sin considerar singular/plural
+        // "barba" vs "barbas", "tratamiento" vs "tratamientos"
+        const singularServicio = servicioCategoria.replace(/s$/, '')
+        const singularFiltro = filtroCategoria.replace(/s$/, '')
+        
+        return singularServicio === singularFiltro
+      })
 
   const handleCreate = () => {
     setSelectedServicio(null)
