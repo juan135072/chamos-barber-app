@@ -21,6 +21,7 @@ export default function SolicitudesTab() {
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSolicitud, setSelectedSolicitud] = useState<Solicitud | null>(null)
   const [showDetailModal, setShowDetailModal] = useState(false)
+  const [adminUserId, setAdminUserId] = useState<string | null>(null)
   const [modalAprobacion, setModalAprobacion] = useState<ModalAprobacion>({
     isOpen: false,
     solicitud: null,
@@ -30,8 +31,20 @@ export default function SolicitudesTab() {
   })
 
   useEffect(() => {
+    loadAdminUser()
     loadSolicitudes()
   }, [])
+
+  const loadAdminUser = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setAdminUserId(user.id)
+      }
+    } catch (error) {
+      console.error('Error loading admin user:', error)
+    }
+  }
 
   const loadSolicitudes = async () => {
     try {
@@ -68,6 +81,10 @@ export default function SolicitudesTab() {
 
   const handleAprobar = async () => {
     if (!modalAprobacion.solicitud) return
+    if (!adminUserId) {
+      toast.error('No se pudo obtener el ID del administrador')
+      return
+    }
 
     setModalAprobacion(prev => ({ ...prev, loading: true }))
 
@@ -76,7 +93,8 @@ export default function SolicitudesTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          solicitudId: modalAprobacion.solicitud.id
+          solicitudId: modalAprobacion.solicitud.id,
+          adminId: adminUserId
         })
       })
 
