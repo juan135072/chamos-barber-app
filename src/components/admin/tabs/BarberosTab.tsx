@@ -54,15 +54,22 @@ const BarberosTab: React.FC = () => {
   const confirmDelete = async () => {
     if (!barberoToDelete) return
 
+    console.log('🎯 FRONTEND: Desactivando barbero:', {
+      id: barberoToDelete.id,
+      nombre: barberoToDelete.nombre,
+      apellido: barberoToDelete.apellido
+    })
+
     try {
       setDeleting(true)
-      await chamosSupabase.deleteBarbero(barberoToDelete.id)
+      const result = await chamosSupabase.deleteBarbero(barberoToDelete.id)
+      console.log('✅ FRONTEND: Resultado de desactivación:', result)
       toast.success('Barbero desactivado exitosamente')
       loadBarberos()
       setShowDeleteDialog(false)
       setBarberoToDelete(null)
     } catch (error: any) {
-      console.error('Error deleting barbero:', error)
+      console.error('❌ FRONTEND: Error deleting barbero:', error)
       toast.error(error.message || 'Error al desactivar barbero')
     } finally {
       setDeleting(false)
@@ -77,15 +84,22 @@ const BarberosTab: React.FC = () => {
   const confirmPermanentDelete = async () => {
     if (!barberoToDelete) return
 
+    console.log('🎯 FRONTEND: Eliminando barbero:', {
+      id: barberoToDelete.id,
+      nombre: barberoToDelete.nombre,
+      apellido: barberoToDelete.apellido
+    })
+
     try {
       setDeleting(true)
-      await chamosSupabase.permanentlyDeleteBarbero(barberoToDelete.id)
+      const result = await chamosSupabase.permanentlyDeleteBarbero(barberoToDelete.id)
+      console.log('✅ FRONTEND: Resultado de eliminación:', result)
       toast.success('Barbero eliminado permanentemente')
       loadBarberos()
       setShowPermanentDeleteModal(false)
       setBarberoToDelete(null)
     } catch (error: any) {
-      console.error('Error permanently deleting barbero:', error)
+      console.error('❌ FRONTEND: Error permanently deleting barbero:', error)
       toast.error(error.message || 'Error al eliminar permanentemente el barbero')
     } finally {
       setDeleting(false)
@@ -93,14 +107,23 @@ const BarberosTab: React.FC = () => {
   }
 
   const handleToggleActive = async (barbero: Barbero) => {
+    console.log('🎯 FRONTEND: Toggle active barbero:', {
+      id: barbero.id,
+      nombre: barbero.nombre,
+      apellido: barbero.apellido,
+      activoActual: barbero.activo,
+      nuevoActivo: !barbero.activo
+    })
+
     try {
-      await chamosSupabase.updateBarbero(barbero.id, {
+      const result = await chamosSupabase.updateBarbero(barbero.id, {
         activo: !barbero.activo
       })
+      console.log('✅ FRONTEND: Resultado toggle:', result)
       toast.success(`Barbero ${!barbero.activo ? 'activado' : 'desactivado'}`)
       loadBarberos()
     } catch (error) {
-      console.error('Error toggling barbero:', error)
+      console.error('❌ FRONTEND: Error toggling barbero:', error)
       toast.error('Error al actualizar barbero')
     }
   }
