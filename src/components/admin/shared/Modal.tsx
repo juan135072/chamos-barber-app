@@ -3,12 +3,13 @@ import React, { useEffect } from 'react'
 interface ModalProps {
   isOpen: boolean
   onClose: () => void
-  title: string
+  title?: string
   children: React.ReactNode
   size?: 'sm' | 'md' | 'lg' | 'xl'
+  showHeader?: boolean
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md' }) => {
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 'md', showHeader = true }) => {
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden'
@@ -48,29 +49,31 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, size = 
           }}
         >
           {/* Header */}
-          <div 
-            className="flex items-center justify-between p-6"
-            style={{ borderBottom: '1px solid var(--border-color)' }}
-          >
-            <h3 
-              className="text-xl font-semibold"
-              style={{ color: 'var(--accent-color)' }}
+          {showHeader && title && (
+            <div 
+              className="flex items-center justify-between p-6"
+              style={{ borderBottom: '1px solid var(--border-color)' }}
             >
-              {title}
-            </h3>
-            <button
-              onClick={onClose}
-              className="transition-colors"
-              style={{ color: 'var(--text-primary)', opacity: 0.7 }}
-              onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-              onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
-            >
-              <i className="fas fa-times text-xl"></i>
-            </button>
-          </div>
+              <h3 
+                className="text-xl font-semibold"
+                style={{ color: 'var(--accent-color)' }}
+              >
+                {title}
+              </h3>
+              <button
+                onClick={onClose}
+                className="transition-colors"
+                style={{ color: 'var(--text-primary)', opacity: 0.7 }}
+                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseLeave={(e) => e.currentTarget.style.opacity = '0.7'}
+              >
+                <i className="fas fa-times text-xl"></i>
+              </button>
+            </div>
+          )}
           
           {/* Content */}
-          <div className="p-6">
+          <div className={showHeader && title ? "p-6" : ""}>
             {children}
           </div>
         </div>

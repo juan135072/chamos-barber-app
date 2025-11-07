@@ -45,7 +45,7 @@ const PermanentDeleteModal: React.FC<PermanentDeleteModalProps> = ({
   const isConfirmationValid = confirmText.toUpperCase() === 'ELIMINAR PERMANENTEMENTE'
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} size="lg">
+    <Modal isOpen={isOpen} onClose={handleClose} size="lg" showHeader={false}>
       <div className="p-6">
         {step === 'education' ? (
           <>
