@@ -48,6 +48,29 @@ export const chamosSupabase = {
   },
 
   updateBarbero: async (id: string, updates: Database['public']['Tables']['barberos']['Update']) => {
+    // Si solo se está actualizando el campo 'activo', usar la API route
+    if (Object.keys(updates).length === 1 && 'activo' in updates) {
+      const response = await fetch('/api/barberos/toggle-active', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          barberoId: id,
+          activo: updates.activo 
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Error al actualizar barbero')
+      }
+
+      const result = await response.json()
+      return result.barbero as Barbero
+    }
+
+    // Para otras actualizaciones, usar el cliente normal
     const { data, error } = await supabase
       .from('barberos')
       .update({ ...updates, updated_at: new Date().toISOString() } as any)
@@ -61,52 +84,46 @@ export const chamosSupabase = {
 
   deleteBarbero: async (id: string) => {
     // Soft delete: marcar como inactivo en vez de eliminar
-    // Esto preserva el historial de citas y datos
-    const { error } = await supabase
-      .from('barberos')
-      .update({ activo: false })
-      .eq('id', id)
-    
-    if (error) throw error
-    
-    // También desactivar el usuario en admin_users si existe
-    try {
-      await supabase
-        .from('admin_users')
-        .update({ activo: false })
-        .eq('barbero_id', id)
-    } catch (adminError) {
-      console.warn('No se pudo desactivar admin_user asociado:', adminError)
+    // Usa API route con service_role key para bypasear RLS
+    const response = await fetch('/api/barberos/toggle-active', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        barberoId: id,
+        activo: false 
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Error al desactivar barbero')
     }
+
+    return await response.json()
   },
 
   // Eliminar barbero PERMANENTEMENTE (solo para casos especiales)
   // ⚠️ ADVERTENCIA: Esto elimina todos los datos y NO se puede deshacer
   permanentlyDeleteBarbero: async (id: string) => {
-    // Verificar si tiene citas asociadas
-    const { data: citas } = await supabase
-      .from('citas')
-      .select('id')
-      .eq('barbero_id', id)
-      .limit(1)
-    
-    if (citas && citas.length > 0) {
-      throw new Error('No se puede eliminar permanentemente. El barbero tiene citas asociadas.')
+    // Usa API route con service_role key para bypasear RLS
+    const response = await fetch('/api/barberos/delete-permanent', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        barberoId: id
+      })
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Error al eliminar barbero permanentemente')
     }
 
-    // Eliminar de admin_users primero (relación)
-    await supabase
-      .from('admin_users')
-      .delete()
-      .eq('barbero_id', id)
-
-    // Eliminar barbero
-    const { error } = await supabase
-      .from('barberos')
-      .delete()
-      .eq('id', id)
-    
-    if (error) throw error
+    return await response.json()
   },
 
   // Servicios
