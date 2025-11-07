@@ -12,10 +12,11 @@ type PortfolioItem = Database['public']['Tables']['barbero_portfolio']['Row']
 // Helper para barberos
 export const chamosSupabase = {
   // Barberos
-  getBarberos: async (activo: boolean = true) => {
+  getBarberos: async (activo?: boolean) => {
     const query = supabase.from('barberos').select('*')
     
-    if (activo !== undefined) {
+    // Solo filtrar por activo si se especifica explícitamente
+    if (activo !== undefined && activo !== null) {
       query.eq('activo', activo)
     }
     

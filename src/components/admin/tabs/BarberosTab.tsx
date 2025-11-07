@@ -26,7 +26,10 @@ const BarberosTab: React.FC = () => {
   const loadBarberos = async () => {
     try {
       setLoading(true)
+      // Obtener TODOS los barberos (activos e inactivos) para el panel admin
+      // No pasar parámetro para obtener todos sin filtrar
       const data = await chamosSupabase.getBarberos()
+      console.log('📊 Barberos cargados:', data?.length, 'barberos')
       setBarberos(data || [])
     } catch (error) {
       console.error('Error loading barberos:', error)
@@ -198,10 +201,14 @@ const BarberosTab: React.FC = () => {
                   key={barbero.id}
                   style={{ 
                     borderTop: index > 0 ? '1px solid var(--border-color)' : 'none',
-                    transition: 'var(--transition)'
+                    transition: 'var(--transition)',
+                    opacity: barbero.activo ? 1 : 0.6,
+                    backgroundColor: barbero.activo ? 'transparent' : 'rgba(255, 0, 0, 0.02)'
                   }}
                   onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.05)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = barbero.activo ? 'transparent' : 'rgba(255, 0, 0, 0.02)'
+                  }}
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
@@ -243,12 +250,14 @@ const BarberosTab: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleToggleActive(barbero)}
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full transition-all ${
                         barbero.activo
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
+                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                          : 'bg-red-100 text-red-800 hover:bg-red-200'
                       }`}
+                      title={barbero.activo ? 'Click para desactivar' : 'Click para reactivar'}
                     >
+                      <i className={`fas ${barbero.activo ? 'fa-check-circle' : 'fa-times-circle'} mr-1`}></i>
                       {barbero.activo ? 'Activo' : 'Inactivo'}
                     </button>
                   </td>
