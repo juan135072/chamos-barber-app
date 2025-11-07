@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { chamosSupabase } from '../../../../lib/supabase-helpers'
+import { supabase } from '../../../../lib/initSupabase'
 import type { Database } from '../../../../lib/database.types'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
@@ -26,11 +27,33 @@ const BarberosTab: React.FC = () => {
   const loadBarberos = async () => {
     try {
       setLoading(true)
-      // Obtener TODOS los barberos (activos e inactivos) para el panel admin
-      // No pasar parámetro para obtener todos sin filtrar
-      const data = await chamosSupabase.getBarberos()
-      console.log('📊 Barberos cargados:', data?.length, 'barberos')
-      setBarberos(data || [])
+      console.log('🔄 Cargando TODOS los barberos (activos e inactivos)...')
+      
+      // IMPORTANTE: Hacer query directa para obtener TODOS sin filtrar
+      const { data, error } = await supabase
+        .from('barberos')
+        .select('*')
+        .order('nombre')
+      
+      if (error) {
+        console.error('❌ Error cargando barberos:', error)
+        throw error
+      }
+      
+      const barberos = data as Barbero[]
+      
+      console.log('📊 Barberos cargados:', {
+        total: barberos?.length || 0,
+        activos: barberos?.filter(b => b.activo).length || 0,
+        inactivos: barberos?.filter(b => !b.activo).length || 0,
+        lista: barberos?.map(b => ({ 
+          nombre: b.nombre, 
+          apellido: b.apellido, 
+          activo: b.activo 
+        }))
+      })
+      
+      setBarberos(barberos || [])
     } catch (error) {
       console.error('Error loading barberos:', error)
       toast.error('Error al cargar barberos')
