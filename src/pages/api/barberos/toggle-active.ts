@@ -15,6 +15,13 @@ export default async function handler(
   try {
     const { barberoId, activo } = req.body
 
+    console.log('🔍 TOGGLE ACTIVE REQUEST:', {
+      barberoId,
+      barberoIdType: typeof barberoId,
+      activo,
+      requestBody: req.body
+    })
+
     if (!barberoId) {
       return res.status(400).json({ error: 'barberoId es requerido' })
     }
@@ -36,6 +43,7 @@ export default async function handler(
     )
 
     // Actualizar estado del barbero (soft delete)
+    console.log(`🔄 Actualizando barbero id: ${barberoId} a activo: ${activo}`)
     const { data: barbero, error: barberoError } = await supabase
       .from('barberos')
       .update({ activo })
@@ -43,8 +51,10 @@ export default async function handler(
       .select()
       .single()
 
+    console.log('✅ Barbero actualizado:', barbero)
+
     if (barberoError) {
-      console.error('Error updating barbero:', barberoError)
+      console.error('❌ Error updating barbero:', barberoError)
       return res.status(400).json({ 
         error: 'Error al actualizar barbero',
         details: barberoError.message 
@@ -52,13 +62,21 @@ export default async function handler(
     }
 
     // También actualizar el usuario admin asociado
+    console.log('🔄 Actualizando admin_users con barbero_id:', barberoId)
     try {
-      await supabase
+      const { data: updatedAdmin, error: adminError } = await supabase
         .from('admin_users')
         .update({ activo })
         .eq('barbero_id', barberoId)
+        .select()
+      
+      console.log('✅ Admin_users actualizado:', updatedAdmin)
+      
+      if (adminError) {
+        console.warn('⚠️ Error actualizando admin_user:', adminError)
+      }
     } catch (adminError) {
-      console.warn('No se pudo actualizar admin_user asociado:', adminError)
+      console.warn('⚠️ No se pudo actualizar admin_user asociado:', adminError)
     }
 
     return res.status(200).json({ 

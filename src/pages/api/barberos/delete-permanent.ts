@@ -15,6 +15,12 @@ export default async function handler(
   try {
     const { barberoId } = req.body
 
+    console.log('🔍 DELETE PERMANENT REQUEST:', {
+      barberoId,
+      barberoIdType: typeof barberoId,
+      requestBody: req.body
+    })
+
     if (!barberoId) {
       return res.status(400).json({ error: 'barberoId es requerido' })
     }
@@ -54,24 +60,32 @@ export default async function handler(
     }
 
     // Eliminar de admin_users primero (relación foreign key)
-    const { error: adminError } = await supabase
+    console.log('🗑️ Eliminando admin_users con barbero_id:', barberoId)
+    const { data: deletedAdmins, error: adminError } = await supabase
       .from('admin_users')
       .delete()
       .eq('barbero_id', barberoId)
+      .select()
 
+    console.log('✅ Admin_users eliminados:', deletedAdmins)
+    
     if (adminError) {
-      console.warn('Error deleting admin_user:', adminError)
+      console.warn('⚠️ Error deleting admin_user:', adminError)
       // No fallar si no existe admin_user
     }
 
     // Eliminar barbero permanentemente
-    const { error: barberoError } = await supabase
+    console.log('🗑️ Eliminando barbero con id:', barberoId)
+    const { data: deletedBarbero, error: barberoError } = await supabase
       .from('barberos')
       .delete()
       .eq('id', barberoId)
+      .select()
+
+    console.log('✅ Barbero eliminado:', deletedBarbero)
 
     if (barberoError) {
-      console.error('Error deleting barbero:', barberoError)
+      console.error('❌ Error deleting barbero:', barberoError)
       return res.status(400).json({ 
         error: 'Error al eliminar barbero permanentemente',
         details: barberoError.message 
@@ -80,7 +94,9 @@ export default async function handler(
 
     return res.status(200).json({ 
       success: true,
-      message: 'Barbero eliminado permanentemente'
+      message: 'Barbero eliminado permanentemente',
+      deletedBarbero,
+      deletedAdmins
     })
 
   } catch (error: any) {
