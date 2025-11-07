@@ -63,7 +63,7 @@ const ServiciosTab: React.FC = () => {
 
   const filteredServicios = filterCategoria === 'all' 
     ? servicios 
-    : servicios.filter(s => s.categoria === filterCategoria)
+    : servicios.filter(s => s.categoria?.toLowerCase() === filterCategoria.toLowerCase())
 
   const handleCreate = () => {
     setSelectedServicio(null)
