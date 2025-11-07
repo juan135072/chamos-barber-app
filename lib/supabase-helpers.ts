@@ -60,6 +60,47 @@ export const chamosSupabase = {
   },
 
   deleteBarbero: async (id: string) => {
+    // Soft delete: marcar como inactivo en vez de eliminar
+    // Esto preserva el historial de citas y datos
+    const { error } = await supabase
+      .from('barberos')
+      .update({ activo: false })
+      .eq('id', id)
+    
+    if (error) throw error
+    
+    // También desactivar el usuario en admin_users si existe
+    try {
+      await supabase
+        .from('admin_users')
+        .update({ activo: false })
+        .eq('barbero_id', id)
+    } catch (adminError) {
+      console.warn('No se pudo desactivar admin_user asociado:', adminError)
+    }
+  },
+
+  // Eliminar barbero PERMANENTEMENTE (solo para casos especiales)
+  // ⚠️ ADVERTENCIA: Esto elimina todos los datos y NO se puede deshacer
+  permanentlyDeleteBarbero: async (id: string) => {
+    // Verificar si tiene citas asociadas
+    const { data: citas } = await supabase
+      .from('citas')
+      .select('id')
+      .eq('barbero_id', id)
+      .limit(1)
+    
+    if (citas && citas.length > 0) {
+      throw new Error('No se puede eliminar permanentemente. El barbero tiene citas asociadas.')
+    }
+
+    // Eliminar de admin_users primero (relación)
+    await supabase
+      .from('admin_users')
+      .delete()
+      .eq('barbero_id', id)
+
+    // Eliminar barbero
     const { error } = await supabase
       .from('barberos')
       .delete()
