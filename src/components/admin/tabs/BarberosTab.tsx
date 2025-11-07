@@ -4,6 +4,7 @@ import type { Database } from '../../../../lib/database.types'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import BarberoModal from '../modals/BarberoModal'
+import PermanentDeleteModal from '../modals/PermanentDeleteModal'
 import toast from 'react-hot-toast'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -14,6 +15,7 @@ const BarberosTab: React.FC = () => {
   const [selectedBarbero, setSelectedBarbero] = useState<Barbero | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+  const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false)
   const [barberoToDelete, setBarberoToDelete] = useState<Barbero | null>(null)
   const [deleting, setDeleting] = useState(false)
 
@@ -55,13 +57,36 @@ const BarberosTab: React.FC = () => {
     try {
       setDeleting(true)
       await chamosSupabase.deleteBarbero(barberoToDelete.id)
-      toast.success('Barbero eliminado exitosamente')
+      toast.success('Barbero desactivado exitosamente')
       loadBarberos()
       setShowDeleteDialog(false)
       setBarberoToDelete(null)
     } catch (error: any) {
       console.error('Error deleting barbero:', error)
-      toast.error(error.message || 'Error al eliminar barbero')
+      toast.error(error.message || 'Error al desactivar barbero')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handlePermanentDelete = (barbero: Barbero) => {
+    setBarberoToDelete(barbero)
+    setShowPermanentDeleteModal(true)
+  }
+
+  const confirmPermanentDelete = async () => {
+    if (!barberoToDelete) return
+
+    try {
+      setDeleting(true)
+      await chamosSupabase.permanentlyDeleteBarbero(barberoToDelete.id)
+      toast.success('Barbero eliminado permanentemente')
+      loadBarberos()
+      setShowPermanentDeleteModal(false)
+      setBarberoToDelete(null)
+    } catch (error: any) {
+      console.error('Error permanently deleting barbero:', error)
+      toast.error(error.message || 'Error al eliminar permanentemente el barbero')
     } finally {
       setDeleting(false)
     }
@@ -205,26 +230,73 @@ const BarberosTab: React.FC = () => {
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button
-                      onClick={() => handleEdit(barbero)}
-                      className="mr-4"
-                      style={{ color: 'var(--accent-color)', transition: 'var(--transition)' }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                      title="Editar"
-                    >
-                      <i className="fas fa-edit"></i>
-                    </button>
-                    <button
-                      onClick={() => handleDelete(barbero)}
-                      className="text-red-400"
-                      style={{ transition: 'var(--transition)' }}
-                      onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
-                      onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
-                      title="Eliminar"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
+                    <div className="flex items-center justify-end space-x-2">
+                      <button
+                        onClick={() => handleEdit(barbero)}
+                        style={{ color: 'var(--accent-color)', transition: 'var(--transition)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.7'}
+                        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+                        title="Editar"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      
+                      {/* Dropdown Menu for Delete Options */}
+                      <div className="relative group">
+                        <button
+                          className="text-red-400 px-2 py-1 rounded"
+                          style={{ transition: 'var(--transition)' }}
+                          title="Opciones de Eliminación"
+                        >
+                          <i className="fas fa-trash"></i>
+                          <i className="fas fa-caret-down ml-1 text-xs"></i>
+                        </button>
+                        
+                        {/* Dropdown Menu */}
+                        <div 
+                          className="absolute right-0 mt-1 w-56 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50"
+                          style={{ 
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)'
+                          }}
+                        >
+                          <div className="py-1">
+                            <button
+                              onClick={() => handleDelete(barbero)}
+                              className="w-full text-left px-4 py-2 text-sm flex items-start"
+                              style={{ 
+                                color: 'var(--text-primary)',
+                                transition: 'var(--transition)'
+                              }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.1)'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <i className="fas fa-toggle-off mr-2 mt-0.5" style={{ color: 'var(--accent-color)' }}></i>
+                              <div>
+                                <div className="font-medium">Desactivar</div>
+                                <div className="text-xs opacity-70">Marcar como inactivo (recomendado)</div>
+                              </div>
+                            </button>
+                            
+                            <div className="border-t" style={{ borderColor: 'var(--border-color)' }}></div>
+                            
+                            <button
+                              onClick={() => handlePermanentDelete(barbero)}
+                              className="w-full text-left px-4 py-2 text-sm flex items-start text-red-400"
+                              style={{ transition: 'var(--transition)' }}
+                              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.1)'}
+                              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                            >
+                              <i className="fas fa-exclamation-triangle mr-2 mt-0.5"></i>
+                              <div>
+                                <div className="font-medium">Eliminar Permanentemente</div>
+                                <div className="text-xs opacity-70">No se puede deshacer</div>
+                              </div>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -243,15 +315,24 @@ const BarberosTab: React.FC = () => {
         />
       )}
 
-      {/* Diálogo de confirmación para eliminar */}
+      {/* Diálogo de confirmación para desactivar */}
       <ConfirmDialog
         isOpen={showDeleteDialog}
         onClose={() => setShowDeleteDialog(false)}
         onConfirm={confirmDelete}
-        title="Eliminar Barbero"
-        message={`¿Estás seguro de eliminar a ${barberoToDelete?.nombre} ${barberoToDelete?.apellido}? Esta acción no se puede deshacer.`}
-        confirmText="Eliminar"
+        title="Desactivar Barbero"
+        message={`¿Estás seguro de desactivar a ${barberoToDelete?.nombre} ${barberoToDelete?.apellido}? El barbero dejará de aparecer como disponible pero sus datos se preservarán. Puedes reactivarlo en cualquier momento.`}
+        confirmText="Desactivar"
         type="danger"
+        loading={deleting}
+      />
+
+      {/* Modal educativo para eliminación permanente */}
+      <PermanentDeleteModal
+        isOpen={showPermanentDeleteModal}
+        onClose={() => setShowPermanentDeleteModal(false)}
+        onConfirm={confirmPermanentDelete}
+        barberoNombre={`${barberoToDelete?.nombre} ${barberoToDelete?.apellido}`}
         loading={deleting}
       />
     </div>
