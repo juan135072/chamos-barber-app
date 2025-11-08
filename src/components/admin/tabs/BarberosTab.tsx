@@ -187,7 +187,7 @@ const BarberosTab: React.FC = () => {
         </button>
       </div>
 
-      <div className="shadow rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+      <div className="shadow rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
         <table className="min-w-full" style={{ borderTop: '1px solid var(--border-color)' }}>
           <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
             <tr>

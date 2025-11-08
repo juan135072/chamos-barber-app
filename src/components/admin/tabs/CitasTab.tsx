@@ -230,8 +230,7 @@ export default function CitasTab() {
       </div>
 
       {/* Tabla de Citas */}
-      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-x-auto">
           <table className="min-w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
             <thead style={{ background: 'var(--bg-tertiary)' }}>
               <tr>
@@ -321,7 +320,6 @@ export default function CitasTab() {
               )}
             </tbody>
           </table>
-        </div>
       </div>
 
       {/* Resumen */}

@@ -204,7 +204,7 @@ const ServiciosTab: React.FC = () => {
         ))}
       </div>
 
-      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-hidden">
+      <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-x-auto">
         <table className="min-w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
           <thead style={{ background: 'var(--bg-tertiary)' }}>
             <tr>
