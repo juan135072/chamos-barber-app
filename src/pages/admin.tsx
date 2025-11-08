@@ -11,6 +11,7 @@ import ConfiguracionTab from '../components/admin/tabs/ConfiguracionTab'
 import CitasTab from '../components/admin/tabs/CitasTab'
 import SolicitudesTab from '../components/admin/tabs/SolicitudesTab'
 import CategoriasTab from '../components/admin/tabs/CategoriasTab'
+import ClientesTab from '../components/admin/tabs/ClientesTab'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -223,6 +224,7 @@ export default function AdminPage() {
               {[
                 { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie', shortName: 'Home' },
                 { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt', shortName: 'Citas' },
+                { id: 'clientes', name: 'Clientes', icon: 'fas fa-user-friends', shortName: 'Clientes' },
                 { id: 'barberos', name: 'Barberos', icon: 'fas fa-users', shortName: 'Barberos' },
                 { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut', shortName: 'Servicios' },
                 { id: 'categorias', name: 'Categorías', icon: 'fas fa-tags', shortName: 'Categorías' },
@@ -400,6 +402,9 @@ export default function AdminPage() {
               </div>
             </div>
           )}
+
+          {/* Clientes Tab */}
+          {activeTab === 'clientes' && <ClientesTab />}
 
           {/* Barberos Tab */}
           {activeTab === 'barberos' && <BarberosTab />}
