@@ -1,8 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../../lib/database.types'
+import { RESERVATION_LIMITS, validateReservationLimits } from '../../../lib/reservations-config'
 
-// Build Version: 2025-11-06-v3 - Enhanced logging and error handling
+// Build Version: 2025-11-08-v4 - Smart reservation limits (future appointments only)
 
 type CitaInsert = Database['public']['Tables']['citas']['Insert']
 
@@ -67,26 +68,42 @@ export default async function handler(
       })
     }
 
-    // VALIDACIÓN 2: Verificar límite de citas pendientes por teléfono (máximo 10)
-    console.log('🔍 [crear-cita] Checking pending appointments for:', citaData.cliente_telefono)
-    const { data: citasPendientesTelefono, error: errorPendientes } = await supabase
+    // VALIDACIÓN 2: Verificar límite de citas FUTURAS activas (sistema inteligente)
+    // Solo cuenta citas pendientes/confirmadas que aún no han pasado
+    // Esto permite a clientes frecuentes seguir reservando después de completar sus citas
+    console.log('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
+    
+    const fechaActual = new Date().toISOString().split('T')[0] // YYYY-MM-DD formato
+    const horaActual = new Date().toTimeString().split(' ')[0].substring(0, 5) // HH:MM formato
+    
+    const { data: citasActivasFuturas, error: errorActivas } = await supabase
       .from('citas')
-      .select('id')
+      .select('id, fecha, hora, estado')
       .eq('cliente_telefono', citaData.cliente_telefono)
-      .in('estado', ['pendiente', 'confirmada'])
+      .in('estado', RESERVATION_LIMITS.ACTIVE_STATES)
+      .or(`fecha.gt.${fechaActual},and(fecha.eq.${fechaActual},hora.gte.${horaActual})`)
 
-    if (errorPendientes) {
-      console.error('❌ [crear-cita] Error checking pending appointments:', errorPendientes)
+    if (errorActivas) {
+      console.error('❌ [crear-cita] Error checking active appointments:', errorActivas)
     } else {
-      console.log('✅ [crear-cita] Pending appointments:', citasPendientesTelefono?.length || 0)
+      console.log('✅ [crear-cita] Active future appointments:', citasActivasFuturas?.length || 0)
+      // @ts-ignore - Detailed logging for debugging
+      if (citasActivasFuturas && citasActivasFuturas.length > 0) {
+        console.log('📊 [crear-cita] Appointments details:', JSON.stringify(citasActivasFuturas))
+      }
     }
 
-    if (citasPendientesTelefono && citasPendientesTelefono.length >= 10) {
-      console.log('⚠️ [crear-cita] Appointment limit reached')
+    // Validar límites usando la función helper
+    const validationResult = validateReservationLimits(citasActivasFuturas?.length || 0)
+    
+    if (!validationResult.allowed) {
+      console.log('⚠️ [crear-cita] Appointment limit reached:', validationResult)
       return res.status(400).json({ 
-        error: '⚠️ Has alcanzado el límite máximo de 10 citas pendientes. Por favor espera a que se completen tus citas actuales o contáctanos para más información.',
+        error: validationResult.reason,
         code: 'LIMITE_CITAS_ALCANZADO',
-        citas_pendientes: citasPendientesTelefono.length
+        citas_activas: validationResult.currentCount,
+        limite_maximo: validationResult.maxLimit,
+        info: RESERVATION_LIMITS.ERROR_MESSAGES.CONTACT_INFO
       })
     }
 
