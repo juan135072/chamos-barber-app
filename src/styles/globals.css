@@ -979,3 +979,16 @@ textarea {
 }
 
 /* === FIN ESTILOS ADMIN PANEL === */
+
+/* === UTILITY CLASSES FOR RESPONSIVE === */
+@layer utilities {
+  /* Hide scrollbar for horizontal scrolling navigation */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Chrome, Safari, Opera */
+  }
+}

@@ -28,6 +28,7 @@ export default function AdminPage() {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   
   // Estados para datos
   const [barberos, setBarberos] = useState<Barbero[]>([])
@@ -143,17 +144,22 @@ export default function AdminPage() {
         <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-4">
-                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
+              {/* Logo y título */}
+              <div className="flex items-center space-x-2 sm:space-x-4">
+                <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-color)' }}>
                   <i className="fas fa-cut" style={{ color: 'var(--bg-primary)' }}></i>
                 </div>
-                <div>
+                <div className="hidden sm:block">
                   <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Administración</h1>
                   <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
                 </div>
+                <div className="sm:hidden">
+                  <h1 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Admin</h1>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-4">
+              {/* Desktop menu */}
+              <div className="hidden md:flex items-center space-x-4">
                 <div className="text-right">
                   <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
                   <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
@@ -173,26 +179,59 @@ export default function AdminPage() {
                   Cerrar Sesión
                 </button>
               </div>
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden inline-flex items-center justify-center p-2 rounded-md"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
+              </button>
             </div>
+
+            {/* Mobile menu */}
+            {mobileMenuOpen && (
+              <div className="md:hidden pb-4 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <div className="flex flex-col space-y-3">
+                  <div className="px-3 py-2 rounded" style={{ backgroundColor: 'var(--bg-primary)' }}>
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
+                    <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
+                  </div>
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md w-full"
+                    style={{ 
+                      backgroundColor: 'var(--accent-color)', 
+                      color: 'var(--bg-primary)',
+                      transition: 'var(--transition)'
+                    }}
+                  >
+                    <i className="fas fa-sign-out-alt mr-2"></i>
+                    Cerrar Sesión
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </header>
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
           {/* Navigation Tabs */}
-          <div className="mb-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
-            <nav className="-mb-px flex space-x-8">
+          <div className="mb-6 -mx-4 sm:mx-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
+            <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto px-4 sm:px-0 scrollbar-hide">
               {[
-                { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie' },
-                { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt' },
-                { id: 'barberos', name: 'Barberos', icon: 'fas fa-users' },
-                { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut' },
-                { id: 'categorias', name: 'Categorías', icon: 'fas fa-tags' },
-                { id: 'solicitudes', name: 'Solicitudes', icon: 'fas fa-user-plus' }
+                { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie', shortName: 'Home' },
+                { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt', shortName: 'Citas' },
+                { id: 'barberos', name: 'Barberos', icon: 'fas fa-users', shortName: 'Barberos' },
+                { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut', shortName: 'Servicios' },
+                { id: 'categorias', name: 'Categorías', icon: 'fas fa-tags', shortName: 'Categorías' },
+                { id: 'solicitudes', name: 'Solicitudes', icon: 'fas fa-user-plus', shortName: 'Solicitudes' }
               ].map(tab => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-2"
+                  className="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-1 sm:space-x-2 flex-shrink-0"
                   style={{
                     borderColor: activeTab === tab.id ? 'var(--accent-color)' : 'transparent',
                     color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-primary)',
@@ -201,7 +240,8 @@ export default function AdminPage() {
                   }}
                 >
                   <i className={tab.icon}></i>
-                  <span>{tab.name}</span>
+                  <span className="hidden sm:inline">{tab.name}</span>
+                  <span className="sm:hidden">{tab.shortName}</span>
                 </button>
               ))}
             </nav>
@@ -213,17 +253,17 @@ export default function AdminPage() {
               <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--accent-color)' }}>Dashboard</h2>
               
               {/* Stats Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-8">
                 <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-calendar-check text-2xl" style={{ color: 'var(--accent-color)' }}></i>
+                  <div className="p-3 sm:p-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                      <div className="flex-shrink-0 mb-2 sm:mb-0">
+                        <i className="fas fa-calendar-check text-xl sm:text-2xl" style={{ color: 'var(--accent-color)' }}></i>
                       </div>
-                      <div className="ml-5 w-0 flex-1">
+                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
                         <dl>
-                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Citas</dt>
-                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.totalCitas}</dd>
+                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Citas</dt>
+                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.totalCitas}</dd>
                         </dl>
                       </div>
                     </div>
@@ -231,15 +271,15 @@ export default function AdminPage() {
                 </div>
 
                 <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-clock text-2xl text-blue-400"></i>
+                  <div className="p-3 sm:p-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                      <div className="flex-shrink-0 mb-2 sm:mb-0">
+                        <i className="fas fa-clock text-xl sm:text-2xl text-blue-400"></i>
                       </div>
-                      <div className="ml-5 w-0 flex-1">
+                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
                         <dl>
-                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Citas Hoy</dt>
-                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasHoy}</dd>
+                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Citas Hoy</dt>
+                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasHoy}</dd>
                         </dl>
                       </div>
                     </div>
@@ -247,15 +287,15 @@ export default function AdminPage() {
                 </div>
 
                 <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-hourglass-half text-2xl text-yellow-400"></i>
+                  <div className="p-3 sm:p-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                      <div className="flex-shrink-0 mb-2 sm:mb-0">
+                        <i className="fas fa-hourglass-half text-xl sm:text-2xl text-yellow-400"></i>
                       </div>
-                      <div className="ml-5 w-0 flex-1">
+                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
                         <dl>
-                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Pendientes</dt>
-                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasPendientes}</dd>
+                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Pendientes</dt>
+                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasPendientes}</dd>
                         </dl>
                       </div>
                     </div>
@@ -263,15 +303,15 @@ export default function AdminPage() {
                 </div>
 
                 <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-5">
-                    <div className="flex items-center">
-                      <div className="flex-shrink-0">
-                        <i className="fas fa-users text-2xl text-green-400"></i>
+                  <div className="p-3 sm:p-5">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
+                      <div className="flex-shrink-0 mb-2 sm:mb-0">
+                        <i className="fas fa-users text-xl sm:text-2xl text-green-400"></i>
                       </div>
-                      <div className="ml-5 w-0 flex-1">
+                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
                         <dl>
-                          <dt className="text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barberos</dt>
-                          <dd className="text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{barberos.length}</dd>
+                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barberos</dt>
+                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{barberos.length}</dd>
                         </dl>
                       </div>
                     </div>
@@ -281,11 +321,13 @@ export default function AdminPage() {
 
               {/* Recent Citas */}
               <div className="shadow rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="px-4 py-5 sm:p-6">
-                  <h3 className="text-lg leading-6 font-medium mb-4" style={{ color: 'var(--accent-color)' }}>
+                <div className="px-3 sm:px-4 py-4 sm:py-5">
+                  <h3 className="text-base sm:text-lg leading-6 font-medium mb-3 sm:mb-4" style={{ color: 'var(--accent-color)' }}>
                     Citas Recientes
                   </h3>
-                  <div className="overflow-x-auto">
+                  
+                  {/* Desktop table */}
+                  <div className="hidden md:block overflow-x-auto">
                     <table className="min-w-full" style={{ borderTop: '1px solid var(--border-color)' }}>
                       <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
                         <tr>
@@ -325,6 +367,34 @@ export default function AdminPage() {
                         ))}
                       </tbody>
                     </table>
+                  </div>
+
+                  {/* Mobile cards */}
+                  <div className="md:hidden space-y-3">
+                    {citas.slice(0, 5).map((cita) => (
+                      <div key={cita.id} className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{cita.cliente_nombre}</p>
+                            <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                              {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'N/A'}
+                            </p>
+                          </div>
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
+                            cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                            cita.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {cita.estado}
+                          </span>
+                        </div>
+                        <div className="text-xs space-y-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                          <p><i className="fas fa-cut mr-1" style={{ color: 'var(--accent-color)' }}></i> {cita.servicios?.nombre || 'N/A'}</p>
+                          <p><i className="fas fa-calendar mr-1" style={{ color: 'var(--accent-color)' }}></i> {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES')}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
