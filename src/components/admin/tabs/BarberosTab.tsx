@@ -169,11 +169,11 @@ const BarberosTab: React.FC = () => {
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Barberos</h2>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-6">
+        <h2 className="text-xl sm:text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Barberos</h2>
         <button
           onClick={handleCreate}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md"
+          className="inline-flex items-center px-3 sm:px-4 py-2 border border-transparent text-sm font-medium rounded-md w-full sm:w-auto justify-center"
           style={{ 
             backgroundColor: 'var(--accent-color)', 
             color: 'var(--bg-primary)',
