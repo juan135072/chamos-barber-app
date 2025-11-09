@@ -7,8 +7,7 @@ interface Cita {
   cliente_nombre: string
   cliente_telefono: string
   fecha: string
-  hora_inicio?: string  // Campo real de la BD
-  hora?: string         // Alias opcional
+  hora: string  // Campo real de la BD
   estado_pago: string
   barbero: {
     nombre: string
@@ -185,7 +184,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             <div className="flex justify-between">
               <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Fecha/Hora:</span>
               <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                {new Date(cita.fecha).toLocaleDateString('es-ES')} - {cita.hora || cita.hora_inicio}
+                {new Date(cita.fecha).toLocaleDateString('es-ES')} - {cita.hora}
               </span>
             </div>
             <div className="flex justify-between">
