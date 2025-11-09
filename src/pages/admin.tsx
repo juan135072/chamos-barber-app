@@ -13,6 +13,7 @@ import SolicitudesTab from '../components/admin/tabs/SolicitudesTab'
 import CategoriasTab from '../components/admin/tabs/CategoriasTab'
 import ClientesTab from '../components/admin/tabs/ClientesTab'
 import ComisionesTab from '../components/admin/tabs/ComisionesTab'
+import GananciasTab from '../components/admin/tabs/GananciasTab'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -254,6 +255,7 @@ export default function AdminPage() {
                 { id: 'clientes', name: 'Clientes', icon: 'fas fa-user-friends', shortName: 'Clientes' },
                 { id: 'barberos', name: 'Barberos', icon: 'fas fa-users', shortName: 'Barberos' },
                 { id: 'comisiones', name: 'Comisiones', icon: 'fas fa-percentage', shortName: 'Comisiones' },
+                { id: 'ganancias', name: 'Ganancias', icon: 'fas fa-chart-line', shortName: 'Ganancias' },
                 { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut', shortName: 'Servicios' },
                 { id: 'categorias', name: 'Categorías', icon: 'fas fa-tags', shortName: 'Categorías' },
                 { id: 'solicitudes', name: 'Solicitudes', icon: 'fas fa-user-plus', shortName: 'Solicitudes' }
@@ -439,6 +441,9 @@ export default function AdminPage() {
 
           {/* Comisiones Tab */}
           {activeTab === 'comisiones' && <ComisionesTab />}
+
+          {/* Ganancias Tab */}
+          {activeTab === 'ganancias' && <GananciasTab />}
 
           {/* Servicios Tab */}
           {activeTab === 'servicios' && <ServiciosTab />}
