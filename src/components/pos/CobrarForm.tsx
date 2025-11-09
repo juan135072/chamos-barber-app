@@ -25,6 +25,8 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
   // Form state
   const [clienteNombre, setClienteNombre] = useState('')
+  const [tipoDocumento, setTipoDocumento] = useState<'boleta' | 'factura'>('boleta')
+  const [rut, setRut] = useState('')
   const [barberoId, setBarberoId] = useState('')
   const [servicioSeleccionado, setServicioSeleccionado] = useState('')
   const [metodoPago, setMetodoPago] = useState('efectivo')
@@ -153,6 +155,11 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       return
     }
 
+    if (tipoDocumento === 'factura' && !rut.trim()) {
+      alert('Para emitir factura, ingresa el RUT del cliente')
+      return
+    }
+
     if (!barberoId) {
       alert('Selecciona un barbero')
       return
@@ -174,6 +181,8 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
         .insert({
           barbero_id: barberoId,
           cliente_nombre: clienteNombre.trim(),
+          cliente_rut: tipoDocumento === 'factura' ? rut.trim() : null,
+          tipo_documento: tipoDocumento,
           items: carrito,
           subtotal: total,
           total: total,
@@ -191,10 +200,13 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       if (facturaError) throw facturaError
 
       // Éxito - NO mostrar comisiones al usuario/cliente
-      alert(`¡Venta registrada exitosamente!\n\nFactura: ${factura.numero_factura}\nCliente: ${clienteNombre}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}`)
+      const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'
+      alert(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nCliente: ${clienteNombre}${tipoDocumento === 'factura' ? `\nRUT: ${rut}` : ''}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}`)
 
       // Limpiar formulario
       setClienteNombre('')
+      setTipoDocumento('boleta')
+      setRut('')
       setBarberoId('')
       setServicioSeleccionado('')
       setMetodoPago('efectivo')
@@ -261,6 +273,63 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             className="form-input"
           />
         </div>
+
+        {/* Tipo de Documento */}
+        <div>
+          <label className="block text-sm font-medium mb-2 form-label">
+            <i className="fas fa-file-invoice mr-2"></i>
+            Tipo de Documento *
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setTipoDocumento('boleta')}
+              className="p-3 rounded-lg font-medium transition-all border-2"
+              style={{
+                backgroundColor: tipoDocumento === 'boleta' ? 'var(--accent-color)' : 'var(--bg-primary)',
+                borderColor: tipoDocumento === 'boleta' ? 'var(--accent-color)' : 'var(--border-color)',
+                color: tipoDocumento === 'boleta' ? '#1a1a1a' : 'var(--text-primary)'
+              }}
+            >
+              <i className="fas fa-receipt mr-2"></i>
+              Boleta
+            </button>
+            <button
+              type="button"
+              onClick={() => setTipoDocumento('factura')}
+              className="p-3 rounded-lg font-medium transition-all border-2"
+              style={{
+                backgroundColor: tipoDocumento === 'factura' ? 'var(--accent-color)' : 'var(--bg-primary)',
+                borderColor: tipoDocumento === 'factura' ? 'var(--accent-color)' : 'var(--border-color)',
+                color: tipoDocumento === 'factura' ? '#1a1a1a' : 'var(--text-primary)'
+              }}
+            >
+              <i className="fas fa-file-invoice-dollar mr-2"></i>
+              Factura
+            </button>
+          </div>
+        </div>
+
+        {/* RUT (solo si es factura) */}
+        {tipoDocumento === 'factura' && (
+          <div>
+            <label className="block text-sm font-medium mb-2 form-label">
+              <i className="fas fa-id-card mr-2"></i>
+              RUT del Cliente *
+            </label>
+            <input
+              type="text"
+              value={rut}
+              onChange={(e) => setRut(e.target.value)}
+              placeholder="Ej: 12.345.678-9"
+              className="form-input"
+            />
+            <p className="mt-1 text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+              <i className="fas fa-info-circle mr-1"></i>
+              Requerido para emitir factura tributaria
+            </p>
+          </div>
+        )}
 
         {/* Barbero */}
         <div>
