@@ -12,7 +12,7 @@ ADD COLUMN IF NOT EXISTS monto_pagado DECIMAL(10,2) DEFAULT 0,
 ADD COLUMN IF NOT EXISTS metodo_pago TEXT,
 ADD COLUMN IF NOT EXISTS factura_id UUID REFERENCES facturas(id) ON DELETE SET NULL,
 ADD COLUMN IF NOT EXISTS fecha_pago TIMESTAMP WITH TIME ZONE,
-ADD COLUMN IF NOT EXISTS cobrado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL;
+ADD COLUMN IF NOT EXISTS cobrado_por UUID REFERENCES admin_users(id) ON DELETE SET NULL;
 
 -- 2. Crear índice para búsquedas por estado de pago
 CREATE INDEX IF NOT EXISTS idx_citas_estado_pago ON citas(estado_pago, fecha);
@@ -87,10 +87,15 @@ BEGIN
   v_total := v_cita.servicio_precio;
   
   -- Obtener porcentaje de comisión del barbero
-  SELECT COALESCE(porcentaje_comision, 50) 
+  SELECT COALESCE(porcentaje, 50) 
   INTO v_porcentaje_comision
-  FROM barberos 
-  WHERE id = v_cita.barbero_id;
+  FROM configuracion_comisiones 
+  WHERE barbero_id = v_cita.barbero_id;
+  
+  -- Si no existe configuración, usar 50%
+  IF v_porcentaje_comision IS NULL THEN
+    v_porcentaje_comision := 50;
+  END IF;
 
   v_comision_barbero := v_total * (v_porcentaje_comision / 100);
   v_ingreso_casa := v_total - v_comision_barbero;
@@ -117,8 +122,6 @@ BEGIN
   INSERT INTO facturas (
     barbero_id,
     cliente_nombre,
-    cliente_rut,
-    tipo_documento,
     items,
     subtotal,
     total,
@@ -133,8 +136,6 @@ BEGIN
   ) VALUES (
     v_cita.barbero_id,
     v_cita.cliente_nombre,
-    NULL, -- RUT no disponible desde cita
-    'boleta',
     v_items,
     v_total,
     v_total,
