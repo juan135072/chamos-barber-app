@@ -25,7 +25,8 @@ interface Cita {
   cliente_nombre: string
   cliente_telefono: string
   fecha: string
-  hora: string
+  hora_inicio: string  // Campo real de la BD
+  hora?: string        // Alias opcional
   estado_pago: string
   barbero: {
     nombre: string
@@ -85,7 +86,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
           cliente_nombre,
           cliente_telefono,
           fecha,
-          hora,
+          hora_inicio,
           estado_pago,
           barbero:barberos!citas_barbero_id_fkey (
             nombre,
@@ -101,13 +102,21 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         .eq('estado_pago', 'pendiente')
         .in('estado', ['pendiente', 'confirmada', 'completada'])
         .order('fecha', { ascending: true })
-        .order('hora', { ascending: true })
+        .order('hora_inicio', { ascending: true })
         .limit(10)
+      
+      console.log('🔍 Citas cargadas:', citasData)
 
       if (citasError) throw citasError
 
+      // Mapear citas para agregar alias 'hora' desde 'hora_inicio'
+      const citasConHora = (citasData || []).map((cita: any) => ({
+        ...cita,
+        hora: cita.hora_inicio
+      }))
+
       setVentas(ventasData || [])
-      setCitasPendientes(citasData || [])
+      setCitasPendientes(citasConHora)
     } catch (error) {
       console.error('Error cargando datos:', error)
     } finally {

@@ -7,7 +7,8 @@ interface Cita {
   cliente_nombre: string
   cliente_telefono: string
   fecha: string
-  hora: string
+  hora_inicio?: string  // Campo real de la BD
+  hora?: string         // Alias opcional
   estado_pago: string
   barbero: {
     nombre: string
@@ -39,6 +40,23 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     try {
       setProcesando(true)
 
+      // Validación adicional
+      if (metodoPago === 'efectivo' && montoRecibido) {
+        const recibido = parseFloat(montoRecibido)
+        if (recibido < total) {
+          alert(`El monto recibido ($${recibido.toFixed(2)}) es menor al total ($${total.toFixed(2)})`)
+          return
+        }
+      }
+
+      console.log('🔍 DEBUG: Cobrando cita', {
+        cita_id: cita.id,
+        metodo_pago: metodoPago,
+        monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseFloat(montoRecibido) : total,
+        usuario_id: usuario.id,
+        total: total
+      })
+
       // Llamar a la función RPC para cobrar la cita
       const { data, error } = await (supabase as any)
         .rpc('cobrar_cita', {
@@ -48,12 +66,23 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           p_usuario_id: usuario.id
         })
 
-      if (error) throw error
+      console.log('📊 Respuesta RPC:', { data, error })
+
+      if (error) {
+        console.error('❌ Error en RPC:', error)
+        throw error
+      }
+
+      if (!data || data.length === 0) {
+        throw new Error('No se recibió respuesta de la función cobrar_cita()')
+      }
 
       const resultado = data[0]
       
+      console.log('✅ Resultado:', resultado)
+      
       if (!resultado.success) {
-        alert(resultado.mensaje)
+        alert(resultado.mensaje || 'Error desconocido al procesar el cobro')
         return
       }
 
@@ -74,9 +103,34 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       // Cerrar modal
       onClose()
 
-    } catch (error) {
-      console.error('Error al cobrar cita:', error)
-      alert('Error al procesar el cobro. Intenta nuevamente.')
+    } catch (error: any) {
+      console.error('❌ Error al cobrar cita:', error)
+      
+      // Mostrar error más detallado
+      let errorMessage = 'Error al procesar el cobro. '
+      
+      if (error.message) {
+        errorMessage += error.message
+      } else if (error.error_description) {
+        errorMessage += error.error_description
+      } else if (error.details) {
+        errorMessage += error.details
+      } else {
+        errorMessage += 'Intenta nuevamente.'
+      }
+      
+      // Errores comunes específicos
+      if (error.message?.includes('permission denied')) {
+        errorMessage = 'No tienes permisos para realizar esta operación. Contacta al administrador.'
+      } else if (error.message?.includes('function') && error.message?.includes('does not exist')) {
+        errorMessage = 'Error de configuración: La función cobrar_cita() no existe en la base de datos. Contacta al administrador.'
+      } else if (error.message?.includes('violates foreign key constraint')) {
+        errorMessage = 'Error: Datos relacionados no encontrados. Verifica que el barbero y servicio existan.'
+      }
+      
+      alert(errorMessage)
+      
+      // Dejar el modal abierto para que el usuario pueda intentar de nuevo
     } finally {
       setProcesando(false)
     }
@@ -131,7 +185,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             <div className="flex justify-between">
               <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Fecha/Hora:</span>
               <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                {new Date(cita.fecha).toLocaleDateString('es-ES')} - {cita.hora}
+                {new Date(cita.fecha).toLocaleDateString('es-ES')} - {cita.hora || cita.hora_inicio}
               </span>
             </div>
             <div className="flex justify-between">
