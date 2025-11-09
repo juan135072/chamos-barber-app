@@ -28,7 +28,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
   const [tipoDocumento, setTipoDocumento] = useState<'boleta' | 'factura'>('boleta')
   const [rut, setRut] = useState('')
   const [barberoId, setBarberoId] = useState('')
-  const [servicioSeleccionado, setServicioSeleccionado] = useState('')
+  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<string[]>([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
   const [carrito, setCarrito] = useState<ItemCarrito[]>([])
@@ -111,37 +111,57 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     }
   }
 
+  const toggleServicio = (servicioId: string) => {
+    setServiciosSeleccionados(prev => {
+      if (prev.includes(servicioId)) {
+        return prev.filter(id => id !== servicioId)
+      } else {
+        return [...prev, servicioId]
+      }
+    })
+  }
+
   const agregarAlCarrito = () => {
-    if (!servicioSeleccionado) {
-      alert('Selecciona un servicio')
+    if (serviciosSeleccionados.length === 0) {
+      alert('Selecciona al menos un servicio')
       return
     }
 
-    const servicio = servicios.find(s => s.id === servicioSeleccionado)
-    if (!servicio) return
-
-    // Verificar si ya existe en el carrito
-    const existeIndex = carrito.findIndex(item => item.servicio_id === servicio.id)
+    // Agregar cada servicio seleccionado al carrito
+    const nuevosItems: ItemCarrito[] = []
     
-    if (existeIndex >= 0) {
-      // Incrementar cantidad
-      const nuevoCarrito = [...carrito]
-      nuevoCarrito[existeIndex].cantidad += 1
-      nuevoCarrito[existeIndex].subtotal = nuevoCarrito[existeIndex].precio * nuevoCarrito[existeIndex].cantidad
-      setCarrito(nuevoCarrito)
-    } else {
-      // Agregar nuevo
-      const nuevoItem: ItemCarrito = {
-        servicio_id: servicio.id,
-        nombre: servicio.nombre,
-        precio: parseFloat(servicio.precio.toString()),
-        cantidad: 1,
-        subtotal: parseFloat(servicio.precio.toString())
+    serviciosSeleccionados.forEach(servicioId => {
+      const servicio = servicios.find(s => s.id === servicioId)
+      if (!servicio) return
+
+      // Verificar si ya existe en el carrito
+      const existeIndex = carrito.findIndex(item => item.servicio_id === servicio.id)
+      
+      if (existeIndex >= 0) {
+        // Si ya existe, se incrementará después
+        return
+      } else {
+        // Agregar nuevo
+        nuevosItems.push({
+          servicio_id: servicio.id,
+          nombre: servicio.nombre,
+          precio: parseFloat(servicio.precio.toString()),
+          cantidad: 1,
+          subtotal: parseFloat(servicio.precio.toString())
+        })
       }
-      setCarrito([...carrito, nuevoItem])
+    })
+
+    if (nuevosItems.length > 0) {
+      setCarrito([...carrito, ...nuevosItems])
     }
 
-    setServicioSeleccionado('')
+    // Limpiar selección
+    setServiciosSeleccionados([])
+  }
+
+  const limpiarSeleccion = () => {
+    setServiciosSeleccionados([])
   }
 
   const removerDelCarrito = (index: number) => {
@@ -208,7 +228,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       setTipoDocumento('boleta')
       setRut('')
       setBarberoId('')
-      setServicioSeleccionado('')
+      setServiciosSeleccionados([])
       setMetodoPago('efectivo')
       setMontoRecibido('')
       setCarrito([])
@@ -351,33 +371,94 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
           </select>
         </div>
 
-        {/* Agregar Servicio */}
+        {/* Seleccionar Servicios */}
         <div>
-          <label className="block text-sm font-medium mb-2 form-label">
+          <label className="block text-sm font-medium mb-3 form-label">
             <i className="fas fa-shopping-cart mr-2"></i>
-            Agregar Servicio
+            Seleccionar Servicios {serviciosSeleccionados.length > 0 && `(${serviciosSeleccionados.length})`}
           </label>
-          <div className="flex space-x-2">
-            <select
-              value={servicioSeleccionado}
-              onChange={(e) => setServicioSeleccionado(e.target.value)}
-              className="flex-1 form-select"
-            >
-              <option value="">Seleccionar servicio...</option>
-              {servicios.map((servicio) => (
-                <option key={servicio.id} value={servicio.id}>
-                  {servicio.nombre} - ${servicio.precio}
-                </option>
-              ))}
-            </select>
+          
+          {/* Grid de servicios */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+            {servicios.map((servicio) => {
+              const isSelected = serviciosSeleccionados.includes(servicio.id)
+              return (
+                <div
+                  key={servicio.id}
+                  onClick={() => toggleServicio(servicio.id)}
+                  className="relative p-4 rounded-lg cursor-pointer transition-all border-2"
+                  style={{
+                    backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.1)' : 'var(--bg-primary)',
+                    borderColor: isSelected ? 'var(--accent-color)' : 'var(--border-color)',
+                    boxShadow: isSelected ? '0 0 10px rgba(212, 175, 55, 0.3)' : 'none'
+                  }}
+                >
+                  {/* Checkbox visual */}
+                  <div 
+                    className="absolute top-2 right-2"
+                    style={{
+                      width: '24px',
+                      height: '24px',
+                      borderRadius: '50%',
+                      backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
+                      border: `2px solid ${isSelected ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {isSelected && (
+                      <i className="fas fa-check" style={{ color: '#1a1a1a', fontSize: '0.75rem' }}></i>
+                    )}
+                  </div>
+
+                  <div className="pr-8">
+                    <h4 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                      {servicio.nombre}
+                    </h4>
+                    {servicio.categoria && (
+                      <p className="text-xs mb-2" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                        {servicio.categoria}
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
+                        ${servicio.precio.toLocaleString()}
+                      </span>
+                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                        {servicio.duracion_minutos} min
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Botones de acción */}
+          <div className="flex gap-2">
             <button
               onClick={agregarAlCarrito}
-              disabled={!servicioSeleccionado}
-              className="btn btn-primary"
+              disabled={serviciosSeleccionados.length === 0}
+              className="flex-1 btn btn-primary"
+              style={{
+                opacity: serviciosSeleccionados.length === 0 ? 0.5 : 1,
+                cursor: serviciosSeleccionados.length === 0 ? 'not-allowed' : 'pointer'
+              }}
             >
               <i className="fas fa-plus mr-2"></i>
-              Agregar
+              Agregar al Carrito {serviciosSeleccionados.length > 0 && `(${serviciosSeleccionados.length})`}
             </button>
+            {serviciosSeleccionados.length > 0 && (
+              <button
+                onClick={limpiarSeleccion}
+                className="btn btn-secondary"
+              >
+                <i className="fas fa-times mr-2"></i>
+                Limpiar
+              </button>
+            )}
           </div>
         </div>
 
