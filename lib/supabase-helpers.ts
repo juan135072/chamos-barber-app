@@ -595,5 +595,85 @@ export const chamosSupabase = {
       }
       throw error
     }
+  },
+
+  // Storage - Subir imagen de servicio
+  uploadServicioFoto: async (file: File, servicioId: string) => {
+    try {
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, WEBP, GIF)')
+      }
+
+      // Validar tamaño (5MB máximo)
+      const maxSize = 5 * 1024 * 1024 // 5MB
+      if (file.size > maxSize) {
+        throw new Error('La imagen es muy grande. Tamaño máximo: 5MB')
+      }
+
+      // Generar nombre único para el archivo
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${servicioId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      console.log('📤 [uploadServicioFoto] Subiendo archivo:', fileName)
+
+      // Subir archivo a Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('servicios-fotos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        console.error('❌ [uploadServicioFoto] Error subiendo:', error)
+        throw error
+      }
+
+      console.log('✅ [uploadServicioFoto] Archivo subido:', data.path)
+
+      // Obtener URL pública
+      const { data: urlData } = supabase.storage
+        .from('servicios-fotos')
+        .getPublicUrl(data.path)
+
+      console.log('🔗 [uploadServicioFoto] URL pública:', urlData.publicUrl)
+
+      return {
+        path: data.path,
+        publicUrl: urlData.publicUrl
+      }
+    } catch (error: any) {
+      console.error('❌ [uploadServicioFoto] Error:', error)
+      throw error
+    }
+  },
+
+  // Storage - Eliminar imagen de servicio
+  deleteServicioFoto: async (filePath: string) => {
+    try {
+      console.log('🗑️ [deleteServicioFoto] Eliminando archivo:', filePath)
+
+      const { error } = await supabase.storage
+        .from('servicios-fotos')
+        .remove([filePath])
+
+      if (error) {
+        console.error('❌ [deleteServicioFoto] Error eliminando:', error)
+        throw error
+      }
+
+      console.log('✅ [deleteServicioFoto] Archivo eliminado')
+    } catch (error: any) {
+      console.error('❌ [deleteServicioFoto] Error:', error)
+      // No lanzar error si el archivo no existe
+      if (error.message?.includes('not found')) {
+        console.log('⚠️ [deleteServicioFoto] Archivo no encontrado, continuando...')
+        return
+      }
+      throw error
+    }
   }
 }

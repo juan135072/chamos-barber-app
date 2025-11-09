@@ -319,9 +319,13 @@ const ReservarPage: React.FC = () => {
                           textAlign: 'left', 
                           padding: '1.5rem',
                           cursor: 'pointer',
-                          position: 'relative'
+                          position: 'relative',
+                          display: 'flex',
+                          gap: '1rem',
+                          alignItems: 'flex-start'
                         }}
                       >
+                        {/* Checkbox */}
                         <div style={{ 
                           position: 'absolute',
                           top: '1rem',
@@ -338,19 +342,49 @@ const ReservarPage: React.FC = () => {
                         }}>
                           {isSelected && <i className="fas fa-check" style={{ color: 'var(--bg-primary)', fontSize: '0.75rem' }}></i>}
                         </div>
-                        <h3 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem', paddingRight: '2rem' }}>
-                          {servicio.nombre}
-                        </h3>
-                        <p style={{ opacity: '0.8', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                          {servicio.descripcion}
-                        </p>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
-                            ${servicio.precio.toLocaleString()}
-                          </span>
-                          <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
-                            {servicio.duracion_minutos} min
-                          </span>
+
+                        {/* Imagen del servicio */}
+                        {servicio.imagen_url && (
+                          <div style={{
+                            flexShrink: 0,
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '8px',
+                            overflow: 'hidden',
+                            border: '2px solid var(--border-color)'
+                          }}>
+                            <img 
+                              src={servicio.imagen_url}
+                              alt={servicio.nombre}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                              onError={(e) => {
+                                // Fallback si la imagen no carga
+                                e.currentTarget.style.display = 'none'
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        {/* Contenido del servicio */}
+                        <div style={{ flex: 1, paddingRight: '3rem' }}>
+                          <h3 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
+                            {servicio.nombre}
+                          </h3>
+                          <p style={{ opacity: '0.8', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            {servicio.descripcion}
+                          </p>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
+                              ${servicio.precio.toLocaleString()}
+                            </span>
+                            <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
+                              {servicio.duracion_minutos} min
+                            </span>
+                          </div>
                         </div>
                       </div>
                     )

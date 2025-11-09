@@ -413,22 +413,51 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
                     )}
                   </div>
 
-                  <div className="pr-8">
-                    <h4 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                      {servicio.nombre}
-                    </h4>
-                    {servicio.categoria && (
-                      <p className="text-xs mb-2" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
-                        {servicio.categoria}
-                      </p>
+                  <div className="flex gap-3 pr-8">
+                    {/* Imagen del servicio */}
+                    {servicio.imagen_url && (
+                      <div style={{
+                        flexShrink: 0,
+                        width: '60px',
+                        height: '60px',
+                        borderRadius: '8px',
+                        overflow: 'hidden',
+                        border: '2px solid var(--border-color)'
+                      }}>
+                        <img 
+                          src={servicio.imagen_url}
+                          alt={servicio.nombre}
+                          style={{
+                            width: '100%',
+                            height: '100%',
+                            objectFit: 'cover'
+                          }}
+                          onError={(e) => {
+                            // Fallback si la imagen no carga
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                      </div>
                     )}
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
-                        ${servicio.precio.toLocaleString()}
-                      </span>
-                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                        {servicio.duracion_minutos} min
-                      </span>
+
+                    {/* Contenido */}
+                    <div className="flex-1">
+                      <h4 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
+                        {servicio.nombre}
+                      </h4>
+                      {servicio.categoria && (
+                        <p className="text-xs mb-2" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                          {servicio.categoria}
+                        </p>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
+                          ${servicio.precio.toLocaleString()}
+                        </span>
+                        <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                          {servicio.duracion_minutos} min
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
