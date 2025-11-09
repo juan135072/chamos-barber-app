@@ -7,6 +7,7 @@
 | Situación | Archivo a leer |
 |-----------|----------------|
 | 🆘 **Algo se rompió y necesito ayuda** | [`PROMPT_RECUPERACION.md`](PROMPT_RECUPERACION.md) |
+| ✅ **Quiero verificar que todo funciona** | [`CHECKLIST_VERIFICACION.md`](CHECKLIST_VERIFICACION.md) |
 | 📖 **Quiero entender qué cambios se hicieron** | [`HISTORIAL_CAMBIOS.md`](HISTORIAL_CAMBIOS.md) |
 | 📊 **Quiero un resumen visual rápido** | [`RESUMEN_SESION_2025-11-09.md`](RESUMEN_SESION_2025-11-09.md) |
 | 🔧 **Quiero ver detalles técnicos del bug fix** | [`CORRECCION_HORARIOS_DURACION.md`](CORRECCION_HORARIOS_DURACION.md) |
@@ -17,6 +18,28 @@
 ## 📁 ESTRUCTURA DE DOCUMENTACIÓN
 
 ### 🔴 Documentos Críticos (Leer primero)
+
+#### 0. [`CHECKLIST_VERIFICACION.md`](CHECKLIST_VERIFICACION.md) ⭐⭐⭐
+**Tamaño:** 9.5KB (394 líneas)  
+**Propósito:** Verificar que el sistema funciona correctamente
+
+**Contiene:**
+- ✅ Lista de verificaciones críticas
+- ✅ Comandos SQL para cada verificación
+- ✅ Resultados esperados
+- ✅ Pruebas de integración paso a paso
+- ✅ Escenarios de reserva completos
+- ✅ Verificación de bloqueo por duración
+- ✅ Checklist rápido de estado
+
+**Cuándo usarlo:**
+- Después de aplicar migración PostgreSQL
+- Después de desplegar código
+- Para diagnosticar problemas
+- Como parte de QA antes de producción
+- Para entrenar nuevo desarrollador
+
+---
 
 #### 1. [`PROMPT_RECUPERACION.md`](PROMPT_RECUPERACION.md) ⭐⭐⭐
 **Tamaño:** 7KB  
@@ -170,17 +193,20 @@
 1. [`RESUMEN_SESION_2025-11-09.md`](RESUMEN_SESION_2025-11-09.md) - Vista general rápida
 2. [`HISTORIAL_CAMBIOS.md`](HISTORIAL_CAMBIOS.md) - Detalles completos
 3. [`CORRECCION_HORARIOS_DURACION.md`](CORRECCION_HORARIOS_DURACION.md) - Entender el fix técnico
-4. [`PROMPT_RECUPERACION.md`](PROMPT_RECUPERACION.md) - Guardar para emergencias
+4. [`CHECKLIST_VERIFICACION.md`](CHECKLIST_VERIFICACION.md) - Verificar que todo funciona
+5. [`PROMPT_RECUPERACION.md`](PROMPT_RECUPERACION.md) - Guardar para emergencias
 
 ### Si necesitas aplicar cambios a base de datos:
 1. [`HISTORIAL_CAMBIOS.md`](HISTORIAL_CAMBIOS.md) - Sección "Configuración de Supabase"
 2. [`FIX_GENERATE_SERIES.sql`](supabase/migrations/FIX_GENERATE_SERIES.sql) - Aplicar migración
-3. [`PRUEBAS_VERIFICACION.sql`](supabase/migrations/PRUEBAS_VERIFICACION.sql) - Verificar que funciona
+3. [`CHECKLIST_VERIFICACION.md`](CHECKLIST_VERIFICACION.md) - Verificar aplicación
+4. [`PRUEBAS_VERIFICACION.sql`](supabase/migrations/PRUEBAS_VERIFICACION.sql) - Tests adicionales
 
 ### Si algo está roto:
-1. [`PROMPT_RECUPERACION.md`](PROMPT_RECUPERACION.md) - Copiar prompt completo
-2. Pegar en nueva conversación con AI
-3. Seguir instrucciones de recuperación
+1. [`CHECKLIST_VERIFICACION.md`](CHECKLIST_VERIFICACION.md) - Diagnosticar qué falla
+2. [`PROMPT_RECUPERACION.md`](PROMPT_RECUPERACION.md) - Copiar prompt completo
+3. Pegar en nueva conversación con AI
+4. Seguir instrucciones de recuperación
 
 ---
 
@@ -277,8 +303,9 @@ ORDER BY hora;
 ### Archivos más importantes (por orden de criticidad):
 1. ⭐⭐⭐ `FIX_GENERATE_SERIES.sql` - Sin esto, sistema no funciona
 2. ⭐⭐⭐ `PROMPT_RECUPERACION.md` - Para recuperar si algo se rompe
-3. ⭐⭐ `HISTORIAL_CAMBIOS.md` - Referencia completa
-4. ⭐ `RESUMEN_SESION_2025-11-09.md` - Vista rápida
+3. ⭐⭐⭐ `CHECKLIST_VERIFICACION.md` - Para verificar que todo funciona
+4. ⭐⭐ `HISTORIAL_CAMBIOS.md` - Referencia completa
+5. ⭐ `RESUMEN_SESION_2025-11-09.md` - Vista rápida
 
 ### Recordatorios:
 - ✅ Coolify despliega desde rama `master`
