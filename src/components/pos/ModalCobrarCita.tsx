@@ -149,12 +149,46 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     
     try {
       const datosFactura = await obtenerDatosFactura(cobroExitoso.facturaId, supabase)
-      if (datosFactura) {
+      if (!datosFactura) {
+        alert('Error: No se pudieron obtener los datos de la factura')
+        return
+      }
+
+      // Intentar impresión directa primero (servicio local)
+      try {
+        console.log('🖨️ Intentando impresión directa...')
+        const response = await fetch('http://localhost:3001/print', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ factura: datosFactura }),
+          signal: AbortSignal.timeout(5000) // 5 segundos timeout
+        })
+
+        if (response.ok) {
+          const result = await response.json()
+          if (result.success) {
+            console.log('✅ Impresión directa exitosa')
+            alert('✅ Factura impresa correctamente en impresora térmica')
+            return
+          }
+        }
+        
+        // Si falla, continuar con método alternativo
+        throw new Error('Servicio de impresión no respondió correctamente')
+        
+      } catch (printerServiceError) {
+        console.warn('⚠️ Servicio de impresión no disponible, usando método del navegador')
+        console.warn('Error:', printerServiceError.message)
+        
+        // Fallback: Usar ventana de impresión del navegador
         await generarEImprimirFactura(datosFactura, 'imprimir')
       }
+      
     } catch (error) {
       console.error('Error imprimiendo PDF:', error)
-      alert('Error al imprimir el PDF')
+      alert('Error al imprimir el PDF: ' + (error as Error).message)
     }
   }
 
