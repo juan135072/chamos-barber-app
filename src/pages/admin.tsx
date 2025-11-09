@@ -166,6 +166,20 @@ export default function AdminPage() {
                   <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
                 </div>
                 <button
+                  onClick={() => router.push('/pos')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{ 
+                    backgroundColor: '#10B981', 
+                    color: 'white',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
+                >
+                  <i className="fas fa-cash-register mr-2"></i>
+                  Abrir POS
+                </button>
+                <button
                   onClick={handleLogout}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{ 
@@ -199,6 +213,18 @@ export default function AdminPage() {
                     <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
                     <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
                   </div>
+                  <button
+                    onClick={() => router.push('/pos')}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md w-full"
+                    style={{ 
+                      backgroundColor: '#10B981', 
+                      color: 'white',
+                      transition: 'var(--transition)'
+                    }}
+                  >
+                    <i className="fas fa-cash-register mr-2"></i>
+                    Abrir POS
+                  </button>
                   <button
                     onClick={handleLogout}
                     className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md w-full"
