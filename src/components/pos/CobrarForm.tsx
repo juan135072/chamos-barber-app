@@ -190,8 +190,8 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       if (facturaError) throw facturaError
 
-      // Éxito
-      alert(`¡Venta registrada exitosamente!\n\nFactura: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}`)
+      // Éxito - NO mostrar comisiones al usuario/cliente
+      alert(`¡Venta registrada exitosamente!\n\nFactura: ${factura.numero_factura}\nCliente: ${clienteNombre}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}`)
 
       // Limpiar formulario
       setClienteNombre('')
@@ -207,6 +207,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       // Aquí se podría abrir ventana de impresión
       // imprimirTicket(factura)
+      // IMPORTANTE: La factura impresa NO debe mostrar las comisiones
 
     } catch (error) {
       console.error('Error al crear venta:', error)
