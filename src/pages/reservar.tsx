@@ -490,56 +490,6 @@ const ReservarPage: React.FC = () => {
                               </div>
                             ))}
                           </div>
-                          
-                          {/* Mostrar horarios ocupados (informativo) */}
-                          {availableSlots.filter(slot => !slot.disponible).length > 0 && (
-                            <details style={{ marginTop: '1rem' }}>
-                              <summary style={{ 
-                                cursor: 'pointer', 
-                                fontSize: '0.9rem', 
-                                opacity: 0.7,
-                                padding: '0.5rem',
-                                userSelect: 'none'
-                              }}>
-                                <i className="fas fa-info-circle"></i> Ver horarios no disponibles ({availableSlots.filter(slot => !slot.disponible).length})
-                              </summary>
-                              <div style={{ 
-                                marginTop: '0.5rem',
-                                padding: '1rem',
-                                background: 'rgba(107, 114, 128, 0.1)',
-                                borderRadius: 'var(--border-radius)',
-                                fontSize: '0.85rem'
-                              }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(120px, 1fr))', gap: '0.5rem' }}>
-                                  {availableSlots.filter(slot => !slot.disponible).map(slot => (
-                                    <div 
-                                      key={slot.hora}
-                                      style={{
-                                        padding: '0.5rem',
-                                        background: 'rgba(239, 68, 68, 0.1)',
-                                        border: '1px solid rgba(239, 68, 68, 0.3)',
-                                        borderRadius: '0.375rem',
-                                        opacity: 0.6,
-                                        cursor: 'not-allowed',
-                                        textAlign: 'center'
-                                      }}
-                                      title={slot.motivo || 'No disponible'}
-                                    >
-                                      <div style={{ fontWeight: '600', textDecoration: 'line-through' }}>
-                                        {slot.hora}
-                                      </div>
-                                      <div style={{ fontSize: '0.75rem', marginTop: '0.25rem' }}>
-                                        {slot.motivo === 'Ya reservado' && '🔒 Ocupado'}
-                                        {slot.motivo === 'Hora pasada' && '⏰ Pasada'}
-                                        {slot.motivo === 'Fuera de horario de trabajo' && '🚫 Cerrado'}
-                                        {!slot.motivo && '❌ No disponible'}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            </details>
-                          )}
                         </>
                       )}
                     </div>
