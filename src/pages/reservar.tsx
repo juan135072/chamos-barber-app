@@ -14,8 +14,8 @@ const ReservarPage: React.FC = () => {
   const [currentStep, setCurrentStep] = useState(1)
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [servicios, setServicios] = useState<Servicio[]>([])
+  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<string[]>([])
   const [formData, setFormData] = useState({
-    servicio_id: '',
     barbero_id: '',
     fecha: '',
     hora: '',
@@ -135,6 +135,27 @@ const ReservarPage: React.FC = () => {
     setFormData(prev => ({ ...prev, [field]: value }))
   }
 
+  const toggleServicio = (servicioId: string) => {
+    setServiciosSeleccionados(prev => {
+      if (prev.includes(servicioId)) {
+        return prev.filter(id => id !== servicioId)
+      } else {
+        return [...prev, servicioId]
+      }
+    })
+  }
+
+  const calcularTotales = () => {
+    const serviciosInfo = serviciosSeleccionados.map(id => 
+      servicios.find(s => s.id === id)
+    ).filter(Boolean) as Servicio[]
+
+    const duracionTotal = serviciosInfo.reduce((sum, s) => sum + s.duracion_minutos, 0)
+    const precioTotal = serviciosInfo.reduce((sum, s) => sum + s.precio, 0)
+
+    return { duracionTotal, precioTotal, serviciosInfo }
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     try {
@@ -148,7 +169,8 @@ const ReservarPage: React.FC = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          servicio_id: formData.servicio_id,
+          servicio_id: serviciosSeleccionados[0], // Primer servicio (para compatibilidad)
+          servicios_ids: serviciosSeleccionados, // Array completo de servicios
           barbero_id: formData.barbero_id,
           fecha: formData.fecha,
           hora: formData.hora,
@@ -179,8 +201,8 @@ const ReservarPage: React.FC = () => {
       alert(result.message || '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
       
       // Reset form
+      setServiciosSeleccionados([])
       setFormData({
-        servicio_id: '',
         barbero_id: '',
         fecha: '',
         hora: '',
@@ -243,38 +265,96 @@ const ReservarPage: React.FC = () => {
               ></div>
             </div>
 
-            {/* Step 1: Servicio */}
+            {/* Step 1: Servicios (Múltiples) */}
             {currentStep === 1 && (
               <div className="form-step active">
                 <div className="step-header">
-                  <h2 className="step-title">Selecciona un Servicio</h2>
-                  <p className="step-subtitle">¿Qué servicio necesitas hoy?</p>
+                  <h2 className="step-title">Selecciona tus Servicios</h2>
+                  <p className="step-subtitle">Puedes seleccionar uno o más servicios</p>
                 </div>
 
-                <div style={{ display: 'grid', gap: '1rem' }}>
-                  {servicios.map(servicio => (
-                    <div 
-                      key={servicio.id}
-                      className={`barber-option ${formData.servicio_id === servicio.id ? 'selected' : ''}`}
-                      onClick={() => handleInputChange('servicio_id', servicio.id)}
-                      style={{ textAlign: 'left', padding: '1.5rem' }}
-                    >
-                      <h3 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
-                        {servicio.nombre}
-                      </h3>
-                      <p style={{ opacity: '0.8', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                        {servicio.descripcion}
-                      </p>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
-                          ${servicio.precio.toLocaleString()}
-                        </span>
-                        <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
-                          {servicio.duracion_minutos} min
-                        </span>
-                      </div>
+                {serviciosSeleccionados.length > 0 && (
+                  <div style={{
+                    marginBottom: '1.5rem',
+                    padding: '1rem',
+                    background: 'rgba(212, 175, 55, 0.1)',
+                    border: '1px solid var(--accent-color)',
+                    borderRadius: 'var(--border-radius)'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                      <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
+                        <i className="fas fa-check-circle"></i> {serviciosSeleccionados.length} servicio{serviciosSeleccionados.length !== 1 ? 's' : ''} seleccionado{serviciosSeleccionados.length !== 1 ? 's' : ''}
+                      </span>
+                      <button 
+                        type="button"
+                        onClick={() => setServiciosSeleccionados([])}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '0.85rem',
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        Limpiar selección
+                      </button>
                     </div>
-                  ))}
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem' }}>
+                      <span><strong>Duración total:</strong> {calcularTotales().duracionTotal} min</span>
+                      <span><strong>Precio total:</strong> ${calcularTotales().precioTotal.toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+
+                <div style={{ display: 'grid', gap: '1rem' }}>
+                  {servicios.map(servicio => {
+                    const isSelected = serviciosSeleccionados.includes(servicio.id)
+                    return (
+                      <div 
+                        key={servicio.id}
+                        className={`barber-option ${isSelected ? 'selected' : ''}`}
+                        onClick={() => toggleServicio(servicio.id)}
+                        style={{ 
+                          textAlign: 'left', 
+                          padding: '1.5rem',
+                          cursor: 'pointer',
+                          position: 'relative'
+                        }}
+                      >
+                        <div style={{ 
+                          position: 'absolute',
+                          top: '1rem',
+                          right: '1rem',
+                          width: '24px',
+                          height: '24px',
+                          borderRadius: '4px',
+                          border: `2px solid ${isSelected ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                          background: isSelected ? 'var(--accent-color)' : 'transparent',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          transition: 'all 0.3s ease'
+                        }}>
+                          {isSelected && <i className="fas fa-check" style={{ color: 'var(--bg-primary)', fontSize: '0.75rem' }}></i>}
+                        </div>
+                        <h3 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem', paddingRight: '2rem' }}>
+                          {servicio.nombre}
+                        </h3>
+                        <p style={{ opacity: '0.8', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                          {servicio.descripcion}
+                        </p>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
+                            ${servicio.precio.toLocaleString()}
+                          </span>
+                          <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
+                            {servicio.duracion_minutos} min
+                          </span>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -512,7 +592,19 @@ const ReservarPage: React.FC = () => {
                   </h3>
                   
                   <div style={{ display: 'grid', gap: '1rem' }}>
-                    <div><strong>Servicio:</strong> {servicios.find(s => s.id === formData.servicio_id)?.nombre}</div>
+                    <div>
+                      <strong>Servicio{serviciosSeleccionados.length > 1 ? 's' : ''}:</strong>
+                      <ul style={{ margin: '0.5rem 0 0 1.5rem', padding: 0 }}>
+                        {calcularTotales().serviciosInfo.map(servicio => (
+                          <li key={servicio.id} style={{ marginBottom: '0.25rem' }}>
+                            {servicio.nombre} - ${servicio.precio.toLocaleString()} ({servicio.duracion_minutos} min)
+                          </li>
+                        ))}
+                      </ul>
+                      <div style={{ marginTop: '0.5rem', fontWeight: '600', color: 'var(--accent-color)' }}>
+                        Total: ${calcularTotales().precioTotal.toLocaleString()} - {calcularTotales().duracionTotal} min
+                      </div>
+                    </div>
                     <div><strong>Barbero:</strong> {(() => {
                       const barbero = barberos.find(b => b.id === formData.barbero_id)
                       return barbero ? `${barbero.nombre} ${barbero.apellido}` : ''
@@ -569,7 +661,7 @@ const ReservarPage: React.FC = () => {
                   className="btn btn-primary"
                   onClick={nextStep}
                   disabled={
-                    (currentStep === 1 && !formData.servicio_id) ||
+                    (currentStep === 1 && serviciosSeleccionados.length === 0) ||
                     (currentStep === 2 && !formData.barbero_id) ||
                     (currentStep === 3 && (!formData.fecha || !formData.hora)) ||
                     (currentStep === 4 && (!formData.cliente_nombre || !formData.cliente_telefono))

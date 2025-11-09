@@ -55,16 +55,21 @@ export default async function handler(
     
     console.log('✅ [crear-cita] Supabase client created')
 
-    const citaData: CitaInsert = req.body
+    const citaData: any = req.body
     console.log('🔵 [crear-cita] Request data:', JSON.stringify(citaData, null, 2))
 
+    // Extraer servicios_ids (nuevo formato) o servicio_id (legacy)
+    const serviciosIds: string[] = citaData.servicios_ids || (citaData.servicio_id ? [citaData.servicio_id] : [])
+    
+    console.log('🔵 [crear-cita] Services to book:', serviciosIds)
+
     // VALIDACIÓN 1: Verificar que tenemos todos los campos requeridos
-    if (!citaData.servicio_id || !citaData.barbero_id || !citaData.fecha || 
+    if (serviciosIds.length === 0 || !citaData.barbero_id || !citaData.fecha || 
         !citaData.hora || !citaData.cliente_nombre || !citaData.cliente_telefono) {
       console.log('❌ [crear-cita] Missing required fields')
       return res.status(400).json({ 
         error: 'Faltan campos requeridos',
-        details: 'servicio_id, barbero_id, fecha, hora, cliente_nombre y cliente_telefono son obligatorios'
+        details: 'servicio(s), barbero_id, fecha, hora, cliente_nombre y cliente_telefono son obligatorios'
       })
     }
 
@@ -149,19 +154,49 @@ export default async function handler(
       })
     }
 
-    // VALIDACIÓN 6: Verificar que el servicio existe y está activo
-    const { data: servicio, error: servicioError } = await supabase
+    // VALIDACIÓN 6: Verificar que todos los servicios existen y están activos
+    const { data: servicios, error: serviciosError } = await supabase
       .from('servicios')
       .select('id, nombre, activo')
-      .eq('id', citaData.servicio_id)
-      .single()
+      .in('id', serviciosIds)
 
-    // @ts-ignore - Bypass strict type checking for servicio.activo in build environment
-    if (servicioError || !servicio || !servicio.activo) {
+    if (serviciosError || !servicios || servicios.length !== serviciosIds.length) {
       return res.status(400).json({ 
-        error: 'El servicio seleccionado no está disponible',
+        error: 'Uno o más servicios seleccionados no están disponibles',
         code: 'SERVICIO_NO_DISPONIBLE'
       })
+    }
+
+    // @ts-ignore - Bypass strict type checking
+    const serviciosInactivos = servicios.filter((s: any) => !s.activo)
+    if (serviciosInactivos.length > 0) {
+      return res.status(400).json({ 
+        error: `Servicio(s) no disponible(s): ${serviciosInactivos.map((s: any) => s.nombre).join(', ')}`,
+        code: 'SERVICIO_NO_DISPONIBLE'
+      })
+    }
+
+    // PREPARAR DATOS PARA INSERTAR
+    // Si hay múltiples servicios, agregar la información a las notas
+    let notasCompletas = citaData.notas || ''
+    
+    if (serviciosIds.length > 1) {
+      const nombresServicios = servicios.map((s: any) => s.nombre).join(', ')
+      const infoServicios = `\n\n[SERVICIOS SOLICITADOS: ${nombresServicios}]`
+      notasCompletas = notasCompletas + infoServicios
+    }
+
+    // Preparar datos de la cita (usando primer servicio para compatibilidad)
+    const citaInsert: CitaInsert = {
+      servicio_id: serviciosIds[0], // Primer servicio (obligatorio por compatibilidad DB)
+      barbero_id: citaData.barbero_id,
+      fecha: citaData.fecha,
+      hora: citaData.hora,
+      cliente_nombre: citaData.cliente_nombre,
+      cliente_telefono: citaData.cliente_telefono,
+      cliente_email: citaData.cliente_email || null,
+      notas: notasCompletas || null,
+      estado: citaData.estado || 'pendiente'
     }
 
     // INSERTAR LA CITA
@@ -170,7 +205,7 @@ export default async function handler(
     const { data: nuevaCita, error: insertError } = await supabase
       .from('citas')
       // @ts-ignore - Bypass strict type checking for insert operation in build environment
-      .insert([citaData])
+      .insert([citaInsert])
       .select()
       .single()
 
