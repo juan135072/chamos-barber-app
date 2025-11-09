@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, UsuarioConPermisos, Database } from '@/lib/supabase'
+import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -221,7 +222,16 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       // Éxito - NO mostrar comisiones al usuario/cliente
       const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'
-      alert(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nCliente: ${clienteNombre}${tipoDocumento === 'factura' ? `\nRUT: ${rut}` : ''}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}`)
+      const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nCliente: ${clienteNombre}${tipoDocumento === 'factura' ? `\nRUT: ${rut}` : ''}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}\n\n¿Deseas imprimir la factura?`)
+
+      if (confirmar) {
+        // Obtener datos completos de la factura e imprimir
+        const datosFactura = await obtenerDatosFactura(factura.id, supabase)
+        if (datosFactura) {
+          // IMPORTANTE: La factura impresa NO debe mostrar las comisiones
+          await generarEImprimirFactura(datosFactura, 'imprimir')
+        }
+      }
 
       // Limpiar formulario
       setClienteNombre('')
@@ -236,10 +246,6 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       // Notificar al componente padre
       onVentaCreada()
-
-      // Aquí se podría abrir ventana de impresión
-      // imprimirTicket(factura)
-      // IMPORTANTE: La factura impresa NO debe mostrar las comisiones
 
     } catch (error) {
       console.error('Error al crear venta:', error)
