@@ -41,9 +41,11 @@ const ConsultarPage: React.FC = () => {
     ]
 
     if (cita.notas) {
-      const match = cita.notas.match(/\[SERVICIOS SOLICITADOS: ([^\]]+)\]/)
+      // Buscar el patrón con o sin saltos de línea antes/después
+      const match = cita.notas.match(/\[SERVICIOS SOLICITADOS:\s*([^\]]+)\]/)
+      
       if (match) {
-        const serviciosTexto = match[1]
+        const serviciosTexto = match[1].trim()
         const nombresServicios = serviciosTexto.split(',').map(s => s.trim())
         
         // Si hay más de un servicio, reemplazar todos
@@ -63,8 +65,8 @@ const ConsultarPage: React.FC = () => {
   const limpiarNotas = (notas?: string): string | null => {
     if (!notas) return null
     
-    // Remove the [SERVICIOS SOLICITADOS: ...] part
-    const notasLimpias = notas.replace(/\n*\[SERVICIOS SOLICITADOS: [^\]]+\]\n*/g, '').trim()
+    // Remove the [SERVICIOS SOLICITADOS: ...] part including surrounding whitespace
+    const notasLimpias = notas.replace(/\s*\[SERVICIOS SOLICITADOS:\s*[^\]]+\]\s*/g, '').trim()
     
     return notasLimpias || null
   }
