@@ -64,7 +64,8 @@ export default async function handler(
         notas,
         servicios (
           nombre,
-          precio
+          precio,
+          duracion_minutos
         ),
         barberos (
           nombre,
@@ -101,20 +102,79 @@ export default async function handler(
     console.log('📊 [consultar-citas] Total appointments:', citas.length)
     console.log('📊 [consultar-citas] Pending appointments:', citasPendientes)
 
+    // Helper para calcular datos de múltiples servicios
+    const calcularDatosServicios = async (cita: any) => {
+      let precioTotal = cita.servicios?.precio || 0
+      let duracionTotal = cita.servicios?.duracion_minutos || 0
+      let serviciosDetalle: any[] = []
+
+      // Si hay múltiples servicios en las notas, buscar sus datos
+      if (cita.notas) {
+        const match = cita.notas.match(/\[SERVICIOS SOLICITADOS:\s*([^\]]+)\]/)
+        if (match) {
+          const serviciosTexto = match[1].trim()
+          const nombresServicios = serviciosTexto.split(',').map((s: string) => s.trim())
+          
+          if (nombresServicios.length > 1) {
+            // Buscar datos completos de todos los servicios
+            const { data: serviciosData } = await supabase
+              .from('servicios')
+              .select('nombre, precio, duracion_minutos')
+              .in('nombre', nombresServicios)
+            
+            if (serviciosData && serviciosData.length > 0) {
+              precioTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.precio || 0), 0)
+              duracionTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.duracion_minutos || 0), 0)
+              serviciosDetalle = serviciosData
+            }
+          } else {
+            // Un solo servicio
+            serviciosDetalle = [{
+              nombre: cita.servicios?.nombre,
+              precio: cita.servicios?.precio,
+              duracion_minutos: cita.servicios?.duracion_minutos
+            }]
+          }
+        } else {
+          // No hay múltiples servicios, usar el servicio principal
+          serviciosDetalle = [{
+            nombre: cita.servicios?.nombre,
+            precio: cita.servicios?.precio,
+            duracion_minutos: cita.servicios?.duracion_minutos
+          }]
+        }
+      } else {
+        // No hay notas, usar el servicio principal
+        serviciosDetalle = [{
+          nombre: cita.servicios?.nombre,
+          precio: cita.servicios?.precio,
+          duracion_minutos: cita.servicios?.duracion_minutos
+        }]
+      }
+
+      return { precioTotal, duracionTotal, serviciosDetalle }
+    }
+
     // Mapear los datos al formato esperado por el frontend
-    const mappedCitas = citas.map((cita: any) => ({
-      id: cita.id,
-      fecha: cita.fecha,
-      hora: cita.hora,
-      estado: cita.estado,
-      notas: cita.notas,
-      servicio_nombre: cita.servicios?.nombre || 'Servicio no especificado',
-      barbero_nombre: cita.barberos 
-        ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
-        : 'Barbero no asignado',
-      barbero_imagen: cita.barberos?.imagen_url || null,
-      barbero_especialidad: cita.barberos?.especialidad || null,
-      precio: cita.servicios?.precio || null
+    const mappedCitas = await Promise.all(citas.map(async (cita: any) => {
+      const { precioTotal, duracionTotal, serviciosDetalle } = await calcularDatosServicios(cita)
+      
+      return {
+        id: cita.id,
+        fecha: cita.fecha,
+        hora: cita.hora,
+        estado: cita.estado,
+        notas: cita.notas,
+        servicio_nombre: cita.servicios?.nombre || 'Servicio no especificado',
+        barbero_nombre: cita.barberos 
+          ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
+          : 'Barbero no asignado',
+        barbero_imagen: cita.barberos?.imagen_url || null,
+        barbero_especialidad: cita.barberos?.especialidad || null,
+        precio: precioTotal,
+        duracion_total: duracionTotal,
+        servicios_detalle: serviciosDetalle
+      }
     }))
 
     console.log('✅ [consultar-citas] Returning response with', mappedCitas.length, 'appointments')

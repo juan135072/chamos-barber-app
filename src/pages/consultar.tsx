@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Layout from '../components/Layout'
 
-// Build Version: 2025-11-09-v5 - Multiple services display support
+// Build Version: 2025-11-09-v6 - Multiple services with individual prices and duration
 interface Cita {
   id: string
   servicio_nombre: string
@@ -13,6 +13,14 @@ interface Cita {
   estado: string
   notas?: string
   precio?: number
+  duracion_total?: number
+  servicios_detalle?: ServicioDetalle[]
+}
+
+interface ServicioDetalle {
+  nombre: string
+  precio: number
+  duracion_minutos: number
 }
 
 interface ServicioInfo {
@@ -424,8 +432,8 @@ const ConsultarPage: React.FC = () => {
                             </div>
                             <div className="appointment-details">
                               {(() => {
-                                const servicios = extraerServicios(cita)
-                                const tieneMultiplesServicios = servicios.length > 1
+                                const serviciosDetalle = cita.servicios_detalle || []
+                                const tieneMultiplesServicios = serviciosDetalle.length > 1
                                 
                                 return (
                                   <div>
@@ -433,39 +441,90 @@ const ConsultarPage: React.FC = () => {
                                       {tieneMultiplesServicios ? 'Servicios:' : 'Servicio:'}
                                     </strong>
                                     {tieneMultiplesServicios ? (
-                                      <ul style={{
-                                        marginTop: '0.5rem',
-                                        marginBottom: '0',
-                                        paddingLeft: '1.5rem',
-                                        listStyleType: 'none'
-                                      }}>
-                                        {servicios.map((servicio, idx) => (
-                                          <li key={idx} style={{
-                                            marginBottom: '0.5rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem'
-                                          }}>
-                                            <span style={{
-                                              display: 'inline-flex',
+                                      <div style={{ marginTop: '0.5rem' }}>
+                                        <ul style={{
+                                          marginBottom: '0.75rem',
+                                          paddingLeft: '1.5rem',
+                                          listStyleType: 'none'
+                                        }}>
+                                          {serviciosDetalle.map((servicio, idx) => (
+                                            <li key={idx} style={{
+                                              marginBottom: '0.5rem',
+                                              display: 'flex',
                                               alignItems: 'center',
-                                              justifyContent: 'center',
-                                              width: '20px',
-                                              height: '20px',
-                                              borderRadius: '50%',
-                                              background: 'var(--accent-color)',
-                                              color: '#1a1a1a',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 'bold'
+                                              gap: '0.5rem',
+                                              fontSize: '0.95rem'
                                             }}>
-                                              {idx + 1}
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                minWidth: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                background: 'var(--accent-color)',
+                                                color: '#1a1a1a',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 'bold'
+                                              }}>
+                                                {idx + 1}
+                                              </span>
+                                              <span style={{ flex: 1 }}>{servicio.nombre}</span>
+                                              <span style={{ 
+                                                color: 'var(--accent-color)',
+                                                fontWeight: '600',
+                                                whiteSpace: 'nowrap'
+                                              }}>
+                                                ${servicio.precio?.toLocaleString()}
+                                              </span>
+                                              <span style={{ 
+                                                opacity: 0.7,
+                                                fontSize: '0.85rem',
+                                                whiteSpace: 'nowrap'
+                                              }}>
+                                                {servicio.duracion_minutos} min
+                                              </span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                        {/* Resumen Total */}
+                                        <div style={{
+                                          marginTop: '0.75rem',
+                                          paddingTop: '0.75rem',
+                                          borderTop: '2px solid var(--accent-color)',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          fontWeight: 'bold',
+                                          fontSize: '1.05rem'
+                                        }}>
+                                          <span>TOTAL:</span>
+                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <span style={{ color: 'var(--accent-color)' }}>
+                                              ${cita.precio?.toLocaleString()}
                                             </span>
-                                            <span style={{ flex: 1 }}>{servicio.nombre}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
+                                            <span style={{ opacity: 0.8, fontSize: '0.9rem' }}>
+                                              {cita.duracion_total} min
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
                                     ) : (
-                                      <span style={{ marginLeft: '0.5rem' }}>{cita.servicio_nombre}</span>
+                                      <div style={{ marginTop: '0.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <span>{cita.servicio_nombre}</span>
+                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <span style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
+                                              ${cita.precio?.toLocaleString()}
+                                            </span>
+                                            {cita.duracion_total && (
+                                              <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>
+                                                {cita.duracion_total} min
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
                                 )
@@ -483,11 +542,6 @@ const ConsultarPage: React.FC = () => {
                                   {cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
                                 </span>
                               </div>
-                              {cita.precio && (
-                                <div>
-                                  <strong>Precio:</strong> ${cita.precio.toLocaleString()}
-                                </div>
-                              )}
                             </div>
                             {limpiarNotas(cita.notas) && (
                               <div style={{ 
@@ -533,8 +587,8 @@ const ConsultarPage: React.FC = () => {
                             </div>
                             <div className="appointment-details">
                               {(() => {
-                                const servicios = extraerServicios(cita)
-                                const tieneMultiplesServicios = servicios.length > 1
+                                const serviciosDetalle = cita.servicios_detalle || []
+                                const tieneMultiplesServicios = serviciosDetalle.length > 1
                                 
                                 return (
                                   <div>
@@ -542,39 +596,90 @@ const ConsultarPage: React.FC = () => {
                                       {tieneMultiplesServicios ? 'Servicios:' : 'Servicio:'}
                                     </strong>
                                     {tieneMultiplesServicios ? (
-                                      <ul style={{
-                                        marginTop: '0.5rem',
-                                        marginBottom: '0',
-                                        paddingLeft: '1.5rem',
-                                        listStyleType: 'none'
-                                      }}>
-                                        {servicios.map((servicio, idx) => (
-                                          <li key={idx} style={{
-                                            marginBottom: '0.5rem',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '0.5rem'
-                                          }}>
-                                            <span style={{
-                                              display: 'inline-flex',
+                                      <div style={{ marginTop: '0.5rem' }}>
+                                        <ul style={{
+                                          marginBottom: '0.75rem',
+                                          paddingLeft: '1.5rem',
+                                          listStyleType: 'none'
+                                        }}>
+                                          {serviciosDetalle.map((servicio, idx) => (
+                                            <li key={idx} style={{
+                                              marginBottom: '0.5rem',
+                                              display: 'flex',
                                               alignItems: 'center',
-                                              justifyContent: 'center',
-                                              width: '20px',
-                                              height: '20px',
-                                              borderRadius: '50%',
-                                              background: 'var(--accent-color)',
-                                              color: '#1a1a1a',
-                                              fontSize: '0.75rem',
-                                              fontWeight: 'bold'
+                                              gap: '0.5rem',
+                                              fontSize: '0.95rem'
                                             }}>
-                                              {idx + 1}
+                                              <span style={{
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                minWidth: '24px',
+                                                height: '24px',
+                                                borderRadius: '50%',
+                                                background: 'var(--accent-color)',
+                                                color: '#1a1a1a',
+                                                fontSize: '0.75rem',
+                                                fontWeight: 'bold'
+                                              }}>
+                                                {idx + 1}
+                                              </span>
+                                              <span style={{ flex: 1 }}>{servicio.nombre}</span>
+                                              <span style={{ 
+                                                color: 'var(--accent-color)',
+                                                fontWeight: '600',
+                                                whiteSpace: 'nowrap'
+                                              }}>
+                                                ${servicio.precio?.toLocaleString()}
+                                              </span>
+                                              <span style={{ 
+                                                opacity: 0.7,
+                                                fontSize: '0.85rem',
+                                                whiteSpace: 'nowrap'
+                                              }}>
+                                                {servicio.duracion_minutos} min
+                                              </span>
+                                            </li>
+                                          ))}
+                                        </ul>
+                                        {/* Resumen Total */}
+                                        <div style={{
+                                          marginTop: '0.75rem',
+                                          paddingTop: '0.75rem',
+                                          borderTop: '2px solid rgba(212, 175, 55, 0.5)',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          fontWeight: 'bold',
+                                          fontSize: '1.05rem'
+                                        }}>
+                                          <span>TOTAL:</span>
+                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <span style={{ color: 'var(--accent-color)' }}>
+                                              ${cita.precio?.toLocaleString()}
                                             </span>
-                                            <span style={{ flex: 1 }}>{servicio.nombre}</span>
-                                          </li>
-                                        ))}
-                                      </ul>
+                                            <span style={{ opacity: 0.8, fontSize: '0.9rem' }}>
+                                              {cita.duracion_total} min
+                                            </span>
+                                          </div>
+                                        </div>
+                                      </div>
                                     ) : (
-                                      <span style={{ marginLeft: '0.5rem' }}>{cita.servicio_nombre}</span>
+                                      <div style={{ marginTop: '0.5rem' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                          <span>{cita.servicio_nombre}</span>
+                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                            <span style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
+                                              ${cita.precio?.toLocaleString()}
+                                            </span>
+                                            {cita.duracion_total && (
+                                              <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>
+                                                {cita.duracion_total} min
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
                                     )}
                                   </div>
                                 )
@@ -592,11 +697,6 @@ const ConsultarPage: React.FC = () => {
                                   {cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
                                 </span>
                               </div>
-                              {cita.precio && (
-                                <div>
-                                  <strong>Precio:</strong> ${cita.precio.toLocaleString()}
-                                </div>
-                              )}
                             </div>
                           </div>
                         ))}
