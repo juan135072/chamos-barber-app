@@ -364,13 +364,13 @@ SELECT
   u.activo,
   u.telefono,
   u.barbero_id,
-  u.created_at,
   r.nombre_display as rol_nombre,
   r.descripcion as rol_descripcion,
-  r.permisos
+  r.permisos,
+  r.created_at as rol_created_at
 FROM public.admin_users u
 LEFT JOIN public.roles_permisos r ON r.rol = u.rol
-ORDER BY u.created_at DESC;
+ORDER BY u.nombre;
 
 -- 7. Índices
 CREATE INDEX IF NOT EXISTS idx_admin_users_rol ON public.admin_users(rol);
