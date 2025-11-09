@@ -273,7 +273,18 @@ export async function obtenerDatosFactura(facturaId: string, supabase: any): Pro
     const { data, error } = await supabase
       .from('facturas')
       .select(`
-        *,
+        id,
+        numero_factura,
+        cliente_nombre,
+        cliente_rut,
+        tipo_documento,
+        items,
+        subtotal,
+        total,
+        metodo_pago,
+        monto_recibido,
+        cambio,
+        created_at,
         barbero:barberos!facturas_barbero_id_fkey (
           nombre,
           apellido
