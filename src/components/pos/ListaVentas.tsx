@@ -121,8 +121,14 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         hora: cita.hora_inicio
       }))
 
-      setVentas(ventasData || [])
+      const ventasFinales = ventasData || []
+      console.log('💾 Estado ANTES de actualizar - ventas:', ventas.length, 'citas:', citasPendientes.length)
+      console.log('💾 ACTUALIZANDO estado con:', ventasFinales.length, 'ventas y', citasConHora.length, 'citas')
+      
+      setVentas(ventasFinales)
       setCitasPendientes(citasConHora)
+      
+      console.log('✅ setVentas() y setCitasPendientes() llamados')
     } catch (error) {
       console.error('Error cargando datos:', error)
     } finally {
@@ -170,6 +176,14 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       </div>
     )
   }
+
+  // Log del estado actual antes de renderizar
+  console.log('🎨 RENDERIZANDO con estado:', {
+    ventas: ventas.length,
+    citasPendientes: citasPendientes.length,
+    mostrarCitas,
+    cargando
+  })
 
   return (
     <>
