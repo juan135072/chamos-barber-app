@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { UsuarioConPermisos } from '@/lib/permissions'
-import type { Database } from '@/lib/database.types'
+import { supabase, UsuarioConPermisos, Database } from '@/lib/supabase'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -82,7 +80,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
 
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .rpc('calcular_comisiones_factura', {
           p_barbero_id: barberoId,
           p_total: total
@@ -171,7 +169,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       setGuardando(true)
 
       // Crear la factura
-      const { data: factura, error: facturaError } = await supabase
+      const { data: factura, error: facturaError } = await (supabase as any)
         .from('facturas')
         .insert({
           barbero_id: barberoId,

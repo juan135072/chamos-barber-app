@@ -673,9 +673,6 @@ export interface Database {
         }
       }
     }
-    Views: {
-      [_ in never]: never
-    }
     Functions: {
       get_horarios_disponibles: {
         Args: {
@@ -686,6 +683,17 @@ export interface Database {
           hora: string
           disponible: boolean
           motivo: string
+        }[]
+      }
+      calcular_comisiones_factura: {
+        Args: {
+          p_barbero_id: string
+          p_total: number
+        }
+        Returns: {
+          porcentaje: number
+          comision_barbero: number
+          ingreso_casa: number
         }[]
       }
     }
@@ -743,7 +751,7 @@ export interface FacturaItem {
   subtotal: number
 }
 
-export interface Factura extends Database['public']['Tables']['facturas']['Row'] {
+export type Factura = Database['public']['Tables']['facturas']['Row'] & {
   items: FacturaItem[]
   barberos?: {
     nombre: string
@@ -756,7 +764,7 @@ export interface Factura extends Database['public']['Tables']['facturas']['Row']
   }
 }
 
-export interface ConfiguracionComision extends Database['public']['Tables']['configuracion_comisiones']['Row'] {
+export type ConfiguracionComision = Database['public']['Tables']['configuracion_comisiones']['Row'] & {
   barberos?: {
     nombre: string
     apellido: string

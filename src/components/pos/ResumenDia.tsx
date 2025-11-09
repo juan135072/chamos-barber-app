@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { UsuarioConPermisos } from '@/lib/permissions'
+import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 
 interface ResumenDiaProps {
   usuario: UsuarioConPermisos
@@ -37,7 +36,7 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
       const hoy = new Date().toISOString().split('T')[0]
 
       // Obtener facturas del día
-      const { data: facturas, error } = await supabase
+      const { data: facturas, error } = await (supabase as any)
         .from('facturas')
         .select('total, metodo_pago')
         .gte('created_at', `${hoy}T00:00:00`)

@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { UsuarioConPermisos } from '@/lib/permissions'
+import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 
 interface ListaVentasProps {
   usuario: UsuarioConPermisos
@@ -33,7 +32,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       setCargando(true)
       const hoy = new Date().toISOString().split('T')[0]
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('facturas')
         .select(`
           id,

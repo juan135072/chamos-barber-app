@@ -4,8 +4,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { supabase } from '@/lib/supabase';
-import {
+import { 
+  supabase,
   UsuarioConPermisos,
   tienePermiso,
   puedeAccederPOS,
@@ -17,7 +17,7 @@ import {
   puedeAccederRuta,
   getRutaPorDefecto,
   Permiso,
-} from '@/lib/permissions';
+} from '@/lib/supabase';
 
 export function usePermissions() {
   const [usuario, setUsuario] = useState<UsuarioConPermisos | null>(null);
