@@ -25,8 +25,7 @@ interface Cita {
   cliente_nombre: string
   cliente_telefono: string
   fecha: string
-  hora_inicio: string  // Campo real de la BD
-  hora?: string        // Alias opcional
+  hora: string  // Campo real de la BD
   estado_pago: string
   barbero: {
     nombre: string
