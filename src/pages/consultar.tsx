@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import Layout from '../components/Layout'
 
-// Build Version: 2025-11-06-v4 - Enhanced logging for consultation debugging
+// Build Version: 2025-11-09-v5 - Multiple services display support
 interface Cita {
   id: string
   servicio_nombre: string
@@ -13,6 +13,11 @@ interface Cita {
   estado: string
   notas?: string
   precio?: number
+}
+
+interface ServicioInfo {
+  nombre: string
+  esAdicional: boolean
 }
 
 interface ConsultarResponse {
@@ -28,6 +33,41 @@ const ConsultarPage: React.FC = () => {
   const [citasPendientes, setCitasPendientes] = useState(0)
   const [loading, setLoading] = useState(false)
   const [searched, setSearched] = useState(false)
+
+  // Helper function to extract multiple services from notes
+  const extraerServicios = (cita: Cita): ServicioInfo[] => {
+    const servicios: ServicioInfo[] = [
+      { nombre: cita.servicio_nombre, esAdicional: false }
+    ]
+
+    if (cita.notas) {
+      const match = cita.notas.match(/\[SERVICIOS SOLICITADOS: ([^\]]+)\]/)
+      if (match) {
+        const serviciosTexto = match[1]
+        const nombresServicios = serviciosTexto.split(',').map(s => s.trim())
+        
+        // Si hay más de un servicio, reemplazar todos
+        if (nombresServicios.length > 1) {
+          return nombresServicios.map((nombre, idx) => ({
+            nombre,
+            esAdicional: idx > 0
+          }))
+        }
+      }
+    }
+
+    return servicios
+  }
+
+  // Helper function to clean notes by removing the services list
+  const limpiarNotas = (notas?: string): string | null => {
+    if (!notas) return null
+    
+    // Remove the [SERVICIOS SOLICITADOS: ...] part
+    const notasLimpias = notas.replace(/\n*\[SERVICIOS SOLICITADOS: [^\]]+\]\n*/g, '').trim()
+    
+    return notasLimpias || null
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -381,9 +421,53 @@ const ConsultarPage: React.FC = () => {
                               <i className="fas fa-calendar"></i> {formatDate(cita.fecha)} a las {cita.hora}
                             </div>
                             <div className="appointment-details">
-                              <div>
-                                <strong>Servicio:</strong> {cita.servicio_nombre}
-                              </div>
+                              {(() => {
+                                const servicios = extraerServicios(cita)
+                                const tieneMultiplesServicios = servicios.length > 1
+                                
+                                return (
+                                  <div>
+                                    <strong>
+                                      {tieneMultiplesServicios ? 'Servicios:' : 'Servicio:'}
+                                    </strong>
+                                    {tieneMultiplesServicios ? (
+                                      <ul style={{
+                                        marginTop: '0.5rem',
+                                        marginBottom: '0',
+                                        paddingLeft: '1.5rem',
+                                        listStyleType: 'none'
+                                      }}>
+                                        {servicios.map((servicio, idx) => (
+                                          <li key={idx} style={{
+                                            marginBottom: '0.5rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                          }}>
+                                            <span style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '20px',
+                                              height: '20px',
+                                              borderRadius: '50%',
+                                              background: 'var(--accent-color)',
+                                              color: '#1a1a1a',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 'bold'
+                                            }}>
+                                              {idx + 1}
+                                            </span>
+                                            <span style={{ flex: 1 }}>{servicio.nombre}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <span style={{ marginLeft: '0.5rem' }}>{cita.servicio_nombre}</span>
+                                    )}
+                                  </div>
+                                )
+                              })()}
                               <div>
                                 <strong>Barbero:</strong> {cita.barbero_nombre}
                               </div>
@@ -403,7 +487,7 @@ const ConsultarPage: React.FC = () => {
                                 </div>
                               )}
                             </div>
-                            {cita.notas && (
+                            {limpiarNotas(cita.notas) && (
                               <div style={{ 
                                 marginTop: '1rem', 
                                 padding: '0.75rem',
@@ -411,7 +495,7 @@ const ConsultarPage: React.FC = () => {
                                 borderRadius: 'var(--border-radius)',
                                 fontSize: '0.9rem'
                               }}>
-                                <strong>Notas:</strong> {cita.notas}
+                                <strong>Notas:</strong> {limpiarNotas(cita.notas)}
                               </div>
                             )}
                             
@@ -446,9 +530,53 @@ const ConsultarPage: React.FC = () => {
                               <i className="fas fa-calendar"></i> {formatDate(cita.fecha)} a las {cita.hora}
                             </div>
                             <div className="appointment-details">
-                              <div>
-                                <strong>Servicio:</strong> {cita.servicio_nombre}
-                              </div>
+                              {(() => {
+                                const servicios = extraerServicios(cita)
+                                const tieneMultiplesServicios = servicios.length > 1
+                                
+                                return (
+                                  <div>
+                                    <strong>
+                                      {tieneMultiplesServicios ? 'Servicios:' : 'Servicio:'}
+                                    </strong>
+                                    {tieneMultiplesServicios ? (
+                                      <ul style={{
+                                        marginTop: '0.5rem',
+                                        marginBottom: '0',
+                                        paddingLeft: '1.5rem',
+                                        listStyleType: 'none'
+                                      }}>
+                                        {servicios.map((servicio, idx) => (
+                                          <li key={idx} style={{
+                                            marginBottom: '0.5rem',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '0.5rem'
+                                          }}>
+                                            <span style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '20px',
+                                              height: '20px',
+                                              borderRadius: '50%',
+                                              background: 'var(--accent-color)',
+                                              color: '#1a1a1a',
+                                              fontSize: '0.75rem',
+                                              fontWeight: 'bold'
+                                            }}>
+                                              {idx + 1}
+                                            </span>
+                                            <span style={{ flex: 1 }}>{servicio.nombre}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    ) : (
+                                      <span style={{ marginLeft: '0.5rem' }}>{cita.servicio_nombre}</span>
+                                    )}
+                                  </div>
+                                )
+                              })()}
                               <div>
                                 <strong>Barbero:</strong> {cita.barbero_nombre}
                               </div>
