@@ -14,7 +14,7 @@ interface Venta {
   total: number
   metodo_pago: string
   created_at: string
-  barberos?: {
+  barbero?: {
     nombre: string
     apellido: string
   }
@@ -65,7 +65,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
           total,
           metodo_pago,
           created_at,
-          barberos (
+          barbero:barberos!facturas_barbero_id_fkey (
             nombre,
             apellido
           )
@@ -76,7 +76,13 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         .order('created_at', { ascending: false })
         .limit(20)
 
-      if (ventasError) throw ventasError
+      console.log('📊 Ventas cargadas:', ventasData)
+      console.log('❌ Error ventas:', ventasError)
+
+      if (ventasError) {
+        console.error('Error cargando ventas:', ventasError)
+        // No lanzar error, solo loguearlo para que las citas sigan cargando
+      }
 
       // Cargar citas pendientes de pago (hoy y días siguientes)
       const { data: citasData, error: citasError } = await (supabase as any)
@@ -328,10 +334,10 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                       {venta.cliente_nombre}
                     </div>
                     
-                    {venta.barberos && (
+                    {venta.barbero && (
                       <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                         <i className="fas fa-cut mr-2"></i>
-                        {venta.barberos.nombre} {venta.barberos.apellido}
+                        {venta.barbero.nombre} {venta.barbero.apellido}
                       </div>
                     )}
                   </div>
