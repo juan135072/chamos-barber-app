@@ -14,7 +14,7 @@
 3. **Click en "Add user" o "Invite user"**
 
 4. **Completa el formulario:**
-   - **Email:** `cajero@chamos.com`
+   - **Email:** `cajero@chamosbarber.com`
    - **Password:** `Cajero123!` (o la que prefieras)
    - **Auto Confirm User:** ✅ Marcar (para que no necesite confirmar email)
 
@@ -41,7 +41,7 @@ INSERT INTO public.admin_users (
   telefono
 ) VALUES (
   'USER_ID_AQUI',       -- ⚠️ Reemplazar con el ID de Supabase Auth
-  'cajero@chamos.com',
+  'cajero@chamosbarber.com',
   'Cajero Principal',
   'cajero',
   true,
@@ -55,7 +55,7 @@ ON CONFLICT (id) DO UPDATE SET
   telefono = EXCLUDED.telefono;
 
 -- Verificar que se creó correctamente
-SELECT * FROM public.usuarios_con_permisos WHERE email = 'cajero@chamos.com';
+SELECT * FROM public.usuarios_con_permisos WHERE email = 'cajero@chamosbarber.com';
 ```
 
 ---
@@ -75,7 +75,7 @@ INSERT INTO public.admin_users (
   telefono
 ) VALUES (
   'USER_ID_DE_SUPABASE_AUTH',
-  'cajero@chamos.com',
+  'cajero@chamosbarber.com',
   'Cajero Principal',
   'cajero',
   true,
@@ -90,7 +90,7 @@ INSERT INTO public.admin_users (
 Una vez creado, las credenciales serán:
 
 ```
-Email:    cajero@chamos.com
+Email:    cajero@chamosbarber.com
 Password: Cajero123!  (o la que hayas configurado)
 Rol:      cajero
 Acceso:   Solo /pos (Punto de Venta)
@@ -121,7 +121,7 @@ El usuario cajero tiene estos permisos:
 1. **Ve a tu app:** `https://tu-dominio.com/login`
 
 2. **Ingresa credenciales:**
-   - Email: `cajero@chamos.com`
+   - Email: `cajero@chamosbarber.com`
    - Password: `Cajero123!`
 
 3. **Debería redirigir automáticamente a:** `/pos`
@@ -155,7 +155,7 @@ INSERT INTO public.admin_users (
   telefono
 ) VALUES (
   'OTRO_USER_ID',
-  'cajero2@chamos.com',    -- ⬅️ Cambiar email
+  'cajero2@chamosbarber.com',    -- ⬅️ Cambiar email
   'Cajero Turno Tarde',     -- ⬅️ Cambiar nombre
   'cajero',
   true,

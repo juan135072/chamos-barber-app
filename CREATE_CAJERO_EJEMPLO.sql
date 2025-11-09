@@ -10,7 +10,7 @@ INSERT INTO public.admin_users (
   activo,
   telefono
 ) VALUES (
-  'cajero@chamos.com',
+  'cajero@chamosbarber.com',
   'Cajero Principal',
   'cajero',
   true,
@@ -31,7 +31,7 @@ SELECT
   activo,
   telefono
 FROM public.admin_users
-WHERE email = 'cajero@chamos.com';
+WHERE email = 'cajero@chamosbarber.com';
 
 -- Ver el usuario con sus permisos
 SELECT 
@@ -43,12 +43,12 @@ SELECT
   activo,
   permisos
 FROM public.usuarios_con_permisos
-WHERE email = 'cajero@chamos.com';
+WHERE email = 'cajero@chamosbarber.com';
 
 -- ================================================
 -- RESULTADO ESPERADO
 -- ================================================
--- Email: cajero@chamos.com
+-- Email: cajero@chamosbarber.com
 -- Nombre: Cajero Principal
 -- Rol: cajero
 -- Activo: true
