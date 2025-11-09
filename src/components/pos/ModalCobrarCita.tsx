@@ -31,6 +31,10 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
   const [procesando, setProcesando] = useState(false)
+  const [cobroExitoso, setCobroExitoso] = useState<{
+    facturaId: string
+    numeroFactura: string
+  } | null>(null)
 
   const total = cita.servicio.precio
   const cambio = montoRecibido ? Math.max(0, parseFloat(montoRecibido) - total) : 0
@@ -85,22 +89,13 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         return
       }
 
-      // Mostrar confirmación
-      const confirmar = window.confirm(`✅ Cobro procesado exitosamente!\n\nFactura: ${resultado.numero_factura}\nTotal: $${total.toFixed(2)}\nMétodo: ${metodoPago}${metodoPago === 'efectivo' && cambio > 0 ? `\nCambio: $${cambio.toFixed(2)}` : ''}\n\n¿Deseas imprimir la factura?`)
-
-      if (confirmar) {
-        // Obtener datos completos de la factura e imprimir
-        const datosFactura = await obtenerDatosFactura(resultado.factura_id, supabase)
-        if (datosFactura) {
-          await generarEImprimirFactura(datosFactura, 'imprimir')
-        }
-      }
-
-      // Llamar callback para recargar datos
-      onCobrado()
-
-      // Cerrar modal
-      onClose()
+      // Guardar resultado del cobro exitoso
+      setCobroExitoso({
+        facturaId: resultado.factura_id,
+        numeroFactura: resultado.numero_factura
+      })
+      
+      setProcesando(false)
 
     } catch (error: any) {
       console.error('❌ Error al cobrar cita:', error)
@@ -135,6 +130,39 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     }
   }
 
+  const handleDescargarPDF = async () => {
+    if (!cobroExitoso) return
+    
+    try {
+      const datosFactura = await obtenerDatosFactura(cobroExitoso.facturaId, supabase)
+      if (datosFactura) {
+        await generarEImprimirFactura(datosFactura, 'descargar')
+      }
+    } catch (error) {
+      console.error('Error descargando PDF:', error)
+      alert('Error al descargar el PDF')
+    }
+  }
+
+  const handleImprimirPDF = async () => {
+    if (!cobroExitoso) return
+    
+    try {
+      const datosFactura = await obtenerDatosFactura(cobroExitoso.facturaId, supabase)
+      if (datosFactura) {
+        await generarEImprimirFactura(datosFactura, 'imprimir')
+      }
+    } catch (error) {
+      console.error('Error imprimiendo PDF:', error)
+      alert('Error al imprimir el PDF')
+    }
+  }
+
+  const handleCerrarYFinalizar = () => {
+    onCobrado()
+    onClose()
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
       style: 'currency',
@@ -166,9 +194,75 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           </button>
         </div>
 
-        {/* Información de la cita */}
-        <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-          <div className="space-y-2 text-sm">
+        {/* Pantalla de éxito después del cobro */}
+        {cobroExitoso ? (
+          <>
+            <div className="text-center mb-6">
+              <div className="text-6xl mb-4">✅</div>
+              <h3 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>
+                ¡Cobro Exitoso!
+              </h3>
+              <p className="text-lg" style={{ color: 'var(--text-primary)' }}>
+                Factura: <span className="font-bold">{cobroExitoso.numeroFactura}</span>
+              </p>
+              <p className="text-xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
+                Total: {formatCurrency(total)}
+              </p>
+              {metodoPago === 'efectivo' && cambio > 0 && (
+                <p className="text-lg mt-2" style={{ color: 'var(--text-primary)' }}>
+                  Cambio: {formatCurrency(cambio)}
+                </p>
+              )}
+            </div>
+
+            {/* Botones de acción */}
+            <div className="space-y-3">
+              <button
+                onClick={handleImprimirPDF}
+                className="w-full px-4 py-3 font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: 'var(--accent-color)',
+                  color: 'var(--bg-primary)'
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#B8941F')}
+                onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'var(--accent-color)')}
+              >
+                <i className="fas fa-print"></i>
+                Imprimir Factura
+              </button>
+
+              <button
+                onClick={handleDescargarPDF}
+                className="w-full px-4 py-3 font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '2px solid var(--accent-color)'
+                }}
+              >
+                <i className="fas fa-download"></i>
+                Descargar PDF
+              </button>
+
+              <button
+                onClick={handleCerrarYFinalizar}
+                className="w-full px-4 py-3 font-medium rounded-lg transition-all flex items-center justify-center gap-2"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)'
+                }}
+              >
+                <i className="fas fa-check"></i>
+                Cerrar
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Información de la cita */}
+            <div className="rounded-lg p-4 mb-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <div className="space-y-2 text-sm">
             <div className="flex justify-between">
               <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Cliente:</span>
               <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{cita.cliente_nombre}</span>
@@ -286,6 +380,8 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             )}
           </button>
         </div>
+          </>
+        )}
       </div>
     </div>
   )

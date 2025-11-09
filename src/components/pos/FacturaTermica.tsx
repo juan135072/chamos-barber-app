@@ -210,7 +210,7 @@ export class FacturaTermica {
     
     // Código QR o info adicional (opcional)
     this.addText('Síguenos en redes sociales:', 8, 'center')
-    this.addText('@chamosbarberia', 9, 'center', true)
+    this.addText('@chamosbarber', 9, 'center', true)
     this.addSpace(2)
 
     // Ya no intentamos ajustar el tamaño del PDF
