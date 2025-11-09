@@ -646,6 +646,32 @@ export interface Database {
           updated_at?: string
         }
       }
+      roles_permisos: {
+        Row: {
+          id: string
+          rol: string
+          nombre_display: string
+          descripcion: string | null
+          permisos: Json
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          rol: string
+          nombre_display: string
+          descripcion?: string | null
+          permisos: Json
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          rol?: string
+          nombre_display?: string
+          descripcion?: string | null
+          permisos?: Json
+          created_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -687,6 +713,21 @@ export interface Database {
           total_cobrado: number
           total_comisiones: number
           ingreso_neto_casa: number
+        }
+      }
+      usuarios_con_permisos: {
+        Row: {
+          id: string
+          email: string
+          nombre: string
+          rol: string
+          activo: boolean
+          telefono: string | null
+          barbero_id: string | null
+          rol_nombre: string | null
+          rol_descripcion: string | null
+          permisos: Json | null
+          rol_created_at: string | null
         }
       }
     }
