@@ -528,6 +528,124 @@ export interface Database {
           updated_at?: string
         }
       }
+      facturas: {
+        Row: {
+          id: string
+          numero_factura: string
+          cita_id: string | null
+          barbero_id: string
+          cliente_nombre: string
+          cliente_telefono: string | null
+          cliente_email: string | null
+          items: Json
+          subtotal: number
+          descuento: number
+          iva: number
+          total: number
+          metodo_pago: string
+          monto_recibido: number | null
+          cambio: number
+          porcentaje_comision: number
+          comision_barbero: number
+          ingreso_casa: number
+          mesa_silla: string | null
+          notas: string | null
+          impresa: boolean
+          anulada: boolean
+          fecha_anulacion: string | null
+          motivo_anulacion: string | null
+          anulada_por: string | null
+          created_at: string
+          created_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          numero_factura?: string
+          cita_id?: string | null
+          barbero_id: string
+          cliente_nombre: string
+          cliente_telefono?: string | null
+          cliente_email?: string | null
+          items: Json
+          subtotal: number
+          descuento?: number
+          iva?: number
+          total: number
+          metodo_pago?: string
+          monto_recibido?: number | null
+          cambio?: number
+          porcentaje_comision: number
+          comision_barbero: number
+          ingreso_casa: number
+          mesa_silla?: string | null
+          notas?: string | null
+          impresa?: boolean
+          anulada?: boolean
+          fecha_anulacion?: string | null
+          motivo_anulacion?: string | null
+          anulada_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          numero_factura?: string
+          cita_id?: string | null
+          barbero_id?: string
+          cliente_nombre?: string
+          cliente_telefono?: string | null
+          cliente_email?: string | null
+          items?: Json
+          subtotal?: number
+          descuento?: number
+          iva?: number
+          total?: number
+          metodo_pago?: string
+          monto_recibido?: number | null
+          cambio?: number
+          porcentaje_comision?: number
+          comision_barbero?: number
+          ingreso_casa?: number
+          mesa_silla?: string | null
+          notas?: string | null
+          impresa?: boolean
+          anulada?: boolean
+          fecha_anulacion?: string | null
+          motivo_anulacion?: string | null
+          anulada_por?: string | null
+          created_at?: string
+          created_by?: string | null
+          updated_at?: string
+        }
+      }
+      configuracion_comisiones: {
+        Row: {
+          id: string
+          barbero_id: string
+          porcentaje: number
+          notas: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          barbero_id: string
+          porcentaje?: number
+          notas?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          barbero_id?: string
+          porcentaje?: number
+          notas?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Views: {
       [_ in never]: never
@@ -548,5 +666,58 @@ export interface Database {
     Enums: {
       [_ in never]: never
     }
+    Views: {
+      ventas_diarias_por_barbero: {
+        Row: {
+          barbero_id: string
+          barbero_nombre: string
+          fecha: string
+          total_ventas: number
+          total_ingresos: number
+          total_comision: number
+          total_casa: number
+          porcentaje_promedio: number
+        }
+      }
+      cierre_caja_diario: {
+        Row: {
+          fecha: string
+          metodo_pago: string
+          cantidad_transacciones: number
+          total_cobrado: number
+          total_comisiones: number
+          ingreso_neto_casa: number
+        }
+      }
+    }
+  }
+}
+
+// Tipos extendidos para el sistema POS
+export interface FacturaItem {
+  servicio_id: string
+  nombre: string
+  precio: number
+  cantidad: number
+  subtotal: number
+}
+
+export interface Factura extends Database['public']['Tables']['facturas']['Row'] {
+  items: FacturaItem[]
+  barberos?: {
+    nombre: string
+    apellido: string
+  }
+  citas?: {
+    cliente_nombre: string
+    fecha: string
+    hora: string
+  }
+}
+
+export interface ConfiguracionComision extends Database['public']['Tables']['configuracion_comisiones']['Row'] {
+  barberos?: {
+    nombre: string
+    apellido: string
   }
 }
