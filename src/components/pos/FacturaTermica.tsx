@@ -178,13 +178,13 @@ export class FacturaTermica {
     this.addItemLine('TOTAL:', `$${datos.total.toFixed(2)}`)
     this.addSpace()
 
-    // Método de pago
+    // Método de pago (SIN EMOJIS - jsPDF no los soporta bien)
     const metodoPagoLabels: { [key: string]: string } = {
-      efectivo: '💵 Efectivo',
-      tarjeta: '💳 Tarjeta',
-      transferencia: '📱 Transferencia',
-      zelle: '💰 Zelle',
-      binance: '₿ Binance'
+      efectivo: 'Efectivo',
+      tarjeta: 'Tarjeta Debito/Credito',
+      transferencia: 'Transferencia Bancaria',
+      zelle: 'Zelle',
+      binance: 'Binance Pay'
     }
     
     this.addText(`Método de pago:`, 9, 'left')
