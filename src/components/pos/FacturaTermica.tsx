@@ -213,17 +213,8 @@ export class FacturaTermica {
     this.addText('@chamosbarberia', 9, 'center', true)
     this.addSpace(2)
 
-    // Ajustar altura del PDF al contenido
-    const finalHeight = this.yPos + MARGIN
-    this.pdf.deletePage(1)
-    this.pdf = new jsPDF({
-      orientation: 'portrait',
-      unit: 'mm',
-      format: [TICKET_WIDTH, finalHeight]
-    })
-    
-    // Regenerar el contenido (esto es necesario después de cambiar el tamaño)
-    // Por simplicidad, mantenemos la altura fija de A4
+    // Ya no intentamos ajustar el tamaño del PDF
+    // El contenido ya está generado correctamente en this.pdf
   }
 
   descargar(nombreArchivo?: string): void {
