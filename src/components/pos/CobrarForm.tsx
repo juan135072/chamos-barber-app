@@ -239,35 +239,38 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6">
-        💳 Registrar Venta
+    <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
+      <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--accent-color)' }}>
+        <i className="fas fa-cash-register mr-2"></i>
+        Registrar Venta
       </h2>
 
       <div className="space-y-4">
         {/* Cliente */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            👤 Nombre del Cliente *
+          <label className="block text-sm font-medium mb-2 form-label">
+            <i className="fas fa-user mr-2"></i>
+            Nombre del Cliente *
           </label>
           <input
             type="text"
             value={clienteNombre}
             onChange={(e) => setClienteNombre(e.target.value)}
             placeholder="Ej: Juan Pérez"
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="form-input"
           />
         </div>
 
         {/* Barbero */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            ✂️ Barbero *
+          <label className="block text-sm font-medium mb-2 form-label">
+            <i className="fas fa-cut mr-2"></i>
+            Barbero *
           </label>
           <select
             value={barberoId}
             onChange={(e) => setBarberoId(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="form-select"
           >
             <option value="">Seleccionar barbero...</option>
             {barberos.map((barbero) => (
@@ -280,14 +283,15 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
         {/* Agregar Servicio */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            🛒 Agregar Servicio
+          <label className="block text-sm font-medium mb-2 form-label">
+            <i className="fas fa-shopping-cart mr-2"></i>
+            Agregar Servicio
           </label>
           <div className="flex space-x-2">
             <select
               value={servicioSeleccionado}
               onChange={(e) => setServicioSeleccionado(e.target.value)}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="flex-1 form-select"
             >
               <option value="">Seleccionar servicio...</option>
               {servicios.map((servicio) => (
@@ -299,44 +303,49 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             <button
               onClick={agregarAlCarrito}
               disabled={!servicioSeleccionado}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="btn btn-primary"
             >
-              + Agregar
+              <i className="fas fa-plus mr-2"></i>
+              Agregar
             </button>
           </div>
         </div>
 
         {/* Carrito */}
         {carrito.length > 0 && (
-          <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-            <h3 className="font-semibold text-gray-900 mb-3">Servicios:</h3>
+          <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+            <h3 className="font-semibold mb-3" style={{ color: 'var(--accent-color)' }}>
+              <i className="fas fa-list mr-2"></i>
+              Servicios:
+            </h3>
             <div className="space-y-2">
               {carrito.map((item, index) => (
-                <div key={index} className="flex items-center justify-between bg-white p-3 rounded border">
+                <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">{item.nombre}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.nombre}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                       {formatCurrency(item.precio)} x {item.cantidad}
                     </div>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className="font-bold text-gray-900">
+                    <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
                       {formatCurrency(item.subtotal)}
                     </span>
                     <button
                       onClick={() => removerDelCarrito(index)}
-                      className="text-red-600 hover:text-red-700"
+                      className="hover:opacity-70 transition-opacity"
+                      style={{ color: '#ef4444' }}
                     >
-                      🗑️
+                      <i className="fas fa-trash"></i>
                     </button>
                   </div>
                 </div>
               ))}
 
               {/* Total */}
-              <div className="border-t-2 pt-3 flex items-center justify-between text-lg">
-                <span className="font-bold text-gray-900">TOTAL:</span>
-                <span className="font-bold text-green-600 text-2xl">
+              <div className="pt-3 flex items-center justify-between text-lg" style={{ borderTop: '2px solid var(--border-color)' }}>
+                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>TOTAL:</span>
+                <span className="font-bold text-2xl" style={{ color: 'var(--accent-color)' }}>
                   {formatCurrency(total)}
                 </span>
               </div>
@@ -348,13 +357,14 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
         {carrito.length > 0 && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                💰 Método de Pago
+              <label className="block text-sm font-medium mb-2 form-label">
+                <i className="fas fa-money-bill-wave mr-2"></i>
+                Método de Pago
               </label>
               <select
                 value={metodoPago}
                 onChange={(e) => setMetodoPago(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="form-select"
               >
                 <option value="efectivo">💵 Efectivo</option>
                 <option value="tarjeta">💳 Tarjeta</option>
@@ -367,8 +377,9 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             {/* Monto Recibido (solo para efectivo) */}
             {metodoPago === 'efectivo' && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  💵 Monto Recibido
+                <label className="block text-sm font-medium mb-2 form-label">
+                  <i className="fas fa-dollar-sign mr-2"></i>
+                  Monto Recibido
                 </label>
                 <input
                   type="number"
@@ -376,11 +387,12 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
                   value={montoRecibido}
                   onChange={(e) => setMontoRecibido(e.target.value)}
                   placeholder={`Mínimo: $${total.toFixed(2)}`}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="form-input"
                 />
                 {cambio > 0 && (
-                  <p className="mt-2 text-sm text-green-600 font-semibold">
-                    💵 Cambio: {formatCurrency(cambio)}
+                  <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--accent-color)' }}>
+                    <i className="fas fa-exchange-alt mr-2"></i>
+                    Cambio: {formatCurrency(cambio)}
                   </p>
                 )}
               </div>
@@ -388,20 +400,21 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
             {/* Comisiones */}
             {barberoId && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  📊 Comisión ({comisionInfo.porcentaje}%):
+              <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '1px solid var(--accent-color)' }}>
+                <h3 className="font-semibold mb-2" style={{ color: 'var(--accent-color)' }}>
+                  <i className="fas fa-chart-pie mr-2"></i>
+                  Comisión ({comisionInfo.porcentaje}%):
                 </h3>
                 <div className="space-y-1 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-700">• Barbero:</span>
-                    <span className="font-semibold text-blue-600">
+                    <span style={{ color: 'var(--text-primary)', opacity: 0.8 }}>• Barbero:</span>
+                    <span className="font-semibold" style={{ color: 'var(--accent-color)' }}>
                       {formatCurrency(comisionInfo.comisionBarbero)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span className="text-gray-700">• Casa:</span>
-                    <span className="font-semibold text-green-600">
+                    <span style={{ color: 'var(--text-primary)', opacity: 0.8 }}>• Casa:</span>
+                    <span className="font-semibold" style={{ color: 'var(--accent-color)' }}>
                       {formatCurrency(comisionInfo.ingresoCasa)}
                     </span>
                   </div>
@@ -413,18 +426,26 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             <button
               onClick={handleCobrar}
               disabled={guardando}
-              className="w-full px-6 py-4 bg-green-600 text-white text-lg font-bold rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="w-full px-6 py-4 text-lg font-bold rounded-lg transition-all"
+              style={{
+                backgroundColor: 'var(--accent-color)',
+                color: 'var(--bg-primary)',
+                cursor: guardando ? 'not-allowed' : 'pointer',
+                opacity: guardando ? 0.6 : 1
+              }}
+              onMouseEnter={(e) => !guardando && (e.currentTarget.style.backgroundColor = '#B8941F')}
+              onMouseLeave={(e) => !guardando && (e.currentTarget.style.backgroundColor = 'var(--accent-color)')}
             >
               {guardando ? (
                 <span className="flex items-center justify-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
+                  <div className="spinner mr-3"></div>
                   Procesando...
                 </span>
               ) : (
-                '🖨️ Cobrar e Imprimir'
+                <>
+                  <i className="fas fa-cash-register mr-2"></i>
+                  Cobrar e Imprimir
+                </>
               )}
             </button>
           </>

@@ -90,31 +90,39 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6 sticky top-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">
-        📊 Resumen del Día
+    <div className="rounded-lg p-6 sticky top-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
+      <h2 className="text-xl font-bold mb-6" style={{ color: 'var(--accent-color)' }}>
+        <i className="fas fa-chart-line mr-2"></i>
+        Resumen del Día
       </h2>
 
       {/* Totales principales */}
       <div className="space-y-4 mb-6">
-        <div className="bg-blue-50 rounded-lg p-4">
-          <div className="text-sm text-gray-600 mb-1">Total Ventas</div>
-          <div className="text-3xl font-bold text-blue-600">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+            <i className="fas fa-shopping-bag mr-2"></i>
+            Total Ventas
+          </div>
+          <div className="text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>
             {resumen.totalVentas}
           </div>
         </div>
 
-        <div className="bg-green-50 rounded-lg p-4">
-          <div className="text-sm text-gray-600 mb-1">Total Cobrado</div>
-          <div className="text-3xl font-bold text-green-600">
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+          <div className="text-sm mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+            <i className="fas fa-dollar-sign mr-2"></i>
+            Total Cobrado
+          </div>
+          <div className="text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>
             {formatCurrency(resumen.totalCobrado)}
           </div>
         </div>
       </div>
 
       {/* Desglose por método de pago */}
-      <div className="border-t pt-4 space-y-3">
-        <h3 className="text-sm font-semibold text-gray-700 mb-3">
+      <div className="pt-4 space-y-3" style={{ borderTop: '1px solid var(--border-color)' }}>
+        <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--accent-color)' }}>
+          <i className="fas fa-wallet mr-2"></i>
           Por Método de Pago
         </h3>
 
@@ -122,9 +130,9 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xl">💵</span>
-              <span className="text-sm text-gray-600">Efectivo</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Efectivo</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(resumen.efectivo)}
             </span>
           </div>
@@ -134,9 +142,9 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xl">💳</span>
-              <span className="text-sm text-gray-600">Tarjeta</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Tarjeta</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(resumen.tarjeta)}
             </span>
           </div>
@@ -146,9 +154,9 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xl">📱</span>
-              <span className="text-sm text-gray-600">Transferencia</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Transferencia</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(resumen.transferencia)}
             </span>
           </div>
@@ -158,29 +166,32 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <span className="text-xl">💰</span>
-              <span className="text-sm text-gray-600">Otros</span>
+              <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Otros</span>
             </div>
-            <span className="text-sm font-semibold text-gray-900">
+            <span className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>
               {formatCurrency(resumen.otros)}
             </span>
           </div>
         )}
 
         {resumen.totalCobrado === 0 && (
-          <p className="text-sm text-gray-400 text-center py-4">
+          <p className="text-sm text-center py-4" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+            <i className="fas fa-inbox mr-2"></i>
             No hay ventas registradas hoy
           </p>
         )}
       </div>
 
       {/* Botón cerrar caja (futuro) */}
-      {usuario.rol === 'admin' || usuario.rol === 'cajero' && (
-        <div className="border-t pt-4 mt-6">
+      {(usuario.rol === 'admin' || usuario.rol === 'cajero') && (
+        <div className="pt-4 mt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
           <button
             disabled
-            className="w-full px-4 py-3 bg-gray-300 text-gray-500 rounded-lg font-semibold cursor-not-allowed"
+            className="w-full px-4 py-3 rounded-lg font-semibold cursor-not-allowed"
+            style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', opacity: 0.5, border: '1px solid var(--border-color)' }}
           >
-            🔒 Cerrar Caja (Próximamente)
+            <i className="fas fa-lock mr-2"></i>
+            Cerrar Caja (Próximamente)
           </button>
         </div>
       )}

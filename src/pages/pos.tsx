@@ -63,21 +63,23 @@ export default function POSPage() {
         <meta name="description" content="Sistema de punto de venta para Chamos Barber" />
       </Head>
 
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200">
+        <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <div className="max-w-full px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <h1 className="text-2xl font-bold text-gray-900">
-                  🏪 CHAMOS BARBERÍA - POS
+                <h1 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>
+                  <i className="fas fa-cash-register mr-2"></i>
+                  CHAMOS BARBERÍA - POS
                 </h1>
               </div>
 
               <div className="flex items-center space-x-4">
                 {/* Fecha y hora */}
-                <div className="text-sm text-gray-600">
-                  📅 {new Date().toLocaleDateString('es-ES', { 
+                <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                  <i className="fas fa-calendar-alt mr-2"></i>
+                  {new Date().toLocaleDateString('es-ES', { 
                     weekday: 'long', 
                     year: 'numeric', 
                     month: 'long', 
@@ -86,13 +88,13 @@ export default function POSPage() {
                 </div>
 
                 {/* Usuario */}
-                <div className="flex items-center space-x-2 px-3 py-2 bg-blue-50 rounded-lg">
+                <div className="flex items-center space-x-2 px-4 py-2 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                   <span className="text-2xl">
                     {esCajero ? '💰' : esAdmin ? '👑' : '👤'}
                   </span>
                   <div className="text-sm">
-                    <div className="font-medium text-gray-900">{usuario.nombre}</div>
-                    <div className="text-gray-500 capitalize">{usuario.rol}</div>
+                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{usuario.nombre}</div>
+                    <div className="capitalize" style={{ color: 'var(--accent-color)' }}>{usuario.rol}</div>
                   </div>
                 </div>
 
@@ -100,17 +102,38 @@ export default function POSPage() {
                 {esAdmin && (
                   <button
                     onClick={handleVolverAdmin}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
+                    style={{ 
+                      color: 'var(--text-primary)', 
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-color)'
+                      e.currentTarget.style.color = 'var(--accent-color)'
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)'
+                      e.currentTarget.style.color = 'var(--text-primary)'
+                    }}
                   >
-                    ← Admin Panel
+                    <i className="fas fa-arrow-left mr-2"></i>
+                    Admin Panel
                   </button>
                 )}
 
                 <button
                   onClick={handleCerrarSesion}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+                  className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
+                  style={{ 
+                    color: 'var(--bg-primary)',
+                    backgroundColor: 'var(--accent-color)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
                 >
-                  🚪 Cerrar Sesión
+                  <i className="fas fa-sign-out-alt mr-2"></i>
+                  Cerrar Sesión
                 </button>
               </div>
             </div>
