@@ -331,6 +331,32 @@ body {
     opacity: 0.7;
 }
 
+.footer-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+    color: #f0c952;
+    text-decoration: underline;
+}
+
+.footer-links .separator {
+    color: var(--accent-color);
+    opacity: 0.5;
+}
+
 /* === PÁGINAS INTERNAS === */
 .page-header {
     padding: 8rem 0 4rem;
