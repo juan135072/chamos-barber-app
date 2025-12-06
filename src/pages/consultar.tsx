@@ -720,7 +720,7 @@ const ConsultarPage: React.FC = () => {
                       </p>
                       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
                         <a 
-                          href="https://wa.me/56912345678" 
+                          href="https://wa.me/56983588553" 
                           target="_blank" 
                           rel="noopener noreferrer"
                           className="btn btn-primary"
@@ -730,10 +730,10 @@ const ConsultarPage: React.FC = () => {
                           WhatsApp
                         </a>
                         <a 
-                          href="tel:+56912345678"
+                          href="tel:+56983588553"
                           className="btn btn-secondary"
                           style={{ padding: '10px 20px' }}
-                        >
+                          >
                           <i className="fas fa-phone"></i>
                           Llamar
                         </a>

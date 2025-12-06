@@ -42,7 +42,7 @@ const Footer: React.FC = () => {
           <div className="footer-section">
             <h3>Contacto</h3>
             <p><i className="fas fa-map-marker-alt"></i> Caracas, Venezuela</p>
-            <p><i className="fas fa-phone"></i> +58 424 1234567</p>
+            <p><i className="fas fa-phone"></i> +56 9 8358 8553</p>
             <p><i className="fas fa-envelope"></i> info@chamosbarber.com</p>
           </div>
 
