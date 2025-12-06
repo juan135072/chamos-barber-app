@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import Link from 'next/link'
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
@@ -111,6 +112,11 @@ const Footer: React.FC = () => {
 
         <div className="footer-bottom">
           <p>&copy; 2024 Chamos Barber. Todos los derechos reservados.</p>
+          <div className="footer-links">
+            <Link href="/politicas-privacidad">Políticas de Privacidad</Link>
+            <span className="separator">•</span>
+            <Link href="/terminos-condiciones">Términos y Condiciones</Link>
+          </div>
         </div>
       </div>
     </footer>
