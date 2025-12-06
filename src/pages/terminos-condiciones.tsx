@@ -219,15 +219,15 @@ const TerminosCondiciones: React.FC = () => {
               <ul>
                 <li>Intenta primero resolverlo contactándonos directamente</li>
                 <li>Si no se puede resolver, se someterá a mediación</li>
-                <li>Como último recurso, se aplicará la jurisdicción de los tribunales competentes en Venezuela/Chile</li>
+                <li>Como último recurso, se aplicará la jurisdicción de los tribunales competentes en Chile</li>
               </ul>
             </section>
 
             <section>
               <h2>14. Ley Aplicable</h2>
               <p>
-                Estos Términos y Condiciones se rigen por las leyes de Venezuela y Chile, 
-                según la ubicación donde se preste el servicio, sin considerar conflictos de leyes.
+                Estos Términos y Condiciones se rigen por las leyes de Chile, 
+                sin considerar conflictos de leyes.
               </p>
             </section>
 
@@ -245,8 +245,8 @@ const TerminosCondiciones: React.FC = () => {
               <div className="contact-info">
                 <p><strong>Chamos Barber</strong></p>
                 <p><i className="fas fa-envelope"></i> Email: <a href="mailto:info@chamosbarber.com">info@chamosbarber.com</a></p>
-                <p><i className="fas fa-phone"></i> Teléfono: +56 9 1234 5678</p>
-                <p><i className="fas fa-map-marker-alt"></i> Dirección: Caracas, Venezuela / Santiago, Chile</p>
+                <p><i className="fas fa-phone"></i> Teléfono: +56 9 8358 8553</p>
+                <p><i className="fas fa-map-marker-alt"></i> Dirección: San Fernando, Chile</p>
               </div>
             </section>
 

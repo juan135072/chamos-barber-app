@@ -6,8 +6,8 @@ import Layout from '../components/Layout'
 const HomePage: React.FC = () => {
   return (
     <Layout 
-      title="Chamos Barber - Barbería Venezolana y Chilena"
-      description="Tu barbería de confianza en el corazón de Chile. Estilo auténtico venezolano con cortes modernos y clásicos."
+      title="Chamos Barber - Barbería en San Fernando, Chile"
+      description="Tu barbería de confianza en San Fernando, Chile. Cortes modernos y clásicos con estilo profesional."
       transparentNav={true}
     >
       {/* Hero Section */}
@@ -15,7 +15,7 @@ const HomePage: React.FC = () => {
         <div className="hero-overlay"></div>
         <div className="hero-content">
           <h1 className="hero-title">Bienvenido a Chamos Barber</h1>
-          <p className="hero-subtitle">Tu barbería de confianza en el corazón de Chile</p>
+          <p className="hero-subtitle">Tu barbería de confianza en San Fernando, Chile</p>
           <div className="hero-buttons">
             <Link href="/equipo" className="btn btn-primary">
               <i className="fas fa-users"></i>

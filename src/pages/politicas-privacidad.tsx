@@ -170,8 +170,8 @@ const PoliticasPrivacidad: React.FC = () => {
               <div className="contact-info">
                 <p><strong>Chamos Barber</strong></p>
                 <p><i className="fas fa-envelope"></i> Email: <a href="mailto:privacidad@chamosbarber.com">privacidad@chamosbarber.com</a></p>
-                <p><i className="fas fa-phone"></i> Teléfono: +56 9 1234 5678</p>
-                <p><i className="fas fa-map-marker-alt"></i> Dirección: Caracas, Venezuela / Santiago, Chile</p>
+                <p><i className="fas fa-phone"></i> Teléfono: +56 9 8358 8553</p>
+                <p><i className="fas fa-map-marker-alt"></i> Dirección: San Fernando, Chile</p>
               </div>
             </section>
 

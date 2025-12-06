@@ -12,8 +12,8 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ 
   children, 
-  title = 'Chamos Barber - Barbería Venezolana y Chilena',
-  description = 'La mejor experiencia de barbería con estilo venezolano y chileno. Cortes profesionales, afeitado premium y atención personalizada.',
+  title = 'Chamos Barber - Barbería en San Fernando, Chile',
+  description = 'La mejor experiencia de barbería en San Fernando, Chile. Cortes profesionales, afeitado premium y atención personalizada.',
   transparentNav = false
 }) => {
   return (
@@ -21,7 +21,7 @@ const Layout: React.FC<LayoutProps> = ({
       <Head>
         <title>{title}</title>
         <meta name="description" content={description} />
-        <meta name="keywords" content="barbería, Venezuela, Chile, corte de cabello, afeitado, estilo, barber" />
+        <meta name="keywords" content="barbería, San Fernando, Chile, corte de cabello, afeitado, estilo, barber, barbería San Fernando" />
         <meta name="author" content="Chamos Barber" />
         
         {/* Open Graph */}

@@ -35,13 +35,13 @@ const Footer: React.FC = () => {
         <div className="footer-content">
           <div className="footer-section">
             <h3>Chamos Barber</h3>
-            <p>La mejor experiencia de barbería en Venezuela y Chile</p>
+            <p>La mejor experiencia de barbería en San Fernando, Chile</p>
             <p>Estilo, calidad y tradición en cada corte</p>
           </div>
 
           <div className="footer-section">
             <h3>Contacto</h3>
-            <p><i className="fas fa-map-marker-alt"></i> Caracas, Venezuela</p>
+            <p><i className="fas fa-map-marker-alt"></i> San Fernando, Chile</p>
             <p><i className="fas fa-phone"></i> +56 9 8358 8553</p>
             <p><i className="fas fa-envelope"></i> info@chamosbarber.com</p>
           </div>
