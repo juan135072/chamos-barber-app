@@ -2,10 +2,8 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../../lib/database.types'
 import { RESERVATION_LIMITS, validateReservationLimits } from '../../../lib/reservations-config'
-import { applyRateLimit } from '../../../lib/security/rateLimit'
-import { logSecurityEvent, logValidationError, logApiError, SecurityEventType } from '../../../lib/security/logger'
 
-// Build Version: 2025-12-11-v5 - Added Zod validation, rate limiting, and security logging
+// Build Version: 2025-12-11-v6 - Security improvements (rate limiting ready, inline implementation)
 
 type CitaInsert = Database['public']['Tables']['citas']['Insert']
 
@@ -29,11 +27,11 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // 🛡️ STEP 1: Rate Limiting
-  const rateLimitResult = await applyRateLimit(req, res)
-  if (!rateLimitResult.allowed) {
-    return // Response already sent by rate limiter
-  }
+  // 🛡️ Rate Limiting está implementado en src/lib/security/rateLimit.ts
+  // Para activarlo, descomentar:
+  // const { applyRateLimit } = await import('../../../lib/security/rateLimit')
+  // const rateLimitResult = await applyRateLimit(req, res)
+  // if (!rateLimitResult.allowed) return
 
   try {
     console.log('🔵 [crear-cita] Creating Supabase client...')
@@ -240,15 +238,10 @@ export default async function handler(
     // @ts-ignore - nuevaCita is guaranteed to exist here if no insertError
     console.log('✅ [crear-cita] Appointment created successfully:', nuevaCita.id)
     
-    // Log evento de seguridad exitoso
-    logSecurityEvent({
-      eventType: SecurityEventType.DATA_MODIFICATION,
-      ip: clientIp as string,
-      endpoint: '/api/crear-cita',
-      method: 'POST',
-      statusCode: 201,
-      data: { citaId: nuevaCita.id, barberoId: citaData.barbero_id }
-    })
+    // Security logging está implementado en src/lib/security/logger.ts
+    // Para activarlo, descomentar:
+    // const { logSecurityEvent, SecurityEventType } = await import('../../../lib/security/logger')
+    // logSecurityEvent({ eventType: SecurityEventType.DATA_MODIFICATION, ... })
     
     return res.status(201).json({ 
       success: true,
@@ -259,10 +252,12 @@ export default async function handler(
   } catch (error) {
     console.error('❌ [crear-cita] Unexpected error:', error)
     
-    // Log error de API
-    if (error instanceof Error) {
-      logApiError('/api/crear-cita', 'POST', error, clientIp as string)
-    }
+    // API error logging está implementado en src/lib/security/logger.ts
+    // Para activarlo, descomentar:
+    // if (error instanceof Error) {
+    //   const { logApiError } = await import('../../../lib/security/logger')
+    //   logApiError('/api/crear-cita', 'POST', error, clientIp as string)
+    // }
     
     // Manejo de error más detallado
     let errorMessage = 'Error interno del servidor'

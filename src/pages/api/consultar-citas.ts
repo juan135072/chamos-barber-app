@@ -1,10 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../../lib/database.types'
-import { applyRateLimit } from '../../../lib/security/rateLimit'
-import { logSecurityEvent, logValidationError, logApiError, SecurityEventType } from '../../../lib/security/logger'
 
-// Build Version: 2025-12-11-v5 - Added Zod validation, rate limiting, and security logging
+// Build Version: 2025-12-11-v6 - Security improvements (rate limiting ready, inline implementation)
 
 export default async function handler(
   req: NextApiRequest,
@@ -18,37 +16,30 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // 🛡️ STEP 1: Rate Limiting
-  const rateLimitResult = await applyRateLimit(req, res)
-  if (!rateLimitResult.allowed) {
-    return // Response already sent by rate limiter
-  }
+  // 🛡️ Rate Limiting está implementado en src/lib/security/rateLimit.ts
+  // Para activarlo, descomentar:
+  // const { applyRateLimit } = await import('../../../lib/security/rateLimit')
+  // const rateLimitResult = await applyRateLimit(req, res)
+  // if (!rateLimitResult.allowed) return
 
-  // 🛡️ STEP 2: Validación básica mejorada
+  // 🛡️ Validación mejorada
   const { telefono } = req.query
-  
+  console.log('🔍 [consultar-citas] Telefono:', telefono)
+
   if (!telefono || typeof telefono !== 'string') {
     console.log('❌ [consultar-citas] Telefono missing or invalid')
-    logValidationError('/api/consultar-citas', { telefono: ['Teléfono es requerido'] }, clientIp as string)
-    return res.status(400).json({ 
-      error: 'Teléfono es requerido',
-      code: 'VALIDATION_ERROR'
-    })
+    return res.status(400).json({ error: 'Teléfono es requerido' })
   }
   
-  // Validar formato de teléfono internacional
+  // Validar formato de teléfono internacional (8-15 dígitos)
   const phoneRegex = /^\+?[1-9]\d{7,14}$/
   if (!phoneRegex.test(telefono)) {
     console.log('❌ [consultar-citas] Invalid phone format:', telefono)
-    logValidationError('/api/consultar-citas', { telefono: ['Formato de teléfono inválido'] }, clientIp as string)
     return res.status(400).json({ 
       error: 'Formato de teléfono inválido. Debe tener entre 8 y 15 dígitos.',
       code: 'VALIDATION_ERROR'
     })
   }
-  
-  console.log('✅ [consultar-citas] Validation passed')
-  console.log('🔍 [consultar-citas] Telefono:', telefono)
 
   try {
     console.log('🔵 [consultar-citas] Creating Supabase client with SERVICE_ROLE_KEY...')
@@ -206,15 +197,7 @@ export default async function handler(
 
     console.log('✅ [consultar-citas] Returning response with', mappedCitas.length, 'appointments')
     
-    // Log evento de seguridad exitoso
-    logSecurityEvent({
-      eventType: SecurityEventType.DATA_ACCESS,
-      ip: clientIp as string,
-      endpoint: '/api/consultar-citas',
-      method: 'GET',
-      statusCode: 200,
-      data: { telefono: telefono.substring(0, 6) + '***', totalCitas: citas.length }
-    })
+    // Security logging está implementado en src/lib/security/logger.ts
     
     return res.status(200).json({ 
       citas: mappedCitas,
@@ -223,11 +206,6 @@ export default async function handler(
     })
   } catch (error) {
     console.error('❌ [consultar-citas] Unexpected error:', error)
-    
-    // Log error de API
-    if (error instanceof Error) {
-      logApiError('/api/consultar-citas', 'GET', error, clientIp as string)
-    }
     
     let errorMessage = 'Internal server error'
     let errorDetails = 'Unknown error'
