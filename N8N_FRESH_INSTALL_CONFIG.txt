@@ -1,0 +1,190 @@
+🔧 CONFIGURACIÓN PARA NUEVA INSTALACIÓN DE N8N EN COOLIFY
+================================================================
+Fecha: 11 de Diciembre, 2025
+Propósito: Instalar n8n desde cero con credenciales seguras
+================================================================
+
+📋 INFORMACIÓN BÁSICA:
+================================================================
+Name: n8n
+Domain: n8n.chamosbarber.com
+Port: 5678
+Image: docker.n8n.io/n8nio/n8n:latest
+
+================================================================
+
+🔐 VARIABLES DE ENTORNO (Copiar y pegar en Coolify):
+================================================================
+
+# ===== DOMINIO Y URLS =====
+N8N_HOST=n8n.chamosbarber.com
+N8N_PROTOCOL=https
+N8N_PORT=5678
+WEBHOOK_URL=https://n8n.chamosbarber.com
+N8N_EDITOR_BASE_URL=https://n8n.chamosbarber.com
+
+# ===== TIMEZONE (Chile) =====
+GENERIC_TIMEZONE=America/Santiago
+TZ=America/Santiago
+
+# ===== SEGURIDAD =====
+N8N_BLOCK_ENV_ACCESS_IN_NODE=true
+N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS=true
+N8N_GIT_NODE_DISABLE_BARE_REPOS=true
+N8N_PROXY_HOPS=1
+N8N_RUNNERS_ENABLED=true
+
+# ===== BASE DE DATOS POSTGRESQL (CREDENCIALES NUEVAS) =====
+DB_TYPE=postgresdb
+DB_POSTGRESDB_HOST=postgres
+DB_POSTGRESDB_PORT=5432
+DB_POSTGRESDB_DATABASE=n8n
+DB_POSTGRESDB_USER=86f390f3a79da89c
+DB_POSTGRESDB_PASSWORD=OALDXtJCC/T4i2WzkAHH93RZtZSHMAuinG++La3sZjI=
+
+# ===== POSTGRES ENVIRONMENT =====
+POSTGRES_USER=86f390f3a79da89c
+POSTGRES_PASSWORD=OALDXtJCC/T4i2WzkAHH93RZtZSHMAuinG++La3sZjI=
+POSTGRES_DB=n8n
+
+# ===== SERVICE VARIABLES (Para Coolify) =====
+SERVICE_FQDN_N8N=n8n.chamosbarber.com
+SERVICE_FQDN_N8N_5678=n8n.chamosbarber.com:5678
+SERVICE_URL_N8N=https://n8n.chamosbarber.com
+SERVICE_URL_N8N_5678=https://n8n.chamosbarber.com:5678
+SERVICE_USER_POSTGRES=86f390f3a79da89c
+SERVICE_PASSWORD_POSTGRES=OALDXtJCC/T4i2WzkAHH93RZtZSHMAuinG++La3sZjI=
+
+# ===== EJECUCIÓN =====
+EXECUTIONS_MODE=regular
+EXECUTIONS_TIMEOUT=3600
+EXECUTIONS_TIMEOUT_MAX=7200
+
+# ===== OPCIONAL: AUTENTICACIÓN BÁSICA (RECOMENDADO) =====
+# Descomenta estas líneas si quieres proteger n8n con usuario/contraseña
+# N8N_BASIC_AUTH_ACTIVE=true
+# N8N_BASIC_AUTH_USER=admin
+# N8N_BASIC_AUTH_PASSWORD=ChamosN8N2025!
+
+================================================================
+
+🚀 PASOS PARA APLICAR EN COOLIFY:
+================================================================
+
+1. ELIMINAR SERVICIO ANTIGUO:
+   - Ve a Coolify → n8n → Delete/Remove
+   - Confirma la eliminación
+   - Espera que se elimine completamente
+
+2. CREAR NUEVO SERVICIO:
+   - En Coolify, click en "New Resource" o "Add Service"
+   - Busca "n8n" en la lista de servicios
+   - O selecciona "Docker Image" y usa: docker.n8n.io/n8nio/n8n:latest
+
+3. CONFIGURAR BÁSICO:
+   - Name: n8n
+   - Domain: n8n.chamosbarber.com
+   - Port: 5678
+
+4. AGREGAR VARIABLES DE ENTORNO:
+   - Ve a "Environment Variables"
+   - Copia TODAS las variables de arriba
+   - Pégalas una por una en Coolify
+   - O si Coolify permite, pega todo el bloque de una vez
+
+5. CONFIGURAR RED:
+   - SSL/HTTPS: Habilitado
+   - Auto SSL: Habilitado (Let's Encrypt)
+   - Puerto expuesto: 5678
+
+6. DEPLOY:
+   - Click en "Deploy" o "Start"
+   - Espera 2-3 minutos
+   - Verifica los logs para asegurarte que no haya errores
+
+7. VERIFICAR:
+   - Abre: https://n8n.chamosbarber.com
+   - Deberías ver la pantalla de configuración inicial de n8n
+   - Si habilitaste Basic Auth, te pedirá usuario/contraseña
+   - Crea tu cuenta de usuario en n8n
+
+================================================================
+
+⚠️ NOTAS IMPORTANTES:
+================================================================
+
+✅ CREDENCIALES SEGURAS:
+   - Usuario PostgreSQL: 86f390f3a79da89c
+   - Contraseña: OALDXtJCC/T4i2WzkAHH93RZtZSHMAuinG++La3sZjI=
+   - Estas son completamente nuevas y seguras
+
+✅ TIMEZONE CORRECTA:
+   - Configurada para Chile (America/Santiago)
+
+✅ SEGURIDAD HABILITADA:
+   - Block ENV access in nodes
+   - File permissions enforcement
+   - Git bare repos disabled
+
+✅ DOMINIO CORRECTO:
+   - Todas las URLs apuntan a n8n.chamosbarber.com
+   - No habrá conflictos con chamosbarber.com
+
+⚠️ DESPUÉS DE INSTALAR:
+   - Configura tu usuario administrador en n8n
+   - Guarda las credenciales de acceso a n8n (diferentes de PostgreSQL)
+   - Borra este archivo: rm N8N_FRESH_INSTALL_CONFIG.txt
+
+================================================================
+
+🔍 TROUBLESHOOTING:
+================================================================
+
+Si n8n no arranca:
+
+1. Revisa los logs en Coolify → n8n → Logs
+2. Busca errores de:
+   - "database connection failed" → Verifica que PostgreSQL esté corriendo
+   - "authentication failed" → Verifica credenciales
+   - "port already in use" → Asegúrate que el servicio viejo esté eliminado
+
+3. Verifica que el servicio PostgreSQL esté corriendo:
+   - En Coolify, debería haber un servicio "postgres" o similar
+   - Debe estar en estado "Running"
+
+4. Si sigue sin funcionar:
+   - Stop n8n
+   - Start PostgreSQL primero
+   - Luego Start n8n
+   - Espera 2-3 minutos
+
+================================================================
+
+📧 CONTACTO:
+================================================================
+
+Si tienes problemas:
+1. Revisa los logs en Coolify
+2. Envía screenshot de los errores
+3. Verifica que todas las variables estén correctas
+
+================================================================
+
+✅ CHECKLIST DE INSTALACIÓN:
+================================================================
+
+[ ] Eliminar servicio n8n antiguo en Coolify
+[ ] Crear nuevo servicio n8n
+[ ] Configurar Name, Domain, Port
+[ ] Agregar TODAS las variables de entorno
+[ ] Habilitar SSL/HTTPS
+[ ] Deploy el servicio
+[ ] Esperar 2-3 minutos
+[ ] Verificar https://n8n.chamosbarber.com
+[ ] Configurar usuario administrador en n8n
+[ ] (Opcional) Habilitar Basic Auth
+[ ] Borrar este archivo
+
+================================================================
+FIN DEL ARCHIVO
+================================================================

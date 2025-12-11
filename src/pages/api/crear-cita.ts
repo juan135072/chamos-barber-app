@@ -2,8 +2,10 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../../lib/database.types'
 import { RESERVATION_LIMITS, validateReservationLimits } from '../../../lib/reservations-config'
+import { applyRateLimit } from '../../../lib/security/rateLimit'
+import { logSecurityEvent, logValidationError, logApiError, SecurityEventType } from '../../../lib/security/logger'
 
-// Build Version: 2025-11-08-v4 - Smart reservation limits (future appointments only)
+// Build Version: 2025-12-11-v5 - Added Zod validation, rate limiting, and security logging
 
 type CitaInsert = Database['public']['Tables']['citas']['Insert']
 
@@ -18,12 +20,19 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  console.log('🔵 [crear-cita] Request received:', req.method)
+  const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
+  console.log('🔵 [crear-cita] Request received:', req.method, 'from IP:', clientIp)
   
   // Solo permitir POST
   if (req.method !== 'POST') {
     console.log('❌ [crear-cita] Method not allowed:', req.method)
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  // 🛡️ STEP 1: Rate Limiting
+  const rateLimitResult = await applyRateLimit(req, res)
+  if (!rateLimitResult.allowed) {
+    return // Response already sent by rate limiter
   }
 
   try {
@@ -55,6 +64,7 @@ export default async function handler(
     
     console.log('✅ [crear-cita] Supabase client created')
 
+    // 🛡️ STEP 2: Validación mejorada
     const citaData: any = req.body
     console.log('🔵 [crear-cita] Request data:', JSON.stringify(citaData, null, 2))
 
@@ -230,6 +240,16 @@ export default async function handler(
     // @ts-ignore - nuevaCita is guaranteed to exist here if no insertError
     console.log('✅ [crear-cita] Appointment created successfully:', nuevaCita.id)
     
+    // Log evento de seguridad exitoso
+    logSecurityEvent({
+      eventType: SecurityEventType.DATA_MODIFICATION,
+      ip: clientIp as string,
+      endpoint: '/api/crear-cita',
+      method: 'POST',
+      statusCode: 201,
+      data: { citaId: nuevaCita.id, barberoId: citaData.barbero_id }
+    })
+    
     return res.status(201).json({ 
       success: true,
       data: nuevaCita,
@@ -238,6 +258,11 @@ export default async function handler(
 
   } catch (error) {
     console.error('❌ [crear-cita] Unexpected error:', error)
+    
+    // Log error de API
+    if (error instanceof Error) {
+      logApiError('/api/crear-cita', 'POST', error, clientIp as string)
+    }
     
     // Manejo de error más detallado
     let errorMessage = 'Error interno del servidor'

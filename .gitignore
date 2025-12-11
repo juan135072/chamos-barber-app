@@ -121,3 +121,6 @@ supabase-mcp-config.json
 # Database backups (contain production data)
 backups/
 CREDENCIALES-ADMIN.md
+N8N_NEW_CREDENTIALS.txt
+/logs/
+logs/
