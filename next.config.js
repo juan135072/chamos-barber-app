@@ -87,7 +87,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://supabase.chamosbarber.com wss://supabase.chamosbarber.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",
