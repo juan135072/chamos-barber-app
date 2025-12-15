@@ -32,7 +32,11 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     <nav className={navbarClass}>
       <div className="nav-container">
         <Link href="/" className="nav-brand">
-          <i className="fas fa-cut"></i>
+          <img 
+            src="/chamos-logo.png" 
+            alt="Chamos Barber Shop Logo" 
+            className="nav-logo"
+          />
           <span>Chamos Barber</span>
         </Link>
 

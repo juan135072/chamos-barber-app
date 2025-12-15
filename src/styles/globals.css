@@ -112,6 +112,13 @@ body {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--accent-color);
+    text-decoration: none;
+}
+
+.nav-logo {
+    height: 45px;
+    width: auto;
+    object-fit: contain;
 }
 
 .nav-menu {

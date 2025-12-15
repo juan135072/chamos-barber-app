@@ -99,9 +99,12 @@ function Login() {
             </Link>
             
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
-                <i className="fas fa-cut" style={{ color: 'var(--bg-primary)' }}></i>
-              </div>
+              <img 
+                src="/chamos-logo.png" 
+                alt="Chamos Barber Shop Logo" 
+                className="h-12 w-auto"
+                style={{ objectFit: 'contain' }}
+              />
               <div style={{ color: 'var(--text-primary)' }}>
                 <h1 className="font-bold text-lg leading-tight">Chamos Barber</h1>
                 <p className="text-xs" style={{ color: 'var(--accent-color)' }}>Panel de Administración</p>
@@ -115,8 +118,13 @@ function Login() {
           <div className="w-full max-w-md auth-card-enter">
             <div className="rounded-2xl shadow-2xl p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                 <div className="text-center mb-8">
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 lock-icon-container" style={{ backgroundColor: 'var(--accent-color)' }}>
-                    <i className="fas fa-lock text-2xl" style={{ color: 'var(--bg-primary)' }}></i>
+                  <div className="flex items-center justify-center mx-auto mb-4 login-logo-container">
+                    <img 
+                      src="/chamos-logo.png" 
+                      alt="Chamos Barber Shop Logo" 
+                      className="h-20 w-auto"
+                      style={{ objectFit: 'contain' }}
+                    />
                   </div>
                   <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>Iniciar Sesión</h2>
                   <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Accede al panel de administración</p>
@@ -236,18 +244,19 @@ function Login() {
             width: 100%;
           }
 
-          /* Animación para el ícono del candado */
-          @keyframes pulse-glow {
+          /* Animación para el logo en login */
+          @keyframes float {
             0%, 100% {
-              box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+              transform: translateY(0px);
             }
             50% {
-              box-shadow: 0 0 30px rgba(212, 175, 55, 0.6);
+              transform: translateY(-10px);
             }
           }
 
-          .lock-icon-container {
-            animation: pulse-glow 2s ease-in-out infinite;
+          .login-logo-container img {
+            animation: float 3s ease-in-out infinite;
+            filter: drop-shadow(0 5px 15px rgba(212, 175, 55, 0.3));
           }
         `}</style>
       </div>
