@@ -91,7 +91,6 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
       }
 
       if (isEdit && barbero) {
-        // @ts-expect-error - Supabase types are overly strict, bypassing for functionality
         const { error } = await supabase
           .from('barberos')
           .update(barberoData)
@@ -100,7 +99,6 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         if (error) throw error
         toast.success('Barbero actualizado exitosamente')
       } else {
-        // @ts-expect-error - Supabase types are overly strict, bypassing for functionality
         const { error } = await supabase
           .from('barberos')
           .insert(barberoData)
