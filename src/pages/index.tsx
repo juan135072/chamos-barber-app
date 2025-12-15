@@ -3,6 +3,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../components/Layout'
 import Preloader from '../components/Preloader'
+import GoogleMap from '../components/GoogleMap'
 
 const HomePage: React.FC = () => {
   const [showPreloader, setShowPreloader] = useState(true)
@@ -133,29 +134,23 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mapa interactivo usando Google Maps (método público, sin API key requerida) */}
+              {/* Mapa interactivo usando Google Maps JavaScript API */}
               <div style={{ 
                 width: '100%', 
                 position: 'relative',
                 borderRadius: 'var(--border-radius)',
                 overflow: 'hidden',
                 border: '2px solid var(--accent-color)',
-                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)'
+                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)',
+                height: '400px'
               }}>
-                <iframe 
-                  width="100%" 
-                  height="400" 
-                  frameBorder="0" 
-                  scrolling="no" 
-                  marginHeight={0} 
-                  marginWidth={0}
-                  src="https://maps.google.com/maps?q=Rancagua+759,+San+Fernando,+Chile&t=&z=16&ie=UTF8&iwloc=&output=embed"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  title="Ubicación Chamos Barber - Rancagua 759, San Fernando"
-                ></iframe>
+                <GoogleMap
+                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
+                  center={{ lat: -34.5885, lng: -70.9912 }}
+                  zoom={16}
+                  markerTitle="Chamos Barber - Rancagua 759, San Fernando"
+                  style={{ width: '100%', height: '100%' }}
+                />
                 
                 {/* Botón superpuesto para abrir en Google Maps */}
                 <a 
