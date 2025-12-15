@@ -3,7 +3,6 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../components/Layout'
 import Preloader from '../components/Preloader'
-import GoogleMap from '../components/GoogleMap'
 
 const HomePage: React.FC = () => {
   const [showPreloader, setShowPreloader] = useState(true)
@@ -134,68 +133,94 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mapa interactivo usando Google Maps JavaScript API */}
-              <div style={{ 
-                width: '100%', 
-                position: 'relative',
-                borderRadius: 'var(--border-radius)',
-                overflow: 'hidden',
-                border: '2px solid var(--accent-color)',
-                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)',
-                height: '400px'
-              }}>
-                <GoogleMap
-                  apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || ''}
-                  center={{ lat: -34.5885, lng: -70.9912 }}
-                  zoom={16}
-                  markerTitle="Chamos Barber - Rancagua 759, San Fernando"
-                  style={{ width: '100%', height: '100%' }}
-                />
-                
-                {/* Botón superpuesto para abrir en Google Maps */}
-                <a 
-                  href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    position: 'absolute',
-                    bottom: '15px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    backgroundColor: 'var(--accent-color)',
-                    color: '#000',
-                    padding: '14px 28px',
-                    borderRadius: 'var(--border-radius)',
-                    fontSize: '1.05rem',
-                    fontWeight: 'bold',
+              {/* Enlace directo a Google Maps */}
+              <a 
+                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  padding: '3rem 2rem',
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '3px solid var(--accent-color)',
+                  borderRadius: 'var(--border-radius)',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'translateY(-4px)'
+                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(212, 175, 55, 0.3)'
+                  e.currentTarget.style.borderColor = 'var(--accent-color)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'translateY(0)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.15)'
+                }}
+              >
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{ 
+                    fontSize: '3rem', 
+                    color: 'var(--accent-color)', 
+                    marginBottom: '1rem',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '10px',
-                    boxShadow: '0 4px 12px rgba(212, 175, 55, 0.5)',
-                    transition: 'all 0.3s ease',
-                    textDecoration: 'none',
-                    zIndex: 1000
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateX(-50%) scale(1.05)'
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(212, 175, 55, 0.7)'
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateX(-50%) scale(1)'
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.5)'
-                  }}
-                >
-                  <i className="fas fa-directions"></i>
-                  <span>Ver en Google Maps</span>
-                  <i className="fas fa-external-link-alt" style={{ fontSize: '0.85rem' }}></i>
-                </a>
-              </div>
+                    justifyContent: 'center',
+                    gap: '1rem'
+                  }}>
+                    <i className="fas fa-map-marker-alt"></i>
+                    <i className="fas fa-external-link-alt" style={{ fontSize: '1.5rem' }}></i>
+                  </div>
+                  <div style={{ 
+                    fontSize: '1.5rem', 
+                    fontWeight: 'bold', 
+                    color: 'var(--text-primary)',
+                    marginBottom: '0.5rem'
+                  }}>
+                    Rancagua 759
+                  </div>
+                  <div style={{ 
+                    fontSize: '1.1rem', 
+                    color: 'var(--text-primary)', 
+                    opacity: 0.8,
+                    marginBottom: '1rem'
+                  }}>
+                    San Fernando, O'Higgins, Chile
+                  </div>
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    backgroundColor: 'var(--accent-color)',
+                    color: '#000',
+                    padding: '12px 24px',
+                    borderRadius: 'var(--border-radius)',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    marginTop: '0.5rem'
+                  }}>
+                    <i className="fas fa-directions"></i>
+                    <span>Ver en Google Maps</span>
+                  </div>
+                  <div style={{ 
+                    fontSize: '0.9rem', 
+                    color: 'var(--text-primary)', 
+                    opacity: 0.6,
+                    marginTop: '1rem'
+                  }}>
+                    Haz clic para abrir en Google Maps
+                  </div>
+                </div>
+              </a>
 
               <a 
                 href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn btn-primary"
+                style={{ marginTop: '1rem' }}
               >
                 <i className="fas fa-directions"></i>
                 Cómo Llegar
