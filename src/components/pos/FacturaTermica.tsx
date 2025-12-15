@@ -342,8 +342,43 @@ export class FacturaTermica {
   }
 
   imprimir(): void {
-    // Abrir diálogo de impresión
-    window.open(this.pdf.output('bloburl'), '_blank')
+    // Impresión directa sin abrir nueva ventana
+    const pdfBlob = this.pdf.output('blob')
+    const pdfUrl = URL.createObjectURL(pdfBlob)
+    
+    // Crear iframe oculto
+    const iframe = document.createElement('iframe')
+    iframe.style.position = 'fixed'
+    iframe.style.right = '0'
+    iframe.style.bottom = '0'
+    iframe.style.width = '0'
+    iframe.style.height = '0'
+    iframe.style.border = 'none'
+    
+    document.body.appendChild(iframe)
+    
+    // Cargar PDF y activar impresión
+    iframe.onload = () => {
+      try {
+        // Pequeño delay para asegurar que el PDF está completamente cargado
+        setTimeout(() => {
+          iframe.contentWindow?.print()
+          
+          // Limpiar después de imprimir (o cancelar)
+          setTimeout(() => {
+            document.body.removeChild(iframe)
+            URL.revokeObjectURL(pdfUrl)
+          }, 1000)
+        }, 500)
+      } catch (error) {
+        console.error('Error al imprimir:', error)
+        // Fallback: abrir en nueva ventana si hay error
+        window.open(pdfUrl, '_blank')
+        document.body.removeChild(iframe)
+      }
+    }
+    
+    iframe.src = pdfUrl
   }
 
   obtenerBase64(): string {
