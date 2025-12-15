@@ -159,9 +159,9 @@ export default function PagarLiquidacionModal({
                 <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{liquidacion.total_ventas}</p>
               </div>
               <div>
-                <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Monto Vendido</p>
+                <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Comisión (%)</p>
                 <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {formatCLP(liquidacion.monto_total_vendido)}
+                  {liquidacion.porcentaje_comision}%
                 </p>
               </div>
               <div>
@@ -263,14 +263,14 @@ export default function PagarLiquidacionModal({
           <div className="space-y-4">
             {(metodoPago === 'efectivo' || metodoPago === 'mixto') && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--accent-color)' }}>
                   Monto en Efectivo
                 </label>
                 <input
                   type="number"
                   value={montoEfectivo}
                   onChange={(e) => setMontoEfectivo(parseFloat(e.target.value) || 0)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 rounded-lg focus:outline-none" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                   placeholder="0"
                   min="0"
                   step="100"
@@ -282,14 +282,14 @@ export default function PagarLiquidacionModal({
             {(metodoPago === 'transferencia' || metodoPago === 'mixto') && (
               <>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--accent-color)' }}>
                     Monto en Transferencia
                   </label>
                   <input
                     type="number"
                     value={montoTransferencia}
                     onChange={(e) => setMontoTransferencia(parseFloat(e.target.value) || 0)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                     placeholder="0"
                     min="0"
                     step="100"
@@ -297,14 +297,14 @@ export default function PagarLiquidacionModal({
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--accent-color)' }}>
                     Número de Transferencia *
                   </label>
                   <input
                     type="text"
                     value={numeroTransferencia}
                     onChange={(e) => setNumeroTransferencia(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                     placeholder="Ej: TRF-123456"
                     disabled={pagando}
                   />
@@ -314,27 +314,27 @@ export default function PagarLiquidacionModal({
           </div>
 
           {/* Validación de Monto */}
-          <div className={`p-4 rounded-lg border ${
-            pagoValido
-              ? 'bg-green-50 border-green-200'
-              : 'bg-yellow-50 border-yellow-200'
-          }`}>
+          <div className="p-4 rounded-lg border" style={{
+            backgroundColor: pagoValido ? 'rgba(34, 197, 94, 0.1)' : 'rgba(234, 179, 8, 0.1)',
+            borderColor: pagoValido ? 'rgba(34, 197, 94, 0.3)' : 'rgba(234, 179, 8, 0.3)'
+          }}>
             <div className="flex items-start gap-3">
               {pagoValido ? (
-                <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#22c55e' }} />
               ) : (
-                <AlertCircle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#eab308' }} />
               )}
               <div className="flex-1">
-                <p className={`font-medium ${
-                  pagoValido ? 'text-green-900' : 'text-yellow-900'
-                }`}>
+                <p className="font-medium" style={{
+                  color: pagoValido ? '#22c55e' : '#eab308'
+                }}>
                   Total a Pagar: {formatCLP(totalPago)}
                 </p>
                 {diferencia !== 0 && (
-                  <p className={`text-sm mt-1 ${
-                    pagoValido ? 'text-green-700' : 'text-yellow-700'
-                  }`}>
+                  <p className="text-sm mt-1" style={{
+                    color: pagoValido ? '#22c55e' : '#eab308',
+                    opacity: 0.8
+                  }}>
                     {diferencia > 0
                       ? `Exceso: ${formatCLP(diferencia)}`
                       : `Falta: ${formatCLP(Math.abs(diferencia))}`}
@@ -346,13 +346,14 @@ export default function PagarLiquidacionModal({
 
           {/* Notas */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--accent-color)' }}>
               Notas (opcional)
             </label>
             <textarea
               value={notas}
               onChange={(e) => setNotas(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full px-4 py-2 rounded-lg focus:outline-none resize-none"
+              style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               rows={3}
               placeholder="Agrega notas adicionales sobre el pago..."
               disabled={pagando}
@@ -361,18 +362,21 @@ export default function PagarLiquidacionModal({
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="rounded-lg p-4 flex items-start gap-3" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)' }}>
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#ef4444' }} />
+              <p className="text-sm" style={{ color: '#ef4444' }}>{error}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-6" style={{ borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-gray-700 bg-secondary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 rounded-lg transition-colors"
+            style={{ color: 'var(--text-primary)', backgroundColor: 'transparent', border: '1px solid var(--border-color)' }}
+            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent' }}
             disabled={pagando}
           >
             Cancelar
@@ -380,7 +384,22 @@ export default function PagarLiquidacionModal({
           <button
             onClick={handlePagar}
             disabled={pagando || !pagoValido}
-            className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 rounded-lg transition-colors flex items-center gap-2"
+            style={{
+              backgroundColor: pagando || !pagoValido ? 'rgba(34, 197, 94, 0.3)' : '#22c55e',
+              color: '#fff',
+              cursor: pagando || !pagoValido ? 'not-allowed' : 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              if (!pagando && pagoValido) {
+                e.currentTarget.style.backgroundColor = '#16a34a'
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!pagando && pagoValido) {
+                e.currentTarget.style.backgroundColor = '#22c55e'
+              }
+            }}
           >
             {pagando ? (
               <>
