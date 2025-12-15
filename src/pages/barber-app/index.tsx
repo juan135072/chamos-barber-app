@@ -22,16 +22,51 @@ export default function BarberAppPage() {
   )
   const { metricas, loading: metricasLoading } = useMetricasDiarias(session?.barberoId || null)
 
-  // Solicitar permisos de notificaciones al montar
+  // Configurar OneSignal con datos del barbero
   useEffect(() => {
-    if ('Notification' in window && Notification.permission === 'default') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') {
-          console.log('✅ Permisos de notificación concedidos')
-        }
+    if (!session?.barberoId || !barbero) return
+
+    // Esperar a que OneSignal esté disponible
+    const setupOneSignal = () => {
+      const OneSignal = (window as any).OneSignal
+      if (!OneSignal) {
+        setTimeout(setupOneSignal, 1000)
+        return
+      }
+
+      OneSignal.push(() => {
+        // Establecer external user ID (barbero_id)
+        OneSignal.setExternalUserId(session.barberoId)
+          .then(() => {
+            console.log('✅ External User ID configurado:', session.barberoId)
+          })
+          .catch((err: any) => {
+            console.error('❌ Error configurando External User ID:', err)
+          })
+
+        // Establecer tags personalizados
+        OneSignal.sendTags({
+          barbero_id: session.barberoId,
+          barbero_nombre: `${barbero.nombre} ${barbero.apellido}`,
+          rol: 'barbero',
+          email: session.email
+        }).then(() => {
+          console.log('✅ Tags de OneSignal configurados')
+        }).catch((err: any) => {
+          console.error('❌ Error configurando tags:', err)
+        })
+
+        // Solicitar permisos de notificación si no se han otorgado
+        OneSignal.getNotificationPermission().then((permission: string) => {
+          if (permission === 'default') {
+            OneSignal.showNativePrompt()
+          }
+        })
       })
     }
-  }, [])
+
+    setupOneSignal()
+  }, [session?.barberoId, barbero])
 
   // Handlers para las acciones de citas
   const handleCheckIn = async (citaId: string) => {

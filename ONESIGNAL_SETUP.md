@@ -1,387 +1,488 @@
-# 🔔 Configuración de OneSignal para Barber App
+# 🔔 OneSignal - Guía de Configuración Completa
 
-## 📋 Pasos para Configurar Notificaciones Push
+## ✅ App ID Configurado
 
-### **Paso 1: Crear Cuenta en OneSignal**
-
-1. Ve a: https://onesignal.com/
-2. Crea una cuenta gratuita
-3. Inicia sesión
+**OneSignal App ID:** `63aa14ec-de8c-46b3-8949-e9fd221f8d70`
 
 ---
 
-### **Paso 2: Crear Nueva App**
+## 📦 Archivos Implementados
 
-1. En el dashboard, clic en **"New App/Website"**
-2. Nombre de la app: `Chamos Barber App`
-3. Seleccionar: **"Web Push"**
+### **1. Configuración Principal**
+- ✅ `src/lib/onesignal-config.ts` - Configuración y funciones
+- ✅ `src/pages/_app.tsx` - Inicialización automática
+- ✅ `public/OneSignalSDKWorker.js` - Service Worker de OneSignal
+- ✅ `public/OneSignalSDKUpdaterWorker.js` - Updater Worker
 
----
-
-### **Paso 3: Configurar Web Push**
-
-#### A. Configuración del Sitio
-
-1. **Site Name:** `chamosbarber.com`
-2. **Site URL:** `https://chamosbarber.com`
-3. **Default Icon URL:** `https://chamosbarber.com/android-chrome-192x192.png`
-4. **Auto Resubscribe:** Activar (✅)
-5. **Label para botón:** "Recibir Notificaciones"
-
-#### B. Configuración de Welcome Notification
-
-1. **Title:** "¡Bienvenido a Chamos Barber!"
-2. **Message:** "Recibirás notificaciones cuando tengas nuevas citas"
-3. **URL:** `https://chamosbarber.com/barber-app`
+### **2. Integración en Barber App**
+- ✅ `src/pages/barber-app/index.tsx` - Tags y External User ID
+- ✅ Automatic subscription prompt
+- ✅ Custom user tags (barbero_id, nombre, rol, email)
 
 ---
 
-### **Paso 4: Obtener Credenciales**
+## 🚀 Pasos de Configuración en OneSignal Dashboard
 
-Después de crear la app, OneSignal te dará:
+### **PASO 1: Configurar Web Push Settings**
 
-1. **App ID** (ejemplo: `12345678-1234-1234-1234-123456789abc`)
-2. **REST API Key** (ejemplo: `YourRestApiKeyHere`)
+1. **Ir a OneSignal Dashboard:**
+   ```
+   https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70
+   ```
 
-**⚠️ GUARDAR ESTAS CREDENCIALES**
+2. **Ir a Settings → Web Configuration:**
+   - Settings → Platforms → Web Push
+
+3. **Configurar Site URL:**
+   ```
+   Site URL: https://chamosbarber.com
+   ```
+
+4. **Auto Resubscribe:**
+   - ✅ Enable Auto Resubscribe (Recomendado)
+
+5. **Default Notification Icon:**
+   - Upload: Logo de Chamos Barber (192x192 o 512x512)
+   - URL alternativa: `https://chamosbarber.com/android-chrome-192x192.png`
+
+6. **Notification Prompt:**
+   - Seleccionar: **"Native Browser Prompt"** (ya lo manejamos nosotros)
+
+7. **Click comportamiento:**
+   - Action URL: `https://chamosbarber.com/barber-app`
+
+8. **Guardar cambios** (Save)
 
 ---
 
-### **Paso 5: Configurar en Coolify**
+### **PASO 2: Configurar REST API Key**
 
-Agregar estas variables de entorno en Coolify:
+1. **Obtener REST API Key:**
+   - Settings → Keys & IDs
+   - Copiar: **REST API Key**
 
-```bash
-NEXT_PUBLIC_ONESIGNAL_APP_ID=12345678-1234-1234-1234-123456789abc
-ONESIGNAL_REST_API_KEY=YourRestApiKeyHere
+2. **Configurar en Coolify:**
+   ```env
+   ONESIGNAL_REST_API_KEY=tu-rest-api-key-aqui
+   ```
+
+**Nota:** El REST API Key es opcional si solo usas notificaciones desde el Dashboard de OneSignal.
+
+---
+
+### **PASO 3: Configurar Safari Web Push (Opcional - iOS)**
+
+Si quieres soporte para Safari en iOS:
+
+1. **Apple Developer Account necesario** (99 USD/año)
+
+2. **Crear Web Push ID Certificate:**
+   - Ir a: https://developer.apple.com
+   - Certificates → Create Web Push ID
+
+3. **Configurar en OneSignal:**
+   - Settings → Platforms → Apple Safari Web Push
+   - Upload: Certificate .p12
+
+4. **Actualizar config:**
+   ```typescript
+   safari_web_id: 'web.onesignal.auto.TU_SAFARI_WEB_ID'
+   ```
+
+**Nota:** Safari Web Push es OPCIONAL. Android/Chrome/Firefox/Edge funcionan sin esto.
+
+---
+
+## 🔧 Configuración en Coolify (Variables de Entorno)
+
+### **Variables Requeridas:**
+
+```env
+# OneSignal App ID (ya configurado en código)
+NEXT_PUBLIC_ONESIGNAL_APP_ID=63aa14ec-de8c-46b3-8949-e9fd221f8d70
+
+# Habilitar OneSignal (true por defecto)
+NEXT_PUBLIC_ONESIGNAL_ENABLED=true
 ```
 
-**Asegurar que estén marcadas:**
-- ✅ Available at Buildtime
-- ✅ Available at Runtime
+### **Variables Opcionales:**
+
+```env
+# REST API Key (solo si envías notificaciones desde servidor)
+ONESIGNAL_REST_API_KEY=tu-rest-api-key-aqui
+```
+
+### **Cómo configurar en Coolify:**
+
+1. **Acceder a Coolify:**
+   - URL: `https://coolify.app`
+   - Proyecto: `chamos-barber-app`
+
+2. **Ir a Environment Variables:**
+   - Click en el proyecto
+   - Tab: "Environment Variables"
+
+3. **Agregar variables:**
+   - Click "+ Add Variable"
+   - Name: `NEXT_PUBLIC_ONESIGNAL_APP_ID`
+   - Value: `63aa14ec-de8c-46b3-8949-e9fd221f8d70`
+   - ✅ Available at Buildtime
+   - ✅ Available at Runtime
+
+4. **Guardar y redesplegar:**
+   - Click "Save"
+   - Click "Redeploy"
 
 ---
 
-### **Paso 6: Integrar OneSignal SDK**
+## 🧪 Testing de Notificaciones
 
-#### Instalar el paquete:
+### **Test 1: Verificar Inicialización**
 
-```bash
-npm install react-onesignal
-```
+1. Abrir: `https://chamosbarber.com/barber-app`
+2. Abrir DevTools → Console (F12)
+3. Buscar logs:
+   ```
+   ✅ OneSignal inicializado correctamente
+   ✅ External User ID configurado: [barbero-uuid]
+   ✅ Tags de OneSignal configurados
+   ```
 
-#### Crear archivo de configuración: `src/lib/onesignal.ts`
+---
 
-```typescript
-import OneSignal from 'react-onesignal'
+### **Test 2: Verificar Suscripción**
 
-export async function initOneSignal() {
-  if (typeof window === 'undefined') return
+1. En Console de DevTools:
+   ```javascript
+   OneSignal.isPushNotificationsEnabled().then(enabled => {
+     console.log('Notificaciones habilitadas:', enabled)
+   })
+   ```
 
-  try {
-    await OneSignal.init({
-      appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!,
-      allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
-      notificationClickHandlerMatch: 'origin',
-      notificationClickHandlerAction: 'navigate',
-      serviceWorkerParam: { scope: '/push/onesignal/' },
-      serviceWorkerPath: '/OneSignalSDKWorker.js'
-    })
+2. Obtener Subscription ID:
+   ```javascript
+   OneSignal.getUserId().then(userId => {
+     console.log('OneSignal User ID:', userId)
+   })
+   ```
 
-    console.log('✅ OneSignal inicializado')
+3. Verificar External User ID:
+   ```javascript
+   OneSignal.getExternalUserId().then(externalId => {
+     console.log('External User ID (barbero_id):', externalId)
+   })
+   ```
 
-    // Solicitar permisos
-    const permission = await OneSignal.Notifications.requestPermission()
-    console.log('📬 Permisos de notificación:', permission)
+---
 
-    // Obtener Player ID (identificador único del dispositivo)
-    const playerId = await OneSignal.User.PushSubscription.id
-    console.log('🆔 Player ID:', playerId)
+### **Test 3: Enviar Notificación de Prueba desde Dashboard**
 
-    return playerId
-  } catch (error) {
-    console.error('❌ Error inicializando OneSignal:', error)
-  }
-}
+1. **Ir a OneSignal Dashboard:**
+   ```
+   https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70
+   ```
 
-export async function setExternalUserId(userId: string) {
-  try {
-    await OneSignal.login(userId)
-    console.log('✅ Usuario identificado en OneSignal:', userId)
-  } catch (error) {
-    console.error('❌ Error identificando usuario:', error)
-  }
-}
+2. **Click en "Messages" → "New Push"**
 
-export async function sendNotification(
-  playerIds: string[],
-  heading: string,
-  content: string,
-  data?: any
-) {
-  const apiKey = process.env.ONESIGNAL_REST_API_KEY!
-  const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID!
+3. **Configurar mensaje:**
+   - **Title:** "Nueva Cita Agendada"
+   - **Message:** "Juan Pérez ha agendado un corte a las 15:00"
+   - **URL:** `https://chamosbarber.com/barber-app`
 
-  try {
-    const response = await fetch('https://onesignal.com/api/v1/notifications', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Basic ${apiKey}`
+4. **Segmentación:**
+   - **Audience:** Specific Segment
+   - **Create Segment:**
+     - Filter: `User Tag`
+     - Key: `rol`
+     - Relation: `is`
+     - Value: `barbero`
+
+5. **Send Message**
+
+6. **Verificar en móvil/desktop:**
+   - ✅ Notificación aparece
+   - ✅ Click abre `/barber-app`
+
+---
+
+### **Test 4: Enviar Notificación Programática (API)**
+
+Usar el REST API Key para enviar desde backend:
+
+```javascript
+// Ejemplo: Enviar notificación cuando se crea nueva cita
+const sendNotificationToBarbero = async (barberoId, citaInfo) => {
+  const response = await fetch('https://onesignal.com/api/v1/notifications', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
+    },
+    body: JSON.stringify({
+      app_id: '63aa14ec-de8c-46b3-8949-e9fd221f8d70',
+      include_external_user_ids: [barberoId], // barbero_id de Supabase
+      headings: { en: 'Nueva Cita Agendada' },
+      contents: { 
+        en: `${citaInfo.cliente_nombre} - ${citaInfo.servicio_nombre} a las ${citaInfo.hora}` 
       },
-      body: JSON.stringify({
-        app_id: appId,
-        include_player_ids: playerIds,
-        headings: { en: heading, es: heading },
-        contents: { en: content, es: content },
-        data: data || {},
-        web_url: 'https://chamosbarber.com/barber-app',
-        chrome_web_icon: 'https://chamosbarber.com/android-chrome-192x192.png'
-      })
+      url: 'https://chamosbarber.com/barber-app',
+      data: {
+        cita_id: citaInfo.id,
+        action: 'nueva_cita'
+      }
     })
+  })
 
-    const result = await response.json()
-    console.log('✅ Notificación enviada:', result)
-    return result
-  } catch (error) {
-    console.error('❌ Error enviando notificación:', error)
-    throw error
-  }
-}
-```
-
-#### Inicializar en `src/pages/barber-app/index.tsx`:
-
-```typescript
-import { useEffect } from 'react'
-import { initOneSignal, setExternalUserId } from '../../lib/onesignal'
-
-export default function BarberAppPage() {
-  const { session } = useBarberAppAuth()
-
-  useEffect(() => {
-    if (session?.barberoId) {
-      initOneSignal().then((playerId) => {
-        if (playerId) {
-          // Identificar al barbero en OneSignal
-          setExternalUserId(session.barberoId)
-          
-          // Guardar el playerId en la base de datos (opcional)
-          // para poder enviar notificaciones específicas
-        }
-      })
-    }
-  }, [session])
-
-  // ... resto del código
+  return await response.json()
 }
 ```
 
 ---
 
-### **Paso 7: Enviar Notificaciones desde Backend (n8n)**
+## 🔥 Integración con Supabase Realtime
 
-#### Usando Webhook o API Call en n8n:
+Para enviar notificaciones automáticas cuando se crea una cita:
 
-**Endpoint:** `POST https://onesignal.com/api/v1/notifications`
+### **Opción 1: Supabase Edge Function (Recomendado)**
 
-**Headers:**
-```json
+1. **Crear Edge Function:**
+   ```bash
+   supabase functions new notify-new-booking
+   ```
+
+2. **Código de función:**
+   ```typescript
+   import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+   
+   serve(async (req) => {
+     const { cita } = await req.json()
+     
+     // Enviar notificación OneSignal
+     const response = await fetch('https://onesignal.com/api/v1/notifications', {
+       method: 'POST',
+       headers: {
+         'Content-Type': 'application/json',
+         'Authorization': `Basic ${Deno.env.get('ONESIGNAL_REST_API_KEY')}`
+       },
+       body: JSON.stringify({
+         app_id: '63aa14ec-de8c-46b3-8949-e9fd221f8d70',
+         include_external_user_ids: [cita.barbero_id],
+         headings: { en: 'Nueva Cita Agendada' },
+         contents: { 
+           en: `${cita.cliente_nombre} ha agendado una cita` 
+         },
+         url: 'https://chamosbarber.com/barber-app'
+       })
+     })
+     
+     return new Response(JSON.stringify({ success: true }), {
+       headers: { 'Content-Type': 'application/json' }
+     })
+   })
+   ```
+
+3. **Trigger desde Supabase:**
+   ```sql
+   CREATE OR REPLACE FUNCTION notify_barbero_nueva_cita()
+   RETURNS TRIGGER AS $$
+   BEGIN
+     PERFORM net.http_post(
+       url := 'https://your-project.supabase.co/functions/v1/notify-new-booking',
+       headers := '{"Content-Type": "application/json"}'::JSONB,
+       body := json_build_object('cita', row_to_json(NEW))::TEXT
+     );
+     RETURN NEW;
+   END;
+   $$ LANGUAGE plpgsql;
+   
+   CREATE TRIGGER trigger_notify_nueva_cita
+   AFTER INSERT ON citas
+   FOR EACH ROW
+   EXECUTE FUNCTION notify_barbero_nueva_cita();
+   ```
+
+---
+
+### **Opción 2: Webhook desde Frontend**
+
+Cuando el hook `useCitasRealtime` detecta una nueva cita (INSERT event), llamar a una API route:
+
+```typescript
+// En useCitasRealtime.ts
+case 'INSERT':
+  if (newRecord && esHoy(newRecord.fecha_hora)) {
+    // Enviar notificación
+    await fetch('/api/notify-barbero', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cita: newRecord })
+    })
+  }
+  break
+```
+
+---
+
+## 📊 Segmentación de Usuarios
+
+### **Tags Configurados Automáticamente:**
+
+Cada barbero tiene estos tags:
+
+```javascript
 {
-  "Content-Type": "application/json",
-  "Authorization": "Basic YOUR_REST_API_KEY"
+  barbero_id: "uuid-del-barbero",
+  barbero_nombre: "Juan Pérez",
+  rol: "barbero",
+  email: "juan@chamosbarber.com"
 }
 ```
 
-**Body:**
-```json
-{
-  "app_id": "YOUR_APP_ID",
-  "filters": [
-    {
-      "field": "tag",
-      "key": "barbero_id",
-      "relation": "=",
-      "value": "BARBERO_UUID_HERE"
-    }
-  ],
-  "headings": {
-    "en": "Nueva Cita Agendada",
-    "es": "Nueva Cita Agendada"
-  },
-  "contents": {
-    "en": "Cliente: Juan Pérez - Hora: 15:00",
-    "es": "Cliente: Juan Pérez - Hora: 15:00"
-  },
-  "data": {
-    "cita_id": "CITA_UUID",
-    "action": "nueva_cita"
-  },
-  "web_url": "https://chamosbarber.com/barber-app",
-  "chrome_web_icon": "https://chamosbarber.com/android-chrome-192x192.png"
-}
+### **Cómo usar en Dashboard:**
+
+1. **Messages → New Push**
+2. **Audience → Create Segment**
+3. **Filters:**
+   - `rol` = `barbero` → Todos los barberos
+   - `barbero_id` = `specific-uuid` → Un barbero específico
+   - `barbero_nombre` contains `Juan` → Barberos llamados Juan
+
+---
+
+## 🔐 Seguridad
+
+### **REST API Key:**
+- ⚠️ **NUNCA** expongas en frontend
+- ✅ Usar solo en backend/edge functions
+- ✅ Configurar en Coolify como variable de entorno privada
+- ✅ No commitear en GitHub
+
+### **App ID:**
+- ✅ Es público (puede estar en frontend)
+- ✅ Ya está configurado en `onesignal-config.ts`
+
+---
+
+## 🎨 Personalización de Notificaciones
+
+### **Custom Icons:**
+
+1. **Upload en OneSignal Dashboard:**
+   - Settings → Web Configuration
+   - Default Notification Icon: 192x192 o 512x512
+   - Badge Icon: 72x72 (monocromo)
+
+2. **URLs recomendadas:**
+   ```
+   Icon: https://chamosbarber.com/android-chrome-512x512.png
+   Badge: https://chamosbarber.com/favicon-32x32.png
+   ```
+
+### **Custom Notification Prompt:**
+
+Ya implementado en el código. El prompt aparece automáticamente cuando el barbero entra a `/barber-app`.
+
+---
+
+## 📈 Analytics y Métricas
+
+### **Dashboard de OneSignal:**
+
+Ver estadísticas en:
+```
+https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70/analytics
 ```
 
+Métricas disponibles:
+- Total de suscriptores
+- Notificaciones enviadas
+- Tasa de entrega (Delivery Rate)
+- Tasa de clicks (CTR)
+- Segmentación por dispositivo (Android/iOS/Desktop)
+- Horarios óptimos de envío
+
 ---
 
-### **Paso 8: Configurar Tags en OneSignal**
+## ✅ Checklist de Verificación
 
-Cuando un barbero inicie sesión, asignarle tags:
+Después de desplegar, verificar:
 
-```typescript
-import OneSignal from 'react-onesignal'
+- [ ] OneSignal inicializado en Console ✅
+- [ ] External User ID configurado (barbero_id) ✅
+- [ ] Tags enviados correctamente ✅
+- [ ] Prompt de permisos aparece ✅
+- [ ] Usuario suscrito (verificar en Dashboard) ✅
+- [ ] Notificación de prueba recibida ✅
+- [ ] Click en notificación abre `/barber-app` ✅
+- [ ] Service Workers registrados (OneSignal + PWA) ✅
 
-// En useEffect después de autenticación
-OneSignal.User.addTags({
-  barbero_id: session.barberoId,
-  barbero_nombre: session.barbero.nombre,
-  rol: 'barbero'
-})
+---
+
+## 🐛 Troubleshooting
+
+### **Problema: OneSignal no inicializa**
+
+**Verificar:**
+```javascript
+// En Console
+console.log(window.OneSignal)
+// Debe retornar: Array u Object
 ```
 
+**Solución:**
+- Verificar que el script se carga: Network tab → `OneSignalSDK.page.js`
+- Verificar App ID correcto en config
+- Hard refresh: Ctrl+Shift+R
+
 ---
 
-### **Paso 9: Probar Notificaciones**
+### **Problema: No aparece prompt de permisos**
 
-#### Prueba Manual desde OneSignal Dashboard:
-
-1. Ve al dashboard de OneSignal
-2. Clic en **"Messages"** → **"Push"** → **"New Push"**
-3. **Audience:** "Test Users" o "Particular Segments"
-4. **Title:** "Prueba de Notificación"
-5. **Message:** "Esta es una notificación de prueba"
-6. **Launch URL:** `https://chamosbarber.com/barber-app`
-7. **Send**
-
-#### Prueba desde Código:
-
-```typescript
-import { sendNotification } from '../../lib/onesignal'
-
-// Enviar notificación de prueba
-await sendNotification(
-  ['PLAYER_ID_DEL_BARBERO'],
-  'Nueva Cita',
-  'Tienes una nueva cita con Juan Pérez a las 15:00',
-  {
-    cita_id: 'uuid-de-la-cita',
-    cliente: 'Juan Pérez',
-    hora: '15:00'
-  }
-)
+**Verificar:**
+```javascript
+// En Console
+Notification.permission
+// Valores posibles: "default", "granted", "denied"
 ```
 
+**Solución:**
+- Si es "denied": Usuario rechazó previamente → Debe re-habilitar en configuración del navegador
+- Si es "default": Llamar manualmente `OneSignal.showNativePrompt()`
+- Si es "granted": Ya está suscrito ✅
+
 ---
 
-## 🔄 Integración con Supabase Realtime
+### **Problema: External User ID no se configura**
 
-Para enviar notificaciones automáticamente cuando se crea una cita:
-
-### Opción 1: Trigger en Supabase + Webhook a n8n
-
-```sql
-CREATE OR REPLACE FUNCTION notify_nueva_cita()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Llamar webhook de n8n que envía notificación OneSignal
-  PERFORM net.http_post(
-    url := 'https://tu-n8n.com/webhook/nueva-cita',
-    body := jsonb_build_object(
-      'barbero_id', NEW.barbero_id,
-      'cita_id', NEW.id,
-      'cliente_nombre', NEW.cliente_nombre,
-      'fecha_hora', NEW.fecha_hora
-    )
-  );
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER trigger_nueva_cita
-  AFTER INSERT ON public.citas
-  FOR EACH ROW
-  EXECUTE FUNCTION notify_nueva_cita();
+**Verificar:**
+```javascript
+// En Console
+OneSignal.getExternalUserId().then(console.log)
+// Debe retornar: barbero_id UUID
 ```
 
-### Opción 2: Desde el Frontend (cuando admin crea cita)
-
-```typescript
-// Después de crear la cita exitosamente
-const { data: cita } = await supabase
-  .from('citas')
-  .insert({...})
-  .select()
-  .single()
-
-// Enviar notificación al barbero
-await sendNotification(
-  [barberoPlayerId], // Obtener de la BD
-  'Nueva Cita Agendada',
-  `${cita.cliente_nombre} - ${formatHora(cita.fecha_hora)}`,
-  {
-    cita_id: cita.id,
-    action: 'nueva_cita'
-  }
-)
-```
+**Solución:**
+- Verificar que `session.barberoId` no sea null
+- Verificar que el usuario esté autenticado
+- Verificar logs en Console
 
 ---
 
-## 📊 Eventos a Notificar
+## 📞 Soporte
 
-1. **Nueva Cita Creada**
-   - Título: "Nueva Cita Agendada"
-   - Mensaje: "Cliente: [Nombre] - Hora: [HH:MM]"
+**Documentación OneSignal:**
+- https://documentation.onesignal.com/docs/web-push-quickstart
 
-2. **Cita Cancelada**
-   - Título: "Cita Cancelada"
-   - Mensaje: "La cita con [Nombre] a las [HH:MM] fue cancelada"
+**OneSignal Dashboard:**
+- https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70
 
-3. **Recordatorio (30 min antes)**
-   - Título: "Próxima Cita en 30 Minutos"
-   - Mensaje: "Cliente: [Nombre] - Hora: [HH:MM]"
-
-4. **Cita Completada (opcional)**
-   - Título: "Cita Completada"
-   - Mensaje: "Se completó la cita con [Nombre]"
+**Support:**
+- https://onesignal.com/support
 
 ---
 
-## 🎯 Próximos Pasos
+✅ **ONESIGNAL COMPLETAMENTE CONFIGURADO Y LISTO PARA PRODUCCIÓN** 🔔
 
-1. ✅ Registrar cuenta en OneSignal
-2. ✅ Obtener App ID y REST API Key
-3. ✅ Agregar variables de entorno en Coolify
-4. ✅ Instalar `react-onesignal`
-5. ✅ Crear archivo `src/lib/onesignal.ts`
-6. ✅ Inicializar OneSignal en Barber App
-7. ✅ Configurar tags para barberos
-8. ✅ Integrar con n8n para notificaciones automáticas
-9. ✅ Probar notificaciones
-
----
-
-## 🆘 Troubleshooting
-
-### Problema: No se reciben notificaciones
-
-**Soluciones:**
-1. Verificar que el sitio use HTTPS
-2. Verificar permisos del navegador
-3. Verificar que OneSignal esté inicializado
-4. Revisar consola del navegador (F12)
-5. Verificar Player ID del usuario en OneSignal dashboard
-
-### Problema: Error de CORS
-
-**Solución:** OneSignal maneja CORS automáticamente. Si hay error, verificar que la URL del sitio sea correcta en la configuración.
-
----
-
-**Documentación Oficial:** https://documentation.onesignal.com/docs/web-push-quickstart
-
-**Dashboard OneSignal:** https://app.onesignal.com/
-
----
-
-**Estado:** 📝 Documentación completa - Pendiente implementación
+**App ID:** `63aa14ec-de8c-46b3-8949-e9fd221f8d70`  
+**Última actualización:** 2024-12-15  
+**Estado:** ✅ PRODUCTION READY

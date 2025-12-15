@@ -1,18 +1,12 @@
 // ================================================================
 // 📱 ONE SIGNAL - Configuración de Push Notifications
-// Placeholder para integración futura
+// Configurado para Chamos Barber
 // ================================================================
 
-// ⚠️ CONFIGURAR EN PRODUCCIÓN:
-// 1. Registrarse en: https://onesignal.com
-// 2. Crear proyecto Web Push
-// 3. Obtener App ID y REST API Key
-// 4. Configurar en variables de entorno
-
 export const ONE_SIGNAL_CONFIG = {
-  appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || 'YOUR_ONESIGNAL_APP_ID',
-  restApiKey: process.env.ONESIGNAL_REST_API_KEY || 'YOUR_ONESIGNAL_REST_API_KEY',
-  enabled: process.env.NEXT_PUBLIC_ONESIGNAL_ENABLED === 'true' || false
+  appId: process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '63aa14ec-de8c-46b3-8949-e9fd221f8d70',
+  restApiKey: process.env.ONESIGNAL_REST_API_KEY || '',
+  enabled: process.env.NEXT_PUBLIC_ONESIGNAL_ENABLED !== 'false' // Habilitado por defecto
 }
 
 // ================================================================
@@ -20,9 +14,10 @@ export const ONE_SIGNAL_CONFIG = {
 // ================================================================
 
 /**
- * Inicializar OneSignal (llamar en _app.tsx)
+ * Inicializar OneSignal usando el Web SDK directo
+ * Se llama automáticamente desde _app.tsx
  */
-export const initOneSignal = async () => {
+export const initOneSignal = () => {
   if (!ONE_SIGNAL_CONFIG.enabled) {
     console.log('⚠️ OneSignal no está habilitado en este entorno')
     return
@@ -34,30 +29,63 @@ export const initOneSignal = async () => {
   }
 
   try {
-    // Cargar SDK de OneSignal dinámicamente
-    // @ts-ignore - OneSignal se cargará dinámicamente en producción
-    const OneSignal = (await import('react-onesignal')).default
-    
-    await OneSignal.init({
+    // Cargar el SDK de OneSignal desde CDN
+    if (!(window as any).OneSignal) {
+      const script = document.createElement('script')
+      script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+      script.async = true
+      script.defer = true
+      document.head.appendChild(script)
+
+      script.onload = () => {
+        initOneSignalSDK()
+      }
+    } else {
+      initOneSignalSDK()
+    }
+  } catch (error) {
+    console.error('❌ Error al cargar OneSignal:', error)
+  }
+}
+
+/**
+ * Inicializar el SDK de OneSignal
+ */
+const initOneSignalSDK = () => {
+  if (typeof window === 'undefined') return
+
+  const OneSignal = (window as any).OneSignal || []
+
+  OneSignal.push(() => {
+    OneSignal.init({
       appId: ONE_SIGNAL_CONFIG.appId,
-      allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
+      safari_web_id: 'web.onesignal.auto.YOUR_SAFARI_WEB_ID', // Actualizar si tienes Safari Web ID
       notifyButton: {
-        enable: false // Usamos botón personalizado
+        enable: false // Usamos nuestro propio UI
       },
-      serviceWorkerPath: '/OneSignalSDKWorker.js',
-      serviceWorkerParam: { scope: '/' }
+      allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
+      autoResubscribe: true,
+      persistNotification: false,
+      welcomeNotification: {
+        disable: true // Deshabilitamos el mensaje de bienvenida por defecto
+      }
     })
 
     console.log('✅ OneSignal inicializado correctamente')
 
-    // Opcional: Obtener ID del usuario
-    const userId = await OneSignal.getUserId()
-    console.log('👤 OneSignal User ID:', userId)
+    // Eventos de OneSignal
+    OneSignal.on('subscriptionChange', (isSubscribed: boolean) => {
+      console.log('🔔 Cambio de suscripción:', isSubscribed)
+    })
 
-    return OneSignal
-  } catch (error) {
-    console.error('❌ Error al inicializar OneSignal:', error)
-  }
+    OneSignal.on('notificationDisplay', (event: any) => {
+      console.log('📬 Notificación mostrada:', event)
+    })
+
+    OneSignal.on('notificationDismiss', (event: any) => {
+      console.log('❌ Notificación descartada:', event)
+    })
+  })
 }
 
 /**

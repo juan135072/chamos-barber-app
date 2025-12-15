@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { supabase } from '../../lib/initSupabase'
 import { Toaster } from 'react-hot-toast'
+import { initOneSignal } from '../lib/onesignal-config'
 import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -19,6 +20,11 @@ export default function App({ Component, pageProps }: AppProps) {
           console.error('❌ Error registrando Service Worker:', error)
         })
     }
+  }, [])
+
+  // Inicializar OneSignal
+  useEffect(() => {
+    initOneSignal()
   }, [])
 
   return (
