@@ -149,19 +149,13 @@ const BarberoPanelPage: React.FC = () => {
         }
       }
       
-      // Actualizar perfil
-      const { error } = await supabase
-        .from('barberos')
-        .update({
-          telefono: profile.telefono,
-          instagram: profile.instagram,
-          descripcion: profile.descripcion,
-          imagen_url: newImageUrl,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', profile.id)
-
-      if (error) throw error
+      // Actualizar perfil usando chamosSupabase (bypassa RLS)
+      await chamosSupabase.updateBarbero(profile.id, {
+        telefono: profile.telefono,
+        instagram: profile.instagram,
+        descripcion: profile.descripcion,
+        imagen_url: newImageUrl
+      })
 
       // Actualizar estado local
       setProfile({ ...profile, imagen_url: newImageUrl })
