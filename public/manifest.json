@@ -6,6 +6,8 @@
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#D4AF37",
+  "orientation": "portrait",
+  "scope": "/",
   "icons": [
     {
       "src": "/favicon-16x16.png",
@@ -30,6 +32,35 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "lifestyle"],
-  "lang": "es"
+  "categories": ["business", "lifestyle", "productivity"],
+  "lang": "es",
+  "dir": "ltr",
+  "prefer_related_applications": false,
+  "related_applications": [],
+  "shortcuts": [
+    {
+      "name": "Agenda del Día",
+      "short_name": "Agenda",
+      "description": "Ver citas de hoy",
+      "url": "/barber-app",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Panel Admin",
+      "short_name": "Admin",
+      "description": "Panel de administración",
+      "url": "/admin",
+      "icons": [
+        {
+          "src": "/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    }
+  ]
 }

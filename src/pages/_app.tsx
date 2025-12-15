@@ -1,11 +1,26 @@
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
+import { useEffect } from 'react'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { supabase } from '../../lib/initSupabase'
 import { Toaster } from 'react-hot-toast'
 import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
+  // Registrar Service Worker para PWA
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker
+        .register('/sw.js')
+        .then((registration) => {
+          console.log('✅ Service Worker registrado:', registration.scope)
+        })
+        .catch((error) => {
+          console.error('❌ Error registrando Service Worker:', error)
+        })
+    }
+  }, [])
+
   return (
     <SessionContextProvider supabaseClient={supabase}>
       <Head>
