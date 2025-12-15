@@ -68,6 +68,13 @@ const BarberoPanelPage: React.FC = () => {
 
       if (barberoError) throw barberoError
 
+      console.log('🔍 [Barbero Panel] Perfil cargado:', {
+        id: barbero.id,
+        nombre: barbero.nombre,
+        descripcion: barbero.descripcion,
+        descripcion_length: barbero.descripcion?.length || 0
+      })
+
       setProfile(barbero)
 
     } catch (error) {
@@ -150,6 +157,14 @@ const BarberoPanelPage: React.FC = () => {
       }
       
       // Actualizar perfil usando chamosSupabase (bypassa RLS)
+      console.log('💾 [Barbero Panel] Guardando perfil:', {
+        telefono: profile.telefono,
+        instagram: profile.instagram,
+        descripcion: profile.descripcion,
+        descripcion_length: profile.descripcion?.length || 0,
+        imagen_url: newImageUrl
+      })
+
       await chamosSupabase.updateBarbero(profile.id, {
         telefono: profile.telefono,
         instagram: profile.instagram,
@@ -157,12 +172,17 @@ const BarberoPanelPage: React.FC = () => {
         imagen_url: newImageUrl
       })
 
+      console.log('✅ [Barbero Panel] Perfil actualizado exitosamente')
+
       // Actualizar estado local
       setProfile({ ...profile, imagen_url: newImageUrl })
       setSelectedFile(null)
       setImagePreview(null)
 
       toast.success('Perfil actualizado exitosamente')
+
+      // Recargar datos del barbero para confirmar cambios
+      await loadBarberoData()
     } catch (error) {
       console.error('Error updating profile:', error)
       toast.error('Error al actualizar el perfil')
