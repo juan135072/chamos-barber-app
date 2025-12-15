@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Modal from '../shared/Modal'
 import { supabase } from '../../../../lib/initSupabase'
+import { chamosSupabase } from '../../../../lib/supabase-helpers'
 import type { Database } from '../../../../lib/database.types'
 import toast from 'react-hot-toast'
 
@@ -52,6 +53,9 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
   const [mostrarCredenciales, setMostrarCredenciales] = useState(false)
   const [especialidades, setEspecialidades] = useState<string[]>(barbero?.especialidades || [])
   const [nuevaEspecialidad, setNuevaEspecialidad] = useState('')
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [imagePreview, setImagePreview] = useState<string | null>(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   const isEdit = !!barbero
 
   // Especialidades comunes predefinidas
@@ -119,9 +123,76 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
     }
   }
 
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validar tipo de archivo
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+    if (!validTypes.includes(file.type)) {
+      toast.error('Tipo de archivo no válido. Usa JPG, PNG, WEBP o GIF')
+      return
+    }
+
+    // Validar tamaño (5MB máximo)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('El archivo es demasiado grande. Máximo 5MB')
+      return
+    }
+
+    setSelectedFile(file)
+
+    // Crear preview
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setImagePreview(reader.result as string)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const removeImage = () => {
+    setSelectedFile(null)
+    setImagePreview(null)
+  }
+
   const onSubmit = async (data: BarberoFormData) => {
     try {
       setLoading(true)
+
+      // Subir imagen si hay una seleccionada
+      let newImageUrl = data.imagen_url || null
+
+      if (selectedFile) {
+        try {
+          setUploadingImage(true)
+          toast.loading('Subiendo imagen...')
+
+          // Si está editando y tiene imagen anterior, eliminarla
+          if (isEdit && barbero?.imagen_url) {
+            const oldPath = barbero.imagen_url.split('/').pop()
+            if (oldPath) {
+              await chamosSupabase.deleteBarberoFoto(oldPath)
+            }
+          }
+
+          // Generar un ID temporal para la subida (será reemplazado si es nuevo barbero)
+          const tempId = barbero?.id || `temp-${Date.now()}`
+          const uploadResult = await chamosSupabase.uploadBarberoFoto(selectedFile, tempId)
+          newImageUrl = uploadResult.publicUrl
+
+          toast.dismiss()
+          toast.success('Imagen subida exitosamente')
+        } catch (uploadError) {
+          console.error('Error uploading image:', uploadError)
+          toast.dismiss()
+          toast.error('Error al subir la imagen')
+          setUploadingImage(false)
+          setLoading(false)
+          return
+        } finally {
+          setUploadingImage(false)
+        }
+      }
 
       // Generar slug
       const slug = `${data.nombre.toLowerCase()}-${data.apellido.toLowerCase()}`
@@ -137,7 +208,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         telefono: data.telefono || null,
         descripcion: data.descripcion || null,
         instagram: data.instagram || null,
-        imagen_url: data.imagen_url || null,
+        imagen_url: newImageUrl,
         slug: slug,
         porcentaje_comision: data.porcentaje_comision,
         especialidades: especialidades.length > 0 ? especialidades : null,
@@ -155,6 +226,8 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         toast.success('Barbero actualizado exitosamente')
         
         reset()
+        setSelectedFile(null)
+        setImagePreview(null)
         onSuccess()
         onClose()
       } else {
@@ -497,24 +570,102 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
               </div>
             </div>
 
+            {/* Foto de Perfil */}
             <div>
               <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
-                URL de Imagen
+                <i className="fas fa-camera mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                Foto de Perfil
               </label>
-              <input
-                type="url"
-                {...register('imagen_url')}
-                placeholder="https://..."
-                className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+
+              {/* Preview de imagen actual o nueva */}
+              {(imagePreview || barbero?.imagen_url) && (
+                <div className="mb-3 flex items-center gap-4">
+                  <img
+                    src={imagePreview || barbero?.imagen_url || ''}
+                    alt="Preview"
+                    className="w-24 h-24 rounded-full object-cover"
+                    style={{ border: '2px solid var(--accent-color)' }}
+                  />
+                  {imagePreview && (
+                    <button
+                      type="button"
+                      onClick={removeImage}
+                      className="px-3 py-1 text-sm rounded-md"
+                      style={{ 
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: '#ef4444',
+                        border: '1px solid #ef4444'
+                      }}
+                    >
+                      <i className="fas fa-times mr-2"></i>
+                      Quitar imagen
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Área de subida de archivo */}
+              <div
+                className="border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all"
                 style={{ 
                   borderColor: 'var(--border-color)',
-                  backgroundColor: 'var(--bg-primary)',
-                  color: 'var(--text-primary)'
+                  backgroundColor: 'var(--bg-secondary)'
                 }}
-              />
-              {errors.imagen_url && (
-                <p className="mt-1 text-sm text-red-600">{errors.imagen_url.message}</p>
-              )}
+                onClick={() => document.getElementById('file-input')?.click()}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--accent-color)'
+                  e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.05)'
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-color)'
+                  e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'
+                }}
+              >
+                <input
+                  id="file-input"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <i 
+                  className="fas fa-cloud-upload-alt text-4xl mb-3" 
+                  style={{ color: 'var(--accent-color)', opacity: 0.6 }}
+                ></i>
+                <p className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+                  <span style={{ color: 'var(--accent-color)', fontWeight: 'bold' }}>
+                    Click para subir
+                  </span>
+                  {' '}o arrastra una imagen aquí
+                </p>
+                <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                  JPG, PNG, WEBP o GIF (máx. 5MB)
+                </p>
+              </div>
+
+              {/* Opción de URL manual (alternativa) */}
+              <details className="mt-3">
+                <summary 
+                  className="text-xs cursor-pointer"
+                  style={{ color: 'var(--text-primary)', opacity: 0.7 }}
+                >
+                  O usar URL de imagen externa
+                </summary>
+                <input
+                  type="url"
+                  {...register('imagen_url')}
+                  placeholder="https://ejemplo.com/imagen.jpg"
+                  className="w-full mt-2 px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2"
+                  style={{ 
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+                {errors.imagen_url && (
+                  <p className="mt-1 text-sm text-red-600">{errors.imagen_url.message}</p>
+                )}
+              </details>
             </div>
           </div>
         </div>
