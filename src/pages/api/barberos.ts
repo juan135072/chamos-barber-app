@@ -17,7 +17,7 @@ export default async function handler(
       .from('barberos')
       .select('*')
       .eq('activo', true)
-      .order('orden_display', { ascending: true })
+      .order('created_at', { ascending: true })
 
     if (error) {
       console.error('Supabase error:', error)
@@ -31,15 +31,14 @@ export default async function handler(
     // Mapear los datos de la BD al formato que espera el frontend
     const mappedData = (data as Barbero[]).map(barbero => ({
       id: barbero.id,
-      slug: (barbero as any).slug, // Campo agregado recientemente
+      slug: barbero.slug || '',
       nombre: `${barbero.nombre} ${barbero.apellido}`,
-      biografia: barbero.descripcion || '',
+      biografia: barbero.descripcion || 'Barbero profesional con experiencia',
       foto_url: barbero.imagen_url || '',
-      especialidades: barbero.especialidad ? [barbero.especialidad] : [],
-      experiencia_anos: barbero.experiencia_anos || 0,
+      especialidades: barbero.especialidades || [],
+      experiencia_anos: 5, // Default
       telefono: barbero.telefono,
-      instagram: barbero.instagram,
-      calificacion: barbero.calificacion
+      instagram: barbero.instagram
     }))
 
     return res.status(200).json({ data: mappedData })
