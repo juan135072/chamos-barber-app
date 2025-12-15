@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 import type { Database } from '../../lib/database.types'
+import Logo from '../components/shared/Logo'
 import BarberosTab from '../components/admin/tabs/BarberosTab'
 import ServiciosTab from '../components/admin/tabs/ServiciosTab'
 import HorariosTab from '../components/admin/tabs/HorariosTab'
@@ -149,15 +150,12 @@ export default function AdminPage() {
             <div className="flex justify-between items-center h-16">
               {/* Logo y título */}
               <div className="flex items-center space-x-2 sm:space-x-4">
-                <div className="h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ backgroundColor: 'var(--accent-color)' }}>
-                  <i className="fas fa-cut" style={{ color: 'var(--bg-primary)' }}></i>
-                </div>
-                <div className="hidden sm:block">
-                  <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Administración</h1>
-                  <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
-                </div>
-                <div className="sm:hidden">
-                  <h1 className="text-base font-semibold" style={{ color: 'var(--text-primary)' }}>Admin</h1>
+                <Logo size="sm" withText={false} className="sm:hidden" />
+                <Logo size="md" withText={true} className="hidden sm:flex" />
+                <div className="hidden md:block border-l border-gray-700 h-10 mx-2"></div>
+                <div className="hidden md:block">
+                  <h1 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Administración</h1>
+                  <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Administrador</p>
                 </div>
               </div>
 

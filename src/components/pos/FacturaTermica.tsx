@@ -36,6 +36,8 @@ export class FacturaTermica {
   private pdf: jsPDF
   private yPos: number
   private readonly contentWidth: number
+  private logoLoaded: boolean = false
+  private logoData: string | null = null
 
   constructor() {
     // Crear PDF con tamaño personalizado para ticket térmico 80mm
@@ -46,6 +48,42 @@ export class FacturaTermica {
     })
     this.yPos = MARGIN
     this.contentWidth = TICKET_WIDTH - (MARGIN * 2)
+  }
+
+  private async loadLogo(): Promise<void> {
+    try {
+      const response = await fetch('/chamos-logo.png')
+      const blob = await response.blob()
+      
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => {
+          this.logoData = reader.result as string
+          this.logoLoaded = true
+          resolve()
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(blob)
+      })
+    } catch (error) {
+      console.error('Error loading logo:', error)
+      this.logoLoaded = false
+    }
+  }
+
+  private addLogo() {
+    if (this.logoLoaded && this.logoData) {
+      const logoWidth = 30 // mm
+      const logoHeight = 15 // mm (ajustar según aspect ratio del logo)
+      const xPos = (TICKET_WIDTH - logoWidth) / 2 // Centrar
+      
+      try {
+        this.pdf.addImage(this.logoData, 'PNG', xPos, this.yPos, logoWidth, logoHeight)
+        this.yPos += logoHeight + 3
+      } catch (error) {
+        console.error('Error adding logo to PDF:', error)
+      }
+    }
   }
 
   private addText(text: string, size: number = 10, align: 'left' | 'center' | 'right' = 'left', bold: boolean = false) {
@@ -66,9 +104,18 @@ export class FacturaTermica {
     this.yPos += LINE_HEIGHT
   }
 
-  private addLine() {
+  private addLine(style: 'solid' | 'dashed' = 'solid') {
     this.pdf.setLineWidth(0.1)
+    
+    // Note: setLineDash not available in some jsPDF versions
+    // if (style === 'dashed') {
+    //   this.pdf.setLineDash([1, 1])
+    // } else {
+    //   this.pdf.setLineDash([])
+    // }
+    
     this.pdf.line(MARGIN, this.yPos, TICKET_WIDTH - MARGIN, this.yPos)
+    // this.pdf.setLineDash([]) // Reset
     this.yPos += LINE_HEIGHT / 2
   }
 
@@ -76,9 +123,10 @@ export class FacturaTermica {
     this.yPos += LINE_HEIGHT * multiplier
   }
 
-  private addItemLine(descripcion: string, valor: string) {
-    this.pdf.setFontSize(9)
-    this.pdf.setFont('helvetica', 'normal')
+  private addItemLine(descripcion: string, valor: string, bold: boolean = false) {
+    const fontSize = bold ? 10 : 9
+    this.pdf.setFontSize(fontSize)
+    this.pdf.setFont('helvetica', bold ? 'bold' : 'normal')
     
     // Descripción a la izquierda
     this.pdf.text(descripcion, MARGIN, this.yPos)
@@ -89,132 +137,203 @@ export class FacturaTermica {
     this.yPos += LINE_HEIGHT
   }
 
-  generarFactura(datos: DatosFactura): void {
-    // HEADER - Logo/Nombre del negocio
-    this.addText('CHAMOS BARBERÍA', 14, 'center', true)
+  private addBox(text: string, size: number = 12, textSize: number = 10) {
+    const boxHeight = size
+    const boxWidth = this.contentWidth
+    const xPos = MARGIN
+    const yPos = this.yPos - 3 // Ajustar para centrar texto
+
+    // Dibujar rectángulo
+    this.pdf.setFillColor(212, 175, 55) // Color dorado
+    this.pdf.rect(xPos, yPos, boxWidth, boxHeight, 'F')
+    
+    // Agregar texto centrado
+    this.pdf.setTextColor(0, 0, 0) // Negro
+    this.pdf.setFontSize(textSize)
+    this.pdf.setFont('helvetica', 'bold')
+    this.pdf.text(text, TICKET_WIDTH / 2, this.yPos + 2, { align: 'center' })
+    
+    // Reset color
+    this.pdf.setTextColor(0, 0, 0)
+    
+    this.yPos += boxHeight + 3
+  }
+
+  async generarFactura(datos: DatosFactura): Promise<void> {
+    // Cargar logo primero
+    await this.loadLogo()
+
+    // HEADER - Logo
+    this.addLogo()
+    
+    // Nombre del negocio
+    this.addText('CHAMOS BARBER', 14, 'center', true)
     this.addText('Barbería Profesional', 9, 'center')
     this.addSpace(0.5)
     
     // Información del negocio
-    this.addText('RIF: J-12345678-9', 8, 'center')
-    this.addText('Telf: +58 412-XXX-XXXX', 8, 'center')
-    this.addText('Dirección: Valencia, Carabobo', 8, 'center')
+    this.addText('Rancagua 759, San Fernando', 8, 'center')
+    this.addText("O'Higgins, Chile", 8, 'center')
+    this.addText('Tel: +56 9 XXXX XXXX', 8, 'center')
+    this.addText('www.chamosbarber.com', 8, 'center')
     this.addSpace()
     
-    this.addLine()
+    this.addLine('dashed')
     this.addSpace()
 
-    // Tipo de documento
+    // Tipo de documento en caja dorada
     const tipoDoc = datos.tipo_documento === 'factura' ? 'FACTURA' : 'BOLETA'
-    this.addText(tipoDoc, 12, 'center', true)
-    this.addText(`No. ${datos.numero_factura}`, 10, 'center', true)
-    this.addSpace()
+    this.addBox(`${tipoDoc} N° ${datos.numero_factura}`, 10, 11)
+    this.addSpace(0.5)
 
-    // Fecha y hora
+    // Fecha y hora en formato más compacto
     const fecha = new Date(datos.created_at)
-    const fechaStr = fecha.toLocaleDateString('es-VE', { 
+    const fechaStr = fecha.toLocaleDateString('es-CL', { 
       day: '2-digit', 
       month: '2-digit', 
       year: 'numeric' 
     })
-    const horaStr = fecha.toLocaleTimeString('es-VE', { 
+    const horaStr = fecha.toLocaleTimeString('es-CL', { 
       hour: '2-digit', 
       minute: '2-digit' 
     })
-    this.addText(`Fecha: ${fechaStr}`, 9, 'left')
-    this.addText(`Hora: ${horaStr}`, 9, 'left')
+    
+    this.pdf.setFontSize(9)
+    this.pdf.setFont('helvetica', 'normal')
+    this.pdf.text(`Fecha: ${fechaStr}  Hora: ${horaStr}`, TICKET_WIDTH / 2, this.yPos, { align: 'center' })
+    this.yPos += LINE_HEIGHT
+    this.addSpace(0.5)
+
+    this.addLine('dashed')
     this.addSpace()
 
-    this.addLine()
-    this.addSpace()
-
-    // Información del cliente
+    // Información del cliente en formato compacto
     this.addText('CLIENTE', 10, 'left', true)
     this.addText(datos.cliente_nombre, 9, 'left')
     if (datos.cliente_rut) {
-      this.addText(`RUT: ${datos.cliente_rut}`, 9, 'left')
+      this.addText(`RUT: ${datos.cliente_rut}`, 8, 'left')
     }
-    this.addSpace()
+    this.addSpace(0.5)
 
     // Barbero
     if (datos.barbero) {
       this.addText(`Atendido por: ${datos.barbero.nombre} ${datos.barbero.apellido}`, 9, 'left')
-      this.addSpace()
+      this.addSpace(0.5)
     }
 
-    this.addLine()
+    this.addLine('dashed')
     this.addSpace()
 
-    // Items/Servicios
-    this.addText('SERVICIOS', 10, 'left', true)
-    this.addSpace(0.5)
+    // Items/Servicios con diseño mejorado
+    this.pdf.setFontSize(10)
+    this.pdf.setFont('helvetica', 'bold')
+    this.pdf.text('CANT', MARGIN, this.yPos)
+    this.pdf.text('DESCRIPCIÓN', MARGIN + 10, this.yPos)
+    this.pdf.text('PRECIO', TICKET_WIDTH - MARGIN, this.yPos, { align: 'right' })
+    this.yPos += LINE_HEIGHT
+    
+    this.addLine('solid')
+    this.addSpace(0.3)
 
     datos.items.forEach((item) => {
-      // Nombre del servicio
+      // Cantidad
       this.pdf.setFontSize(9)
-      this.pdf.setFont('helvetica', 'bold')
-      this.pdf.text(item.nombre, MARGIN, this.yPos)
-      this.yPos += LINE_HEIGHT
-
-      // Cantidad x Precio = Subtotal
-      const detalle = `${item.cantidad} x $${item.precio.toFixed(2)} = $${item.subtotal.toFixed(2)}`
       this.pdf.setFont('helvetica', 'normal')
-      this.pdf.text(detalle, MARGIN + 2, this.yPos)
+      this.pdf.text(`${item.cantidad}x`, MARGIN, this.yPos)
+      
+      // Nombre del servicio
+      this.pdf.setFont('helvetica', 'bold')
+      this.pdf.text(item.nombre, MARGIN + 10, this.yPos)
+      
+      // Precio
+      this.pdf.setFont('helvetica', 'normal')
+      this.pdf.text(`$${item.subtotal.toLocaleString('es-CL')}`, TICKET_WIDTH - MARGIN, this.yPos, { align: 'right' })
+      
       this.yPos += LINE_HEIGHT
-      this.addSpace(0.3)
+      
+      // Detalle de precio unitario
+      if (item.cantidad > 1) {
+        this.pdf.setFontSize(8)
+        this.pdf.text(`  ($${item.precio.toLocaleString('es-CL')} c/u)`, MARGIN + 10, this.yPos)
+        this.yPos += LINE_HEIGHT * 0.8
+      }
+      
+      this.addSpace(0.2)
     })
 
-    this.addSpace()
-    this.addLine()
+    this.addSpace(0.3)
+    this.addLine('solid')
     this.addSpace()
 
-    // Totales
+    // Totales con mejor formato
     if (datos.subtotal !== datos.total) {
-      this.addItemLine('Subtotal:', `$${datos.subtotal.toFixed(2)}`)
+      this.addItemLine('Subtotal:', `$${datos.subtotal.toLocaleString('es-CL')}`)
+      this.addSpace(0.2)
     }
     
-    this.pdf.setFontSize(11)
+    // Total en caja destacada
+    const totalBox = `TOTAL: $${datos.total.toLocaleString('es-CL')}`
+    this.pdf.setFillColor(0, 0, 0)
+    this.pdf.rect(MARGIN, this.yPos - 3, this.contentWidth, 8, 'F')
+    this.pdf.setTextColor(255, 255, 255) // Blanco
+    this.pdf.setFontSize(12)
     this.pdf.setFont('helvetica', 'bold')
-    this.addItemLine('TOTAL:', `$${datos.total.toFixed(2)}`)
+    this.pdf.text(totalBox, TICKET_WIDTH / 2, this.yPos + 2, { align: 'center' })
+    this.pdf.setTextColor(0, 0, 0) // Reset a negro
+    this.yPos += 10
     this.addSpace()
 
-    // Método de pago (SIN EMOJIS - jsPDF no los soporta bien)
+    // Método de pago con iconos textuales
     const metodoPagoLabels: { [key: string]: string } = {
-      efectivo: 'Efectivo',
-      tarjeta: 'Tarjeta Debito/Credito',
-      transferencia: 'Transferencia Bancaria',
-      zelle: 'Zelle',
-      binance: 'Binance Pay'
+      efectivo: '[💵] Efectivo',
+      tarjeta: '[💳] Tarjeta',
+      transferencia: '[🏦] Transferencia',
+      zelle: '[Z] Zelle',
+      binance: '[B] Binance Pay'
     }
     
-    this.addText(`Método de pago:`, 9, 'left')
-    this.addText(metodoPagoLabels[datos.metodo_pago] || datos.metodo_pago, 10, 'left', true)
+    this.pdf.setFontSize(9)
+    this.pdf.setFont('helvetica', 'normal')
+    this.pdf.text('Método de pago:', MARGIN, this.yPos)
+    this.yPos += LINE_HEIGHT
+    this.pdf.setFont('helvetica', 'bold')
+    this.pdf.text(metodoPagoLabels[datos.metodo_pago] || datos.metodo_pago, MARGIN, this.yPos)
+    this.yPos += LINE_HEIGHT
 
     // Monto recibido y cambio (solo para efectivo)
     if (datos.metodo_pago === 'efectivo' && datos.monto_recibido) {
       this.addSpace(0.5)
-      this.addItemLine('Recibido:', `$${datos.monto_recibido.toFixed(2)}`)
+      this.addItemLine('Recibido:', `$${datos.monto_recibido.toLocaleString('es-CL')}`)
       if (datos.cambio && datos.cambio > 0) {
-        this.addItemLine('Cambio:', `$${datos.cambio.toFixed(2)}`)
+        this.addItemLine('Cambio:', `$${datos.cambio.toLocaleString('es-CL')}`, true)
       }
     }
 
     this.addSpace()
-    this.addLine()
+    this.addLine('dashed')
     this.addSpace()
 
-    // Footer
-    this.addText('¡Gracias por su preferencia!', 10, 'center', true)
-    this.addText('Esperamos volver a verlo pronto', 8, 'center')
+    // Footer mejorado
+    this.addText('¡GRACIAS POR TU PREFERENCIA!', 11, 'center', true)
+    this.addText('Esperamos verte pronto', 9, 'center')
     this.addSpace()
     
-    // Código QR o info adicional (opcional)
-    this.addText('Síguenos en redes sociales:', 8, 'center')
-    this.addText('@chamosbarber', 9, 'center', true)
+    // Redes sociales
+    this.pdf.setFontSize(8)
+    this.pdf.setFont('helvetica', 'normal')
+    this.pdf.text('Síguenos:', TICKET_WIDTH / 2, this.yPos, { align: 'center' })
+    this.yPos += LINE_HEIGHT * 0.8
+    
+    this.pdf.setFontSize(9)
+    this.pdf.setFont('helvetica', 'bold')
+    this.pdf.text('@chamosbarber', TICKET_WIDTH / 2, this.yPos, { align: 'center' })
+    this.yPos += LINE_HEIGHT
+    
+    this.pdf.setFontSize(8)
+    this.pdf.setFont('helvetica', 'normal')
+    this.pdf.text('Instagram | Facebook | TikTok', TICKET_WIDTH / 2, this.yPos, { align: 'center' })
+    
     this.addSpace(2)
-
-    // Ya no intentamos ajustar el tamaño del PDF
-    // El contenido ya está generado correctamente en this.pdf
   }
 
   descargar(nombreArchivo?: string): void {
@@ -240,7 +359,7 @@ export class FacturaTermica {
 export async function generarEImprimirFactura(datos: DatosFactura, accion: 'imprimir' | 'descargar' | 'ambos' = 'imprimir') {
   try {
     const factura = new FacturaTermica()
-    factura.generarFactura(datos)
+    await factura.generarFactura(datos)
 
     if (accion === 'imprimir' || accion === 'ambos') {
       factura.imprimir()
