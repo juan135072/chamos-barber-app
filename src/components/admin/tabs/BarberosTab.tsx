@@ -4,7 +4,8 @@ import { supabase } from '../../../../lib/initSupabase'
 import type { Database } from '../../../../lib/database.types'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
-import BarberoModal from '../modals/BarberoModal'
+// TODO: BarberoModal needs refactoring to match current DB schema
+// import BarberoModal from '../modals/BarberoModal'
 import PermanentDeleteModal from '../modals/PermanentDeleteModal'
 import toast from 'react-hot-toast'
 
@@ -63,13 +64,17 @@ const BarberosTab: React.FC = () => {
   }
 
   const handleCreate = () => {
-    setSelectedBarbero(null)
-    setShowModal(true)
+    // TODO: Temporarily disabled until BarberoModal is refactored
+    toast.error('Función temporalmente deshabilitada. Usa SQL para crear barberos.')
+    // setSelectedBarbero(null)
+    // setShowModal(true)
   }
 
   const handleEdit = (barbero: Barbero) => {
-    setSelectedBarbero(barbero)
-    setShowModal(true)
+    // TODO: Temporarily disabled until BarberoModal is refactored
+    toast.error('Función temporalmente deshabilitada. Usa SQL para editar barberos.')
+    // setSelectedBarbero(barbero)
+    // setShowModal(true)
   }
 
   const handleDelete = (barbero: Barbero) => {
@@ -361,6 +366,7 @@ const BarberosTab: React.FC = () => {
       </div>
 
       {/* Modal para crear/editar */}
+      {/* TODO: Temporarily disabled until BarberoModal is refactored to match DB schema
       {showModal && (
         <BarberoModal
           isOpen={showModal}
@@ -369,6 +375,7 @@ const BarberosTab: React.FC = () => {
           barbero={selectedBarbero}
         />
       )}
+      */}
 
       {/* Diálogo de confirmación para desactivar */}
       <ConfirmDialog
