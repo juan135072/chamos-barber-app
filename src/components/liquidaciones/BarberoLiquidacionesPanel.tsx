@@ -28,6 +28,7 @@ import {
   getEstadoBadgeColor,
   getEstadoLabel
 } from '@/lib/supabase-liquidaciones'
+import styles from '@/styles/liquidaciones.module.css'
 
 interface Props {
   barberoId: string
@@ -67,38 +68,35 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent-color)' }}></div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
       </div>
     )
   }
 
   if (error || !barbero) {
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-        <p className="text-red-800">{error || 'No se pudo cargar la información'}</p>
+      <div className={`${styles.alert} ${styles.error}`}>
+        <p>{error || 'No se pudo cargar la información'}</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h1 className="text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>
+          <h1 className={styles.headerTitle}>
             Mis Liquidaciones
           </h1>
-          <p className="mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+          <p className={styles.headerSubtitle}>
             {barbero.nombre} {barbero.apellido}
           </p>
         </div>
         <button
           onClick={cargarDatos}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
-          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+          className={`${styles.btn} ${styles.btnSecondary}`}
         >
           <RefreshCw className="w-4 h-4" />
           Actualizar
@@ -106,103 +104,83 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
       </div>
 
       {/* Resumen de Comisiones */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-          <div className="flex items-center justify-between">
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <div className={styles.statCardHeader}>
             <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                Total Ventas
-              </p>
-              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
-                {barbero.total_ventas}
-              </p>
+              <p className={styles.statLabel}>Total Ventas</p>
+              <p className={styles.statValue}>{barbero.total_ventas}</p>
             </div>
             <TrendingUp className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+          <p className={styles.statFooter}>
             Monto: {formatCLP(barbero.total_vendido)}
           </p>
         </div>
 
-        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-          <div className="flex items-center justify-between">
+        <div className={`${styles.statCard} ${styles.pending}`}>
+          <div className={styles.statCardHeader}>
             <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                Comisiones Pendientes
-              </p>
-              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
-                {formatCLP(barbero.comisiones_pendientes)}
-              </p>
+              <p className={styles.statLabel}>Comisiones Pendientes</p>
+              <p className={styles.statValue}>{formatCLP(barbero.comisiones_pendientes)}</p>
             </div>
             <Clock className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-            Por liquidar
-          </p>
+          <p className={styles.statFooter}>Por liquidar</p>
         </div>
 
-        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid rgba(34, 197, 94, 0.3)' }}>
-          <div className="flex items-center justify-between">
+        <div className={`${styles.statCard} ${styles.success}`}>
+          <div className={styles.statCardHeader}>
             <div>
-              <p className="text-sm font-medium" style={{ color: '#86efac' }}>
-                Comisiones Pagadas
-              </p>
-              <p className="text-3xl font-bold mt-2" style={{ color: '#22c55e' }}>
-                {formatCLP(barbero.comisiones_pagadas)}
-              </p>
+              <p className={styles.statLabel} style={{ color: '#86efac' }}>Comisiones Pagadas</p>
+              <p className={`${styles.statValue} ${styles.success}`}>{formatCLP(barbero.comisiones_pagadas)}</p>
             </div>
             <CheckCircle className="w-10 h-10" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-sm mt-3" style={{ color: '#86efac' }}>
-            Total recibido
-          </p>
+          <p className={styles.statFooter} style={{ color: '#86efac' }}>Total recibido</p>
         </div>
 
-        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
-          <div className="flex items-center justify-between">
+        <div className={styles.statCard}>
+          <div className={styles.statCardHeader}>
             <div>
-              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                Mi Comisión
-              </p>
-              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
-                {barbero.porcentaje_comision}%
-              </p>
+              <p className={styles.statLabel}>Mi Comisión</p>
+              <p className={styles.statValue}>{barbero.porcentaje_comision}%</p>
             </div>
             <DollarSign className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-            Por cada venta
-          </p>
+          <p className={styles.statFooter}>Por cada venta</p>
         </div>
       </div>
 
       {/* Información Bancaria */}
       {barbero && (barbero as any).banco && (
-        <div className="bg-secondary border border-gray-200 rounded-lg p-6">
-          <h2 className="text-xl font-bold text-primary mb-4">
-            Mi Información Bancaria
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm text-secondary">Banco</p>
-              <p className="font-medium text-primary">{(barbero as any).banco}</p>
+        <div className={styles.tableContainer}>
+          <div className={styles.tableHeader}>
+            <h2 className={styles.tableTitle}>Mi Información Bancaria</h2>
+          </div>
+          <div style={{ padding: '1.5rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem' }}>
+              <div>
+                <p className={styles.textMuted} style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Banco</p>
+                <p className={styles.textBold}>{(barbero as any).banco}</p>
+              </div>
+              <div>
+                <p className={styles.textMuted} style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Tipo de Cuenta</p>
+                <p className={styles.textBold}>{(barbero as any).tipo_cuenta?.toUpperCase()}</p>
+              </div>
+              <div>
+                <p className={styles.textMuted} style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Número de Cuenta</p>
+                <p className={`${styles.textBold} ${styles.fontMono}`}>{(barbero as any).numero_cuenta}</p>
+              </div>
+              <div>
+                <p className={styles.textMuted} style={{ fontSize: '0.875rem', marginBottom: '0.5rem' }}>Titular</p>
+                <p className={styles.textBold}>{(barbero as any).titular_cuenta}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-sm text-secondary">Tipo de Cuenta</p>
-              <p className="font-medium text-primary">{(barbero as any).tipo_cuenta?.toUpperCase()}</p>
-            </div>
-            <div>
-              <p className="text-sm text-secondary">Número de Cuenta</p>
-              <p className="font-medium text-primary">{(barbero as any).numero_cuenta}</p>
-            </div>
-            <div>
-              <p className="text-sm text-secondary">Titular</p>
-              <p className="font-medium text-primary">{(barbero as any).titular_cuenta}</p>
+            <div className={`${styles.alert} ${styles.info}`} style={{ marginTop: '1.5rem' }}>
+              💡 Si necesitas actualizar tu información bancaria, contacta al administrador
             </div>
           </div>
-          <p className="text-sm text-muted mt-4">
-            💡 Si necesitas actualizar tu información bancaria, contacta al administrador
-          </p>
         </div>
       )}
 
@@ -249,80 +227,78 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
             </thead>
             <tbody className="bg-secondary divide-y divide-gray-200">
               {liquidaciones.map((liquidacion) => (
-                <tr key={liquidacion.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-mono text-sm font-medium text-primary">
+                <tr key={liquidacion.id}>
+                  <td>
+                    <span className={`${styles.fontMono} ${styles.textBold}`}>
                       {liquidacion.numero_liquidacion}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-gray-400" />
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <Calendar className="w-4 h-4" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
                       <div>
                         <p>{formatFecha(liquidacion.fecha_inicio)}</p>
-                        <p className="text-muted">al {formatFecha(liquidacion.fecha_fin)}</p>
+                        <p className={styles.textMuted} style={{ fontSize: '0.813rem' }}>
+                          al {formatFecha(liquidacion.fecha_fin)}
+                        </p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                    {liquidacion.cantidad_servicios}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                    {formatCLP(liquidacion.total_ventas)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className={styles.textBold}>{liquidacion.cantidad_servicios}</td>
+                  <td className={styles.textBold}>{formatCLP(liquidacion.total_ventas)}</td>
+                  <td>
                     <div>
-                      <p className="font-bold text-green-600">
+                      <p className={styles.textSuccess} style={{ fontWeight: 700 }}>
                         {formatCLP(liquidacion.total_comision)}
                       </p>
-                      <p className="text-xs text-muted">
+                      <p className={styles.textMuted} style={{ fontSize: '0.75rem' }}>
                         ({liquidacion.porcentaje_comision}%)
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${getEstadoBadgeColor(
-                        liquidacion.estado
-                      )}`}
-                    >
+                  <td>
+                    <span className={`${styles.badge} ${liquidacion.estado === 'pagada' ? styles.paid : liquidacion.estado === 'pendiente' ? styles.pending : styles.cancelled}`}>
                       {getEstadoLabel(liquidacion.estado)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+                  <td>
                     {liquidacion.fecha_pago ? (
                       <div>
                         <p>{formatFecha(liquidacion.fecha_pago)}</p>
                         {liquidacion.metodo_pago && (
-                          <p className="text-xs text-muted capitalize">
+                          <p className={styles.textMuted} style={{ fontSize: '0.75rem', textTransform: 'capitalize' }}>
                             {liquidacion.metodo_pago}
                           </p>
                         )}
                       </div>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <span className={styles.textMuted}>-</span>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td>
                     {liquidacion.estado === 'pagada' && liquidacion.comprobante_url ? (
                       <button
-                        className="flex items-center gap-2 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-sm"
+                        className={`${styles.btn} ${styles.btnSuccess}`}
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.875rem' }}
                       >
                         <Download className="w-4 h-4" />
                         PDF
                       </button>
                     ) : liquidacion.estado === 'pendiente' ? (
-                      <span className="text-sm text-yellow-600">En proceso</span>
+                      <span className={styles.textWarning} style={{ fontSize: '0.875rem' }}>En proceso</span>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <span className={styles.textMuted}>-</span>
                     )}
                   </td>
                 </tr>
               ))}
               {liquidaciones.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-muted">
-                    Aún no tienes liquidaciones registradas
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+                    <div className={styles.emptyState}>
+                      <Calendar className="w-16 h-16" style={{ margin: '0 auto 1rem', opacity: 0.5 }} />
+                      <p>Aún no tienes liquidaciones registradas</p>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -332,11 +308,11 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
       </div>
 
       {/* Info adicional */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
-        <h3 className="font-semibold text-blue-900 mb-2">
+      <div className={`${styles.alert} ${styles.info}`}>
+        <h3 style={{ fontWeight: 600, marginBottom: '0.75rem', fontSize: '1.125rem' }}>
           ℹ️ Información Importante
         </h3>
-        <ul className="text-sm text-blue-800 space-y-1">
+        <ul style={{ fontSize: '0.938rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
           <li>• Las liquidaciones son creadas por el administrador según el período acordado</li>
           <li>• Una vez creada una liquidación, aparecerá como "Pendiente" hasta que sea pagada</li>
           <li>• Cuando se realice el pago, recibirás un comprobante que podrás descargar</li>
