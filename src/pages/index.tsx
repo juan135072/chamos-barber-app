@@ -108,25 +108,49 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Google Maps Embed */}
+              {/* Mapa Interactivo con OpenStreetMap (sin API key requerida) */}
               <div style={{ 
                 width: '100%', 
                 height: '400px',
                 borderRadius: 'var(--border-radius)',
                 overflow: 'hidden',
                 border: '2px solid var(--accent-color)',
-                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)'
+                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)',
+                position: 'relative',
+                backgroundColor: '#f5f5f5'
               }}>
                 <iframe
-                  src="https://www.google.com/maps?q=Rancagua+759,+San+Fernando,+O'Higgins,+Chile&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
-                  allowFullScreen
                   loading="lazy"
+                  allowFullScreen
                   referrerPolicy="no-referrer-when-downgrade"
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=-71.00,-34.60,-70.98,-34.58&layer=mapnik&marker=-34.5885,-70.9915"
                   title="Ubicación Chamos Barber - Rancagua 759, San Fernando"
                 ></iframe>
+                
+                {/* Overlay con enlace a Google Maps para mejor UX */}
+                <div style={{
+                  position: 'absolute',
+                  bottom: '10px',
+                  right: '10px',
+                  backgroundColor: 'var(--bg-primary)',
+                  padding: '8px 12px',
+                  borderRadius: 'var(--border-radius)',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  fontSize: '0.85rem'
+                }}>
+                  <a 
+                    href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{ color: 'var(--accent-color)', textDecoration: 'none', fontWeight: 'bold' }}
+                  >
+                    <i className="fas fa-map-marker-alt" style={{ marginRight: '4px' }}></i>
+                    Abrir en Google Maps
+                  </a>
+                </div>
               </div>
 
               <a 
