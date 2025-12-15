@@ -140,7 +140,7 @@ export async function calcularComisionesPendientes(
     p_barbero_id: barberoId,
     p_fecha_inicio: fechaInicio || null,
     p_fecha_fin: fechaFin || null
-  })
+  } as any) // Type assertion para evitar error de tipos en funciones RPC personalizadas
 
   if (error) {
     console.error('❌ Error calculando comisiones pendientes:', error)
@@ -270,7 +270,7 @@ export async function crearLiquidacion(params: CrearLiquidacionParams): Promise<
     p_barbero_id: params.barbero_id,
     p_fecha_inicio: params.fecha_inicio,
     p_fecha_fin: params.fecha_fin
-  })
+  } as any) // Type assertion para evitar error de tipos en funciones RPC personalizadas
 
   if (error) {
     console.error('❌ Error creando liquidación:', error)
@@ -296,7 +296,7 @@ export async function pagarLiquidacion(params: PagarLiquidacionParams): Promise<
     p_monto_transferencia: params.monto_transferencia,
     p_numero_transferencia: params.numero_transferencia || null,
     p_notas: params.notas || null
-  })
+  } as any) // Type assertion para evitar error de tipos en funciones RPC personalizadas
 
   if (error) {
     console.error('❌ Error pagando liquidación:', error)
