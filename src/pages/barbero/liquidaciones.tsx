@@ -59,8 +59,8 @@ export default function BarberoLiquidacionesPage() {
         return
       }
 
-      setBarberoId(barbero.id)
-      setBarberoNombre(`${barbero.nombre} ${barbero.apellido}`)
+      setBarberoId((barbero as any).id)
+      setBarberoNombre(`${(barbero as any).nombre} ${(barbero as any).apellido}`)
     } catch (error) {
       console.error('Error verificando autenticación:', error)
       router.push('/login')
