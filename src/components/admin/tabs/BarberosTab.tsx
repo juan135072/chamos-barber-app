@@ -347,7 +347,7 @@ const BarberosTab: React.FC = () => {
                       </button>
 
                       {/* Botón Reset Password */}
-                      {barbero.auth_user_id && (
+                      {barbero.email && (
                         <button
                           onClick={() => handleResetPassword(barbero)}
                           className="text-blue-400 hover:text-blue-300"
