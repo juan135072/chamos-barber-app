@@ -1,9 +1,34 @@
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../components/Layout'
+import Preloader from '../components/Preloader'
 
 const HomePage: React.FC = () => {
+  const [showPreloader, setShowPreloader] = useState(true)
+  const [isFirstVisit, setIsFirstVisit] = useState(true)
+
+  useEffect(() => {
+    // Verificar si es la primera visita en esta sesión
+    const hasVisited = sessionStorage.getItem('hasVisitedHome')
+    
+    if (hasVisited) {
+      setShowPreloader(false)
+      setIsFirstVisit(false)
+    } else {
+      sessionStorage.setItem('hasVisitedHome', 'true')
+    }
+  }, [])
+
+  const handlePreloaderComplete = () => {
+    setShowPreloader(false)
+  }
+
+  // Mostrar solo el preloader mientras carga
+  if (showPreloader && isFirstVisit) {
+    return <Preloader onComplete={handlePreloaderComplete} duration={3000} />
+  }
+
   return (
     <Layout 
       title="Chamos Barber - Barbería en San Fernando, Chile"
