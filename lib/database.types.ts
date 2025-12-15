@@ -57,15 +57,13 @@ export interface Database {
           apellido: string
           email: string | null
           telefono: string | null
-          especialidad: string
+          especialidades: string[] | null
           imagen_url: string | null
           activo: boolean
           descripcion: string | null
           instagram: string | null
-          experiencia_anos: number
-          calificacion: number
-          precio_base: number
-          orden_display: number
+          slug: string | null
+          porcentaje_comision: number
           created_at: string
           updated_at: string
         }
@@ -75,15 +73,13 @@ export interface Database {
           apellido: string
           email?: string | null
           telefono?: string | null
-          especialidad: string
+          especialidades?: string[] | null
           imagen_url?: string | null
           activo?: boolean
           descripcion?: string | null
           instagram?: string | null
-          experiencia_anos?: number
-          calificacion?: number
-          precio_base?: number
-          orden_display?: number
+          slug?: string | null
+          porcentaje_comision?: number
           created_at?: string
           updated_at?: string
         }
@@ -93,15 +89,13 @@ export interface Database {
           apellido?: string
           email?: string | null
           telefono?: string | null
-          especialidad?: string
+          especialidades?: string[] | null
           imagen_url?: string | null
           activo?: boolean
           descripcion?: string | null
           instagram?: string | null
-          experiencia_anos?: number
-          calificacion?: number
-          precio_base?: number
-          orden_display?: number
+          slug?: string | null
+          porcentaje_comision?: number
           created_at?: string
           updated_at?: string
         }
