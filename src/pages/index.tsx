@@ -133,7 +133,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mapa interactivo usando Google Maps Embed */}
+              {/* Mapa interactivo usando Google Maps (método público, sin API key requerida) */}
               <div style={{ 
                 width: '100%', 
                 position: 'relative',
@@ -149,7 +149,7 @@ const HomePage: React.FC = () => {
                   scrolling="no" 
                   marginHeight={0} 
                   marginWidth={0}
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3299.123456789!2d-70.9912!3d-34.5885!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDM1JzE4LjYiUyA3MMKwNTknMjguMyJX!5e0!3m2!1ses!2scl!4v1234567890"
+                  src="https://maps.google.com/maps?q=Rancagua+759,+San+Fernando,+Chile&t=&z=16&ie=UTF8&iwloc=&output=embed"
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
