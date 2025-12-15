@@ -283,11 +283,11 @@ export class FacturaTermica {
     this.yPos += 10
     this.addSpace()
 
-    // Método de pago con iconos textuales
+    // Método de pago con iconos textuales (SIN EMOJIS - jsPDF no los soporta)
     const metodoPagoLabels: { [key: string]: string } = {
-      efectivo: '[💵] Efectivo',
-      tarjeta: '[💳] Tarjeta',
-      transferencia: '[🏦] Transferencia',
+      efectivo: '[$] Efectivo',
+      tarjeta: '[*] Tarjeta',
+      transferencia: '[T] Transferencia',
       zelle: '[Z] Zelle',
       binance: '[B] Binance Pay'
     }
