@@ -342,43 +342,58 @@ export class FacturaTermica {
   }
 
   imprimir(): void {
-    // Impresión directa sin abrir nueva ventana
-    const pdfBlob = this.pdf.output('blob')
-    const pdfUrl = URL.createObjectURL(pdfBlob)
+    // Generar HTML con el PDF embebido y JavaScript para auto-imprimir
+    const pdfBase64 = this.pdf.output('datauristring')
     
-    // Crear iframe oculto
-    const iframe = document.createElement('iframe')
-    iframe.style.position = 'fixed'
-    iframe.style.right = '0'
-    iframe.style.bottom = '0'
-    iframe.style.width = '0'
-    iframe.style.height = '0'
-    iframe.style.border = 'none'
+    const printWindow = window.open('', '_blank')
     
-    document.body.appendChild(iframe)
-    
-    // Cargar PDF y activar impresión
-    iframe.onload = () => {
-      try {
-        // Pequeño delay para asegurar que el PDF está completamente cargado
-        setTimeout(() => {
-          iframe.contentWindow?.print()
-          
-          // Limpiar después de imprimir (o cancelar)
-          setTimeout(() => {
-            document.body.removeChild(iframe)
-            URL.revokeObjectURL(pdfUrl)
-          }, 1000)
-        }, 500)
-      } catch (error) {
-        console.error('Error al imprimir:', error)
-        // Fallback: abrir en nueva ventana si hay error
-        window.open(pdfUrl, '_blank')
-        document.body.removeChild(iframe)
-      }
+    if (printWindow) {
+      printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Imprimir Boleta</title>
+          <style>
+            body, html {
+              margin: 0;
+              padding: 0;
+              width: 100%;
+              height: 100%;
+              overflow: hidden;
+            }
+            iframe {
+              width: 100%;
+              height: 100%;
+              border: none;
+            }
+          </style>
+        </head>
+        <body>
+          <iframe src="${pdfBase64}" id="pdfFrame"></iframe>
+          <script>
+            window.onload = function() {
+              // Pequeño delay para asegurar que el PDF está cargado
+              setTimeout(function() {
+                window.print();
+                
+                // Cerrar ventana automáticamente después de imprimir/cancelar
+                // (solo funciona si el usuario permite el cierre)
+                window.onafterprint = function() {
+                  setTimeout(function() {
+                    window.close();
+                  }, 500);
+                };
+              }, 500);
+            };
+          </script>
+        </body>
+        </html>
+      `)
+      printWindow.document.close()
+    } else {
+      // Si el popup está bloqueado, mostrar alert
+      alert('Por favor, permite ventanas emergentes para imprimir boletas.')
     }
-    
-    iframe.src = pdfUrl
   }
 
   obtenerBase64(): string {
