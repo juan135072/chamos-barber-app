@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Layout from '../components/Layout'
 import { chamosSupabase } from '../../lib/supabase-helpers'
@@ -26,6 +26,9 @@ const ReservarPage: React.FC = () => {
   })
   const [loading, setLoading] = useState(false)
   const [availableSlots, setAvailableSlots] = useState<{hora: string, disponible: boolean, motivo?: string}[]>([])
+  
+  // Ref para el input de fecha
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   const totalSteps = 5
 
@@ -438,23 +441,56 @@ const ReservarPage: React.FC = () => {
                       Selecciona una fecha:
                     </label>
                     <div 
+                      onClick={() => {
+                        // Al hacer click en cualquier parte del wrapper, abrir el calendario
+                        if (dateInputRef.current) {
+                          // Intentar usar showPicker() (navegadores modernos)
+                          if (typeof dateInputRef.current.showPicker === 'function') {
+                            try {
+                              dateInputRef.current.showPicker()
+                            } catch (error) {
+                              // Fallback: hacer focus en el input
+                              dateInputRef.current.focus()
+                              dateInputRef.current.click()
+                            }
+                          } else {
+                            // Fallback para navegadores antiguos
+                            dateInputRef.current.focus()
+                            dateInputRef.current.click()
+                          }
+                        }
+                      }}
                       style={{ 
                         position: 'relative',
                         border: '2px solid var(--accent-color)',
                         borderRadius: 'var(--border-radius)',
                         overflow: 'hidden',
                         transition: 'all 0.3s ease',
-                        boxShadow: !formData.fecha ? '0 0 0 3px rgba(212, 175, 55, 0.1)' : 'none'
+                        boxShadow: !formData.fecha ? '0 0 0 3px rgba(212, 175, 55, 0.1)' : 'none',
+                        cursor: 'pointer'
                       }}
                       className="date-input-wrapper"
                     >
                       <input 
+                        ref={dateInputRef}
                         type="date"
                         className="form-input"
                         value={formData.fecha}
                         onChange={(e) => handleInputChange('fecha', e.target.value)}
                         min={getMinDate()}
                         max={getMaxDate()}
+                        onClick={(e) => {
+                          // Prevenir que el click en el input también dispare el del wrapper
+                          e.stopPropagation()
+                          // Abrir el calendario directamente
+                          if (typeof e.currentTarget.showPicker === 'function') {
+                            try {
+                              e.currentTarget.showPicker()
+                            } catch (error) {
+                              console.log('showPicker not supported')
+                            }
+                          }
+                        }}
                         style={{
                           cursor: 'pointer',
                           paddingRight: '3rem',
