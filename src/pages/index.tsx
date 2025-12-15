@@ -114,17 +114,18 @@ const HomePage: React.FC = () => {
                 height: '400px',
                 borderRadius: 'var(--border-radius)',
                 overflow: 'hidden',
-                border: '2px solid var(--accent-color)'
+                border: '2px solid var(--accent-color)',
+                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)'
               }}>
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3265.7234567890123!2d-70.9876543!3d-34.5876543!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDM1JzE1LjYiUyA3MMKwNTknMTUuNiJX!5e0!3m2!1ses!2scl!4v1234567890123!5m2!1ses!2scl&q=Rancagua+759,+San+Fernando,+Chile"
+                  src="https://www.google.com/maps?q=Rancagua+759,+San+Fernando,+O'Higgins,+Chile&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
                   allowFullScreen
                   loading="lazy"
                   referrerPolicy="no-referrer-when-downgrade"
-                  title="Ubicación Chamos Barber"
+                  title="Ubicación Chamos Barber - Rancagua 759, San Fernando"
                 ></iframe>
               </div>
 
