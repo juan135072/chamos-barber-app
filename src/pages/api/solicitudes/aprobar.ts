@@ -97,7 +97,7 @@ export default async function handler(
 
     // PASO 3: Enviar email con credenciales (opcional, no bloquea la aprobación)
     try {
-      const { emailService } = await import('../../../lib/email-service')
+      const { emailService } = await import('../../../../lib/email-service')
       const emailSent = await emailService.sendCredentials({
         email: solicitud.email,
         password: password,
