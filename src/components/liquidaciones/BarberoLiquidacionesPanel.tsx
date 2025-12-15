@@ -86,16 +86,16 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold text-primary">
             Mis Liquidaciones
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-secondary mt-1">
             {barbero.nombre} {barbero.apellido}
           </p>
         </div>
         <button
           onClick={cargarDatos}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-secondary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
         >
           <RefreshCw className="w-4 h-4" />
           Actualizar
@@ -175,41 +175,41 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
 
       {/* Información Bancaria */}
       {barbero && (barbero as any).banco && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
+        <div className="bg-secondary border border-gray-200 rounded-lg p-6">
+          <h2 className="text-xl font-bold text-primary mb-4">
             Mi Información Bancaria
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Banco</p>
-              <p className="font-medium text-gray-900">{(barbero as any).banco}</p>
+              <p className="text-sm text-secondary">Banco</p>
+              <p className="font-medium text-primary">{(barbero as any).banco}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Tipo de Cuenta</p>
-              <p className="font-medium text-gray-900">{(barbero as any).tipo_cuenta?.toUpperCase()}</p>
+              <p className="text-sm text-secondary">Tipo de Cuenta</p>
+              <p className="font-medium text-primary">{(barbero as any).tipo_cuenta?.toUpperCase()}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Número de Cuenta</p>
-              <p className="font-medium text-gray-900">{(barbero as any).numero_cuenta}</p>
+              <p className="text-sm text-secondary">Número de Cuenta</p>
+              <p className="font-medium text-primary">{(barbero as any).numero_cuenta}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Titular</p>
-              <p className="font-medium text-gray-900">{(barbero as any).titular_cuenta}</p>
+              <p className="text-sm text-secondary">Titular</p>
+              <p className="font-medium text-primary">{(barbero as any).titular_cuenta}</p>
             </div>
           </div>
-          <p className="text-sm text-gray-500 mt-4">
+          <p className="text-sm text-muted mt-4">
             💡 Si necesitas actualizar tu información bancaria, contacta al administrador
           </p>
         </div>
       )}
 
       {/* Historial de Liquidaciones */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-secondary border border-gray-200 rounded-lg overflow-hidden">
         <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">
+          <h2 className="text-xl font-bold text-primary">
             Historial de Liquidaciones
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm text-secondary mt-1">
             Visualiza todas tus liquidaciones y pagos
           </p>
         </div>
@@ -218,53 +218,53 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Número
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Período
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Ventas
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Monto Vendido
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Comisión
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Fecha Pago
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Acción
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-secondary divide-y divide-gray-200">
               {liquidaciones.map((liquidacion) => (
                 <tr key={liquidacion.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-mono text-sm font-medium text-gray-900">
+                    <span className="font-mono text-sm font-medium text-primary">
                       {liquidacion.numero_liquidacion}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4 text-gray-400" />
                       <div>
                         <p>{formatFecha(liquidacion.fecha_inicio)}</p>
-                        <p className="text-gray-500">al {formatFecha(liquidacion.fecha_fin)}</p>
+                        <p className="text-muted">al {formatFecha(liquidacion.fecha_fin)}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                     {liquidacion.total_ventas}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                     {formatCLP(liquidacion.monto_total_vendido)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -272,7 +272,7 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
                       <p className="font-bold text-green-600">
                         {formatCLP(liquidacion.total_comision)}
                       </p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-muted">
                         ({liquidacion.porcentaje_comision}%)
                       </p>
                     </div>
@@ -286,12 +286,12 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
                       {getEstadoLabel(liquidacion.estado)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                     {liquidacion.fecha_pago ? (
                       <div>
                         <p>{formatFecha(liquidacion.fecha_pago)}</p>
                         {liquidacion.metodo_pago && (
-                          <p className="text-xs text-gray-500 capitalize">
+                          <p className="text-xs text-muted capitalize">
                             {liquidacion.metodo_pago}
                           </p>
                         )}
@@ -318,7 +318,7 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
               ))}
               {liquidaciones.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-8 text-center text-muted">
                     Aún no tienes liquidaciones registradas
                   </td>
                 </tr>

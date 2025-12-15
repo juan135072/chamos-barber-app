@@ -113,7 +113,7 @@ export default function AdminLiquidacionesPanel() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent-color)' }}></div>
       </div>
     )
   }
@@ -123,16 +123,23 @@ export default function AdminLiquidacionesPanel() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>
             Sistema de Liquidaciones
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
             Gestiona las comisiones y pagos de los barberos
           </p>
         </div>
         <button
           onClick={cargarDatos}
-          className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          style={{ 
+            backgroundColor: 'var(--bg-secondary)', 
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-primary)'
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
         >
           <RefreshCw className="w-4 h-4" />
           Actualizar
@@ -141,148 +148,153 @@ export default function AdminLiquidacionesPanel() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
+        <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(220, 38, 38, 0.15)', border: '1px solid rgba(220, 38, 38, 0.3)' }}>
+          <p style={{ color: '#fca5a5' }}>{error}</p>
         </div>
       )}
 
       {/* Estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-yellow-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Liquidaciones Pendientes
               </p>
-              <p className="text-3xl font-bold text-yellow-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
                 {estadisticas.total_pendientes}
               </p>
             </div>
-            <Clock className="w-10 h-10 text-yellow-600" />
+            <Clock className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm text-yellow-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             Monto: {formatCLP(estadisticas.monto_pendiente)}
           </p>
         </div>
 
-        <div className="bg-green-50 border-2 border-green-200 rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid rgba(34, 197, 94, 0.3)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-green-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: '#86efac' }}>
                 Liquidaciones Pagadas
               </p>
-              <p className="text-3xl font-bold text-green-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: '#22c55e' }}>
                 {estadisticas.total_pagadas}
               </p>
             </div>
-            <CheckCircle className="w-10 h-10 text-green-600" />
+            <CheckCircle className="w-10 h-10" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-sm text-green-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: '#86efac' }}>
             Monto: {formatCLP(estadisticas.monto_pagado)}
           </p>
         </div>
 
-        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Barberos Activos
               </p>
-              <p className="text-3xl font-bold text-blue-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
                 {barberos.filter((b) => b.activo).length}
               </p>
             </div>
-            <Users className="w-10 h-10 text-blue-600" />
+            <Users className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm text-blue-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             Total: {barberos.length} barberos
           </p>
         </div>
 
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-purple-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Comisiones Pendientes
               </p>
-              <p className="text-3xl font-bold text-purple-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
                 {formatCLP(barberos.reduce((sum, b) => sum + b.comisiones_pendientes, 0))}
               </p>
             </div>
-            <TrendingUp className="w-10 h-10 text-purple-600" />
+            <TrendingUp className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm text-purple-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             Total generado: {formatCLP(barberos.reduce((sum, b) => sum + b.comisiones_generadas, 0))}
           </p>
         </div>
       </div>
 
       {/* Barberos con Comisiones Pendientes */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-gray-900">
+      <div className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+        <div className="p-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
+          <h2 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
             Barberos con Comisiones Pendientes
           </h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
             Crea liquidaciones para barberos con comisiones pendientes
           </p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Barbero
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Total Ventas
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Monto Vendido
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Comisión %
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Pendiente
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Acción
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody style={{ backgroundColor: 'var(--bg-secondary)' }}>
               {barberos
                 .filter((b) => b.comisiones_pendientes > 0)
                 .map((barbero) => (
-                  <tr key={barbero.id} className="hover:bg-gray-50">
+                  <tr key={barbero.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'var(--transition)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.1)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
-                        <p className="font-medium text-gray-900">
+                        <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                           {barbero.nombre} {barbero.apellido}
                         </p>
-                        <p className="text-sm text-gray-500">{barbero.email}</p>
+                        <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>{barbero.email}</p>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                       {barbero.total_ventas}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                       {formatCLP(barbero.total_vendido)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                       {barbero.porcentaje_comision}%
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="text-lg font-bold text-green-600">
+                      <span className="text-lg font-bold" style={{ color: '#22c55e' }}>
                         {formatCLP(barbero.comisiones_pendientes)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <button
                         onClick={() => handleCrearLiquidacion(barbero)}
-                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                        style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
                       >
                         <Plus className="w-4 h-4" />
                         Crear Liquidación
@@ -292,7 +304,7 @@ export default function AdminLiquidacionesPanel() {
                 ))}
               {barberos.filter((b) => b.comisiones_pendientes > 0).length === 0 && (
                 <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={6} className="px-6 py-8 text-center" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
                     No hay comisiones pendientes
                   </td>
                 </tr>
@@ -303,14 +315,14 @@ export default function AdminLiquidacionesPanel() {
       </div>
 
       {/* Historial de Liquidaciones */}
-      <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+      <div className="bg-secondary border border-gray-200 rounded-lg overflow-hidden">
         <div className="p-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-gray-900">
+              <h2 className="text-xl font-bold text-primary">
                 Historial de Liquidaciones
               </h2>
-              <p className="text-sm text-gray-600 mt-1">
+              <p className="text-sm text-secondary mt-1">
                 Visualiza y gestiona todas las liquidaciones
               </p>
             </div>
@@ -347,54 +359,54 @@ export default function AdminLiquidacionesPanel() {
           <table className="w-full">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Número
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Barbero
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Período
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Ventas
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Comisión
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
                   Acción
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody className="bg-secondary divide-y divide-gray-200">
               {liquidacionesFiltradas.map((liquidacion) => (
                 <tr key={liquidacion.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-mono text-sm font-medium text-gray-900">
+                    <span className="font-mono text-sm font-medium text-primary">
                       {liquidacion.numero_liquidacion}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <p className="font-medium text-gray-900">
+                      <p className="font-medium text-primary">
                         {liquidacion.barbero?.nombre} {liquidacion.barbero?.apellido}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-muted">
                         {liquidacion.barbero?.email}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                     <div>
                       <p>{formatFecha(liquidacion.fecha_inicio)}</p>
-                      <p className="text-gray-500">al {formatFecha(liquidacion.fecha_fin)}</p>
+                      <p className="text-muted">al {formatFecha(liquidacion.fecha_fin)}</p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
                     {liquidacion.total_ventas}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -435,7 +447,7 @@ export default function AdminLiquidacionesPanel() {
               ))}
               {liquidacionesFiltradas.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-8 text-center text-muted">
                     No se encontraron liquidaciones
                   </td>
                 </tr>

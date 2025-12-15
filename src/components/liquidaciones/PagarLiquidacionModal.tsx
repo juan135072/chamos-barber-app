@@ -116,20 +116,20 @@ export default function PagarLiquidacionModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-secondary rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-primary">
               Pagar Liquidación
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-secondary mt-1">
               {liquidacion.numero_liquidacion} - {liquidacion.barbero?.nombre} {liquidacion.barbero?.apellido}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-secondary transition-colors"
             disabled={pagando}
           >
             <X className="w-6 h-6" />
@@ -145,24 +145,24 @@ export default function PagarLiquidacionModal({
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-gray-600">Período</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-secondary">Período</p>
+                <p className="font-medium text-primary">
                   {new Date(liquidacion.fecha_inicio).toLocaleDateString('es-CL')} -{' '}
                   {new Date(liquidacion.fecha_fin).toLocaleDateString('es-CL')}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">Total Ventas</p>
-                <p className="font-medium text-gray-900">{liquidacion.total_ventas}</p>
+                <p className="text-secondary">Total Ventas</p>
+                <p className="font-medium text-primary">{liquidacion.total_ventas}</p>
               </div>
               <div>
-                <p className="text-gray-600">Monto Vendido</p>
-                <p className="font-medium text-gray-900">
+                <p className="text-secondary">Monto Vendido</p>
+                <p className="font-medium text-primary">
                   {formatCLP(liquidacion.monto_total_vendido)}
                 </p>
               </div>
               <div>
-                <p className="text-gray-600">Comisión Total</p>
+                <p className="text-secondary">Comisión Total</p>
                 <p className="text-2xl font-bold text-green-600">
                   {formatCLP(liquidacion.total_comision)}
                 </p>
@@ -173,31 +173,31 @@ export default function PagarLiquidacionModal({
           {/* Información Bancaria del Barbero */}
           {liquidacion.barbero?.banco && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-gray-900 mb-3">
+              <h3 className="font-semibold text-primary mb-3">
                 Información Bancaria
               </h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-gray-600">Banco</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-secondary">Banco</p>
+                  <p className="font-medium text-primary">
                     {liquidacion.barbero.banco}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Tipo de Cuenta</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-secondary">Tipo de Cuenta</p>
+                  <p className="font-medium text-primary">
                     {liquidacion.barbero.tipo_cuenta?.toUpperCase()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Número de Cuenta</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-secondary">Número de Cuenta</p>
+                  <p className="font-medium text-primary">
                     {liquidacion.barbero.numero_cuenta}
                   </p>
                 </div>
                 <div>
-                  <p className="text-gray-600">Titular</p>
-                  <p className="font-medium text-gray-900">
+                  <p className="text-secondary">Titular</p>
+                  <p className="font-medium text-primary">
                     {liquidacion.barbero.titular_cuenta}
                   </p>
                 </div>
@@ -366,7 +366,7 @@ export default function PagarLiquidacionModal({
         <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-gray-700 bg-secondary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             disabled={pagando}
           >
             Cancelar

@@ -138,20 +138,20 @@ export default function CrearLiquidacionModal({
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+      <div className="bg-secondary rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-2xl font-bold text-primary">
               Crear Liquidación
             </h2>
-            <p className="text-sm text-gray-600 mt-1">
+            <p className="text-sm text-secondary mt-1">
               {barbero.nombre} {barbero.apellido}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400 hover:text-secondary transition-colors"
             disabled={creando}
           >
             <X className="w-6 h-6" />
@@ -245,7 +245,7 @@ export default function CrearLiquidacionModal({
           {calculando ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-gray-600 mt-4">Calculando comisiones...</p>
+              <p className="text-secondary mt-4">Calculando comisiones...</p>
             </div>
           ) : comisiones ? (
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -258,25 +258,25 @@ export default function CrearLiquidacionModal({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-gray-600">Total Ventas</p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-sm text-secondary">Total Ventas</p>
+                  <p className="text-lg font-bold text-primary">
                     {comisiones.total_ventas}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Monto Vendido</p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-sm text-secondary">Monto Vendido</p>
+                  <p className="text-lg font-bold text-primary">
                     {formatCLP(comisiones.monto_total_vendido)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Porcentaje</p>
-                  <p className="text-lg font-bold text-gray-900">
+                  <p className="text-sm text-secondary">Porcentaje</p>
+                  <p className="text-lg font-bold text-primary">
                     {comisiones.porcentaje_comision}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-gray-600">Comisión Total</p>
+                  <p className="text-sm text-secondary">Comisión Total</p>
                   <p className="text-2xl font-bold text-green-600">
                     {formatCLP(comisiones.total_comision)}
                   </p>
@@ -298,7 +298,7 @@ export default function CrearLiquidacionModal({
         <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 text-gray-700 bg-secondary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
             disabled={creando}
           >
             Cancelar
