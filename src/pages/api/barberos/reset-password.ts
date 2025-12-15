@@ -32,20 +32,32 @@ export default async function handler(
     }
 
     console.log('🔄 [Reset Password] Procesando reset para barbero:', barberoId)
+    console.log('🔄 [Reset Password] Admin ID recibido:', adminId)
 
     // PASO 1: Verificar que el solicitante es admin
     const { data: adminUser, error: adminError } = await supabaseAdmin
       .from('admin_users')
-      .select('rol')
+      .select('rol, email, nombre')
       .eq('auth_user_id', adminId)
       .single()
 
-    if (adminError || !adminUser || adminUser.rol !== 'admin') {
-      console.error('❌ [Reset Password] Usuario no es admin')
+    console.log('🔍 [Reset Password] Query admin_users result:', { adminUser, adminError })
+
+    if (adminError || !adminUser) {
+      console.error('❌ [Reset Password] Usuario no encontrado en admin_users:', adminError)
       return res.status(403).json({
-        error: 'No tienes permisos para realizar esta acción'
+        error: 'No tienes permisos para realizar esta acción. Usuario no encontrado en sistema.'
       })
     }
+
+    if (adminUser.rol !== 'admin') {
+      console.error('❌ [Reset Password] Usuario no es admin, rol actual:', adminUser.rol)
+      return res.status(403).json({
+        error: `No tienes permisos para realizar esta acción. Tu rol es: ${adminUser.rol}`
+      })
+    }
+
+    console.log('✅ [Reset Password] Usuario verificado como admin:', adminUser.email)
 
     // PASO 2: Obtener datos del barbero
     const { data: barbero, error: barberoError } = await supabaseAdmin
@@ -54,6 +66,8 @@ export default async function handler(
       .eq('id', barberoId)
       .single()
 
+    console.log('🔍 [Reset Password] Query barberos result:', { barbero, barberoError })
+
     if (barberoError || !barbero || !barbero.email) {
       console.error('❌ [Reset Password] Barbero no encontrado:', barberoError)
       return res.status(404).json({
@@ -61,22 +75,27 @@ export default async function handler(
       })
     }
 
+    console.log('✅ [Reset Password] Barbero encontrado:', barbero.email)
+
     // PASO 2.5: Buscar el auth_user_id del barbero en admin_users
     const { data: adminUserData, error: adminUserError } = await supabaseAdmin
       .from('admin_users')
-      .select('auth_user_id')
+      .select('auth_user_id, email')
       .eq('email', barbero.email)
       .eq('rol', 'barbero')
       .single()
 
+    console.log('🔍 [Reset Password] Query admin_users (barbero) result:', { adminUserData, adminUserError })
+
     if (adminUserError || !adminUserData) {
-      console.error('❌ [Reset Password] Barbero no tiene cuenta de usuario')
+      console.error('❌ [Reset Password] Barbero no tiene cuenta de usuario en admin_users')
       return res.status(400).json({
-        error: 'Este barbero no tiene cuenta de usuario en el sistema'
+        error: 'Este barbero no tiene cuenta de usuario en el sistema. Debe ser aprobado primero.'
       })
     }
 
     const authUserId = adminUserData.auth_user_id
+    console.log('✅ [Reset Password] auth_user_id del barbero:', authUserId)
 
     // PASO 3: Generar nueva contraseña segura
     const newPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
