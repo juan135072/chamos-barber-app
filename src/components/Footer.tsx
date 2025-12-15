@@ -116,7 +116,7 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="footer-bottom">
-          <p>&copy; 2024 Chamos Barber. Todos los derechos reservados.</p>
+          <p>&copy; 2025 Chamos Barber. Creado por Juan Díaz. Todos los derechos reservados.</p>
           <div className="footer-links">
             <Link href="/politicas-privacidad">Políticas de Privacidad</Link>
             <span className="separator">•</span>
