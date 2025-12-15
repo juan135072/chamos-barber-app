@@ -23,7 +23,7 @@ export default function ComisionesTab() {
     try {
       setLoading(true)
 
-      // Obtener barberos activos
+      // Obtener barberos activos con su porcentaje_comision
       const { data: barberosData, error: barberosError } = await (supabase as any)
         .from('barberos')
         .select('*')
@@ -32,17 +32,14 @@ export default function ComisionesTab() {
 
       if (barberosError) throw barberosError
 
-      // Obtener configuraciones de comisiones
-      const { data: comisionesData, error: comisionesError } = await (supabase as any)
-        .from('configuracion_comisiones')
-        .select('*')
-
-      if (comisionesError) throw comisionesError
-
-      // Combinar datos
-      const barberosConComision = (barberosData || []).map((barbero: Barbero) => ({
+      // Los barberos ya tienen porcentaje_comision en la tabla barberos
+      // No necesitamos buscar en configuracion_comisiones
+      const barberosConComision = (barberosData || []).map((barbero: any) => ({
         ...barbero,
-        comision: (comisionesData || []).find((c: ConfiguracionComision) => c.barbero_id === barbero.id)
+        comision: barbero.porcentaje_comision ? {
+          barbero_id: barbero.id,
+          porcentaje: barbero.porcentaje_comision
+        } : null
       }))
 
       setBarberos(barberosConComision)
@@ -76,31 +73,16 @@ export default function ComisionesTab() {
         return
       }
 
-      const barbero = barberos.find(b => b.id === barberoId)
+      // Actualizar directamente en la tabla barberos
+      const { error } = await (supabase as any)
+        .from('barberos')
+        .update({ 
+          porcentaje_comision: porcentaje,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', barberoId)
 
-      if (barbero?.comision) {
-        // Actualizar existente
-        const { error } = await (supabase as any)
-          .from('configuracion_comisiones')
-          .update({ 
-            porcentaje,
-            updated_at: new Date().toISOString()
-          })
-          .eq('barbero_id', barberoId)
-
-        if (error) throw error
-      } else {
-        // Crear nuevo
-        const { error } = await (supabase as any)
-          .from('configuracion_comisiones')
-          .insert({
-            barbero_id: barberoId,
-            porcentaje,
-            notas: 'Configurado desde panel de administración'
-          })
-
-        if (error) throw error
-      }
+      if (error) throw error
 
       alert('Comisión actualizada exitosamente')
       await cargarBarberos()
