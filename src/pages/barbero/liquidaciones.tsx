@@ -41,7 +41,7 @@ export default function BarberoLiquidacionesPage() {
         .eq('id', session.user.id)
         .single()
 
-      if (adminError || !adminUser || !adminUser.barbero_id) {
+      if (adminError || !adminUser || !(adminUser as any).barbero_id) {
         // No es un barbero, redirigir
         router.push('/login')
         return
@@ -51,7 +51,7 @@ export default function BarberoLiquidacionesPage() {
       const { data: barbero, error: barberoError } = await supabase
         .from('barberos')
         .select('id, nombre, apellido')
-        .eq('id', adminUser.barbero_id)
+        .eq('id', (adminUser as any).barbero_id)
         .single()
 
       if (barberoError || !barbero) {

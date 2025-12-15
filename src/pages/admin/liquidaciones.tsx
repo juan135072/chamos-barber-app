@@ -40,7 +40,7 @@ export default function AdminLiquidacionesPage() {
         .eq('id', session.user.id)
         .single()
 
-      if (adminError || !adminUser || adminUser.rol !== 'admin') {
+      if (adminError || !adminUser || (adminUser as any).rol !== 'admin') {
         router.push('/login')
         return
       }
