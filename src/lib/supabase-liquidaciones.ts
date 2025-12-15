@@ -34,6 +34,18 @@ export interface ComisionesPendientes {
   total_comision: number
 }
 
+export interface ComisionesProximoPeriodo {
+  barbero_id: string
+  barbero_nombre: string
+  barbero_email: string
+  cantidad_ventas: number
+  monto_total: number
+  porcentaje_comision: number
+  total_comision: number
+  ultima_liquidacion_numero: string
+  ultima_liquidacion_fecha: string
+}
+
 export interface Liquidacion {
   id: string
   numero_liquidacion: string
@@ -154,6 +166,20 @@ export async function calcularComisionesPendientes(
     porcentaje_comision: 50,
     total_comision: 0
   }
+}
+
+/**
+ * Calcular comisiones del próximo período (ventas después de última liquidación)
+ */
+export async function calcularComisionesProximoPeriodo(): Promise<ComisionesProximoPeriodo[]> {
+  const { data, error } = await (supabase as any).rpc('calcular_comisiones_proximo_periodo')
+
+  if (error) {
+    console.error('❌ Error calculando comisiones del próximo período:', error)
+    throw error
+  }
+
+  return data || []
 }
 
 // =====================================================

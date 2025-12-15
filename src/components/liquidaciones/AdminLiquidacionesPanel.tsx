@@ -23,9 +23,11 @@ import {
 import {
   BarberoResumen,
   Liquidacion,
+  ComisionesProximoPeriodo,
   getBarberosResumen,
   getAllLiquidaciones,
   getEstadisticasLiquidaciones,
+  calcularComisionesProximoPeriodo,
   formatCLP,
   formatFecha,
   getEstadoBadgeColor,
@@ -38,6 +40,7 @@ export default function AdminLiquidacionesPanel() {
   // Estado
   const [barberos, setBarberos] = useState<BarberoResumen[]>([])
   const [liquidaciones, setLiquidaciones] = useState<Liquidacion[]>([])
+  const [comisionesProximas, setComisionesProximas] = useState<ComisionesProximoPeriodo[]>([])
   const [estadisticas, setEstadisticas] = useState({
     total_pendientes: 0,
     total_pagadas: 0,
@@ -67,15 +70,17 @@ export default function AdminLiquidacionesPanel() {
       setLoading(true)
       setError(null)
 
-      const [barberosData, liquidacionesData, estadisticasData] = await Promise.all([
+      const [barberosData, liquidacionesData, estadisticasData, comisionesProximasData] = await Promise.all([
         getBarberosResumen(),
         getAllLiquidaciones(filtroEstado || undefined),
-        getEstadisticasLiquidaciones()
+        getEstadisticasLiquidaciones(),
+        calcularComisionesProximoPeriodo()
       ])
 
       setBarberos(barberosData)
       setLiquidaciones(liquidacionesData)
       setEstadisticas(estadisticasData)
+      setComisionesProximas(comisionesProximasData)
     } catch (err) {
       console.error('Error cargando datos:', err)
       setError('Error al cargar datos de liquidaciones')
@@ -313,6 +318,114 @@ export default function AdminLiquidacionesPanel() {
           </table>
         </div>
       </div>
+
+      {/* Comisiones del Próximo Período */}
+      {comisionesProximas.length > 0 && (
+        <div className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid rgba(234, 179, 8, 0.3)' }}>
+          <div className="p-6" style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(234, 179, 8, 0.1)' }}>
+            <div className="flex items-start justify-between">
+              <div>
+                <h2 className="text-xl font-bold flex items-center gap-2" style={{ color: '#eab308' }}>
+                  <Clock className="w-6 h-6" />
+                  Comisiones del Próximo Período
+                </h2>
+                <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                  Ventas realizadas después de la última liquidación
+                </p>
+              </div>
+              <div className="px-4 py-2 rounded-lg" style={{ backgroundColor: 'rgba(234, 179, 8, 0.2)', border: '1px solid rgba(234, 179, 8, 0.4)' }}>
+                <p className="text-xs font-medium" style={{ color: '#eab308' }}>
+                  ℹ️ INFORMACIÓN
+                </p>
+                <p className="text-xs mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                  Estas ventas se liquidarán en el próximo período
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div className="p-6 space-y-4">
+            {comisionesProximas.map((comision) => (
+              <div
+                key={comision.barbero_id}
+                className="rounded-lg p-6"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  border: '2px solid rgba(234, 179, 8, 0.2)',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }}
+              >
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
+                      {comision.barbero_nombre}
+                    </h3>
+                    <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                      {comision.barbero_email}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                      Última liquidación
+                    </p>
+                    <p className="text-sm font-medium" style={{ color: '#eab308' }}>
+                      {comision.ultima_liquidacion_numero}
+                    </p>
+                    <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                      hasta {formatFecha(comision.ultima_liquidacion_fecha)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      Ventas Nuevas
+                    </p>
+                    <p className="text-2xl font-bold" style={{ color: '#3b82f6' }}>
+                      {comision.cantidad_ventas}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(168, 85, 247, 0.1)', border: '1px solid rgba(168, 85, 247, 0.2)' }}>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      Monto Total
+                    </p>
+                    <p className="text-2xl font-bold" style={{ color: '#a855f7' }}>
+                      {formatCLP(comision.monto_total)}
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(234, 179, 8, 0.1)', border: '1px solid rgba(234, 179, 8, 0.2)' }}>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      Comisión %
+                    </p>
+                    <p className="text-2xl font-bold" style={{ color: '#eab308' }}>
+                      {comision.porcentaje_comision}%
+                    </p>
+                  </div>
+
+                  <div className="rounded-lg p-3" style={{ backgroundColor: 'rgba(34, 197, 94, 0.1)', border: '1px solid rgba(34, 197, 94, 0.2)' }}>
+                    <p className="text-xs font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      Comisión Total
+                    </p>
+                    <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
+                      {formatCLP(comision.total_comision)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <p className="text-xs flex items-center gap-2" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                    <Clock className="w-4 h-4" />
+                    Estas ventas se incluirán en la próxima liquidación que crees para este barbero
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Historial de Liquidaciones */}
       <div className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
