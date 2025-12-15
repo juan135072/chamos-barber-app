@@ -127,6 +127,9 @@ export class EmailService {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <!-- Logo / Header -->
     <div style="text-align: center; margin-bottom: 40px;">
+      <img src="https://chamosbarber.com/chamos-logo.png" 
+           alt="Chamos Barber Logo" 
+           style="width: 150px; height: auto; margin-bottom: 20px;" />
       <h1 style="color: #D4AF37; font-size: 32px; margin: 0;">Chamos Barber</h1>
       <p style="color: #999; font-size: 14px; margin: 10px 0 0 0;">Tu barbería de confianza</p>
     </div>
@@ -254,6 +257,9 @@ https://chamosbarber.com
 <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #1a1a1a; color: #ffffff;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="text-align: center; margin-bottom: 40px;">
+      <img src="https://chamosbarber.com/chamos-logo.png" 
+           alt="Chamos Barber Logo" 
+           style="width: 150px; height: auto; margin-bottom: 20px;" />
       <h1 style="color: #D4AF37; font-size: 32px; margin: 0;">Chamos Barber</h1>
     </div>
 
