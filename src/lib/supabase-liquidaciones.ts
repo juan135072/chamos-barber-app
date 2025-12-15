@@ -6,7 +6,7 @@
  * Incluye: crear, pagar, listar, calcular comisiones
  */
 
-import { supabase } from './initSupabase'
+import { supabase } from './supabase'
 
 // =====================================================
 // TIPOS
