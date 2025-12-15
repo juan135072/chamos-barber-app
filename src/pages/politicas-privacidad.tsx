@@ -104,7 +104,7 @@ const PoliticasPrivacidad: React.FC = () => {
               </ul>
               <p>
                 Para ejercer cualquiera de estos derechos, contáctanos en: 
-                <a href="mailto:info@chamosbarber.com"> info@chamosbarber.com</a>
+                <a href="mailto:contacto@chamosbarber.com"> contacto@chamosbarber.com</a>
               </p>
             </section>
 
@@ -169,7 +169,7 @@ const PoliticasPrivacidad: React.FC = () => {
               <p>Si tienes preguntas, comentarios o inquietudes sobre esta Política de Privacidad, contáctanos:</p>
               <div className="contact-info">
                 <p><strong>Chamos Barber</strong></p>
-                <p><i className="fas fa-envelope"></i> Email: <a href="mailto:info@chamosbarber.com">info@chamosbarber.com</a></p>
+                <p><i className="fas fa-envelope"></i> Email: <a href="mailto:contacto@chamosbarber.com">contacto@chamosbarber.com</a></p>
                 <p><i className="fas fa-phone"></i> Teléfono: +56 9 8358 8553</p>
                 <p><i className="fas fa-map-marker-alt"></i> Dirección: Rancagua 759, San Fernando, O'Higgins, Chile</p>
               </div>

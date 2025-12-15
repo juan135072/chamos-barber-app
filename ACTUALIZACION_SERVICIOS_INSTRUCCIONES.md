@@ -117,11 +117,16 @@ Asegúrate de usar estas categorías EXACTAS:
 
 ## 📧 INFORMACIÓN DE CONTACTO ACTUALIZADA
 
-**Email:** info@chamosbarber.com
+**Email:** contacto@chamosbarber.com
 
 Este email ya está actualizado en:
+- ✅ Footer del sitio web
 - ✅ Políticas de Privacidad
 - ✅ Términos y Condiciones
+
+**Redes Sociales:**
+- 📘 Facebook: https://web.facebook.com/people/Chamos-Barberia/61553216854694/
+- 📸 Instagram: https://www.instagram.com/chamosbarber_shop/?hl=es-la
 - ✅ Información de contacto
 
 ---

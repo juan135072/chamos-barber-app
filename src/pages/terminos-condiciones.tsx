@@ -244,7 +244,7 @@ const TerminosCondiciones: React.FC = () => {
               <p>Para preguntas sobre estos Términos y Condiciones, contáctanos:</p>
               <div className="contact-info">
                 <p><strong>Chamos Barber</strong></p>
-                <p><i className="fas fa-envelope"></i> Email: <a href="mailto:info@chamosbarber.com">info@chamosbarber.com</a></p>
+                <p><i className="fas fa-envelope"></i> Email: <a href="mailto:contacto@chamosbarber.com">contacto@chamosbarber.com</a></p>
                 <p><i className="fas fa-phone"></i> Teléfono: +56 9 8358 8553</p>
                 <p><i className="fas fa-map-marker-alt"></i> Dirección: Rancagua 759, San Fernando, O'Higgins, Chile</p>
               </div>

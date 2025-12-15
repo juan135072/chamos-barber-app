@@ -267,7 +267,11 @@ Usa estas categorías tal como están escritas:
 Rancagua 759, San Fernando, O'Higgins, Chile
 
 **📧 Email:**  
-info@chamosbarber.com
+contacto@chamosbarber.com
+
+**🌐 Redes Sociales:**
+- 📘 Facebook: https://web.facebook.com/people/Chamos-Barberia/61553216854694/
+- 📸 Instagram: https://www.instagram.com/chamosbarber_shop/?hl=es-la
 
 **⏰ Horarios:**
 - Lunes - Viernes: 10:00 - 20:30

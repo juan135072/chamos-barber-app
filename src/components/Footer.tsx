@@ -3,8 +3,8 @@ import Link from 'next/link'
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
-    facebook: '',
-    instagram: '',
+    facebook: 'https://web.facebook.com/people/Chamos-Barberia/61553216854694/',
+    instagram: 'https://www.instagram.com/chamosbarber_shop/?hl=es-la',
     twitter: '',
     youtube: '',
     tiktok: ''
@@ -43,14 +43,19 @@ const Footer: React.FC = () => {
             <h3>Contacto</h3>
             <p><i className="fas fa-map-marker-alt"></i> San Fernando, Chile</p>
             <p><i className="fas fa-phone"></i> +56 9 8358 8553</p>
-            <p><i className="fas fa-envelope"></i> info@chamosbarber.com</p>
+            <p>
+              <i className="fas fa-envelope"></i>{' '}
+              <a href="mailto:contacto@chamosbarber.com" style={{ color: 'inherit', textDecoration: 'none' }}>
+                contacto@chamosbarber.com
+              </a>
+            </p>
           </div>
 
           <div className="footer-section">
             <h3>Horarios</h3>
-            <p>Lunes - Viernes: 9:00 AM - 7:00 PM</p>
-            <p>Sábados: 8:00 AM - 6:00 PM</p>
-            <p>Domingos: 10:00 AM - 4:00 PM</p>
+            <p>Lunes - Viernes: 10:00 - 20:30</p>
+            <p>Sábado: 10:00 - 21:00</p>
+            <p>Domingo: Cerrado</p>
           </div>
 
           <div className="footer-section">
