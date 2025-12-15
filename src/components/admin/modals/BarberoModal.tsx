@@ -76,7 +76,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
 
-      const barberoData: BarberoInsert = {
+      const barberoData = {
         nombre: data.nombre,
         apellido: data.apellido,
         email: data.email || null,
@@ -86,14 +86,14 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         imagen_url: data.imagen_url || null,
         slug: slug,
         porcentaje_comision: data.porcentaje_comision,
-        especialidades: null, // Por ahora null, se puede agregar después
+        especialidades: null as string[] | null, // Por ahora null, se puede agregar después
         activo: data.activo
       }
 
       if (isEdit && barbero) {
         const { error } = await supabase
           .from('barberos')
-          .update(barberoData)
+          .update(barberoData as any) // Type assertion para evitar conflictos
           .eq('id', barbero.id)
 
         if (error) throw error
@@ -101,7 +101,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
       } else {
         const { error } = await supabase
           .from('barberos')
-          .insert(barberoData)
+          .insert(barberoData as any) // Type assertion para evitar conflictos
 
         if (error) throw error
         toast.success('Barbero creado exitosamente')
