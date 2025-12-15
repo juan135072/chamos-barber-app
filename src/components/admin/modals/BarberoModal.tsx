@@ -50,7 +50,23 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
   const [crearCuenta, setCrearCuenta] = useState(true) // Por defecto, crear cuenta
   const [passwordGenerada, setPasswordGenerada] = useState<string | null>(null)
   const [mostrarCredenciales, setMostrarCredenciales] = useState(false)
+  const [especialidades, setEspecialidades] = useState<string[]>(barbero?.especialidades || [])
+  const [nuevaEspecialidad, setNuevaEspecialidad] = useState('')
   const isEdit = !!barbero
+
+  // Especialidades comunes predefinidas
+  const especialidadesPredefinidas = [
+    'Corte Clásico',
+    'Corte Moderno',
+    'Fade',
+    'Degradado',
+    'Barba',
+    'Afeitado',
+    'Coloración',
+    'Diseño de Cejas',
+    'Tratamiento Capilar',
+    'Peinado'
+  ]
 
   const {
     register,
@@ -85,6 +101,24 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
 
   const emailValue = watch('email')
 
+  const agregarEspecialidad = (especialidad: string) => {
+    const especialidadTrim = especialidad.trim()
+    if (especialidadTrim && !especialidades.includes(especialidadTrim)) {
+      setEspecialidades([...especialidades, especialidadTrim])
+      setNuevaEspecialidad('')
+    }
+  }
+
+  const eliminarEspecialidad = (especialidad: string) => {
+    setEspecialidades(especialidades.filter(e => e !== especialidad))
+  }
+
+  const agregarEspecialidadPredefinida = (especialidad: string) => {
+    if (!especialidades.includes(especialidad)) {
+      setEspecialidades([...especialidades, especialidad])
+    }
+  }
+
   const onSubmit = async (data: BarberoFormData) => {
     try {
       setLoading(true)
@@ -106,7 +140,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         imagen_url: data.imagen_url || null,
         slug: slug,
         porcentaje_comision: data.porcentaje_comision,
-        especialidades: null, // Por ahora null, se puede agregar después
+        especialidades: especialidades.length > 0 ? especialidades : null,
         activo: data.activo
       }
 
@@ -303,6 +337,103 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                   color: 'var(--text-primary)'
                 }}
               />
+            </div>
+
+            {/* Especialidades */}
+            <div>
+              <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)' }}>
+                <i className="fas fa-scissors mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                Especialidades
+              </label>
+              
+              {/* Especialidades seleccionadas */}
+              {especialidades.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3 p-3 rounded-md" style={{ 
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)'
+                }}>
+                  {especialidades.map((esp, index) => (
+                    <span
+                      key={index}
+                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm"
+                      style={{ 
+                        backgroundColor: 'var(--accent-color)',
+                        color: 'var(--bg-primary)'
+                      }}
+                    >
+                      {esp}
+                      <button
+                        type="button"
+                        onClick={() => eliminarEspecialidad(esp)}
+                        className="hover:opacity-70"
+                        style={{ transition: 'var(--transition)' }}
+                      >
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Especialidades predefinidas */}
+              <div className="mb-3">
+                <p className="text-xs mb-2" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                  Especialidades comunes:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {especialidadesPredefinidas.map((esp, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => agregarEspecialidadPredefinida(esp)}
+                      disabled={especialidades.includes(esp)}
+                      className="px-3 py-1 rounded-full text-sm border transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      style={{ 
+                        borderColor: especialidades.includes(esp) ? 'var(--accent-color)' : 'var(--border-color)',
+                        backgroundColor: especialidades.includes(esp) ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                        color: 'var(--text-primary)'
+                      }}
+                    >
+                      {especialidades.includes(esp) && <i className="fas fa-check mr-1"></i>}
+                      {esp}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Agregar especialidad personalizada */}
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={nuevaEspecialidad}
+                  onChange={(e) => setNuevaEspecialidad(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      agregarEspecialidad(nuevaEspecialidad)
+                    }
+                  }}
+                  placeholder="Agregar especialidad personalizada..."
+                  className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2"
+                  style={{ 
+                    borderColor: 'var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)'
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => agregarEspecialidad(nuevaEspecialidad)}
+                  disabled={!nuevaEspecialidad.trim()}
+                  className="px-4 py-2 rounded-md disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ 
+                    backgroundColor: 'var(--accent-color)',
+                    color: 'var(--bg-primary)'
+                  }}
+                >
+                  <i className="fas fa-plus"></i>
+                </button>
+              </div>
             </div>
 
             <div>
