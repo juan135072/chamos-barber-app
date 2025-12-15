@@ -252,6 +252,20 @@ const BarberoPanelPage: React.FC = () => {
                   <p className="text-xs" style={{ color: 'var(--accent-color)' }}>barbero</p>
                 </div>
                 <button
+                  onClick={() => router.push('/barbero/liquidaciones')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{ 
+                    backgroundColor: '#10B981', 
+                    color: 'white',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
+                >
+                  <i className="fas fa-money-bill-wave mr-2"></i>
+                  Mis Liquidaciones
+                </button>
+                <button
                   onClick={handleLogout}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{ 

@@ -168,6 +168,20 @@ export default function AdminPage() {
                   <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
                 </div>
                 <button
+                  onClick={() => router.push('/admin/liquidaciones')}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                  style={{ 
+                    backgroundColor: '#8B5CF6', 
+                    color: 'white',
+                    transition: 'var(--transition)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7C3AED'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B5CF6'}
+                >
+                  <i className="fas fa-money-bill-wave mr-2"></i>
+                  Liquidaciones
+                </button>
+                <button
                   onClick={() => router.push('/pos')}
                   className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
                   style={{ 
