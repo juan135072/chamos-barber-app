@@ -315,14 +315,14 @@ export default function AdminLiquidacionesPanel() {
       </div>
 
       {/* Historial de Liquidaciones */}
-      <div className="bg-secondary border border-gray-200 rounded-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
+      <div className="rounded-lg overflow-hidden" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+        <div className="p-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-primary">
+              <h2 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
                 Historial de Liquidaciones
               </h2>
-              <p className="text-sm text-secondary mt-1">
+              <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Visualiza y gestiona todas las liquidaciones
               </p>
             </div>
@@ -332,85 +332,97 @@ export default function AdminLiquidacionesPanel() {
           <div className="flex flex-wrap gap-4 mt-4">
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 pointer-events-none" style={{ color: 'var(--text-primary)', opacity: 0.4 }} />
                 <input
                   type="text"
                   value={filtroBusqueda}
                   onChange={(e) => setFiltroBusqueda(e.target.value)}
                   placeholder="Buscar por barbero o número..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full pl-10 pr-4 py-2 rounded-lg focus:outline-none"
+                  style={{ 
+                    backgroundColor: 'var(--bg-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    color: 'var(--text-primary)'
+                  }}
                 />
               </div>
             </div>
             <select
               value={filtroEstado}
               onChange={(e) => setFiltroEstado(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="px-4 py-2 rounded-lg focus:outline-none"
+              style={{ 
+                backgroundColor: 'var(--bg-primary)', 
+                border: '1px solid var(--border-color)', 
+                color: 'var(--text-primary)'
+              }}
             >
-              <option value="">Todos los estados</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="pagada">Pagadas</option>
-              <option value="cancelada">Canceladas</option>
+              <option value="" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Todos los estados</option>
+              <option value="pendiente" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Pendientes</option>
+              <option value="pagada" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Pagadas</option>
+              <option value="cancelada" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Canceladas</option>
             </select>
           </div>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Número
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Barbero
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Período
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Ventas
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Comisión
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Estado
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
+                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--accent-color)' }}>
                   Acción
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-secondary divide-y divide-gray-200">
+            <tbody style={{ backgroundColor: 'var(--bg-secondary)' }}>
               {liquidacionesFiltradas.map((liquidacion) => (
-                <tr key={liquidacion.id} className="hover:bg-gray-50">
+                <tr key={liquidacion.id} style={{ borderBottom: '1px solid var(--border-color)', transition: 'var(--transition)' }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.1)'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-mono text-sm font-medium text-primary">
+                    <span className="font-mono text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
                       {liquidacion.numero_liquidacion}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <p className="font-medium text-primary">
+                      <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                         {liquidacion.barbero?.nombre} {liquidacion.barbero?.apellido}
                       </p>
-                      <p className="text-sm text-muted">
+                      <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
                         {liquidacion.barbero?.email}
                       </p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                     <div>
                       <p>{formatFecha(liquidacion.fecha_inicio)}</p>
-                      <p className="text-muted">al {formatFecha(liquidacion.fecha_fin)}</p>
+                      <p style={{ color: 'var(--text-primary)', opacity: 0.6 }}>al {formatFecha(liquidacion.fecha_fin)}</p>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                     {liquidacion.total_ventas}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className="font-bold text-green-600">
+                    <span className="font-bold" style={{ color: '#22c55e' }}>
                       {formatCLP(liquidacion.total_comision)}
                     </span>
                   </td>
@@ -427,27 +439,33 @@ export default function AdminLiquidacionesPanel() {
                     {liquidacion.estado === 'pendiente' ? (
                       <button
                         onClick={() => handlePagarLiquidacion(liquidacion)}
-                        className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                        style={{ backgroundColor: '#22c55e', color: 'white' }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#22c55e'}
                       >
                         <DollarSign className="w-4 h-4" />
                         Pagar
                       </button>
                     ) : liquidacion.estado === 'pagada' ? (
                       <button
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                        style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                        onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+                        onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                       >
                         <Download className="w-4 h-4" />
                         PDF
                       </button>
                     ) : (
-                      <span className="text-sm text-gray-400">-</span>
+                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.4 }}>-</span>
                     )}
                   </td>
                 </tr>
               ))}
               {liquidacionesFiltradas.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-muted">
+                  <td colSpan={7} className="px-6 py-8 text-center" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
                     No se encontraron liquidaciones
                   </td>
                 </tr>

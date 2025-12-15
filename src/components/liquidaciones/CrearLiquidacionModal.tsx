@@ -137,21 +137,24 @@ export default function CrearLiquidacionModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-secondary rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
+      <div className="rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div>
-            <h2 className="text-2xl font-bold text-primary">
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>
               Crear Liquidación
             </h2>
-            <p className="text-sm text-secondary mt-1">
+            <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
               {barbero.nombre} {barbero.apellido}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-secondary transition-colors"
+            className="transition-colors"
+            style={{ color: 'var(--text-primary)', opacity: 0.6 }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--accent-color)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = 'var(--text-primary)' }}
             disabled={creando}
           >
             <X className="w-6 h-6" />
@@ -161,37 +164,47 @@ export default function CrearLiquidacionModal({
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* Selección de Período */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
             <div className="flex items-center gap-2 mb-3">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <h3 className="font-semibold text-blue-900">
+              <Calendar className="w-5 h-5" style={{ color: 'var(--accent-color)' }} />
+              <h3 className="font-semibold" style={{ color: 'var(--accent-color)' }}>
                 Período de Liquidación
               </h3>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--accent-color)' }}>
                   Fecha Inicio
                 </label>
                 <input
                   type="date"
                   value={fechaInicio}
                   onChange={(e) => setFechaInicio(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-md focus:outline-none"
+                  style={{ 
+                    backgroundColor: 'var(--bg-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    color: 'var(--text-primary)' 
+                  }}
                   disabled={creando}
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--accent-color)' }}>
                   Fecha Fin
                 </label>
                 <input
                   type="date"
                   value={fechaFin}
                   onChange={(e) => setFechaFin(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 rounded-md focus:outline-none"
+                  style={{ 
+                    backgroundColor: 'var(--bg-primary)', 
+                    border: '1px solid var(--border-color)', 
+                    color: 'var(--text-primary)' 
+                  }}
                   disabled={creando}
                 />
               </div>
@@ -207,7 +220,10 @@ export default function CrearLiquidacionModal({
                   setFechaInicio(primerDia.toISOString().split('T')[0])
                   setFechaFin(ultimoDia.toISOString().split('T')[0])
                 }}
-                className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                className="text-xs px-3 py-1 rounded-full transition-colors"
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'}
                 disabled={creando}
               >
                 Mes Actual
@@ -220,7 +236,10 @@ export default function CrearLiquidacionModal({
                   setFechaInicio(primerDia.toISOString().split('T')[0])
                   setFechaFin(ultimoDia.toISOString().split('T')[0])
                 }}
-                className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                className="text-xs px-3 py-1 rounded-full transition-colors"
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'}
                 disabled={creando}
               >
                 Mes Anterior
@@ -233,7 +252,10 @@ export default function CrearLiquidacionModal({
                   setFechaInicio(hace7dias.toISOString().split('T')[0])
                   setFechaFin(hoy.toISOString().split('T')[0])
                 }}
-                className="text-xs px-3 py-1 bg-blue-100 text-blue-700 rounded-full hover:bg-blue-200 transition-colors"
+                className="text-xs px-3 py-1 rounded-full transition-colors"
+                style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.2)'}
                 disabled={creando}
               >
                 Últimos 7 días
@@ -244,40 +266,40 @@ export default function CrearLiquidacionModal({
           {/* Resumen de Comisiones */}
           {calculando ? (
             <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-              <p className="text-secondary mt-4">Calculando comisiones...</p>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 mx-auto" style={{ borderColor: 'var(--accent-color)' }}></div>
+              <p className="mt-4" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Calculando comisiones...</p>
             </div>
           ) : comisiones ? (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '1px solid rgba(34, 197, 94, 0.3)' }}>
               <div className="flex items-center gap-2 mb-3">
-                <DollarSign className="w-5 h-5 text-green-600" />
-                <h3 className="font-semibold text-green-900">
+                <DollarSign className="w-5 h-5" style={{ color: '#22c55e' }} />
+                <h3 className="font-semibold" style={{ color: '#86efac' }}>
                   Resumen de Comisiones
                 </h3>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm text-secondary">Total Ventas</p>
-                  <p className="text-lg font-bold text-primary">
+                  <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Ventas</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                     {comisiones.total_ventas}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-secondary">Monto Vendido</p>
-                  <p className="text-lg font-bold text-primary">
+                  <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Monto Vendido</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                     {formatCLP(comisiones.monto_total_vendido)}
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-secondary">Porcentaje</p>
-                  <p className="text-lg font-bold text-primary">
+                  <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Porcentaje</p>
+                  <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
                     {comisiones.porcentaje_comision}%
                   </p>
                 </div>
                 <div>
-                  <p className="text-sm text-secondary">Comisión Total</p>
-                  <p className="text-2xl font-bold text-green-600">
+                  <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Comisión Total</p>
+                  <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
                     {formatCLP(comisiones.total_comision)}
                   </p>
                 </div>
@@ -287,18 +309,21 @@ export default function CrearLiquidacionModal({
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-              <p className="text-sm text-red-800">{error}</p>
+            <div className="rounded-lg p-4 flex items-start gap-3" style={{ backgroundColor: 'rgba(220, 38, 38, 0.15)', border: '1px solid rgba(220, 38, 38, 0.3)' }}>
+              <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" style={{ color: '#fca5a5' }} />
+              <p className="text-sm" style={{ color: '#fca5a5' }}>{error}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t bg-gray-50">
+        <div className="flex items-center justify-end gap-3 p-6" style={{ borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
           <button
             onClick={handleClose}
-            className="px-4 py-2 text-gray-700 bg-secondary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-4 py-2 rounded-lg transition-colors"
+            style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+            onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+            onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
             disabled={creando}
           >
             Cancelar
@@ -311,7 +336,10 @@ export default function CrearLiquidacionModal({
               !comisiones ||
               comisiones.total_ventas === 0
             }
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
+            onMouseEnter={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = '#B8941F')}
+            onMouseLeave={(e) => !e.currentTarget.disabled && (e.currentTarget.style.backgroundColor = 'var(--accent-color)')}
           >
             {creando ? (
               <>
