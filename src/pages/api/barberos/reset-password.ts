@@ -50,23 +50,33 @@ export default async function handler(
     // PASO 2: Obtener datos del barbero
     const { data: barbero, error: barberoError } = await supabaseAdmin
       .from('barberos')
-      .select('email, nombre, apellido, auth_user_id')
+      .select('email, nombre, apellido')
       .eq('id', barberoId)
       .single()
 
-    if (barberoError || !barbero) {
+    if (barberoError || !barbero || !barbero.email) {
       console.error('❌ [Reset Password] Barbero no encontrado:', barberoError)
       return res.status(404).json({
-        error: 'Barbero no encontrado'
+        error: 'Barbero no encontrado o sin email'
       })
     }
 
-    if (!barbero.auth_user_id) {
+    // PASO 2.5: Buscar el auth_user_id del barbero en admin_users
+    const { data: adminUserData, error: adminUserError } = await supabaseAdmin
+      .from('admin_users')
+      .select('auth_user_id')
+      .eq('email', barbero.email)
+      .eq('rol', 'barbero')
+      .single()
+
+    if (adminUserError || !adminUserData) {
       console.error('❌ [Reset Password] Barbero no tiene cuenta de usuario')
       return res.status(400).json({
         error: 'Este barbero no tiene cuenta de usuario en el sistema'
       })
     }
+
+    const authUserId = adminUserData.auth_user_id
 
     // PASO 3: Generar nueva contraseña segura
     const newPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
@@ -75,7 +85,7 @@ export default async function handler(
 
     // PASO 4: Actualizar contraseña en Supabase Auth
     const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      barbero.auth_user_id,
+      authUserId,
       { password: newPassword }
     )
 
