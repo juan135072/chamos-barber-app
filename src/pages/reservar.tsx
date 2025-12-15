@@ -433,11 +433,21 @@ const ReservarPage: React.FC = () => {
 
                 <div className="calendar-container">
                   <div className="date-picker">
-                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <i className="fas fa-calendar-alt" style={{ color: 'var(--accent-color)' }}></i>
-                      Selecciona una fecha (haz click en el calendario):
+                      Selecciona una fecha:
                     </label>
-                    <div style={{ position: 'relative' }}>
+                    <div 
+                      style={{ 
+                        position: 'relative',
+                        border: '2px solid var(--accent-color)',
+                        borderRadius: 'var(--border-radius)',
+                        overflow: 'hidden',
+                        transition: 'all 0.3s ease',
+                        boxShadow: !formData.fecha ? '0 0 0 3px rgba(212, 175, 55, 0.1)' : 'none'
+                      }}
+                      className="date-input-wrapper"
+                    >
                       <input 
                         type="date"
                         className="form-input"
@@ -448,36 +458,56 @@ const ReservarPage: React.FC = () => {
                         style={{
                           cursor: 'pointer',
                           paddingRight: '3rem',
-                          fontSize: '1rem',
-                          height: '3rem'
+                          fontSize: '1.1rem',
+                          height: '3.5rem',
+                          border: 'none',
+                          fontWeight: '500'
                         }}
-                        placeholder="Haz click aquí para elegir"
+                        placeholder="dd/mm/aaaa"
                       />
-                      <i 
-                        className="fas fa-calendar-day" 
+                      <div
                         style={{ 
                           position: 'absolute',
                           right: '1rem',
                           top: '50%',
                           transform: 'translateY(-50%)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.5rem',
+                          pointerEvents: 'none',
                           color: 'var(--accent-color)',
-                          fontSize: '1.25rem',
-                          pointerEvents: 'none'
+                          fontSize: '1.5rem'
                         }}
-                      ></i>
+                      >
+                        <i className="fas fa-calendar-day"></i>
+                      </div>
                     </div>
                     {!formData.fecha && (
-                      <p style={{ 
-                        fontSize: '0.85rem', 
-                        marginTop: '0.5rem',
-                        opacity: 0.7,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem'
+                      <div style={{ 
+                        marginTop: '1rem',
+                        padding: '1rem',
+                        backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                        borderRadius: 'var(--border-radius)',
+                        border: '1px solid rgba(212, 175, 55, 0.3)'
                       }}>
-                        <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
-                        Click en el campo para abrir el calendario
-                      </p>
+                        <p style={{ 
+                          fontSize: '0.95rem', 
+                          margin: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          color: 'var(--text-primary)'
+                        }}>
+                          <i className="fas fa-hand-pointer" style={{ 
+                            color: 'var(--accent-color)',
+                            fontSize: '1.25rem',
+                            animation: 'pulse 2s infinite'
+                          }}></i>
+                          <span>
+                            <strong>👆 Haz click en el campo de arriba</strong> para abrir el calendario y elegir tu fecha preferida
+                          </span>
+                        </p>
+                      </div>
                     )}
                   </div>
 
