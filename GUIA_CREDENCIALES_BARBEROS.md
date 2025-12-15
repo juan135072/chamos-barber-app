@@ -161,11 +161,18 @@ En la pestaña **"Barberos"**:
 
 ### **Problema**: Barbero olvidó su contraseña
 
-### **Solución 1: Reset desde el Panel Admin**
+### **Solución 1: Reset desde el Panel Admin** ✅ IMPLEMENTADO
 
-**🔨 PENDIENTE DE IMPLEMENTAR** - Función de "Reset Password"
-
-Por ahora, usa la Solución 2.
+1. Ve a: `https://chamosbarber.com/admin`
+2. Pestaña **"Barberos"**
+3. Encuentra al barbero en la lista
+4. Click en el botón de **llave azul** (🔑)
+5. Confirma el reset
+6. El sistema:
+   - Genera nueva contraseña automática
+   - Muestra las credenciales en un modal
+   - **Envía email automático al barbero** con la nueva contraseña
+7. **Copia las credenciales y envíaselas también por WhatsApp**
 
 ### **Solución 2: Reset Manual (Actual)**
 
@@ -259,30 +266,38 @@ graph TD
 
 ---
 
-## 🛠️ Mejoras Futuras (Roadmap)
+## 🛠️ Nuevas Funcionalidades (Implementadas)
 
-### **Funcionalidades Pendientes**
-1. ✅ **Botón "Reset Password" en panel admin**
-   - Admin puede resetear contraseña de barbero
-   - Genera nueva contraseña automática
-   - Muestra en modal para copiar
+### **✅ Funcionalidades Completadas**
 
-2. ✅ **Envío automático de credenciales por email**
-   - Al aprobar, sistema envía email al barbero
-   - Incluye usuario, contraseña y link de login
-   - Requiere configurar servicio de email (SendGrid, etc.)
+1. ✅ **Botón "Reset Password" en panel admin** ⭐ NUEVO
+   - Admin puede resetear contraseña de cualquier barbero
+   - Genera nueva contraseña automática y segura
+   - Muestra en modal para copiar y enviar
+   - Envía email automático al barbero
+   - Ubicación: Panel Admin > Barberos > Botón de llave azul
 
-3. ✅ **Cambio de contraseña desde panel barbero**
+2. ✅ **Envío automático de credenciales por email** ⭐ NUEVO
+   - Al aprobar solicitud, sistema envía email automático
+   - Email con diseño profesional (template HTML + texto)
+   - Incluye: usuario, contraseña, link de login, instrucciones
+   - Servicio: Resend API (requiere configuración)
+   - Email también se envía al resetear contraseña
+
+3. ✅ **Cambio de contraseña desde panel barbero** ⭐ NUEVO
+   - Nueva pestaña "Seguridad" en `/barbero-panel`
    - Barbero puede cambiar su propia contraseña
-   - Desde su panel `/barbero-panel`
    - Requiere contraseña actual para seguridad
+   - Indicador de fortaleza de contraseña (Débil/Media/Fuerte)
+   - Validación en tiempo real
+   - Mostrar/ocultar contraseña con botón de ojo
 
-4. ✅ **Crear barbero con credenciales desde "Crear Barbero"**
+4. ⏳ **Crear barbero con credenciales desde "Crear Barbero"** (Pendiente)
    - Checkbox: "Crear con acceso al sistema"
    - Genera credenciales automáticamente
    - Muestra en modal para copiar
 
-5. ✅ **Log de actividad de barberos**
+5. ⏳ **Log de actividad de barberos** (Futuro)
    - Ver último login
    - Historial de cambios de perfil
    - Acciones realizadas
@@ -317,6 +332,71 @@ Si tienes problemas con credenciales:
 
 ---
 
+---
+
+## ⚙️ Configuración de Email (Resend API)
+
+### **¿Qué es Resend?**
+Resend es un servicio moderno de envío de emails para desarrolladores.
+- ✅ Fácil de configurar
+- ✅ 100 emails gratis al mes
+- ✅ Templates HTML profesionales
+- ✅ Excelente deliverability
+
+### **Configurar Resend (Opcional)**
+
+#### **Paso 1: Crear cuenta en Resend**
+1. Ve a: https://resend.com
+2. Regístrate con tu email
+3. Verifica tu cuenta
+
+#### **Paso 2: Obtener API Key**
+1. En el dashboard de Resend
+2. Click en "API Keys"
+3. Click en "Create API Key"
+4. Nombre: "Chamos Barber Production"
+5. Copia la API Key (empieza con `re_...`)
+
+#### **Paso 3: Agregar a Variables de Entorno**
+
+**En Coolify**:
+1. Ve a tu aplicación `chamos-barber-app`
+2. Settings > Environment Variables
+3. Agregar:
+   ```
+   RESEND_API_KEY=re_tu_api_key_aqui
+   EMAIL_FROM=Chamos Barber <noreply@chamosbarber.com>
+   ```
+4. Guardar y redeploy
+
+**En Desarrollo (.env.local)**:
+```bash
+RESEND_API_KEY=re_tu_api_key_aqui
+EMAIL_FROM=Chamos Barber <noreply@chamosbarber.com>
+```
+
+#### **Paso 4: Verificar Dominio (Opcional)**
+Para mejor deliverability:
+1. En Resend > Domains
+2. Add Domain: `chamosbarber.com`
+3. Sigue las instrucciones para agregar registros DNS
+4. Una vez verificado, los emails se enviarán desde tu dominio
+
+### **Modo Desarrollo (Sin API Key)**
+Si no configuras `RESEND_API_KEY`:
+- ✅ El sistema sigue funcionando normalmente
+- ✅ Las credenciales se muestran en el modal del admin
+- ⚠️ NO se envían emails automáticos
+- ℹ️ Los emails se loggean en consola para debugging
+- 📝 Debes enviar las credenciales manualmente (WhatsApp, etc.)
+
+### **Emails que se envían automáticamente**:
+1. **Al aprobar solicitud de barbero**: Email de bienvenida con credenciales
+2. **Al resetear contraseña**: Email con nueva contraseña
+3. **Futuros**: Recordatorios de citas, notificaciones, etc.
+
+---
+
 **Última actualización**: 2025-12-15  
-**Versión del sistema**: 2.0  
-**Commit**: Pendiente de deploy
+**Versión del sistema**: 2.1  
+**Commit**: `be1b1ee` - Complete credential management system
