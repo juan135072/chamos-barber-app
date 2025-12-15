@@ -28,8 +28,8 @@ export interface BarberoResumen {
 }
 
 export interface ComisionesPendientes {
-  total_ventas: number
-  monto_total_vendido: number
+  total_ventas: number // Total amount of money (SUM of invoices)
+  cantidad_servicios: number // Count of invoices
   porcentaje_comision: number
   total_comision: number
 }
@@ -40,8 +40,8 @@ export interface Liquidacion {
   barbero_id: string
   fecha_inicio: string
   fecha_fin: string
-  total_ventas: number
-  monto_total_vendido: number
+  total_ventas: number // Total amount of money (SUM of invoices)
+  cantidad_servicios: number // Count of invoices
   porcentaje_comision: number
   total_comision: number
   estado: 'pendiente' | 'pagada' | 'cancelada'
@@ -150,7 +150,7 @@ export async function calcularComisionesPendientes(
   // La función retorna un array con un registro
   return data && data.length > 0 ? data[0] : {
     total_ventas: 0,
-    monto_total_vendido: 0,
+    cantidad_servicios: 0,
     porcentaje_comision: 50,
     total_comision: 0
   }

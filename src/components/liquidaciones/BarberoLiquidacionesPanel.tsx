@@ -265,10 +265,10 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                    {liquidacion.total_ventas}
+                    {liquidacion.cantidad_servicios}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-primary">
-                    {formatCLP(liquidacion.monto_total_vendido)}
+                    {formatCLP(liquidacion.total_ventas)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>

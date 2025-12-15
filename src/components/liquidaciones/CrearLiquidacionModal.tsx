@@ -39,8 +39,8 @@ export default function CrearLiquidacionModal({
 
   // Estado de comisiones calculadas
   const [comisiones, setComisiones] = useState<{
-    total_ventas: number
-    monto_total_vendido: number
+    total_ventas: number // Total amount of money (SUM of invoices)
+    cantidad_servicios: number // Count of invoices
     porcentaje_comision: number
     total_comision: number
   } | null>(null)
@@ -282,13 +282,13 @@ export default function CrearLiquidacionModal({
                 <div>
                   <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Ventas</p>
                   <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {comisiones.total_ventas}
+                    {comisiones.cantidad_servicios}
                   </p>
                 </div>
                 <div>
                   <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Monto Vendido</p>
                   <p className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>
-                    {formatCLP(comisiones.monto_total_vendido)}
+                    {formatCLP(comisiones.total_ventas)}
                   </p>
                 </div>
                 <div>
