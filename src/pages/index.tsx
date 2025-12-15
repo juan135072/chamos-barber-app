@@ -133,7 +133,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mapa interactivo usando iframe de uMap (OpenStreetMap) */}
+              {/* Mapa interactivo usando Google Maps Embed */}
               <div style={{ 
                 width: '100%', 
                 position: 'relative',
@@ -149,8 +149,12 @@ const HomePage: React.FC = () => {
                   scrolling="no" 
                   marginHeight={0} 
                   marginWidth={0}
-                  src="https://www.openstreetmap.org/export/embed.html?bbox=-70.99648857116699%2C-34.59350289472841%2C-70.98590850830078%2C-34.58350089472841&amp;layer=mapnik&amp;marker=-34.5885%2C-70.9912"
-                  style={{ border: '1px solid black' }}
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3299.123456789!2d-70.9912!3d-34.5885!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzTCsDM1JzE4LjYiUyA3MMKwNTknMjguMyJX!5e0!3m2!1ses!2scl!4v1234567890"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Ubicación Chamos Barber - Rancagua 759, San Fernando"
                 ></iframe>
                 
                 {/* Botón superpuesto para abrir en Google Maps */}
