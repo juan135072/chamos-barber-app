@@ -108,130 +108,64 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mapa estático usando Mapbox (sin API key requerida para static images) */}
-              <a 
-                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ 
-                  width: '100%', 
-                  display: 'block',
-                  position: 'relative',
-                  textDecoration: 'none',
-                  borderRadius: 'var(--border-radius)',
-                  overflow: 'hidden',
-                  border: '2px solid var(--accent-color)',
-                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)',
-                  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.02)'
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(212, 175, 55, 0.3)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.15)'
-                }}
-              >
-                {/* Mapa estático de OpenStreetMap via StaticMapLite */}
-                <div style={{
-                  width: '100%',
-                  height: '400px',
-                  backgroundColor: '#e0e0e0',
-                  backgroundImage: `url('https://tile.openstreetmap.org/16/19468/38734.png')`,
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                  position: 'relative',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  {/* Icono de marcador de ubicación */}
-                  <div style={{
-                    width: '60px',
-                    height: '60px',
+              {/* Mapa interactivo usando iframe de uMap (OpenStreetMap) */}
+              <div style={{ 
+                width: '100%', 
+                position: 'relative',
+                borderRadius: 'var(--border-radius)',
+                overflow: 'hidden',
+                border: '2px solid var(--accent-color)',
+                boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)'
+              }}>
+                <iframe 
+                  width="100%" 
+                  height="400" 
+                  frameBorder="0" 
+                  scrolling="no" 
+                  marginHeight={0} 
+                  marginWidth={0}
+                  src="https://www.openstreetmap.org/export/embed.html?bbox=-70.99648857116699%2C-34.59350289472841%2C-70.98590850830078%2C-34.58350089472841&amp;layer=mapnik&amp;marker=-34.5885%2C-70.9912"
+                  style={{ border: '1px solid black' }}
+                ></iframe>
+                
+                {/* Botón superpuesto para abrir en Google Maps */}
+                <a 
+                  href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  style={{
+                    position: 'absolute',
+                    bottom: '15px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'var(--accent-color)',
+                    color: '#000',
+                    padding: '14px 28px',
+                    borderRadius: 'var(--border-radius)',
+                    fontSize: '1.05rem',
+                    fontWeight: 'bold',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: 'center'
-                  }}>
-                    <i className="fas fa-map-marker-alt" style={{
-                      fontSize: '48px',
-                      color: 'var(--accent-color)',
-                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
-                      animation: 'bounce 2s infinite'
-                    }}></i>
-                  </div>
-                  
-                  {/* Texto informativo */}
-                  <div style={{
-                    position: 'absolute',
-                    top: '20px',
-                    left: '20px',
-                    right: '20px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    padding: '15px',
-                    borderRadius: 'var(--border-radius)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
-                  }}>
-                    <div style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 'bold', 
-                      color: '#333',
-                      marginBottom: '5px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px'
-                    }}>
-                      <i className="fas fa-map-marked-alt" style={{ color: 'var(--accent-color)' }}></i>
-                      Rancagua 759, San Fernando
-                    </div>
-                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
-                      O'Higgins, Chile
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Overlay con indicador de click */}
-                <div style={{
-                  position: 'absolute',
-                  bottom: '15px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  backgroundColor: 'var(--accent-color)',
-                  color: '#000',
-                  padding: '14px 28px',
-                  borderRadius: 'var(--border-radius)',
-                  fontSize: '1.05rem',
-                  fontWeight: 'bold',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.5)',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.05)'
-                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(212, 175, 55, 0.7)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.5)'
-                }}
+                    gap: '10px',
+                    boxShadow: '0 4px 12px rgba(212, 175, 55, 0.5)',
+                    transition: 'all 0.3s ease',
+                    textDecoration: 'none',
+                    zIndex: 1000
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateX(-50%) scale(1.05)'
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(212, 175, 55, 0.7)'
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateX(-50%) scale(1)'
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.5)'
+                  }}
                 >
                   <i className="fas fa-directions"></i>
                   <span>Ver en Google Maps</span>
                   <i className="fas fa-external-link-alt" style={{ fontSize: '0.85rem' }}></i>
-                </div>
-              </a>
-              
-              {/* Agregar animación CSS */}
-              <style jsx>{`
-                @keyframes bounce {
-                  0%, 100% { transform: translateY(0); }
-                  50% { transform: translateY(-10px); }
-                }
-              `}</style>
+                </a>
+              </div>
 
               <a 
                 href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
