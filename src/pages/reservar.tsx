@@ -3,6 +3,7 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import Layout from '../components/Layout'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 import type { Database } from '../../lib/database.types'
+import { formatPhoneInput, normalizePhone, isValidChileanPhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
 
 // Build Version: 2025-11-06-v3 - Improved error handling for API calls
 
@@ -178,7 +179,7 @@ const ReservarPage: React.FC = () => {
           fecha: formData.fecha,
           hora: formData.hora,
           cliente_nombre: formData.cliente_nombre,
-          cliente_telefono: formData.cliente_telefono,
+          cliente_telefono: normalizePhone(formData.cliente_telefono), // Normalizar antes de guardar
           cliente_email: formData.cliente_email || null,
           notas: formData.notas || null,
           estado: 'pendiente'
@@ -581,15 +582,39 @@ const ReservarPage: React.FC = () => {
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Teléfono (WhatsApp) *</label>
+                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
+                      Teléfono (WhatsApp) *
+                    </label>
                     <input 
                       type="tel"
                       className="form-input"
                       value={formData.cliente_telefono}
-                      onChange={(e) => handleInputChange('cliente_telefono', e.target.value)}
-                      placeholder="+56 9 1234 5678"
+                      onChange={(e) => {
+                        // Formatear automáticamente mientras escribe
+                        const formatted = formatPhoneInput(e.target.value)
+                        handleInputChange('cliente_telefono', formatted)
+                      }}
+                      placeholder={getPhonePlaceholder()}
                       required
+                      maxLength={17} // +56 9 1234 5678 = 17 caracteres
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: '1.1rem',
+                        letterSpacing: '0.05em'
+                      }}
                     />
+                    <p style={{ 
+                      fontSize: '0.85rem', 
+                      marginTop: '0.5rem',
+                      opacity: 0.8,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem'
+                    }}>
+                      <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
+                      {getPhoneHint()}
+                    </p>
                   </div>
 
                   <div className="form-group">

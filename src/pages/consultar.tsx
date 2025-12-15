@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import Layout from '../components/Layout'
+import { formatPhoneInput, normalizePhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
 
 // Build Version: 2025-11-09-v6 - Multiple services with individual prices and duration
 interface Cita {
@@ -87,10 +88,13 @@ const ConsultarPage: React.FC = () => {
     }
 
     setLoading(true)
-    console.log('📤 [consultar] Enviando solicitud para teléfono:', telefono)
+    // Normalizar el teléfono para la búsqueda
+    const normalizedPhone = normalizePhone(telefono)
+    console.log('📤 [consultar] Teléfono original:', telefono)
+    console.log('📤 [consultar] Teléfono normalizado:', normalizedPhone)
     
     try {
-      const url = `/api/consultar-citas?telefono=${encodeURIComponent(telefono)}`
+      const url = `/api/consultar-citas?telefono=${encodeURIComponent(normalizedPhone)}`
       console.log('🔍 [consultar] URL:', url)
       
       const response = await fetch(url)
@@ -200,19 +204,38 @@ const ConsultarPage: React.FC = () => {
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label className="form-label">
-                  <i className="fas fa-phone"></i> Número de Teléfono
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
+                  Número de Teléfono (WhatsApp)
                 </label>
                 <input 
                   type="tel"
                   className="form-input"
                   value={telefono}
-                  onChange={(e) => setTelefono(e.target.value)}
-                  placeholder="+56 9 1234 5678"
+                  onChange={(e) => {
+                    // Formatear automáticamente mientras escribe
+                    const formatted = formatPhoneInput(e.target.value)
+                    setTelefono(formatted)
+                  }}
+                  placeholder={getPhonePlaceholder()}
                   required
+                  maxLength={17} // +56 9 1234 5678 = 17 caracteres
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: '1.1rem',
+                    letterSpacing: '0.05em'
+                  }}
                 />
-                <small style={{ opacity: '0.7', fontSize: '0.85rem' }}>
-                  Usa el mismo número con el que reservaste tu cita
+                <small style={{ 
+                  opacity: '0.8', 
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  marginTop: '0.5rem'
+                }}>
+                  <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
+                  Usa el mismo formato con el que reservaste: {getPhonePlaceholder()}
                 </small>
               </div>
 
