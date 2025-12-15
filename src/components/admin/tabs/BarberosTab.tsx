@@ -257,18 +257,14 @@ const BarberosTab: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.especialidad}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.especialidades?.join(', ') || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.telefono || 'N/A'}</div>
                     <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{barbero.email || 'N/A'}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.experiencia_anos} años</div>
-                    <div className="flex items-center">
-                      <i className="fas fa-star text-yellow-400 text-xs mr-1"></i>
-                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{barbero.calificacion.toFixed(1)}</span>
-                    </div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>{barbero.porcentaje_comision}% comisión</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button

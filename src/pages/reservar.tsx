@@ -415,7 +415,7 @@ const ReservarPage: React.FC = () => {
                       />
                       <h3 style={{ marginBottom: '0.5rem' }}>{barbero.nombre} {barbero.apellido}</h3>
                       <p style={{ fontSize: '0.8rem', opacity: '0.8' }}>
-                        {barbero.especialidad}
+                        {barbero.especialidades?.join(', ') || 'Barbero profesional'}
                       </p>
                     </div>
                   ))}

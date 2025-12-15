@@ -160,7 +160,7 @@ export default function ComisionesTab() {
                     </h3>
                     <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                       <i className="fas fa-cut mr-2"></i>
-                      {barbero.especialidad}
+                      {barbero.especialidades?.join(', ') || 'Barbero'}
                     </p>
                   </div>
                 </div>

@@ -371,7 +371,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             <option value="">Seleccionar barbero...</option>
             {barberos.map((barbero) => (
               <option key={barbero.id} value={barbero.id}>
-                {barbero.nombre} {barbero.apellido} - {barbero.especialidad}
+                {barbero.nombre} {barbero.apellido}
               </option>
             ))}
           </select>

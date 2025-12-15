@@ -52,15 +52,15 @@ export default async function handler(
     const barbero = data as Barbero
     const mappedData = {
       id: barbero.id,
-      slug: (barbero as any).slug, // Campo agregado recientemente
+      slug: barbero.slug || '',
       nombre: `${barbero.nombre} ${barbero.apellido}`,
       biografia: barbero.descripcion || '',
       foto_url: barbero.imagen_url || '',
-      especialidades: barbero.especialidad ? [barbero.especialidad] : [],
-      experiencia_anos: barbero.experiencia_anos || 0,
+      especialidades: barbero.especialidades || [],
+      experiencia_anos: 5, // Valor por defecto
       telefono: barbero.telefono,
       instagram: barbero.instagram,
-      calificacion: barbero.calificacion
+      calificacion: 4.5 // Valor por defecto
     }
 
     return res.status(200).json(mappedData)
