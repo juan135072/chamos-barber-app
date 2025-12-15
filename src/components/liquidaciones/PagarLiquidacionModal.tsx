@@ -115,21 +115,24 @@ export default function PagarLiquidacionModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-secondary rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 flex items-center justify-center z-50 p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}>
+      <div className="rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b">
+        <div className="flex items-center justify-between p-6" style={{ borderBottom: '1px solid var(--border-color)' }}>
           <div>
-            <h2 className="text-2xl font-bold text-primary">
+            <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>
               Pagar Liquidación
             </h2>
-            <p className="text-sm text-secondary mt-1">
+            <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
               {liquidacion.numero_liquidacion} - {liquidacion.barbero?.nombre} {liquidacion.barbero?.apellido}
             </p>
           </div>
           <button
             onClick={handleClose}
-            className="text-gray-400 hover:text-secondary transition-colors"
+            className="transition-colors"
+            style={{ color: 'var(--text-primary)', opacity: 0.6 }}
+            onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; e.currentTarget.style.color = 'var(--accent-color)' }}
+            onMouseLeave={(e) => { e.currentTarget.style.opacity = '0.6'; e.currentTarget.style.color = 'var(--text-primary)' }}
             disabled={pagando}
           >
             <X className="w-6 h-6" />
@@ -139,31 +142,31 @@ export default function PagarLiquidacionModal({
         {/* Body */}
         <div className="p-6 space-y-6">
           {/* Información de la Liquidación */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-semibold text-blue-900 mb-3">
+          <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)' }}>
+            <h3 className="font-semibold mb-3" style={{ color: 'var(--accent-color)' }}>
               Detalles de la Liquidación
             </h3>
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <p className="text-secondary">Período</p>
-                <p className="font-medium text-primary">
+                <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Período</p>
+                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                   {new Date(liquidacion.fecha_inicio).toLocaleDateString('es-CL')} -{' '}
                   {new Date(liquidacion.fecha_fin).toLocaleDateString('es-CL')}
                 </p>
               </div>
               <div>
-                <p className="text-secondary">Total Ventas</p>
-                <p className="font-medium text-primary">{liquidacion.total_ventas}</p>
+                <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Ventas</p>
+                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{liquidacion.total_ventas}</p>
               </div>
               <div>
-                <p className="text-secondary">Monto Vendido</p>
-                <p className="font-medium text-primary">
+                <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Monto Vendido</p>
+                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                   {formatCLP(liquidacion.monto_total_vendido)}
                 </p>
               </div>
               <div>
-                <p className="text-secondary">Comisión Total</p>
-                <p className="text-2xl font-bold text-green-600">
+                <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Comisión Total</p>
+                <p className="text-2xl font-bold" style={{ color: '#22c55e' }}>
                   {formatCLP(liquidacion.total_comision)}
                 </p>
               </div>
@@ -172,32 +175,32 @@ export default function PagarLiquidacionModal({
 
           {/* Información Bancaria del Barbero */}
           {liquidacion.barbero?.banco && (
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-              <h3 className="font-semibold text-primary mb-3">
+            <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+              <h3 className="font-semibold mb-3" style={{ color: 'var(--accent-color)' }}>
                 Información Bancaria
               </h3>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-secondary">Banco</p>
-                  <p className="font-medium text-primary">
+                  <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Banco</p>
+                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                     {liquidacion.barbero.banco}
                   </p>
                 </div>
                 <div>
-                  <p className="text-secondary">Tipo de Cuenta</p>
-                  <p className="font-medium text-primary">
+                  <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Tipo de Cuenta</p>
+                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                     {liquidacion.barbero.tipo_cuenta?.toUpperCase()}
                   </p>
                 </div>
                 <div>
-                  <p className="text-secondary">Número de Cuenta</p>
-                  <p className="font-medium text-primary">
+                  <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Número de Cuenta</p>
+                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                     {liquidacion.barbero.numero_cuenta}
                   </p>
                 </div>
                 <div>
-                  <p className="text-secondary">Titular</p>
-                  <p className="font-medium text-primary">
+                  <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Titular</p>
+                  <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
                     {liquidacion.barbero.titular_cuenta}
                   </p>
                 </div>
@@ -207,17 +210,18 @@ export default function PagarLiquidacionModal({
 
           {/* Método de Pago */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--accent-color)' }}>
               Método de Pago
             </label>
             <div className="grid grid-cols-3 gap-3">
               <button
                 onClick={() => handleMetodoPagoChange('efectivo')}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  metodoPago === 'efectivo'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
+                className="p-4 border-2 rounded-lg transition-all"
+                style={{
+                  borderColor: metodoPago === 'efectivo' ? 'var(--accent-color)' : 'var(--border-color)',
+                  backgroundColor: metodoPago === 'efectivo' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                  color: metodoPago === 'efectivo' ? 'var(--accent-color)' : 'var(--text-primary)'
+                }}
                 disabled={pagando}
               >
                 <DollarSign className="w-6 h-6 mx-auto mb-1" />
@@ -225,11 +229,12 @@ export default function PagarLiquidacionModal({
               </button>
               <button
                 onClick={() => handleMetodoPagoChange('transferencia')}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  metodoPago === 'transferencia'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
+                className="p-4 border-2 rounded-lg transition-all"
+                style={{
+                  borderColor: metodoPago === 'transferencia' ? 'var(--accent-color)' : 'var(--border-color)',
+                  backgroundColor: metodoPago === 'transferencia' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                  color: metodoPago === 'transferencia' ? 'var(--accent-color)' : 'var(--text-primary)'
+                }}
                 disabled={pagando}
               >
                 <CreditCard className="w-6 h-6 mx-auto mb-1" />
@@ -237,11 +242,12 @@ export default function PagarLiquidacionModal({
               </button>
               <button
                 onClick={() => handleMetodoPagoChange('mixto')}
-                className={`p-4 border-2 rounded-lg transition-all ${
-                  metodoPago === 'mixto'
-                    ? 'border-blue-500 bg-blue-50 text-blue-700'
-                    : 'border-gray-300 hover:border-gray-400'
-                }`}
+                className="p-4 border-2 rounded-lg transition-all"
+                style={{
+                  borderColor: metodoPago === 'mixto' ? 'var(--accent-color)' : 'var(--border-color)',
+                  backgroundColor: metodoPago === 'mixto' ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                  color: metodoPago === 'mixto' ? 'var(--accent-color)' : 'var(--text-primary)'
+                }}
                 disabled={pagando}
               >
                 <div className="flex items-center justify-center gap-1 mb-1">
