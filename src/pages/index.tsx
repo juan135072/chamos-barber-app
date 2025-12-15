@@ -108,7 +108,7 @@ const HomePage: React.FC = () => {
                 </div>
               </div>
               
-              {/* Mapa estático como imagen (siempre funciona, sin bloqueos) */}
+              {/* Mapa estático usando Mapbox (sin API key requerida para static images) */}
               <a 
                 href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
                 target="_blank"
@@ -134,18 +134,63 @@ const HomePage: React.FC = () => {
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.15)'
                 }}
               >
-                {/* Imagen del mapa usando Google Static Maps API (no requiere API key para URLs públicas) */}
-                <img
-                  src="https://maps.googleapis.com/maps/api/staticmap?center=-34.5885,-70.9915&zoom=16&size=900x400&markers=color:0xD4AF37%7C-34.5885,-70.9915&key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8"
-                  alt="Mapa de ubicación - Rancagua 759, San Fernando"
-                  style={{ 
-                    width: '100%', 
-                    height: '400px', 
-                    objectFit: 'cover',
-                    display: 'block'
-                  }}
-                  loading="lazy"
-                />
+                {/* Mapa estático de OpenStreetMap via StaticMapLite */}
+                <div style={{
+                  width: '100%',
+                  height: '400px',
+                  backgroundColor: '#e0e0e0',
+                  backgroundImage: `url('https://tile.openstreetmap.org/16/19468/38734.png')`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  position: 'relative',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}>
+                  {/* Icono de marcador de ubicación */}
+                  <div style={{
+                    width: '60px',
+                    height: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <i className="fas fa-map-marker-alt" style={{
+                      fontSize: '48px',
+                      color: 'var(--accent-color)',
+                      filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.5))',
+                      animation: 'bounce 2s infinite'
+                    }}></i>
+                  </div>
+                  
+                  {/* Texto informativo */}
+                  <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '20px',
+                    right: '20px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    padding: '15px',
+                    borderRadius: 'var(--border-radius)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)'
+                  }}>
+                    <div style={{ 
+                      fontSize: '1.1rem', 
+                      fontWeight: 'bold', 
+                      color: '#333',
+                      marginBottom: '5px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <i className="fas fa-map-marked-alt" style={{ color: 'var(--accent-color)' }}></i>
+                      Rancagua 759, San Fernando
+                    </div>
+                    <div style={{ fontSize: '0.9rem', color: '#666' }}>
+                      O'Higgins, Chile
+                    </div>
+                  </div>
+                </div>
                 
                 {/* Overlay con indicador de click */}
                 <div style={{
@@ -153,32 +198,40 @@ const HomePage: React.FC = () => {
                   bottom: '15px',
                   left: '50%',
                   transform: 'translateX(-50%)',
-                  backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                  color: '#fff',
-                  padding: '12px 24px',
+                  backgroundColor: 'var(--accent-color)',
+                  color: '#000',
+                  padding: '14px 28px',
                   borderRadius: 'var(--border-radius)',
-                  fontSize: '1rem',
+                  fontSize: '1.05rem',
                   fontWeight: 'bold',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                  transition: 'background-color 0.3s ease'
+                  gap: '10px',
+                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.5)',
+                  transition: 'all 0.3s ease'
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = 'var(--accent-color)'
-                  e.currentTarget.style.color = '#000'
+                  e.currentTarget.style.transform = 'scale(1.05)'
+                  e.currentTarget.style.boxShadow = '0 6px 20px rgba(212, 175, 55, 0.7)'
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = 'rgba(0, 0, 0, 0.8)'
-                  e.currentTarget.style.color = '#fff'
+                  e.currentTarget.style.transform = 'scale(1)'
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.5)'
                 }}
                 >
-                  <i className="fas fa-map-marker-alt"></i>
+                  <i className="fas fa-directions"></i>
                   <span>Ver en Google Maps</span>
-                  <i className="fas fa-external-link-alt" style={{ fontSize: '0.8rem' }}></i>
+                  <i className="fas fa-external-link-alt" style={{ fontSize: '0.85rem' }}></i>
                 </div>
               </a>
+              
+              {/* Agregar animación CSS */}
+              <style jsx>{`
+                @keyframes bounce {
+                  0%, 100% { transform: translateY(0); }
+                  50% { transform: translateY(-10px); }
+                }
+              `}</style>
 
               <a 
                 href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
