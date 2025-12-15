@@ -188,7 +188,7 @@ export default async function handler(
           ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
           : 'Barbero no asignado',
         barbero_imagen: cita.barberos?.imagen_url || null,
-        barbero_especialidad: cita.barberos?.especialidad || null,
+        barbero_especialidad: cita.barberos?.especialidades?.join(', ') || null,
         precio: precioTotal,
         duracion_total: duracionTotal,
         servicios_detalle: serviciosDetalle

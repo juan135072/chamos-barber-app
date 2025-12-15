@@ -15,8 +15,7 @@ interface BarberoProfile {
   telefono: string
   instagram: string
   descripcion: string
-  especialidad: string
-  experiencia_anos: number
+  especialidades: string[] | null
   imagen_url: string
 }
 
@@ -381,7 +380,7 @@ const BarberoPanelPage: React.FC = () => {
                   <strong>Email:</strong> {profile.email}
                 </p>
                 <p style={{ fontSize: '0.9rem', marginBottom: '0' }}>
-                  <strong>Especialidad:</strong> {profile.especialidad}
+                  <strong>Especialidades:</strong> {profile.especialidades?.join(', ') || 'N/A'}
                 </p>
                 <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.7 }}>
                   <i className="fas fa-info-circle"></i> Contacta al administrador para cambiar estos datos
