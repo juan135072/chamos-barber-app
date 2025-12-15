@@ -32,13 +32,26 @@ export default async function handler(
     }
 
     console.log('🔄 [Reset Password] Procesando reset para barbero:', barberoId)
-    console.log('🔄 [Reset Password] Admin ID recibido:', adminId)
+    console.log('🔄 [Reset Password] Admin auth_user_id recibido:', adminId)
 
-    // PASO 1: Verificar que el solicitante es admin
+    // PASO 0: Obtener email del admin desde Auth
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(adminId)
+    
+    if (authError || !authData.user) {
+      console.error('❌ [Reset Password] No se pudo obtener usuario de Auth:', authError)
+      return res.status(403).json({
+        error: 'No se pudo verificar tu identidad'
+      })
+    }
+
+    const adminEmail = authData.user.email
+    console.log('🔍 [Reset Password] Email del admin desde Auth:', adminEmail)
+
+    // PASO 1: Verificar que el solicitante es admin en admin_users
     const { data: adminUser, error: adminError } = await supabaseAdmin
       .from('admin_users')
-      .select('rol, email, nombre')
-      .eq('auth_user_id', adminId)
+      .select('id, rol, email, nombre')
+      .eq('email', adminEmail)
       .single()
 
     console.log('🔍 [Reset Password] Query admin_users result:', { adminUser, adminError })
@@ -77,24 +90,60 @@ export default async function handler(
 
     console.log('✅ [Reset Password] Barbero encontrado:', barbero.email)
 
-    // PASO 2.5: Buscar el auth_user_id del barbero en admin_users
-    const { data: adminUserData, error: adminUserError } = await supabaseAdmin
+    // PASO 2.5: Verificar que el barbero tiene cuenta en admin_users
+    const { data: barberoAdminUser, error: barberoAdminError } = await supabaseAdmin
       .from('admin_users')
-      .select('auth_user_id, email')
-      .eq('email', barbero.email)
+      .select('id, email, barbero_id, rol')
+      .eq('barbero_id', barberoId)
       .eq('rol', 'barbero')
       .single()
 
-    console.log('🔍 [Reset Password] Query admin_users (barbero) result:', { adminUserData, adminUserError })
+    console.log('🔍 [Reset Password] Query admin_users (barbero) result:', { barberoAdminUser, barberoAdminError })
 
-    if (adminUserError || !adminUserData) {
+    if (barberoAdminError || !barberoAdminUser) {
       console.error('❌ [Reset Password] Barbero no tiene cuenta de usuario en admin_users')
       return res.status(400).json({
         error: 'Este barbero no tiene cuenta de usuario en el sistema. Debe ser aprobado primero.'
       })
     }
 
-    const authUserId = adminUserData.auth_user_id
+    // PASO 2.6: Buscar auth_user_id del barbero en Supabase Auth por email
+    // Usamos listUsers con filtro por página para buscar por email
+    let authUserId: string | null = null
+    let page = 1
+    const perPage = 1000
+    
+    while (!authUserId && page <= 10) { // Máximo 10 páginas (10000 usuarios)
+      const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+        page,
+        perPage
+      })
+      
+      if (listError) {
+        console.error('❌ [Reset Password] Error listando usuarios:', listError)
+        return res.status(500).json({
+          error: 'Error buscando usuario en sistema de autenticación'
+        })
+      }
+
+      const foundUser = data.users.find((u: any) => u.email === barbero.email)
+      if (foundUser) {
+        authUserId = foundUser.id
+        break
+      }
+      
+      // Si no hay más usuarios, salir
+      if (data.users.length < perPage) break
+      page++
+    }
+    
+    if (!authUserId) {
+      console.error('❌ [Reset Password] Barbero no tiene cuenta en Auth')
+      return res.status(400).json({
+        error: 'Este barbero no tiene cuenta de autenticación en el sistema'
+      })
+    }
+
     console.log('✅ [Reset Password] auth_user_id del barbero:', authUserId)
 
     // PASO 3: Generar nueva contraseña segura
