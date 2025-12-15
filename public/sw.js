@@ -1,132 +1,191 @@
 // ================================================================
-// 🔧 SERVICE WORKER - CHAMOS BARBER APP
-// Service Worker para PWA con estrategia de caché
+// 📱 SERVICE WORKER - Chamos Barber PWA
+// Caché de archivos estáticos y soporte offline
 // ================================================================
 
-const CACHE_NAME = 'chamos-barber-v1'
-const urlsToCache = [
+const CACHE_NAME = 'chamos-barber-v1.0.0'
+const API_CACHE_NAME = 'chamos-barber-api-v1'
+
+// Archivos a cachear en instalación
+const STATIC_CACHE = [
   '/',
   '/barber-app',
-  '/offline.html',
-  '/chamos-logo.png',
+  '/favicon.ico',
   '/android-chrome-192x192.png',
-  '/android-chrome-512x512.png'
+  '/android-chrome-512x512.png',
+  '/manifest.json'
 ]
 
-// Instalación del Service Worker
+// ================================================================
+// INSTALACIÓN DEL SERVICE WORKER
+// ================================================================
 self.addEventListener('install', (event) => {
-  console.log('[Service Worker] Installing...')
+  console.log('📦 Service Worker: Instalando...')
+  
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[Service Worker] Caching app shell')
-      return cache.addAll(urlsToCache)
+      console.log('✅ Service Worker: Archivos estáticos cacheados')
+      return cache.addAll(STATIC_CACHE)
     })
   )
+  
+  // Forzar activación inmediata
   self.skipWaiting()
 })
 
-// Activación del Service Worker
+// ================================================================
+// ACTIVACIÓN DEL SERVICE WORKER
+// ================================================================
 self.addEventListener('activate', (event) => {
-  console.log('[Service Worker] Activating...')
+  console.log('🚀 Service Worker: Activando...')
+  
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[Service Worker] Deleting old cache:', cacheName)
+          if (cacheName !== CACHE_NAME && cacheName !== API_CACHE_NAME) {
+            console.log('🗑️ Service Worker: Eliminando caché antigua:', cacheName)
             return caches.delete(cacheName)
           }
         })
       )
     })
   )
+  
+  // Tomar control inmediato de todas las páginas
   return self.clients.claim()
 })
 
-// Estrategia de caché: Network First, fallback to Cache
+// ================================================================
+// FETCH - ESTRATEGIA DE CACHÉ
+// ================================================================
 self.addEventListener('fetch', (event) => {
-  // Solo cachear requests GET
-  if (event.request.method !== 'GET') return
-
-  // Ignorar requests de Supabase y APIs externas
-  if (
-    event.request.url.includes('supabase.co') ||
-    event.request.url.includes('api.') ||
-    event.request.url.includes('/api/')
-  ) {
+  const { request } = event
+  const url = new URL(request.url)
+  
+  // Ignorar solicitudes externas (Supabase, CDN, etc.)
+  if (url.origin !== location.origin) {
     return
   }
-
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Clonar la respuesta porque es un stream que solo se puede consumir una vez
-        const responseToCache = response.clone()
-
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseToCache)
+  
+  // Ignorar POST/PUT/DELETE (solo cachear GET)
+  if (request.method !== 'GET') {
+    return
+  }
+  
+  // Estrategia: Network First para /barber-app, Cache First para estáticos
+  if (url.pathname.startsWith('/barber-app')) {
+    // Network First: Intenta red primero, si falla usa caché
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          // Clonar respuesta para cachear
+          const responseToCache = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache)
+          })
+          return response
         })
-
-        return response
-      })
-      .catch(() => {
-        // Si falla el network, buscar en caché
-        return caches.match(event.request).then((response) => {
-          if (response) {
+        .catch(() => {
+          // Si falla la red, buscar en caché
+          return caches.match(request).then((cachedResponse) => {
+            if (cachedResponse) {
+              return cachedResponse
+            }
+            // Fallback: retornar página offline
+            return caches.match('/barber-app')
+          })
+        })
+    )
+  } else {
+    // Cache First: Para archivos estáticos
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        if (cachedResponse) {
+          return cachedResponse
+        }
+        
+        return fetch(request).then((response) => {
+          // No cachear si no es 200 OK
+          if (!response || response.status !== 200 || response.type === 'error') {
             return response
           }
-
-          // Si no está en caché, mostrar página offline
-          if (event.request.mode === 'navigate') {
-            return caches.match('/offline.html')
-          }
+          
+          const responseToCache = response.clone()
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(request, responseToCache)
+          })
+          
+          return response
         })
       })
-  )
+    )
+  }
 })
 
-// Manejo de notificaciones push
+// ================================================================
+// PUSH NOTIFICATIONS (Placeholder para OneSignal)
+// ================================================================
 self.addEventListener('push', (event) => {
-  console.log('[Service Worker] Push received')
+  console.log('📬 Push notification recibida:', event)
   
-  const data = event.data ? event.data.json() : {}
-  const title = data.title || 'Chamos Barber'
   const options = {
-    body: data.body || 'Nueva notificación',
+    body: event.data ? event.data.text() : 'Nueva cita agendada',
     icon: '/android-chrome-192x192.png',
     badge: '/favicon-32x32.png',
-    tag: data.tag || 'default',
-    requireInteraction: data.requireInteraction || false,
-    data: data.data || {}
+    vibrate: [200, 100, 200],
+    tag: 'barber-app-notification',
+    requireInteraction: false,
+    data: {
+      dateOfArrival: Date.now(),
+      primaryKey: 1
+    },
+    actions: [
+      {
+        action: 'ver',
+        title: 'Ver Citas',
+        icon: '/android-chrome-192x192.png'
+      },
+      {
+        action: 'cerrar',
+        title: 'Cerrar',
+        icon: '/favicon-32x32.png'
+      }
+    ]
   }
-
-  event.waitUntil(self.registration.showNotification(title, options))
-})
-
-// Manejo de clicks en notificaciones
-self.addEventListener('notificationclick', (event) => {
-  console.log('[Service Worker] Notification clicked')
-  event.notification.close()
-
-  const urlToOpen = event.notification.data?.url || '/barber-app'
-
+  
   event.waitUntil(
-    clients
-      .matchAll({
-        type: 'window',
-        includeUncontrolled: true
-      })
-      .then((clientList) => {
-        // Si ya hay una ventana abierta, enfocarla
-        for (const client of clientList) {
-          if (client.url === urlToOpen && 'focus' in client) {
-            return client.focus()
-          }
-        }
-        // Si no, abrir nueva ventana
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen)
-        }
-      })
+    self.registration.showNotification('Chamos Barber', options)
   )
 })
+
+// ================================================================
+// NOTIFICATION CLICK
+// ================================================================
+self.addEventListener('notificationclick', (event) => {
+  console.log('🔔 Notificación clickeada:', event.action)
+  
+  event.notification.close()
+  
+  if (event.action === 'ver') {
+    event.waitUntil(
+      clients.openWindow('/barber-app')
+    )
+  }
+})
+
+// ================================================================
+// BACKGROUND SYNC (Futuro - para acciones offline)
+// ================================================================
+self.addEventListener('sync', (event) => {
+  console.log('🔄 Background Sync:', event.tag)
+  
+  if (event.tag === 'sync-citas') {
+    event.waitUntil(
+      // Implementar lógica de sincronización
+      console.log('Sincronizando citas pendientes...')
+    )
+  }
+})
+
+console.log('✅ Service Worker cargado correctamente')

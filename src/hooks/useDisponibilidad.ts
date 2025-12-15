@@ -48,6 +48,7 @@ export function useDisponibilidad(barberoId: string | null, disponibilidadInicia
     disponibilidad,
     loading,
     error,
+    toggle: toggleDisponibilidad,
     toggleDisponibilidad,
     setDisponibilidad // Para actualizar desde props externas
   }

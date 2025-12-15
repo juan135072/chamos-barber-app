@@ -119,6 +119,7 @@ export function useBarberAppAuth() {
     loading,
     error,
     logout,
+    signOut: logout,
     isAuthenticated: !!session,
     barbero: session?.barbero || null,
     barberoId: session?.barberoId || null
