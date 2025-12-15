@@ -66,22 +66,55 @@ const HomePage: React.FC = () => {
         </div>
       </section>
 
-      {/* Horarios */}
+      {/* Horarios y Ubicación */}
       <section className="schedule">
         <div className="container">
           <h2 className="section-title">Horarios de Atención</h2>
           <div className="schedule-grid">
             <div className="schedule-item">
               <span className="day">Lunes - Viernes</span>
-              <span className="time">8:00 AM - 8:00 PM</span>
+              <span className="time">10:00 - 20:30</span>
             </div>
             <div className="schedule-item">
-              <span className="day">Sábados</span>
-              <span className="time">8:00 AM - 6:00 PM</span>
+              <span className="day">Sábado</span>
+              <span className="time">10:00 - 21:00</span>
             </div>
             <div className="schedule-item">
-              <span className="day">Domingos</span>
-              <span className="time">10:00 AM - 4:00 PM</span>
+              <span className="day">Domingo</span>
+              <span className="time">Cerrado</span>
+            </div>
+          </div>
+          
+          <div style={{ marginTop: '3rem', textAlign: 'center' }}>
+            <h2 className="section-title">Ubicación</h2>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              alignItems: 'center', 
+              gap: '1rem',
+              padding: '2rem',
+              backgroundColor: 'var(--bg-secondary)',
+              borderRadius: 'var(--border-radius)',
+              maxWidth: '600px',
+              margin: '0 auto'
+            }}>
+              <div style={{ fontSize: '1.2rem', color: 'var(--text-primary)' }}>
+                <i className="fas fa-map-marker-alt" style={{ color: 'var(--accent-color)', marginRight: '0.5rem' }}></i>
+                <strong>Rancagua 759</strong>
+              </div>
+              <div style={{ fontSize: '1rem', color: 'var(--text-primary)', opacity: 0.9 }}>
+                San Fernando, O'Higgins, Chile
+              </div>
+              <a 
+                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="btn btn-primary"
+                style={{ marginTop: '1rem' }}
+              >
+                <i className="fas fa-directions"></i>
+                Ver en Google Maps
+              </a>
             </div>
           </div>
         </div>

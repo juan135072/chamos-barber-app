@@ -739,7 +739,7 @@ const ConsultarPage: React.FC = () => {
                         </a>
                       </div>
                       <p style={{ fontSize: '0.85rem', opacity: '0.7', marginTop: '1rem' }}>
-                        Horario de atención: Lunes a Viernes 9:00 AM - 7:00 PM
+                        Horario de atención: Lunes a Viernes 10:00 - 20:30 | Sábado 10:00 - 21:00 | Domingo Cerrado
                       </p>
                     </div>
                   </>
