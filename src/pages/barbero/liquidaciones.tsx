@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import BarberoLiquidacionesPanel from '@/components/liquidaciones/BarberoLiquidacionesPanel'
 import { supabase } from '@/lib/supabase'
+import Logo from '@/components/shared/Logo'
 
 export default function BarberoLiquidacionesPage() {
   const router = useRouter()
@@ -88,6 +89,7 @@ export default function BarberoLiquidacionesPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
+              <Logo size="sm" withText={false} />
               <button
                 onClick={() => router.push('/barbero-panel')}
                 className="font-medium transition-colors"

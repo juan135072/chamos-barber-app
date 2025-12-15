@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { supabase } from '../../lib/initSupabase'
+import Logo from '@/components/shared/Logo'
 
 export default function RegistroBarbero() {
   const router = useRouter()
@@ -161,6 +162,9 @@ export default function RegistroBarbero() {
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
+            <div className="flex justify-center mb-6">
+              <Logo size="lg" withText={true} />
+            </div>
             <h1 className="text-4xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>
               Únete a Nuestro Equipo
             </h1>

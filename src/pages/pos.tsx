@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import CobrarForm from '@/components/pos/CobrarForm'
 import ResumenDia from '@/components/pos/ResumenDia'
 import ListaVentas from '@/components/pos/ListaVentas'
+import Logo from '@/components/shared/Logo'
 
 export default function POSPage() {
   const router = useRouter()
@@ -69,6 +70,7 @@ export default function POSPage() {
           <div className="max-w-full px-4 sm:px-6 lg:px-8 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
+                <Logo size="md" withText={false} />
                 <h1 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>
                   <i className="fas fa-cash-register mr-2"></i>
                   CHAMOS BARBERÍA - POS
