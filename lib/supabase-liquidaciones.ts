@@ -136,11 +136,12 @@ export async function calcularComisionesPendientes(
   fechaInicio?: string,
   fechaFin?: string
 ): Promise<ComisionesPendientes> {
+  // @ts-expect-error - RPC function not defined in database types
   const { data, error } = await supabase.rpc('calcular_comisiones_pendientes', {
     p_barbero_id: barberoId,
     p_fecha_inicio: fechaInicio || null,
     p_fecha_fin: fechaFin || null
-  } as any) // Type assertion para evitar error de tipos en funciones RPC personalizadas
+  })
 
   if (error) {
     console.error('❌ Error calculando comisiones pendientes:', error)
@@ -266,11 +267,12 @@ export async function getLiquidacionById(liquidacionId: string): Promise<Liquida
  * Crear una nueva liquidación para un barbero
  */
 export async function crearLiquidacion(params: CrearLiquidacionParams): Promise<string> {
+  // @ts-expect-error - RPC function not defined in database types
   const { data, error } = await supabase.rpc('crear_liquidacion', {
     p_barbero_id: params.barbero_id,
     p_fecha_inicio: params.fecha_inicio,
     p_fecha_fin: params.fecha_fin
-  } as any) // Type assertion para evitar error de tipos en funciones RPC personalizadas
+  })
 
   if (error) {
     console.error('❌ Error creando liquidación:', error)
@@ -289,6 +291,7 @@ export async function crearLiquidacion(params: CrearLiquidacionParams): Promise<
  * Marcar una liquidación como pagada
  */
 export async function pagarLiquidacion(params: PagarLiquidacionParams): Promise<boolean> {
+  // @ts-expect-error - RPC function not defined in database types
   const { data, error } = await supabase.rpc('pagar_liquidacion', {
     p_liquidacion_id: params.liquidacion_id,
     p_metodo_pago: params.metodo_pago,
@@ -296,7 +299,7 @@ export async function pagarLiquidacion(params: PagarLiquidacionParams): Promise<
     p_monto_transferencia: params.monto_transferencia,
     p_numero_transferencia: params.numero_transferencia || null,
     p_notas: params.notas || null
-  } as any) // Type assertion para evitar error de tipos en funciones RPC personalizadas
+  })
 
   if (error) {
     console.error('❌ Error pagando liquidación:', error)
