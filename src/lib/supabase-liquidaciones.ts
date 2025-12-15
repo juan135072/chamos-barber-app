@@ -49,7 +49,7 @@ export interface Liquidacion {
   monto_efectivo: number
   monto_transferencia: number
   fecha_pago?: string
-  numero_transferencia?: string
+  referencia_transferencia?: string
   comprobante_url?: string
   notas?: string
   creada_por?: string
@@ -81,7 +81,7 @@ export interface PagarLiquidacionParams {
   metodo_pago: 'efectivo' | 'transferencia' | 'mixto'
   monto_efectivo: number
   monto_transferencia: number
-  numero_transferencia?: string
+  referencia_transferencia?: string
   notas?: string
 }
 
@@ -294,8 +294,7 @@ export async function pagarLiquidacion(params: PagarLiquidacionParams): Promise<
     p_metodo_pago: params.metodo_pago,
     p_monto_efectivo: params.monto_efectivo,
     p_monto_transferencia: params.monto_transferencia,
-    p_numero_transferencia: params.numero_transferencia || null,
-    p_notas: params.notas || null
+    p_referencia_transferencia: params.referencia_transferencia || null
   })
 
   if (error) {

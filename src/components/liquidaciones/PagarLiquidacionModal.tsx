@@ -87,7 +87,7 @@ export default function PagarLiquidacionModal({
         metodo_pago: metodoPago,
         monto_efectivo: montoEfectivo,
         monto_transferencia: montoTransferencia,
-        numero_transferencia: numeroTransferencia.trim() || undefined,
+        referencia_transferencia: numeroTransferencia.trim() || undefined,
         notas: notas.trim() || undefined
       })
 
