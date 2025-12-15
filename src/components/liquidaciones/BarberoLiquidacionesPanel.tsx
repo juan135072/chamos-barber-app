@@ -68,7 +68,7 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent-color)' }}></div>
       </div>
     )
   }
@@ -86,16 +86,19 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-primary">
+          <h1 className="text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>
             Mis Liquidaciones
           </h1>
-          <p className="text-secondary mt-1">
+          <p className="mt-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
             {barbero.nombre} {barbero.apellido}
           </p>
         </div>
         <button
           onClick={cargarDatos}
-          className="flex items-center gap-2 px-4 py-2 bg-secondary border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
         >
           <RefreshCw className="w-4 h-4" />
           Actualizar
@@ -104,70 +107,70 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
 
       {/* Resumen de Comisiones */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <div className="rounded-lg" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '2px solid var(--border-color)' rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-blue-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Total Ventas
               </p>
-              <p className="text-3xl font-bold text-blue-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
                 {barbero.total_ventas}
               </p>
             </div>
-            <TrendingUp className="w-10 h-10 text-blue-600" />
+            <TrendingUp className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm text-blue-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             Monto: {formatCLP(barbero.total_vendido)}
           </p>
         </div>
 
-        <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-yellow-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Comisiones Pendientes
               </p>
-              <p className="text-3xl font-bold text-yellow-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
                 {formatCLP(barbero.comisiones_pendientes)}
               </p>
             </div>
-            <Clock className="w-10 h-10 text-yellow-600" />
+            <Clock className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm text-yellow-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             Por liquidar
           </p>
         </div>
 
-        <div className="rounded-lg" style={{ backgroundColor: 'rgba(34, 197, 94, 0.15)', border: '2px solid rgba(34, 197, 94, 0.3)' rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid rgba(34, 197, 94, 0.3)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-green-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: '#86efac' }}>
                 Comisiones Pagadas
               </p>
-              <p className="text-3xl font-bold text-green-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: '#22c55e' }}>
                 {formatCLP(barbero.comisiones_pagadas)}
               </p>
             </div>
-            <CheckCircle className="w-10 h-10 text-green-600" />
+            <CheckCircle className="w-10 h-10" style={{ color: '#22c55e' }} />
           </div>
-          <p className="text-sm text-green-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: '#86efac' }}>
             Total recibido
           </p>
         </div>
 
-        <div className="bg-purple-50 border-2 border-purple-200 rounded-lg p-6">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--border-color)' }}>
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-purple-700 font-medium">
+              <p className="text-sm font-medium" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                 Mi Comisión
               </p>
-              <p className="text-3xl font-bold text-purple-900 mt-2">
+              <p className="text-3xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
                 {barbero.porcentaje_comision}%
               </p>
             </div>
-            <DollarSign className="w-10 h-10 text-purple-600" />
+            <DollarSign className="w-10 h-10" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
           </div>
-          <p className="text-sm text-purple-700 mt-3">
+          <p className="text-sm mt-3" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             Por cada venta
           </p>
         </div>
