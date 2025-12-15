@@ -8,7 +8,21 @@ import type { Database } from '../../../../lib/database.types'
 import toast from 'react-hot-toast'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
-type BarberoInsert = Database['public']['Tables']['barberos']['Insert']
+
+// Definir explícitamente el tipo para actualización/inserción
+interface BarberoUpdateData {
+  nombre: string
+  apellido: string
+  email: string | null
+  telefono: string | null
+  descripcion: string | null
+  instagram: string | null
+  imagen_url: string | null
+  slug: string
+  porcentaje_comision: number
+  especialidades: string[] | null
+  activo: boolean
+}
 
 const barberoSchema = z.object({
   nombre: z.string().min(2, 'Nombre debe tener al menos 2 caracteres'),
@@ -76,7 +90,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '')
 
-      const barberoData = {
+      const barberoData: BarberoUpdateData = {
         nombre: data.nombre,
         apellido: data.apellido,
         email: data.email || null,
@@ -86,21 +100,23 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         imagen_url: data.imagen_url || null,
         slug: slug,
         porcentaje_comision: data.porcentaje_comision,
-        especialidades: null as string[] | null, // Por ahora null, se puede agregar después
+        especialidades: null, // Por ahora null, se puede agregar después
         activo: data.activo
       }
 
       if (isEdit && barbero) {
-        const { error } = await supabase
-          .from('barberos')
+        // Usar una consulta directa sin tipos estrictos de Supabase
+        const { error } = await (supabase
+          .from('barberos') as any)
           .update(barberoData)
           .eq('id', barbero.id)
 
         if (error) throw error
         toast.success('Barbero actualizado exitosamente')
       } else {
-        const { error } = await supabase
-          .from('barberos')
+        // Usar una consulta directa sin tipos estrictos de Supabase
+        const { error } = await (supabase
+          .from('barberos') as any)
           .insert(barberoData)
 
         if (error) throw error
