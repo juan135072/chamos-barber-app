@@ -5,6 +5,7 @@ import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
 import toast, { Toaster } from 'react-hot-toast'
 import CitasSection from '../components/barbero/CitasSection'
 import GananciasSection from '../components/barbero/GananciasSection'
+import ChangePasswordSection from '../components/barbero/ChangePasswordSection'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 
 interface BarberoProfile {
@@ -27,7 +28,7 @@ const BarberoPanelPage: React.FC = () => {
   
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<BarberoProfile | null>(null)
-  const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias'>('citas')
+  const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias' | 'seguridad'>('citas')
   const [saving, setSaving] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -340,6 +341,22 @@ const BarberoPanelPage: React.FC = () => {
           >
             <i className="fas fa-chart-line"></i> Mis Ganancias
           </button>
+          <button
+            onClick={() => setActiveTab('seguridad')}
+            style={{
+              padding: '1rem 2rem',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'seguridad' ? '3px solid var(--accent-color)' : 'none',
+              color: activeTab === 'seguridad' ? 'var(--accent-color)' : 'var(--text-primary)',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '1rem',
+              transition: 'all 0.3s'
+            }}
+          >
+            <i className="fas fa-shield-alt"></i> Seguridad
+          </button>
         </div>
 
         {/* Content */}
@@ -349,6 +366,10 @@ const BarberoPanelPage: React.FC = () => {
 
         {activeTab === 'ganancias' && profile && (
           <GananciasSection barberoId={profile.id} />
+        )}
+
+        {activeTab === 'seguridad' && (
+          <ChangePasswordSection />
         )}
 
         {activeTab === 'perfil' && (

@@ -19,6 +19,12 @@ const BarberosTab: React.FC = () => {
   const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false)
   const [barberoToDelete, setBarberoToDelete] = useState<Barbero | null>(null)
   const [deleting, setDeleting] = useState(false)
+  
+  // Estados para Reset Password
+  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
+  const [barberoToReset, setBarberoToReset] = useState<Barbero | null>(null)
+  const [resettingPassword, setResettingPassword] = useState(false)
+  const [newPassword, setNewPassword] = useState<string | null>(null)
 
   useEffect(() => {
     loadBarberos()
@@ -129,6 +135,54 @@ const BarberosTab: React.FC = () => {
       toast.error(error.message || 'Error al eliminar permanentemente el barbero')
     } finally {
       setDeleting(false)
+    }
+  }
+
+  const handleResetPassword = (barbero: Barbero) => {
+    setBarberoToReset(barbero)
+    setNewPassword(null)
+    setShowResetPasswordModal(true)
+  }
+
+  const confirmResetPassword = async () => {
+    if (!barberoToReset) return
+
+    console.log('🔑 FRONTEND: Reseteando contraseña para barbero:', barberoToReset.id)
+
+    try {
+      setResettingPassword(true)
+      
+      // Obtener el admin user ID actual
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('No se pudo obtener el usuario admin')
+      }
+
+      const response = await fetch('/api/barberos/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barberoId: barberoToReset.id,
+          adminId: user.id
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error reseteando contraseña')
+      }
+
+      console.log('✅ FRONTEND: Contraseña reseteada:', data)
+      setNewPassword(data.password)
+      toast.success('Contraseña reseteada exitosamente')
+    } catch (error: any) {
+      console.error('❌ FRONTEND: Error resetting password:', error)
+      toast.error(error.message || 'Error al resetear contraseña')
+      setShowResetPasswordModal(false)
+      setBarberoToReset(null)
+    } finally {
+      setResettingPassword(false)
     }
   }
 
@@ -291,6 +345,18 @@ const BarberosTab: React.FC = () => {
                       >
                         <i className="fas fa-edit"></i>
                       </button>
+
+                      {/* Botón Reset Password */}
+                      {barbero.auth_user_id && (
+                        <button
+                          onClick={() => handleResetPassword(barbero)}
+                          className="text-blue-400 hover:text-blue-300"
+                          style={{ transition: 'var(--transition)' }}
+                          title="Resetear Contraseña"
+                        >
+                          <i className="fas fa-key"></i>
+                        </button>
+                      )}
                       
                       {/* Dropdown Menu for Delete Options */}
                       <div className="relative group">
@@ -386,6 +452,221 @@ const BarberosTab: React.FC = () => {
         barberoNombre={`${barberoToDelete?.nombre} ${barberoToDelete?.apellido}`}
         loading={deleting}
       />
+
+      {/* Modal para Reset Password */}
+      {showResetPasswordModal && barberoToReset && (
+        <Modal
+          isOpen={showResetPasswordModal}
+          onClose={() => {
+            setShowResetPasswordModal(false)
+            setBarberoToReset(null)
+            setNewPassword(null)
+          }}
+          title="Resetear Contraseña"
+        >
+          <div className="space-y-4">
+            {!newPassword ? (
+              <>
+                <p style={{ color: 'var(--text-primary)' }}>
+                  ¿Estás seguro de resetear la contraseña de:
+                </p>
+                <div 
+                  className="p-4 rounded-lg"
+                  style={{ 
+                    backgroundColor: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div className="flex items-center space-x-3">
+                    <img
+                      src={barberoToReset.imagen_url || 'https://via.placeholder.com/40'}
+                      alt={`${barberoToReset.nombre} ${barberoToReset.apellido}`}
+                      className="w-12 h-12 rounded-full object-cover"
+                      style={{ border: '2px solid var(--border-color)' }}
+                    />
+                    <div>
+                      <div className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                        {barberoToReset.nombre} {barberoToReset.apellido}
+                      </div>
+                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                        {barberoToReset.email}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div 
+                  className="p-3 rounded-lg flex items-start space-x-2"
+                  style={{ 
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
+                  }}
+                >
+                  <i className="fas fa-info-circle text-blue-400 mt-0.5"></i>
+                  <div className="text-sm text-blue-400">
+                    Se generará una nueva contraseña segura automáticamente.
+                    La contraseña actual dejará de funcionar.
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2 pt-4">
+                  <button
+                    onClick={() => {
+                      setShowResetPasswordModal(false)
+                      setBarberoToReset(null)
+                    }}
+                    className="px-4 py-2 rounded-lg"
+                    style={{ 
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                    disabled={resettingPassword}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={confirmResetPassword}
+                    className="px-4 py-2 rounded-lg text-white"
+                    style={{ backgroundColor: '#3b82f6' }}
+                    disabled={resettingPassword}
+                  >
+                    {resettingPassword ? (
+                      <>
+                        <i className="fas fa-spinner fa-spin mr-2"></i>
+                        Reseteando...
+                      </>
+                    ) : (
+                      <>
+                        <i className="fas fa-key mr-2"></i>
+                        Resetear Contraseña
+                      </>
+                    )}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <div 
+                  className="p-4 rounded-lg text-center"
+                  style={{ 
+                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                    border: '1px solid rgba(34, 197, 94, 0.3)'
+                  }}
+                >
+                  <i className="fas fa-check-circle text-green-400 text-4xl mb-3"></i>
+                  <h3 className="text-lg font-bold text-green-400 mb-2">
+                    ¡Contraseña Reseteada!
+                  </h3>
+                  <p className="text-sm text-green-300">
+                    La contraseña ha sido actualizada exitosamente
+                  </p>
+                </div>
+
+                <div 
+                  className="p-4 rounded-lg space-y-3"
+                  style={{ 
+                    backgroundColor: 'var(--bg-tertiary)',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wide mb-1 block" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      Email de Acceso
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={barberoToReset.email || ''}
+                        readOnly
+                        className="flex-1 px-3 py-2 rounded-lg"
+                        style={{
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border-color)'
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(barberoToReset.email || '')
+                          toast.success('Email copiado')
+                        }}
+                        className="px-3 py-2 rounded-lg"
+                        style={{ backgroundColor: 'var(--accent-color)', color: '#000' }}
+                        title="Copiar email"
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold uppercase tracking-wide mb-1 block" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      Nueva Contraseña
+                    </label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={newPassword}
+                        readOnly
+                        className="flex-1 px-3 py-2 rounded-lg font-mono"
+                        style={{
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--accent-color)',
+                          border: '1px solid var(--accent-color)',
+                          fontWeight: 'bold'
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(newPassword)
+                          toast.success('Contraseña copiada')
+                        }}
+                        className="px-3 py-2 rounded-lg"
+                        style={{ backgroundColor: 'var(--accent-color)', color: '#000' }}
+                        title="Copiar contraseña"
+                      >
+                        <i className="fas fa-copy"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div 
+                  className="p-3 rounded-lg flex items-start space-x-2"
+                  style={{ 
+                    backgroundColor: 'rgba(234, 179, 8, 0.1)',
+                    border: '1px solid rgba(234, 179, 8, 0.3)'
+                  }}
+                >
+                  <i className="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
+                  <div className="text-sm text-yellow-300">
+                    <strong>IMPORTANTE:</strong> Copia estas credenciales ahora.
+                    Esta es la única vez que verás la contraseña.
+                    Envíala al barbero por un canal seguro (WhatsApp, email, etc.)
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-4">
+                  <button
+                    onClick={() => {
+                      setShowResetPasswordModal(false)
+                      setBarberoToReset(null)
+                      setNewPassword(null)
+                    }}
+                    className="px-4 py-2 rounded-lg"
+                    style={{ 
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#000'
+                    }}
+                  >
+                    <i className="fas fa-check mr-2"></i>
+                    Entendido
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

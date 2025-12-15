@@ -95,9 +95,31 @@ export default async function handler(
       throw new Error(funcError.message)
     }
 
+    // PASO 3: Enviar email con credenciales (opcional, no bloquea la aprobación)
+    try {
+      const { emailService } = await import('../../../lib/email-service')
+      const emailSent = await emailService.sendCredentials({
+        email: solicitud.email,
+        password: password,
+        nombre: solicitud.nombre,
+        apellido: solicitud.apellido
+      })
+
+      if (emailSent) {
+        console.log('✅ [Aprobar] Email enviado exitosamente')
+      } else {
+        console.warn('⚠️ [Aprobar] Email no se pudo enviar, pero la aprobación fue exitosa')
+      }
+    } catch (emailError) {
+      console.error('❌ [Aprobar] Error sending email (no crítico):', emailError)
+      // No fallar la aprobación si el email falla
+    }
+
     return res.status(200).json({
       success: true,
       ...result,
+      email: solicitud.email,
+      password: password,
       message: 'Barbero aprobado exitosamente'
     })
 
