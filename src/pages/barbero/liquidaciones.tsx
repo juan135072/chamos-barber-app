@@ -71,8 +71,8 @@ export default function BarberoLiquidacionesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: 'var(--accent-color)' }}></div>
       </div>
     )
   }
@@ -82,33 +82,39 @@ export default function BarberoLiquidacionesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
       {/* Header con navegación */}
-      <header className="bg-white border-b border-gray-200 shadow-sm">
+      <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.push('/barbero-panel')}
-                className="text-blue-600 hover:text-blue-800 font-medium"
+                className="font-medium transition-colors"
+                style={{ color: 'var(--accent-color)' }}
+                onMouseEnter={(e) => e.currentTarget.style.color = '#B8941F'}
+                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--accent-color)'}
               >
                 ← Volver al Panel
               </button>
-              <span className="text-gray-300">|</span>
-              <h1 className="text-xl font-bold text-gray-900">
+              <span style={{ color: 'var(--border-color)' }}>|</span>
+              <h1 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
                 Mis Liquidaciones
               </h1>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">
-                Hola, <strong>{barberoNombre}</strong>
+              <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                Hola, <strong style={{ color: 'var(--accent-color)' }}>{barberoNombre}</strong>
               </span>
               <button
                 onClick={async () => {
                   await supabase.auth.signOut()
                   router.push('/login')
                 }}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-4 py-2 rounded-lg transition-colors"
+                style={{ backgroundColor: '#dc2626', color: 'white' }}
+                onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
               >
                 Cerrar Sesión
               </button>
