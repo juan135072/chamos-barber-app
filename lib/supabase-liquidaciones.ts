@@ -136,8 +136,7 @@ export async function calcularComisionesPendientes(
   fechaInicio?: string,
   fechaFin?: string
 ): Promise<ComisionesPendientes> {
-  // @ts-expect-error - RPC function not defined in database types
-  const { data, error } = await supabase.rpc('calcular_comisiones_pendientes', {
+  const { data, error } = await (supabase as any).rpc('calcular_comisiones_pendientes', {
     p_barbero_id: barberoId,
     p_fecha_inicio: fechaInicio || null,
     p_fecha_fin: fechaFin || null
@@ -267,8 +266,7 @@ export async function getLiquidacionById(liquidacionId: string): Promise<Liquida
  * Crear una nueva liquidación para un barbero
  */
 export async function crearLiquidacion(params: CrearLiquidacionParams): Promise<string> {
-  // @ts-expect-error - RPC function not defined in database types
-  const { data, error } = await supabase.rpc('crear_liquidacion', {
+  const { data, error } = await (supabase as any).rpc('crear_liquidacion', {
     p_barbero_id: params.barbero_id,
     p_fecha_inicio: params.fecha_inicio,
     p_fecha_fin: params.fecha_fin
@@ -291,8 +289,7 @@ export async function crearLiquidacion(params: CrearLiquidacionParams): Promise<
  * Marcar una liquidación como pagada
  */
 export async function pagarLiquidacion(params: PagarLiquidacionParams): Promise<boolean> {
-  // @ts-expect-error - RPC function not defined in database types
-  const { data, error } = await supabase.rpc('pagar_liquidacion', {
+  const { data, error } = await (supabase as any).rpc('pagar_liquidacion', {
     p_liquidacion_id: params.liquidacion_id,
     p_metodo_pago: params.metodo_pago,
     p_monto_efectivo: params.monto_efectivo,
