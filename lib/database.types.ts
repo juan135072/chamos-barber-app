@@ -666,6 +666,61 @@ export interface Database {
           created_at?: string
         }
       }
+      horarios_atencion: {
+        Row: {
+          id: string
+          barbero_id: string
+          dia_semana: number
+          hora_inicio: string
+          hora_fin: string
+          activo: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          barbero_id: string
+          dia_semana: number
+          hora_inicio: string
+          hora_fin: string
+          activo?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          barbero_id?: string
+          dia_semana?: number
+          hora_inicio?: string
+          hora_fin?: string
+          activo?: boolean
+          created_at?: string
+        }
+      }
+      horarios_bloqueados: {
+        Row: {
+          id: string
+          barbero_id: string
+          fecha_hora_inicio: string
+          fecha_hora_fin: string
+          motivo: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          barbero_id: string
+          fecha_hora_inicio: string
+          fecha_hora_fin: string
+          motivo?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          barbero_id?: string
+          fecha_hora_inicio?: string
+          fecha_hora_fin?: string
+          motivo?: string | null
+          created_at?: string
+        }
+      }
     }
     Functions: {
       get_horarios_disponibles: {
@@ -692,6 +747,9 @@ export interface Database {
       }
     }
     Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
       [_ in never]: never
     }
     Views: {
