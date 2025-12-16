@@ -117,30 +117,19 @@ export default function OneSignalProvider({
           })
         }
 
-        // Cargar script de OneSignal si no está cargado
-        if (!(window as any).OneSignal) {
-          console.log('📥 [OneSignal] Cargando SDK desde CDN...')
-          const script = document.createElement('script')
-          script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
-          script.async = true
-          script.defer = true
-          
-          script.onload = () => {
-            console.log('✅ [OneSignal] SDK cargado desde CDN')
-            // Esperar un poco para que OneSignal se inicialice
-            setTimeout(configureOneSignal, 500)
+        // Esperar a que OneSignal esté disponible (cargado desde _document.tsx)
+        const waitForOneSignal = () => {
+          if ((window as any).OneSignal) {
+            console.log('✅ [OneSignal] SDK detectado y disponible')
+            configureOneSignal()
+          } else {
+            console.log('⏳ [OneSignal] Esperando a que el SDK esté disponible...')
+            setTimeout(waitForOneSignal, 100)
           }
-          
-          script.onerror = () => {
-            console.error('❌ [OneSignal] Error cargando SDK desde CDN')
-          }
-          
-          document.head.appendChild(script)
-        } else {
-          // El SDK ya está cargado
-          console.log('✅ [OneSignal] SDK ya estaba cargado')
-          configureOneSignal()
         }
+        
+        // Iniciar la espera
+        waitForOneSignal()
       } catch (error) {
         console.error('❌ Error inicializando OneSignal:', error)
       }
