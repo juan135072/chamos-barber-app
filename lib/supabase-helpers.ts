@@ -329,10 +329,10 @@ export const chamosSupabase = {
     }
   },
 
-  // Horarios de trabajo
-  getHorariosTrabajo: async (barbero_id?: string) => {
+  // Horarios de atención (horarios_atencion)
+  getHorariosAtencion: async (barbero_id?: string) => {
     let query = supabase
-      .from('horarios_trabajo')
+      .from('horarios_atencion')
       .select(`
         *,
         barberos (nombre, apellido)
@@ -348,9 +348,9 @@ export const chamosSupabase = {
     return data
   },
 
-  createHorarioTrabajo: async (horario: Database['public']['Tables']['horarios_trabajo']['Insert']) => {
+  createHorarioAtencion: async (horario: Database['public']['Tables']['horarios_atencion']['Insert']) => {
     const { data, error } = await supabase
-      .from('horarios_trabajo')
+      .from('horarios_atencion')
       .insert([horario] as any)
       .select()
       .single()
@@ -359,10 +359,10 @@ export const chamosSupabase = {
     return data
   },
 
-  updateHorarioTrabajo: async (id: string, updates: Database['public']['Tables']['horarios_trabajo']['Update']) => {
+  updateHorarioAtencion: async (id: string, updates: Database['public']['Tables']['horarios_atencion']['Update']) => {
     const { data, error } = await supabase
-      .from('horarios_trabajo')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .from('horarios_atencion')
+      .update(updates as any)
       .eq('id', id)
       .select()
       .single()
@@ -371,13 +371,85 @@ export const chamosSupabase = {
     return data
   },
 
-  deleteHorarioTrabajo: async (id: string) => {
+  deleteHorarioAtencion: async (id: string) => {
     const { error } = await supabase
-      .from('horarios_trabajo')
+      .from('horarios_atencion')
       .delete()
       .eq('id', id)
     
     if (error) throw error
+  },
+
+  // Horarios bloqueados (horarios_bloqueados)
+  getHorariosBloqueados: async (barbero_id?: string) => {
+    let query = supabase
+      .from('horarios_bloqueados')
+      .select(`
+        *,
+        barberos (nombre, apellido)
+      `)
+
+    if (barbero_id) {
+      query = query.eq('barbero_id', barbero_id)
+    }
+
+    const { data, error } = await query.order('fecha_hora_inicio', { ascending: false })
+    
+    if (error) throw error
+    return data
+  },
+
+  createHorarioBloqueado: async (bloqueo: Database['public']['Tables']['horarios_bloqueados']['Insert']) => {
+    const { data, error } = await supabase
+      .from('horarios_bloqueados')
+      .insert([bloqueo] as any)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  updateHorarioBloqueado: async (id: string, updates: Database['public']['Tables']['horarios_bloqueados']['Update']) => {
+    const { data, error } = await supabase
+      .from('horarios_bloqueados')
+      .update(updates as any)
+      .eq('id', id)
+      .select()
+      .single()
+    
+    if (error) throw error
+    return data
+  },
+
+  deleteHorarioBloqueado: async (id: string) => {
+    const { error } = await supabase
+      .from('horarios_bloqueados')
+      .delete()
+      .eq('id', id)
+    
+    if (error) throw error
+  },
+
+  // DEPRECATED: Legacy functions for backward compatibility
+  getHorariosTrabajo: async (barbero_id?: string) => {
+    console.warn('⚠️ getHorariosTrabajo is deprecated. Use getHorariosAtencion instead.')
+    return chamosSupabase.getHorariosAtencion(barbero_id)
+  },
+
+  createHorarioTrabajo: async (horario: Database['public']['Tables']['horarios_atencion']['Insert']) => {
+    console.warn('⚠️ createHorarioTrabajo is deprecated. Use createHorarioAtencion instead.')
+    return chamosSupabase.createHorarioAtencion(horario)
+  },
+
+  updateHorarioTrabajo: async (id: string, updates: Database['public']['Tables']['horarios_atencion']['Update']) => {
+    console.warn('⚠️ updateHorarioTrabajo is deprecated. Use updateHorarioAtencion instead.')
+    return chamosSupabase.updateHorarioAtencion(id, updates)
+  },
+
+  deleteHorarioTrabajo: async (id: string) => {
+    console.warn('⚠️ deleteHorarioTrabajo is deprecated. Use deleteHorarioAtencion instead.')
+    return chamosSupabase.deleteHorarioAtencion(id)
   },
 
   // Portfolio

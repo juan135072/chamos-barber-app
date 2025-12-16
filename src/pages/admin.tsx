@@ -266,6 +266,7 @@ export default function AdminPage() {
                 { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt', shortName: 'Citas' },
                 { id: 'clientes', name: 'Clientes', icon: 'fas fa-user-friends', shortName: 'Clientes' },
                 { id: 'barberos', name: 'Barberos', icon: 'fas fa-users', shortName: 'Barberos' },
+                { id: 'horarios', name: 'Horarios', icon: 'fas fa-clock', shortName: 'Horarios' },
                 { id: 'comisiones', name: 'Comisiones', icon: 'fas fa-percentage', shortName: 'Comisiones' },
                 { id: 'ganancias', name: 'Ganancias', icon: 'fas fa-chart-line', shortName: 'Ganancias' },
                 { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut', shortName: 'Servicios' },
