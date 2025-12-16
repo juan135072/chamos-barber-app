@@ -33,6 +33,33 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  // Cerrar sidebar en móvil al cambiar de tab
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    // En móvil, cerrar sidebar después de seleccionar
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false)
+    }
+  }
+
+  // Ajustar sidebar inicial según tamaño de pantalla
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false)
+      } else {
+        setSidebarOpen(true)
+      }
+    }
+
+    // Ejecutar al montar
+    handleResize()
+
+    // Escuchar cambios de tamaño
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
   
   // Estados para datos
   const [barberos, setBarberos] = useState<Barbero[]>([])
@@ -158,7 +185,9 @@ export default function AdminPage() {
       <div className="min-h-screen" style={{ backgroundColor: '#0A0A0A' }}>
         {/* Sidebar */}
         <aside
-          className="fixed left-0 top-0 h-screen transition-all duration-300 z-40"
+          className={`fixed left-0 top-0 h-screen transition-all duration-300 z-30 ${
+            sidebarOpen ? 'sidebar-open' : ''
+          }`}
           style={{
             width: sidebarOpen ? '240px' : '72px',
             backgroundColor: '#111',
@@ -185,11 +214,11 @@ export default function AdminPage() {
           </div>
 
           {/* Navigation */}
-          <nav className="py-4">
+          <nav className="py-4 overflow-y-auto" style={{ height: 'calc(100vh - 64px - 112px)' }}>
             {menuItems.map(item => (
               <button
                 key={item.id}
-                onClick={() => setActiveTab(item.id)}
+                onClick={() => handleTabChange(item.id)}
                 className="w-full flex items-center px-4 py-3 transition-all group"
                 style={{
                   backgroundColor: activeTab === item.id ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
@@ -237,12 +266,13 @@ export default function AdminPage() {
           className="transition-all duration-300"
           style={{
             marginLeft: sidebarOpen ? '240px' : '72px',
-            minHeight: '100vh'
+            minHeight: '100vh',
+            position: 'relative'
           }}
         >
           {/* Top Bar */}
           <header 
-            className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30"
+            className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-20"
             style={{ 
               backgroundColor: '#0A0A0A',
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
@@ -428,13 +458,21 @@ export default function AdminPage() {
           </div>
         </main>
 
+        {/* Mobile Sidebar Overlay */}
+        {sidebarOpen && (
+          <div
+            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
         {/* Mobile Sidebar Toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-50 shadow-lg"
           style={{ backgroundColor: '#D4AF37', color: '#000' }}
         >
-          <i className="fas fa-bars"></i>
+          <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
         </button>
       </div>
     </>
