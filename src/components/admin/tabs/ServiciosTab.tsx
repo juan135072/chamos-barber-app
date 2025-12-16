@@ -18,7 +18,7 @@ const ServiciosTab: React.FC = () => {
   const [servicioToDelete, setServicioToDelete] = useState<Servicio | null>(null)
   const [deleting, setDeleting] = useState(false)
   const [filterCategoria, setFilterCategoria] = useState<string>('all')
-  const [categorias, setCategorias] = useState<Array<{ nombre: string; icono: string | null }>>([])
+  const [categorias, setCategorias] = useState<Array<{ nombre: string }>>([])
 
   useEffect(() => {
     loadServicios()
@@ -42,8 +42,8 @@ const ServiciosTab: React.FC = () => {
     try {
       const { data, error } = await supabase
         .from('categorias_servicios')
-        .select('nombre, icono')
-        .eq('activa', true)
+        .select('nombre')
+        .eq('activo', true)
         .order('orden', { ascending: true })
 
       if (error) throw error
@@ -52,11 +52,11 @@ const ServiciosTab: React.FC = () => {
       console.error('Error loading categorias:', error)
       // Fallback a categorías por defecto si hay error
       setCategorias([
-        { nombre: 'cortes', icono: '✂️' },
-        { nombre: 'barbas', icono: '🧔' },
-        { nombre: 'tintes', icono: '🎨' },
-        { nombre: 'tratamientos', icono: '💆' },
-        { nombre: 'combos', icono: '⭐' }
+        { nombre: 'cortes' },
+        { nombre: 'barbas' },
+        { nombre: 'tintes' },
+        { nombre: 'tratamientos' },
+        { nombre: 'combos' }
       ])
     }
   }
@@ -125,18 +125,19 @@ const ServiciosTab: React.FC = () => {
     }
   }
 
-  const handleTogglePopular = async (servicio: Servicio) => {
-    try {
-      await chamosSupabase.updateServicio(servicio.id, {
-        popular: !servicio.popular
-      })
-      toast.success(`Servicio ${!servicio.popular ? 'marcado como popular' : 'desmarcado'}`)
-      loadServicios()
-    } catch (error) {
-      console.error('Error toggling popular:', error)
-      toast.error('Error al actualizar servicio')
-    }
-  }
+  // NOTA: La columna 'popular' no existe en la tabla servicios
+  // const handleTogglePopular = async (servicio: Servicio) => {
+  //   try {
+  //     await chamosSupabase.updateServicio(servicio.id, {
+  //       popular: !servicio.popular
+  //     })
+  //     toast.success(`Servicio ${!servicio.popular ? 'marcado como popular' : 'desmarcado'}`)
+  //     loadServicios()
+  //   } catch (error) {
+  //     console.error('Error toggling popular:', error)
+  //     toast.error('Error al actualizar servicio')
+  //   }
+  // }
 
   if (loading) {
     return (
@@ -198,7 +199,6 @@ const ServiciosTab: React.FC = () => {
               border: '1px solid var(--border-color)'
             }}
           >
-            {cat.icono && <span>{cat.icono}</span>}
             <span>{cat.nombre.charAt(0).toUpperCase() + cat.nombre.slice(1)}</span>
           </button>
         ))}
@@ -231,12 +231,7 @@ const ServiciosTab: React.FC = () => {
                       <div>
                         <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{servicio.nombre}</div>
                         <div className="text-sm line-clamp-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{servicio.descripcion}</div>
-                        {servicio.popular && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800 mt-1">
-                            <i className="fas fa-star mr-1"></i>
-                            Popular
-                          </span>
-                        )}
+                        {/* Popular badge removed - column doesn't exist in DB */}
                       </div>
                     </div>
                   </td>
@@ -262,13 +257,7 @@ const ServiciosTab: React.FC = () => {
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <button
-                      onClick={() => handleTogglePopular(servicio)}
-                      className="text-yellow-600 hover:text-yellow-900 mr-3"
-                      title={servicio.popular ? 'Desmarcar popular' : 'Marcar como popular'}
-                    >
-                      <i className={`fas fa-star ${servicio.popular ? '' : 'far'}`}></i>
-                    </button>
+                    {/* Popular button removed - column doesn't exist in DB */}
                     <button
                       onClick={() => handleEdit(servicio)}
                       className="text-amber-600 hover:text-amber-900 mr-3"

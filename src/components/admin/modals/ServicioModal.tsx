@@ -16,9 +16,8 @@ const servicioSchema = z.object({
   duracion_minutos: z.number().min(5).max(300),
   categoria: z.string().min(1, 'Categoría requerida'),
   imagen_url: z.string().url('URL inválida').optional().or(z.literal('')),
-  popular: z.boolean(),
-  orden_display: z.number().min(0),
   activo: z.boolean()
+  // NOTA: popular y orden_display no existen en la tabla servicios
 })
 
 type ServicioFormData = z.infer<typeof servicioSchema>
@@ -46,8 +45,6 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
       duracion_minutos: servicio.duracion_minutos,
       categoria: servicio.categoria,
       imagen_url: servicio.imagen_url || '',
-      popular: servicio.popular,
-      orden_display: servicio.orden_display,
       activo: servicio.activo
     } : {
       nombre: '',
@@ -56,8 +53,6 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
       duracion_minutos: 30,
       categoria: 'cortes',
       imagen_url: '',
-      popular: false,
-      orden_display: 0,
       activo: true
     }
   })
@@ -122,8 +117,6 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
               duracion_minutos: data.duracion_minutos,
               categoria: data.categoria,
               imagen_url: null,
-              popular: data.popular,
-              orden_display: data.orden_display,
               activo: data.activo
             }
             const newServicio = await chamosSupabase.createServicio(tempServicioData)
@@ -150,8 +143,6 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
         duracion_minutos: data.duracion_minutos,
         categoria: data.categoria,
         imagen_url: imagenUrl,
-        popular: data.popular,
-        orden_display: data.orden_display,
         activo: data.activo
       }
 
@@ -218,10 +209,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Orden *</label>
-            <input type="number" {...register('orden_display', { valueAsNumber: true })} min="0" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500" />
-          </div>
+          {/* Campo orden_display removido - columna no existe en DB */}
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Servicio</label>
@@ -299,10 +287,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
             <input type="hidden" {...register('imagen_url')} />
           </div>
 
-          <div className="flex items-center">
-            <input type="checkbox" {...register('popular')} className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded" />
-            <label className="ml-2 text-sm text-gray-700">Marcar como popular</label>
-          </div>
+          {/* Campo popular removido - columna no existe en DB */}
 
           <div className="flex items-center">
             <input type="checkbox" {...register('activo')} className="h-4 w-4 text-amber-600 focus:ring-amber-500 border-gray-300 rounded" />
