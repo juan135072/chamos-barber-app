@@ -23,10 +23,10 @@ export function useDisponibilidad(barberoId: string | null, disponibilidadInicia
         setError(null)
 
         // Usar función RPC para actualizar disponibilidad
-        const { data, error: rpcError } = await supabase.rpc('toggle_disponibilidad_barbero', {
+        const { data, error: rpcError } = await (supabase as any).rpc('toggle_disponibilidad_barbero', {
           barbero_uuid: barberoId,
           nueva_disponibilidad: nuevaDisponibilidad
-        } as any)
+        })
 
         if (rpcError) throw rpcError
 

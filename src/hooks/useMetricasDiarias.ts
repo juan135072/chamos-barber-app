@@ -29,9 +29,9 @@ export function useMetricasDiarias(barberoId: string | null) {
       setError(null)
 
       // Usar función RPC optimizada
-      const { data, error: rpcError } = await supabase.rpc('obtener_metricas_diarias_barbero', {
+      const { data, error: rpcError } = await (supabase as any).rpc('obtener_metricas_diarias_barbero', {
         barbero_uuid: barberoId
-      } as any)
+      })
 
       if (rpcError) throw rpcError
 

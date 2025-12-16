@@ -76,9 +76,14 @@ export function useBarberAppAuth() {
       }
 
       // 5. Actualizar última conexión
-      await supabase.rpc('actualizar_ultima_conexion', {
-        barbero_uuid: (barbero as any).id
-      } as any)
+      const barberoData = barbero as any
+      try {
+        await (supabase as any).rpc('actualizar_ultima_conexion', {
+          barbero_uuid: barberoData.id
+        })
+      } catch (err) {
+        console.warn('Error actualizando última conexión:', err)
+      }
 
       // 6. Crear sesión de barbero
       const barberoSession: BarberoSession = {
