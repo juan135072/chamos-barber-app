@@ -6,6 +6,7 @@ import { supabase } from '../../lib/initSupabase'
 import { Toaster } from 'react-hot-toast'
 import OneSignalProvider from '../components/providers/OneSignalProvider'
 import OneSignalDebugPanel from '../components/debug/OneSignalDebugPanel'
+import OneSignalTestButton from '../components/debug/OneSignalTestButton'
 import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
@@ -68,7 +69,8 @@ export default function App({ Component, pageProps }: AppProps) {
             },
           }}
         />
-        {/* Panel de debug de OneSignal (solo en desarrollo) */}
+        {/* Componentes de debug de OneSignal (solo en desarrollo) */}
+        <OneSignalTestButton />
         <OneSignalDebugPanel />
       </OneSignalProvider>
     </SessionContextProvider>

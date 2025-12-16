@@ -39,11 +39,17 @@ export default function OneSignalProvider({
     // Función para inicializar OneSignal
     const initOneSignal = async () => {
       try {
+        console.log('🔔 [OneSignal] Iniciando configuración...')
+        console.log('🔔 [OneSignal] App ID:', finalAppId)
+        console.log('🔔 [OneSignal] AutoPrompt:', autoPrompt)
+        
         // Importar SDK de OneSignal
         const OneSignalDeferred = (window as any).OneSignalDeferred || []
         
         // Configurar OneSignal
         OneSignalDeferred.push(async function(OneSignal: any) {
+          console.log('🔔 [OneSignal] Iniciando OneSignal.init()...')
+          
           await OneSignal.init({
             appId: finalAppId,
             allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
@@ -67,12 +73,13 @@ export default function OneSignalProvider({
             serviceWorkerPath: '/OneSignalSDKWorker.js'
           })
 
-          console.log('✅ OneSignal inicializado correctamente')
+          console.log('✅ [OneSignal] Inicializado correctamente')
           setInitialized(true)
 
           // Verificar estado de permisos actual
           const permission = await OneSignal.Notifications.permission
-          console.log('🔔 Estado de permisos:', permission)
+          console.log('🔔 [OneSignal] Estado de permisos:', permission)
+          console.log('🔔 [OneSignal] Tipo de permiso:', typeof permission, permission)
           setPermissionStatus(permission)
 
           // Escuchar cambios de permisos
@@ -88,11 +95,21 @@ export default function OneSignalProvider({
           const isSubscribed = await OneSignal.User.PushSubscription.optedIn
           console.log('📬 Usuario suscrito:', isSubscribed)
 
-          // Si autoPrompt está habilitado y no hay permisos, mostrar prompt
+          // Si autoPrompt está habilitado y no hay permisos, solicitar automáticamente
           if (autoPrompt && permission === 'default') {
-            setTimeout(() => {
-              setShowPrompt(true)
-            }, 2000) // Esperar 2 segundos antes de mostrar el prompt
+            setTimeout(async () => {
+              console.log('🔔 Solicitando permisos de notificación automáticamente...')
+              try {
+                // Solicitar permisos directamente con OneSignal
+                const granted = await OneSignal.Notifications.requestPermission()
+                console.log('✅ Resultado de permisos:', granted ? 'Concedido' : 'Denegado')
+                setPermissionStatus(granted ? 'granted' : 'denied')
+              } catch (error) {
+                console.error('❌ Error solicitando permisos:', error)
+                // Fallback: mostrar el prompt personalizado
+                setShowPrompt(true)
+              }
+            }, 2000) // Esperar 2 segundos antes de solicitar
           }
         })
 
