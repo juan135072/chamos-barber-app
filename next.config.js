@@ -83,7 +83,7 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://kit.fontawesome.com https://static.cloudflareinsights.com https://cdn.onesignal.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://kit.fontawesome.com https://static.cloudflareinsights.com https://cdn.onesignal.com https://api.onesignal.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com data:",
