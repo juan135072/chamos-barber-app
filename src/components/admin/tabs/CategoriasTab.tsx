@@ -26,8 +26,63 @@ const CategoriasTab: React.FC = () => {
   const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
+    // Verificar sesión y permisos al cargar
+    checkPermissions()
     loadCategorias()
   }, [])
+
+  const checkPermissions = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        console.error('❌ [CategoriasTab] No hay sesión activa')
+        return
+      }
+
+      console.log('🔐 [CategoriasTab] Verificando permisos de usuario:', {
+        userId: session.user.id,
+        email: session.user.email
+      })
+
+      // Verificar que el usuario esté en admin_users
+      const { data: adminUser, error } = await supabase
+        .from('admin_users')
+        .select('id, email, rol, activo')
+        .eq('id', session.user.id)
+        .single()
+
+      if (error) {
+        console.error('❌ [CategoriasTab] Error verificando admin_user:', error)
+        toast.error('Error al verificar permisos')
+        return
+      }
+
+      if (!adminUser) {
+        console.error('❌ [CategoriasTab] Usuario no encontrado en admin_users')
+        toast.error('Usuario no autorizado')
+        return
+      }
+
+      console.log('👤 [CategoriasTab] Datos del usuario admin:', adminUser)
+
+      if (adminUser.rol !== 'admin') {
+        console.warn('⚠️ [CategoriasTab] Usuario no es admin - rol:', adminUser.rol)
+        toast.error('No tienes permisos de administrador')
+        return
+      }
+
+      if (!adminUser.activo) {
+        console.error('❌ [CategoriasTab] Usuario admin no está activo')
+        toast.error('Tu cuenta de administrador está desactivada')
+        return
+      }
+
+      console.log('✅ [CategoriasTab] Permisos verificados correctamente')
+    } catch (error) {
+      console.error('💥 [CategoriasTab] Error verificando permisos:', error)
+    }
+  }
 
   const loadCategorias = async () => {
     try {
@@ -105,18 +160,38 @@ const CategoriasTab: React.FC = () => {
 
   const handleToggleActive = async (categoria: Categoria) => {
     try {
-      const { error } = await supabase
+      console.log('🔄 [CategoriasTab] Intentando cambiar estado de categoría:', {
+        id: categoria.id,
+        nombre: categoria.nombre,
+        estado_actual: categoria.activa,
+        nuevo_estado: !categoria.activa
+      })
+
+      const { data, error, count } = await supabase
         .from('categorias_servicios')
         .update({ activa: !categoria.activa })
         .eq('id', categoria.id)
+        .select()
 
-      if (error) throw error
+      console.log('📋 [CategoriasTab] Respuesta de Supabase:', { data, error, count })
 
+      if (error) {
+        console.error('❌ [CategoriasTab] Error de Supabase:', error)
+        throw error
+      }
+
+      // Verificar si se actualizó alguna fila (puede fallar silenciosamente por RLS)
+      if (!data || data.length === 0) {
+        console.error('❌ [CategoriasTab] No se actualizó ninguna fila - Posible problema de permisos RLS')
+        throw new Error('No se pudo actualizar la categoría. Verifica tus permisos de administrador.')
+      }
+
+      console.log('✅ [CategoriasTab] Categoría actualizada exitosamente')
       toast.success(`Categoría ${!categoria.activa ? 'activada' : 'desactivada'}`)
       loadCategorias()
-    } catch (error) {
-      console.error('Error toggling categoria:', error)
-      toast.error('Error al actualizar categoría')
+    } catch (error: any) {
+      console.error('💥 [CategoriasTab] Error en handleToggleActive:', error)
+      toast.error(error.message || 'Error al actualizar categoría')
     }
   }
 
