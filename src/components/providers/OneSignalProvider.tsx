@@ -97,19 +97,13 @@ export default function OneSignalProvider({
             // Verificar si el usuario ya está suscrito
             console.log('📬 Usuario suscrito:', OneSignal.User.PushSubscription.optedIn)
 
-            // Si autoPrompt está habilitado y no hay permisos, solicitar automáticamente
+            // Si autoPrompt está habilitado y no hay permisos, mostrar prompt personalizado
             if (autoPrompt && permStatus === 'default') {
               setTimeout(() => {
-                console.log('🔔 Solicitando permisos de notificación automáticamente...')
-                OneSignal.Notifications.requestPermission().then((granted: boolean) => {
-                  console.log('✅ Resultado de permisos:', granted ? 'Concedido' : 'Denegado')
-                  setPermissionStatus(granted ? 'granted' : 'denied')
-                }).catch((error: any) => {
-                  console.error('❌ Error solicitando permisos:', error)
-                  // Fallback: mostrar el prompt personalizado
-                  setShowPrompt(true)
-                })
-              }, 2000) // Esperar 2 segundos antes de solicitar
+                console.log('🔔 Mostrando prompt de notificaciones...')
+                // Mostrar el prompt personalizado que requiere interacción del usuario
+                setShowPrompt(true)
+              }, 2000) // Esperar 2 segundos antes de mostrar
             }
           })
         }
