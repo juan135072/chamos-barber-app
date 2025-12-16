@@ -43,14 +43,18 @@ export default function OneSignalProvider({
         console.log('🔔 [OneSignal] App ID:', finalAppId)
         console.log('🔔 [OneSignal] AutoPrompt:', autoPrompt)
         
-        // Importar SDK de OneSignal
-        const OneSignalDeferred = (window as any).OneSignalDeferred || []
-        
-        // Configurar OneSignal
-        OneSignalDeferred.push(async function(OneSignal: any) {
+        // Función que configura OneSignal una vez que el SDK está disponible
+        const configureOneSignal = () => {
+          const OneSignal = (window as any).OneSignal
+          
+          if (!OneSignal) {
+            console.error('❌ [OneSignal] SDK no disponible después de cargar')
+            return
+          }
+
           console.log('🔔 [OneSignal] Iniciando OneSignal.init()...')
           
-          await OneSignal.init({
+          OneSignal.init({
             appId: finalAppId,
             allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
             
@@ -71,59 +75,71 @@ export default function OneSignalProvider({
               scope: '/'
             },
             serviceWorkerPath: '/OneSignalSDKWorker.js'
-          })
+          }).then(() => {
+            console.log('✅ [OneSignal] Inicializado correctamente')
+            setInitialized(true)
 
-          console.log('✅ [OneSignal] Inicializado correctamente')
-          setInitialized(true)
+            // Verificar estado de permisos actual
+            OneSignal.Notifications.permission.then((permission: boolean) => {
+              const permStatus = permission ? 'granted' : 'default'
+              console.log('🔔 [OneSignal] Estado de permisos:', permStatus)
+              setPermissionStatus(permStatus as 'default' | 'granted' | 'denied')
 
-          // Verificar estado de permisos actual
-          const permission = await OneSignal.Notifications.permission
-          console.log('🔔 [OneSignal] Estado de permisos:', permission)
-          console.log('🔔 [OneSignal] Tipo de permiso:', typeof permission, permission)
-          setPermissionStatus(permission)
-
-          // Escuchar cambios de permisos
-          OneSignal.Notifications.addEventListener('permissionChange', (granted: boolean) => {
-            console.log('🔔 Permiso cambió:', granted ? 'concedido' : 'denegado')
-            setPermissionStatus(granted ? 'granted' : 'denied')
-            if (granted) {
-              setShowPrompt(false)
-            }
-          })
-
-          // Verificar si el usuario ya está suscrito
-          const isSubscribed = await OneSignal.User.PushSubscription.optedIn
-          console.log('📬 Usuario suscrito:', isSubscribed)
-
-          // Si autoPrompt está habilitado y no hay permisos, solicitar automáticamente
-          if (autoPrompt && permission === 'default') {
-            setTimeout(async () => {
-              console.log('🔔 Solicitando permisos de notificación automáticamente...')
-              try {
-                // Solicitar permisos directamente con OneSignal
-                const granted = await OneSignal.Notifications.requestPermission()
-                console.log('✅ Resultado de permisos:', granted ? 'Concedido' : 'Denegado')
+              // Escuchar cambios de permisos
+              OneSignal.Notifications.addEventListener('permissionChange', (granted: boolean) => {
+                console.log('🔔 Permiso cambió:', granted ? 'concedido' : 'denegado')
                 setPermissionStatus(granted ? 'granted' : 'denied')
-              } catch (error) {
-                console.error('❌ Error solicitando permisos:', error)
-                // Fallback: mostrar el prompt personalizado
-                setShowPrompt(true)
+                if (granted) {
+                  setShowPrompt(false)
+                }
+              })
+
+              // Verificar si el usuario ya está suscrito
+              OneSignal.User.PushSubscription.optedIn.then((isSubscribed: boolean) => {
+                console.log('📬 Usuario suscrito:', isSubscribed)
+              })
+
+              // Si autoPrompt está habilitado y no hay permisos, solicitar automáticamente
+              if (autoPrompt && permStatus === 'default') {
+                setTimeout(() => {
+                  console.log('🔔 Solicitando permisos de notificación automáticamente...')
+                  OneSignal.Notifications.requestPermission().then((granted: boolean) => {
+                    console.log('✅ Resultado de permisos:', granted ? 'Concedido' : 'Denegado')
+                    setPermissionStatus(granted ? 'granted' : 'denied')
+                  }).catch((error: any) => {
+                    console.error('❌ Error solicitando permisos:', error)
+                    // Fallback: mostrar el prompt personalizado
+                    setShowPrompt(true)
+                  })
+                }, 2000) // Esperar 2 segundos antes de solicitar
               }
-            }, 2000) // Esperar 2 segundos antes de solicitar
-          }
-        })
+            })
+          })
+        }
 
         // Cargar script de OneSignal si no está cargado
-        if (!(window as any).OneSignalDeferred) {
+        if (!(window as any).OneSignal) {
+          console.log('📥 [OneSignal] Cargando SDK desde CDN...')
           const script = document.createElement('script')
           script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
           script.async = true
           script.defer = true
-          document.head.appendChild(script)
           
           script.onload = () => {
-            console.log('✅ OneSignal SDK cargado')
+            console.log('✅ [OneSignal] SDK cargado desde CDN')
+            // Esperar un poco para que OneSignal se inicialice
+            setTimeout(configureOneSignal, 500)
           }
+          
+          script.onerror = () => {
+            console.error('❌ [OneSignal] Error cargando SDK desde CDN')
+          }
+          
+          document.head.appendChild(script)
+        } else {
+          // El SDK ya está cargado
+          console.log('✅ [OneSignal] SDK ya estaba cargado')
+          configureOneSignal()
         }
       } catch (error) {
         console.error('❌ Error inicializando OneSignal:', error)
