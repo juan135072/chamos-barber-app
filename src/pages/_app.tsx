@@ -9,17 +9,20 @@ import OneSignalDebugPanel from '../components/debug/OneSignalDebugPanel'
 import '../styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
-  // Registrar Service Worker para PWA
+  // Nota: OneSignal manejará su propio service worker (OneSignalSDKWorker.js)
+  // No registramos sw.js aquí para evitar conflictos
   useEffect(() => {
+    // Limpiar cualquier service worker anterior de /sw.js
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker
-        .register('/sw.js')
-        .then((registration) => {
-          console.log('✅ Service Worker registrado:', registration.scope)
+      navigator.serviceWorker.getRegistrations().then((registrations) => {
+        registrations.forEach((registration) => {
+          // Solo desregistrar sw.js, no el de OneSignal
+          if (registration.active && registration.active.scriptURL.includes('/sw.js')) {
+            console.log('🗑️ Desregistrando sw.js para evitar conflictos con OneSignal')
+            registration.unregister()
+          }
         })
-        .catch((error) => {
-          console.error('❌ Error registrando Service Worker:', error)
-        })
+      })
     }
   }, [])
 

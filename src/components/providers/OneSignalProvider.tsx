@@ -64,8 +64,7 @@ export default function OneSignalProvider({
             serviceWorkerParam: {
               scope: '/'
             },
-
-            serviceWorkerPath: 'OneSignalSDKWorker.js'
+            serviceWorkerPath: '/OneSignalSDKWorker.js'
           })
 
           console.log('✅ OneSignal inicializado correctamente')
