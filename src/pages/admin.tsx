@@ -32,7 +32,7 @@ export default function AdminPage() {
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   
   // Estados para datos
   const [barberos, setBarberos] = useState<Barbero[]>([])
@@ -62,7 +62,6 @@ export default function AdminPage() {
       const adminData = await chamosSupabase.getAdminUser(session.user.email)
       console.log('[Admin] Datos obtenidos:', { email: adminData?.email, rol: adminData?.rol, activo: adminData?.activo })
       
-      // IMPORTANTE: Verificar explícitamente que el rol sea 'admin'
       if (!adminData || adminData.rol !== 'admin') {
         console.error('[Admin] ❌ ACCESO DENEGADO - Rol:', adminData?.rol)
         await supabase.auth.signOut()
@@ -72,8 +71,6 @@ export default function AdminPage() {
       
       console.log('[Admin] ✅ Acceso autorizado - Usuario es admin')
       setAdminUser(adminData)
-      
-      // Cargar datos iniciales
       loadDashboardData()
     } catch (error) {
       console.error('[Admin] Error checking admin access:', error)
@@ -86,20 +83,16 @@ export default function AdminPage() {
 
   const loadDashboardData = async () => {
     try {
-      // Cargar barberos
       const barberosData = await chamosSupabase.getBarberos()
       setBarberos(barberosData)
 
-      // Cargar servicios
       const serviciosData = await chamosSupabase.getServicios()
       setServicios(serviciosData)
 
-      // Cargar citas
       const citasData = await chamosSupabase.getCitas()
       const citasArray = (citasData || []) as Cita[]
       setCitas(citasArray)
 
-      // Calcular estadísticas
       const today = new Date().toISOString().split('T')[0]
       const citasHoy = citasArray.filter((c: Cita) => c.fecha === today).length || 0
       const citasPendientes = citasArray.filter((c: Cita) => c.estado === 'pendiente').length || 0
@@ -108,7 +101,7 @@ export default function AdminPage() {
         totalCitas: citasArray.length || 0,
         citasHoy,
         citasPendientes,
-        ingresosMes: 0 // Se puede calcular basado en citas confirmadas
+        ingresosMes: 0
       })
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -120,12 +113,31 @@ export default function AdminPage() {
     router.push('/login')
   }
 
+  const menuItems = [
+    { id: 'dashboard', icon: 'fas fa-th-large', label: 'Dashboard' },
+    { id: 'citas', icon: 'fas fa-calendar-alt', label: 'Citas' },
+    { id: 'clientes', icon: 'fas fa-users', label: 'Clientes' },
+    { id: 'barberos', icon: 'fas fa-user-tie', label: 'Barberos' },
+    { id: 'horarios', icon: 'fas fa-clock', label: 'Horarios' },
+    { id: 'servicios', icon: 'fas fa-scissors', label: 'Servicios' },
+    { id: 'categorias', icon: 'fas fa-tags', label: 'Categorías' },
+    { id: 'comisiones', icon: 'fas fa-percentage', label: 'Comisiones' },
+    { id: 'ganancias', icon: 'fas fa-chart-line', label: 'Ganancias' },
+    { id: 'solicitudes', icon: 'fas fa-user-plus', label: 'Solicitudes' },
+  ]
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0A0A0A' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 mx-auto mb-4" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
-          <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Verificando acceso de administrador...</p>
+          <div 
+            className="w-12 h-12 mx-auto mb-4 rounded-full animate-spin"
+            style={{ 
+              border: '2px solid rgba(212, 175, 55, 0.2)',
+              borderTopColor: '#D4AF37'
+            }}
+          />
+          <p style={{ color: '#888', fontSize: '14px' }}>Cargando...</p>
         </div>
       </div>
     )
@@ -138,362 +150,292 @@ export default function AdminPage() {
   return (
     <>
       <Head>
-        <title>Panel de Administración - Chamos Barber</title>
+        <title>Admin - Chamos Barber</title>
         <meta name="description" content="Panel de administración Chamos Barber" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        {/* Header */}
-        <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              {/* Logo y título */}
-              <div className="flex items-center space-x-2 sm:space-x-4">
-                <Logo size="sm" withText={false} className="sm:hidden" />
-                <Logo size="md" withText={true} className="hidden sm:flex" />
-                <div className="hidden md:block border-l border-gray-700 h-10 mx-2"></div>
-                <div className="hidden md:block">
-                  <h1 className="text-sm font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Administración</h1>
-                  <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Administrador</p>
-                </div>
-              </div>
+      <div className="min-h-screen" style={{ backgroundColor: '#0A0A0A' }}>
+        {/* Sidebar */}
+        <aside
+          className="fixed left-0 top-0 h-screen transition-all duration-300 z-40"
+          style={{
+            width: sidebarOpen ? '240px' : '72px',
+            backgroundColor: '#111',
+            borderRight: '1px solid rgba(255, 255, 255, 0.05)'
+          }}
+        >
+          {/* Logo */}
+          <div 
+            className="h-16 flex items-center justify-between px-4"
+            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
+          >
+            {sidebarOpen ? (
+              <Logo size="sm" withText={true} />
+            ) : (
+              <Logo size="sm" withText={false} />
+            )}
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="hidden lg:block p-2 rounded hover:bg-white hover:bg-opacity-5 transition-all"
+              style={{ color: '#666' }}
+            >
+              <i className={`fas fa-${sidebarOpen ? 'angles-left' : 'angles-right'}`}></i>
+            </button>
+          </div>
 
-              {/* Desktop menu */}
-              <div className="hidden md:flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
-                  <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
-                </div>
-                <button
-                  onClick={() => router.push('/admin/liquidaciones')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{ 
-                    backgroundColor: '#8B5CF6', 
-                    color: 'white',
-                    transition: 'var(--transition)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#7C3AED'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#8B5CF6'}
-                >
-                  <i className="fas fa-money-bill-wave mr-2"></i>
-                  Liquidaciones
-                </button>
-                <button
-                  onClick={() => router.push('/pos')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{ 
-                    backgroundColor: '#10B981', 
-                    color: 'white',
-                    transition: 'var(--transition)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
-                >
-                  <i className="fas fa-cash-register mr-2"></i>
-                  Abrir POS
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{ 
-                    backgroundColor: 'var(--accent-color)', 
-                    color: 'var(--bg-primary)',
-                    transition: 'var(--transition)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
-                >
-                  <i className="fas fa-sign-out-alt mr-2"></i>
-                  Cerrar Sesión
-                </button>
-              </div>
-
-              {/* Mobile menu button */}
+          {/* Navigation */}
+          <nav className="py-4">
+            {menuItems.map(item => (
               <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="md:hidden inline-flex items-center justify-center p-2 rounded-md"
-                style={{ color: 'var(--text-primary)' }}
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className="w-full flex items-center px-4 py-3 transition-all group"
+                style={{
+                  backgroundColor: activeTab === item.id ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
+                  borderLeft: activeTab === item.id ? '3px solid #D4AF37' : '3px solid transparent',
+                  color: activeTab === item.id ? '#D4AF37' : '#666'
+                }}
               >
-                <i className={`fas ${mobileMenuOpen ? 'fa-times' : 'fa-bars'} text-xl`}></i>
+                <i 
+                  className={`${item.icon} ${sidebarOpen ? 'w-5' : 'w-full text-center'}`}
+                  style={{ fontSize: '18px' }}
+                />
+                {sidebarOpen && (
+                  <span className="ml-3 text-sm font-medium">{item.label}</span>
+                )}
               </button>
+            ))}
+          </nav>
+
+          {/* Bottom Actions */}
+          <div 
+            className="absolute bottom-0 left-0 right-0"
+            style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}
+          >
+            <button
+              onClick={() => router.push('/pos')}
+              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
+              style={{ color: '#10B981' }}
+            >
+              <i className={`fas fa-cash-register ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+              {sidebarOpen && <span className="ml-3 text-sm font-medium">POS</span>}
+            </button>
+            <button
+              onClick={() => router.push('/admin/liquidaciones')}
+              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
+              style={{ color: '#8B5CF6' }}
+            >
+              <i className={`fas fa-money-bill-wave ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+              {sidebarOpen && <span className="ml-3 text-sm font-medium">Liquidaciones</span>}
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content */}
+        <main
+          className="transition-all duration-300"
+          style={{
+            marginLeft: sidebarOpen ? '240px' : '72px',
+            minHeight: '100vh'
+          }}
+        >
+          {/* Top Bar */}
+          <header 
+            className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-30"
+            style={{ 
+              backgroundColor: '#0A0A0A',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+            }}
+          >
+            <div>
+              <h1 
+                className="text-lg font-semibold"
+                style={{ color: '#FFF', letterSpacing: '-0.02em' }}
+              >
+                {menuItems.find(m => m.id === activeTab)?.label || 'Dashboard'}
+              </h1>
             </div>
 
-            {/* Mobile menu */}
-            {mobileMenuOpen && (
-              <div className="md:hidden pb-4 pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
-                <div className="flex flex-col space-y-3">
-                  <div className="px-3 py-2 rounded" style={{ backgroundColor: 'var(--bg-primary)' }}>
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{adminUser.nombre}</p>
-                    <p className="text-xs" style={{ color: 'var(--accent-color)' }}>{adminUser.rol}</p>
-                  </div>
-                  <button
-                    onClick={() => router.push('/pos')}
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md w-full"
-                    style={{ 
-                      backgroundColor: '#10B981', 
-                      color: 'white',
-                      transition: 'var(--transition)'
-                    }}
-                  >
-                    <i className="fas fa-cash-register mr-2"></i>
-                    Abrir POS
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md w-full"
-                    style={{ 
-                      backgroundColor: 'var(--accent-color)', 
-                      color: 'var(--bg-primary)',
-                      transition: 'var(--transition)'
-                    }}
-                  >
-                    <i className="fas fa-sign-out-alt mr-2"></i>
-                    Cerrar Sesión
-                  </button>
+            <div className="flex items-center gap-4">
+              {/* User Menu */}
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:block text-right">
+                  <p className="text-sm font-medium" style={{ color: '#FFF' }}>
+                    {adminUser.nombre}
+                  </p>
+                  <p className="text-xs" style={{ color: '#666' }}>
+                    {adminUser.rol}
+                  </p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-5"
+                  style={{ color: '#666' }}
+                  title="Cerrar sesión"
+                >
+                  <i className="fas fa-sign-out-alt"></i>
+                </button>
+              </div>
+            </div>
+          </header>
+
+          {/* Content Area */}
+          <div className="p-6 lg:p-8">
+            {/* Dashboard */}
+            {activeTab === 'dashboard' && (
+              <div className="space-y-6">
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {[
+                    { 
+                      label: 'Total Citas', 
+                      value: stats.totalCitas, 
+                      icon: 'fa-calendar-check',
+                      color: '#D4AF37'
+                    },
+                    { 
+                      label: 'Citas Hoy', 
+                      value: stats.citasHoy, 
+                      icon: 'fa-clock',
+                      color: '#3B82F6'
+                    },
+                    { 
+                      label: 'Pendientes', 
+                      value: stats.citasPendientes, 
+                      icon: 'fa-hourglass-half',
+                      color: '#F59E0B'
+                    },
+                    { 
+                      label: 'Barberos', 
+                      value: barberos.length, 
+                      icon: 'fa-users',
+                      color: '#10B981'
+                    },
+                  ].map((stat, idx) => (
+                    <div
+                      key={idx}
+                      className="p-6 rounded-xl transition-all hover:scale-105"
+                      style={{
+                        backgroundColor: '#111',
+                        border: '1px solid rgba(255, 255, 255, 0.05)'
+                      }}
+                    >
+                      <div className="flex items-center justify-between mb-4">
+                        <div 
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ 
+                            backgroundColor: `${stat.color}20`,
+                            color: stat.color
+                          }}
+                        >
+                          <i className={`fas ${stat.icon}`}></i>
+                        </div>
+                      </div>
+                      <div className="text-3xl font-bold mb-1" style={{ color: '#FFF' }}>
+                        {stat.value}
+                      </div>
+                      <div className="text-sm" style={{ color: '#666' }}>
+                        {stat.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Recent Appointments */}
+                <div
+                  className="rounded-xl p-6"
+                  style={{
+                    backgroundColor: '#111',
+                    border: '1px solid rgba(255, 255, 255, 0.05)'
+                  }}
+                >
+                  <h2 className="text-lg font-semibold mb-6" style={{ color: '#FFF' }}>
+                    Citas Recientes
+                  </h2>
+                  
+                  {citas.length === 0 ? (
+                    <div className="text-center py-12">
+                      <i className="fas fa-calendar-times text-4xl mb-3" style={{ color: '#333' }}></i>
+                      <p style={{ color: '#666' }}>No hay citas registradas</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {citas.slice(0, 5).map((cita) => (
+                        <div
+                          key={cita.id}
+                          className="flex items-center justify-between p-4 rounded-lg transition-all hover:bg-white hover:bg-opacity-5"
+                          style={{ border: '1px solid rgba(255, 255, 255, 0.05)' }}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div 
+                              className="w-10 h-10 rounded-full flex items-center justify-center"
+                              style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37' }}
+                            >
+                              <i className="fas fa-user"></i>
+                            </div>
+                            <div>
+                              <p className="font-medium" style={{ color: '#FFF', fontSize: '14px' }}>
+                                {cita.cliente_nombre}
+                              </p>
+                              <p style={{ color: '#666', fontSize: '13px' }}>
+                                {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'Sin barbero'}
+                                {cita.servicios && ` • ${cita.servicios.nombre}`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p style={{ color: '#FFF', fontSize: '13px' }}>
+                              {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES', {
+                                day: '2-digit',
+                                month: 'short'
+                              })}
+                            </p>
+                            <span
+                              className="inline-block px-2 py-1 rounded text-xs font-medium mt-1"
+                              style={{
+                                backgroundColor: 
+                                  cita.estado === 'confirmada' ? 'rgba(16, 185, 129, 0.2)' :
+                                  cita.estado === 'pendiente' ? 'rgba(245, 158, 11, 0.2)' :
+                                  'rgba(239, 68, 68, 0.2)',
+                                color: 
+                                  cita.estado === 'confirmada' ? '#10B981' :
+                                  cita.estado === 'pendiente' ? '#F59E0B' :
+                                  '#EF4444'
+                              }}
+                            >
+                              {cita.estado}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
+
+            {/* Other Tabs */}
+            {activeTab === 'clientes' && <ClientesTab />}
+            {activeTab === 'barberos' && <BarberosTab />}
+            {activeTab === 'comisiones' && <ComisionesTab />}
+            {activeTab === 'ganancias' && <GananciasTab />}
+            {activeTab === 'servicios' && <ServiciosTab />}
+            {activeTab === 'categorias' && <CategoriasTab />}
+            {activeTab === 'horarios' && <HorariosTab />}
+            {activeTab === 'citas' && <CitasTab />}
+            {activeTab === 'solicitudes' && <SolicitudesTab />}
           </div>
-        </header>
+        </main>
 
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-          {/* Navigation Tabs */}
-          <div className="mb-6 -mx-4 sm:mx-0" style={{ borderBottom: '1px solid var(--border-color)' }}>
-            <nav className="-mb-px flex space-x-4 sm:space-x-8 overflow-x-auto px-4 sm:px-0 scrollbar-hide">
-              {[
-                { id: 'dashboard', name: 'Dashboard', icon: 'fas fa-chart-pie', shortName: 'Home' },
-                { id: 'citas', name: 'Citas', icon: 'fas fa-calendar-alt', shortName: 'Citas' },
-                { id: 'clientes', name: 'Clientes', icon: 'fas fa-user-friends', shortName: 'Clientes' },
-                { id: 'barberos', name: 'Barberos', icon: 'fas fa-users', shortName: 'Barberos' },
-                { id: 'horarios', name: 'Horarios', icon: 'fas fa-clock', shortName: 'Horarios' },
-                { id: 'comisiones', name: 'Comisiones', icon: 'fas fa-percentage', shortName: 'Comisiones' },
-                { id: 'ganancias', name: 'Ganancias', icon: 'fas fa-chart-line', shortName: 'Ganancias' },
-                { id: 'servicios', name: 'Servicios', icon: 'fas fa-cut', shortName: 'Servicios' },
-                { id: 'categorias', name: 'Categorías', icon: 'fas fa-tags', shortName: 'Categorías' },
-                { id: 'solicitudes', name: 'Solicitudes', icon: 'fas fa-user-plus', shortName: 'Solicitudes' }
-              ].map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className="whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm flex items-center space-x-1 sm:space-x-2 flex-shrink-0"
-                  style={{
-                    borderColor: activeTab === tab.id ? 'var(--accent-color)' : 'transparent',
-                    color: activeTab === tab.id ? 'var(--accent-color)' : 'var(--text-primary)',
-                    opacity: activeTab === tab.id ? 1 : 0.7,
-                    transition: 'var(--transition)'
-                  }}
-                >
-                  <i className={tab.icon}></i>
-                  <span className="hidden sm:inline">{tab.name}</span>
-                  <span className="sm:hidden">{tab.shortName}</span>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Dashboard Content */}
-          {activeTab === 'dashboard' && (
-            <div>
-              <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--accent-color)' }}>Dashboard</h2>
-              
-              {/* Stats Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-6 mb-8">
-                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-3 sm:p-5">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
-                      <div className="flex-shrink-0 mb-2 sm:mb-0">
-                        <i className="fas fa-calendar-check text-xl sm:text-2xl" style={{ color: 'var(--accent-color)' }}></i>
-                      </div>
-                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
-                        <dl>
-                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Citas</dt>
-                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.totalCitas}</dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-3 sm:p-5">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
-                      <div className="flex-shrink-0 mb-2 sm:mb-0">
-                        <i className="fas fa-clock text-xl sm:text-2xl text-blue-400"></i>
-                      </div>
-                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
-                        <dl>
-                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Citas Hoy</dt>
-                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasHoy}</dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-3 sm:p-5">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
-                      <div className="flex-shrink-0 mb-2 sm:mb-0">
-                        <i className="fas fa-hourglass-half text-xl sm:text-2xl text-yellow-400"></i>
-                      </div>
-                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
-                        <dl>
-                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Pendientes</dt>
-                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{stats.citasPendientes}</dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="overflow-hidden rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-                  <div className="p-3 sm:p-5">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center">
-                      <div className="flex-shrink-0 mb-2 sm:mb-0">
-                        <i className="fas fa-users text-xl sm:text-2xl text-green-400"></i>
-                      </div>
-                      <div className="sm:ml-5 w-full sm:w-0 sm:flex-1">
-                        <dl>
-                          <dt className="text-xs sm:text-sm font-medium truncate" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barberos</dt>
-                          <dd className="text-base sm:text-lg font-medium" style={{ color: 'var(--text-primary)' }}>{barberos.length}</dd>
-                        </dl>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Recent Citas */}
-              <div className="shadow rounded-lg" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="px-3 sm:px-4 py-4 sm:py-5">
-                  <h3 className="text-base sm:text-lg leading-6 font-medium mb-3 sm:mb-4" style={{ color: 'var(--accent-color)' }}>
-                    Citas Recientes
-                  </h3>
-                  
-                  {/* Desktop table */}
-                  <div className="hidden md:block overflow-x-auto">
-                    <table className="min-w-full" style={{ borderTop: '1px solid var(--border-color)' }}>
-                      <thead style={{ backgroundColor: 'var(--bg-primary)' }}>
-                        <tr>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Cliente</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barbero</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Servicio</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Fecha</th>
-                          <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Estado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {citas.slice(0, 5).map((cita, index) => (
-                          <tr key={cita.id} style={{ borderTop: index > 0 ? '1px solid var(--border-color)' : 'none' }}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                              {cita.cliente_nombre}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                              {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                              {cita.servicios?.nombre || 'N/A'}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                              {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES')}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                                cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
-                                cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                                cita.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
-                                'bg-gray-100 text-gray-800'
-                              }`}>
-                                {cita.estado}
-                              </span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
-                  {/* Mobile cards */}
-                  <div className="md:hidden space-y-3">
-                    {citas.slice(0, 5).map((cita) => (
-                      <div key={cita.id} className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-                        <div className="flex justify-between items-start mb-2">
-                          <div>
-                            <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{cita.cliente_nombre}</p>
-                            <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                              {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'N/A'}
-                            </p>
-                          </div>
-                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                            cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
-                            cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                            cita.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
-                            'bg-gray-100 text-gray-800'
-                          }`}>
-                            {cita.estado}
-                          </span>
-                        </div>
-                        <div className="text-xs space-y-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                          <p><i className="fas fa-cut mr-1" style={{ color: 'var(--accent-color)' }}></i> {cita.servicios?.nombre || 'N/A'}</p>
-                          <p><i className="fas fa-calendar mr-1" style={{ color: 'var(--accent-color)' }}></i> {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES')}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Clientes Tab */}
-          {activeTab === 'clientes' && <ClientesTab />}
-
-          {/* Barberos Tab */}
-          {activeTab === 'barberos' && <BarberosTab />}
-
-          {/* Comisiones Tab */}
-          {activeTab === 'comisiones' && <ComisionesTab />}
-
-          {/* Ganancias Tab */}
-          {activeTab === 'ganancias' && <GananciasTab />}
-
-          {/* Servicios Tab */}
-          {activeTab === 'servicios' && <ServiciosTab />}
-
-          {/* Categorías Tab */}
-          {activeTab === 'categorias' && <CategoriasTab />}
-
-          {/* Horarios Tab */}
-          {activeTab === 'horarios' && <HorariosTab />}
-
-          {/* Configuración Tab */}
-          {activeTab === 'configuracion' && <ConfiguracionTab />}
-
-          {/* Citas Tab */}
-          {activeTab === 'citas' && <CitasTab />}
-
-          {/* Solicitudes Tab */}
-          {activeTab === 'solicitudes' && <SolicitudesTab />}
-
-          {/* Usuarios Tab (placeholder) */}
-          {activeTab === 'usuarios' && (
-            <div className="text-center py-12 rounded-lg shadow" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <i className="fas fa-user-shield text-6xl mb-4" style={{ color: 'var(--accent-color)', opacity: 0.5 }}></i>
-              <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Gestión de Usuarios</h3>
-              <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Creación de cuentas de barberos en desarrollo.</p>
-            </div>
-          )}
-
-          {/* Portfolio Tab (placeholder) */}
-          {activeTab === 'portfolio' && (
-            <div className="text-center py-12 rounded-lg shadow" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-              <i className="fas fa-images text-6xl mb-4" style={{ color: 'var(--accent-color)', opacity: 0.5 }}></i>
-              <h3 className="text-lg font-medium mb-2" style={{ color: 'var(--text-primary)' }}>Gestión de Portfolio</h3>
-              <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Upload de trabajos en desarrollo.</p>
-            </div>
-          )}
-        </div>
+        {/* Mobile Sidebar Toggle */}
+        <button
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-50 shadow-lg"
+          style={{ backgroundColor: '#D4AF37', color: '#000' }}
+        >
+          <i className="fas fa-bars"></i>
+        </button>
       </div>
     </>
   )

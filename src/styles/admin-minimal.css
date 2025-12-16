@@ -1,0 +1,294 @@
+/* === MINIMAL ADMIN DESIGN === */
+
+/* Scrollbar personalizado minimalista */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Smooth transitions */
+* {
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+/* Focus states minimalistas */
+button:focus,
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.3);
+}
+
+/* Hover states sutiles */
+.hover-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Skeleton loaders */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Cards minimalistas */
+.minimal-card {
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s ease;
+}
+
+.minimal-card:hover {
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Buttons minimalistas */
+.btn-minimal {
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-minimal-primary {
+  background: #D4AF37;
+  color: #000;
+}
+
+.btn-minimal-primary:hover {
+  background: #C5A028;
+}
+
+.btn-minimal-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFF;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-minimal-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.btn-minimal-ghost {
+  background: transparent;
+  color: #666;
+  border: 1px solid transparent;
+}
+
+.btn-minimal-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #FFF;
+}
+
+/* Inputs minimalistas */
+.input-minimal {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #FFF;
+  font-size: 14px;
+  width: 100%;
+}
+
+.input-minimal:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #D4AF37;
+}
+
+.input-minimal::placeholder {
+  color: #666;
+}
+
+/* Select minimalista */
+.select-minimal {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #FFF;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.select-minimal:focus {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: #D4AF37;
+}
+
+/* Badges minimalistas */
+.badge-minimal {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.badge-success {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10B981;
+}
+
+.badge-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #F59E0B;
+}
+
+.badge-error {
+  background: rgba(239, 68, 68, 0.2);
+  color: #EF4444;
+}
+
+.badge-info {
+  background: rgba(59, 130, 246, 0.2);
+  color: #3B82F6;
+}
+
+/* Dividers minimalistas */
+.divider-minimal {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.05);
+  margin: 24px 0;
+}
+
+/* Empty states */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  color: #333;
+  margin-bottom: 16px;
+}
+
+.empty-state-text {
+  color: #666;
+  font-size: 14px;
+}
+
+/* Responsive utilities */
+@media (max-width: 1024px) {
+  .minimal-card {
+    padding: 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .minimal-card {
+    padding: 12px;
+    border-radius: 8px;
+  }
+  
+  .btn-minimal {
+    padding: 10px 16px;
+    font-size: 13px;
+  }
+}
+
+/* Typography minimalista */
+.text-minimal-h1 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #FFF;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.text-minimal-h2 {
+  font-size: 24px;
+  font-weight: 600;
+  color: #FFF;
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+.text-minimal-h3 {
+  font-size: 18px;
+  font-weight: 600;
+  color: #FFF;
+  line-height: 1.4;
+}
+
+.text-minimal-body {
+  font-size: 14px;
+  color: #AAA;
+  line-height: 1.5;
+}
+
+.text-minimal-caption {
+  font-size: 12px;
+  color: #666;
+  line-height: 1.4;
+}
+
+/* Spacing utilities */
+.space-y-minimal > * + * {
+  margin-top: 16px;
+}
+
+.space-y-minimal-sm > * + * {
+  margin-top: 8px;
+}
+
+.space-y-minimal-lg > * + * {
+  margin-top: 24px;
+}

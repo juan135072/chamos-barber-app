@@ -8,6 +8,7 @@ import OneSignalProvider from '../components/providers/OneSignalProvider'
 import OneSignalDebugPanel from '../components/debug/OneSignalDebugPanel'
 import OneSignalTestButton from '../components/debug/OneSignalTestButton'
 import '../styles/globals.css'
+import '../styles/admin-minimal.css'
 
 export default function App({ Component, pageProps }: AppProps) {
   // Nota: OneSignal manejará su propio service worker (OneSignalSDKWorker.js)
