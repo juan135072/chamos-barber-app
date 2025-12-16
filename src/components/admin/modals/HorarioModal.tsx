@@ -6,10 +6,11 @@ import toast from 'react-hot-toast'
 type HorarioAtencion = Database['public']['Tables']['horarios_atencion']['Row']
 
 interface HorarioModalProps {
+  isOpen: boolean
   horario: HorarioAtencion | null
   barberoId: string
   onClose: () => void
-  onSave: () => void
+  onSuccess: () => void
 }
 
 const diasSemana = [
@@ -22,7 +23,7 @@ const diasSemana = [
   { num: 0, nombre: 'Domingo' }
 ]
 
-const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose, onSave }) => {
+const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId, onClose, onSuccess }) => {
   const supabase = useSupabaseClient<Database>()
   const [loading, setLoading] = useState(false)
   
@@ -34,6 +35,17 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (horario) {
+      setFormData({
+        dia_semana: horario.dia_semana,
+        hora_inicio: horario.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
+        hora_fin: horario.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
+        activo: horario.activo
+      })
+    }
+  }, [horario])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -102,7 +114,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose
         toast.success('Horario creado correctamente')
       }
 
-      onSave()
+      onSuccess()
     } catch (error: any) {
       console.error('Error guardando horario:', error)
       toast.error(error.message || 'Error al guardar horario')
@@ -111,19 +123,44 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose
     }
   }
 
+  if (!isOpen) return null
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose()
+      }}
+    >
+      <div 
+        className="rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)'
+        }}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div 
+          className="px-6 py-4"
+          style={{ borderBottom: '1px solid var(--border-color)' }}
+        >
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 
+              className="text-xl font-bold flex items-center gap-2"
+              style={{ color: 'var(--accent-color)' }}
+            >
+              <i className="fas fa-clock"></i>
               {horario?.id ? 'Editar Horario' : 'Nuevo Horario'}
             </h3>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
               disabled={loading}
+              className="transition-all hover:scale-110"
+              style={{ 
+                color: 'var(--text-primary)',
+                opacity: loading ? 0.5 : 0.7
+              }}
             >
               <i className="fas fa-times text-xl"></i>
             </button>
@@ -131,17 +168,27 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="px-6 py-4">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 py-5">
+          <div className="space-y-5">
             {/* Día de la semana */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label 
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <i className="fas fa-calendar-day mr-2" style={{ color: 'var(--accent-color)' }}></i>
                 Día de la Semana
               </label>
               <select
                 value={formData.dia_semana}
                 onChange={(e) => setFormData({ ...formData, dia_semana: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                className="w-full px-4 py-2.5 rounded-lg transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  opacity: (loading || !!horario?.id) ? 0.6 : 1
+                }}
                 disabled={loading || !!horario?.id}
               >
                 {diasSemana.map(dia => (
@@ -149,7 +196,11 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose
                 ))}
               </select>
               {horario?.id && (
-                <p className="mt-1 text-xs text-gray-500">
+                <p 
+                  className="mt-2 text-xs italic"
+                  style={{ color: 'var(--text-primary)', opacity: 0.6 }}
+                >
+                  <i className="fas fa-info-circle mr-1"></i>
                   No puedes cambiar el día de un horario existente
                 </p>
               )}
@@ -157,90 +208,150 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ horario, barberoId, onClose
 
             {/* Hora de inicio */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label 
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <i className="far fa-clock mr-2" style={{ color: 'var(--accent-color)' }}></i>
                 Hora de Inicio
               </label>
               <input
                 type="time"
                 value={formData.hora_inicio}
                 onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                  errors.hora_inicio ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className="w-full px-4 py-2.5 rounded-lg transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: errors.hora_inicio ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                }}
                 disabled={loading}
               />
               {errors.hora_inicio && (
-                <p className="mt-1 text-xs text-red-600">{errors.hora_inicio}</p>
+                <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                  <i className="fas fa-exclamation-circle mr-1"></i>
+                  {errors.hora_inicio}
+                </p>
               )}
             </div>
 
             {/* Hora de fin */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label 
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <i className="far fa-clock mr-2" style={{ color: 'var(--accent-color)' }}></i>
                 Hora de Fin
               </label>
               <input
                 type="time"
                 value={formData.hora_fin}
                 onChange={(e) => setFormData({ ...formData, hora_fin: e.target.value })}
-                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 ${
-                  errors.hora_fin ? 'border-red-500' : 'border-gray-300'
-                }`}
+                className="w-full px-4 py-2.5 rounded-lg transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: errors.hora_fin ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                }}
                 disabled={loading}
               />
               {errors.hora_fin && (
-                <p className="mt-1 text-xs text-red-600">{errors.hora_fin}</p>
+                <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                  <i className="fas fa-exclamation-circle mr-1"></i>
+                  {errors.hora_fin}
+                </p>
               )}
             </div>
 
             {/* Estado */}
-            <div>
-              <label className="flex items-center space-x-2 cursor-pointer">
+            <div className="pt-2">
+              <label className="flex items-center space-x-3 cursor-pointer group">
                 <input
                   type="checkbox"
                   checked={formData.activo}
                   onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
-                  className="w-4 h-4 text-amber-600 border-gray-300 rounded focus:ring-amber-500"
+                  className="w-5 h-5 rounded transition-all"
+                  style={{ accentColor: 'var(--accent-color)' }}
                   disabled={loading}
                 />
-                <span className="text-sm font-medium text-gray-700">
+                <span 
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <i 
+                    className={`fas ${formData.activo ? 'fa-toggle-on' : 'fa-toggle-off'} mr-2`}
+                    style={{ color: formData.activo ? 'var(--accent-color)' : 'var(--text-primary)' }}
+                  ></i>
                   Horario activo
                 </span>
               </label>
-              <p className="mt-1 text-xs text-gray-500">
+              <p 
+                className="mt-2 ml-8 text-xs italic"
+                style={{ color: 'var(--text-primary)', opacity: 0.6 }}
+              >
                 Los horarios inactivos no estarán disponibles para reservas
               </p>
             </div>
 
             {/* Info Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <div className="flex">
+            <div 
+              className="rounded-lg p-4"
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                border: '1px solid rgba(59, 130, 246, 0.3)'
+              }}
+            >
+              <div className="flex gap-3">
                 <div className="flex-shrink-0">
-                  <i className="fas fa-info-circle text-blue-400"></i>
+                  <i className="fas fa-info-circle" style={{ color: '#3B82F6' }}></i>
                 </div>
-                <div className="ml-2 text-xs text-blue-700">
-                  Los clientes podrán reservar citas en este rango horario los días seleccionados.
-                </div>
+                <p 
+                  className="text-xs leading-relaxed"
+                  style={{ color: 'var(--text-primary)', opacity: 0.9 }}
+                >
+                  Los clientes podrán reservar citas en este rango horario los días seleccionados. 
+                  Puedes desactivar temporalmente un horario sin eliminarlo.
+                </p>
               </div>
             </div>
           </div>
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-2">
+        <div 
+          className="px-6 py-4 flex justify-end gap-3"
+          style={{ 
+            backgroundColor: 'var(--bg-primary)',
+            borderTop: '1px solid var(--border-color)' 
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
+            style={{
+              backgroundColor: 'transparent',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              opacity: loading ? 0.5 : 1
+            }}
           >
+            <i className="fas fa-times mr-2"></i>
             Cancelar
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 bg-amber-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
+            style={{
+              backgroundColor: 'var(--accent-color)',
+              color: 'var(--bg-primary)',
+              border: 'none',
+              opacity: loading ? 0.7 : 1
+            }}
           >
             {loading ? (
               <>

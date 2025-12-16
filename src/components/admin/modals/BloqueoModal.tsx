@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../../lib/database.types'
 import toast from 'react-hot-toast'
@@ -6,13 +6,14 @@ import toast from 'react-hot-toast'
 type HorarioBloqueado = Database['public']['Tables']['horarios_bloqueados']['Row']
 
 interface BloqueoModalProps {
+  isOpen: boolean
   bloqueo: HorarioBloqueado | null
   barberoId: string
   onClose: () => void
-  onSave: () => void
+  onSuccess: () => void
 }
 
-const BloqueoModal: React.FC<BloqueoModalProps> = ({ bloqueo, barberoId, onClose, onSave }) => {
+const BloqueoModal: React.FC<BloqueoModalProps> = ({ isOpen, bloqueo, barberoId, onClose, onSuccess }) => {
   const supabase = useSupabaseClient<Database>()
   const [loading, setLoading] = useState(false)
 
@@ -39,6 +40,21 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ bloqueo, barberoId, onClose
   })
 
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (bloqueo) {
+      const inicio = formatDateTime(bloqueo.fecha_hora_inicio)
+      const fin = formatDateTime(bloqueo.fecha_hora_fin)
+      
+      setFormData({
+        fecha_inicio: inicio.date,
+        hora_inicio: inicio.time,
+        fecha_fin: fin.date,
+        hora_fin: fin.time,
+        motivo: bloqueo.motivo || ''
+      })
+    }
+  }, [bloqueo])
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {}
@@ -112,7 +128,7 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ bloqueo, barberoId, onClose
         toast.success('Bloqueo creado correctamente')
       }
 
-      onSave()
+      onSuccess()
     } catch (error: any) {
       console.error('Error guardando bloqueo:', error)
       toast.error(error.message || 'Error al guardar bloqueo')
@@ -121,118 +137,300 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ bloqueo, barberoId, onClose
     }
   }
 
+  // Funciones de accesos rápidos
+  const setHoyCompleto = () => {
+    const hoy = new Date().toISOString().split('T')[0]
+    setFormData({
+      ...formData,
+      fecha_inicio: hoy,
+      hora_inicio: '00:00',
+      fecha_fin: hoy,
+      hora_fin: '23:59'
+    })
+  }
+
+  const setProximos3Dias = () => {
+    const hoy = new Date()
+    const en3Dias = new Date(hoy)
+    en3Dias.setDate(hoy.getDate() + 2)
+    
+    setFormData({
+      ...formData,
+      fecha_inicio: hoy.toISOString().split('T')[0],
+      hora_inicio: '00:00',
+      fecha_fin: en3Dias.toISOString().split('T')[0],
+      hora_fin: '23:59'
+    })
+  }
+
+  const setProximaSemana = () => {
+    const hoy = new Date()
+    const en7Dias = new Date(hoy)
+    en7Dias.setDate(hoy.getDate() + 7)
+    
+    setFormData({
+      ...formData,
+      fecha_inicio: hoy.toISOString().split('T')[0],
+      hora_inicio: '00:00',
+      fecha_fin: en7Dias.toISOString().split('T')[0],
+      hora_fin: '23:59'
+    })
+  }
+
+  if (!isOpen) return null
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div 
+      className="fixed inset-0 flex items-center justify-center z-50 p-4"
+      style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget && !loading) onClose()
+      }}
+    >
+      <div 
+        className="rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+        style={{
+          backgroundColor: 'var(--bg-secondary)',
+          border: '1px solid var(--border-color)'
+        }}
+      >
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-200">
+        <div 
+          className="px-6 py-4"
+          style={{ borderBottom: '1px solid var(--border-color)' }}
+        >
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-900">
-              {bloqueo?.id ? 'Editar Bloqueo' : 'Nuevo Bloqueo'}
-            </h3>
+            <div>
+              <h3 
+                className="text-xl font-bold flex items-center gap-2"
+                style={{ color: 'var(--accent-color)' }}
+              >
+                <i className="fas fa-ban"></i>
+                {bloqueo?.id ? 'Editar Bloqueo' : 'Nuevo Bloqueo'}
+              </h3>
+              <p 
+                className="mt-1 text-sm"
+                style={{ color: 'var(--text-primary)', opacity: 0.7 }}
+              >
+                Bloquea fechas y horarios para que no estén disponibles
+              </p>
+            </div>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-500"
               disabled={loading}
+              className="transition-all hover:scale-110"
+              style={{ 
+                color: 'var(--text-primary)',
+                opacity: loading ? 0.5 : 0.7
+              }}
             >
               <i className="fas fa-times text-xl"></i>
             </button>
           </div>
-          <p className="mt-1 text-sm text-gray-500">
-            Bloquea fechas y horarios para que no estén disponibles
-          </p>
         </div>
 
         {/* Body */}
-        <form onSubmit={handleSubmit} className="px-6 py-4">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="px-6 py-5">
+          <div className="space-y-5">
+            {/* Accesos rápidos */}
+            <div>
+              <label 
+                className="block text-sm font-medium mb-3"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <i className="fas fa-bolt mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                Accesos Rápidos
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={setHoyCompleto}
+                  disabled={loading}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                    color: 'var(--accent-color)',
+                    border: '1px solid var(--accent-color)'
+                  }}
+                >
+                  <i className="fas fa-calendar-day mr-2"></i>
+                  Todo el día hoy
+                </button>
+                <button
+                  type="button"
+                  onClick={setProximos3Dias}
+                  disabled={loading}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                    color: 'var(--accent-color)',
+                    border: '1px solid var(--accent-color)'
+                  }}
+                >
+                  <i className="fas fa-calendar-week mr-2"></i>
+                  Próximos 3 días
+                </button>
+                <button
+                  type="button"
+                  onClick={setProximaSemana}
+                  disabled={loading}
+                  className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105"
+                  style={{
+                    backgroundColor: 'rgba(212, 175, 55, 0.2)',
+                    color: 'var(--accent-color)',
+                    border: '1px solid var(--accent-color)'
+                  }}
+                >
+                  <i className="fas fa-calendar-alt mr-2"></i>
+                  Próxima semana
+                </button>
+              </div>
+            </div>
+
+            {/* Separador */}
+            <div style={{ borderTop: '1px solid var(--border-color)' }} />
+
             {/* Inicio */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                <i className="fas fa-play-circle text-green-500 mr-2"></i>
-                Inicio del Bloqueo
+            <div 
+              className="rounded-lg p-4"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)'
+              }}
+            >
+              <h4 
+                className="text-sm font-semibold mb-4 flex items-center gap-2"
+                style={{ color: 'var(--accent-color)' }}
+              >
+                <i className="fas fa-play-circle"></i>
+                Fecha y Hora de Inicio
               </h4>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label 
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <i className="far fa-calendar mr-2"></i>
                     Fecha
                   </label>
                   <input
                     type="date"
                     value={formData.fecha_inicio}
                     onChange={(e) => setFormData({ ...formData, fecha_inicio: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm ${
-                      errors.fecha_inicio ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-2.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      border: errors.fecha_inicio ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                    }}
                     disabled={loading}
                   />
                   {errors.fecha_inicio && (
-                    <p className="mt-1 text-xs text-red-600">{errors.fecha_inicio}</p>
+                    <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                      {errors.fecha_inicio}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label 
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <i className="far fa-clock mr-2"></i>
                     Hora
                   </label>
                   <input
                     type="time"
                     value={formData.hora_inicio}
                     onChange={(e) => setFormData({ ...formData, hora_inicio: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm ${
-                      errors.hora_inicio ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-2.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      border: errors.hora_inicio ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                    }}
                     disabled={loading}
                   />
                   {errors.hora_inicio && (
-                    <p className="mt-1 text-xs text-red-600">{errors.hora_inicio}</p>
+                    <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                      {errors.hora_inicio}
+                    </p>
                   )}
                 </div>
               </div>
             </div>
 
             {/* Fin */}
-            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                <i className="fas fa-stop-circle text-red-500 mr-2"></i>
-                Fin del Bloqueo
+            <div 
+              className="rounded-lg p-4"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)'
+              }}
+            >
+              <h4 
+                className="text-sm font-semibold mb-4 flex items-center gap-2"
+                style={{ color: 'var(--accent-color)' }}
+              >
+                <i className="fas fa-stop-circle"></i>
+                Fecha y Hora de Fin
               </h4>
               
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label 
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <i className="far fa-calendar mr-2"></i>
                     Fecha
                   </label>
                   <input
                     type="date"
                     value={formData.fecha_fin}
                     onChange={(e) => setFormData({ ...formData, fecha_fin: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm ${
-                      errors.fecha_fin ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-2.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      border: errors.fecha_fin ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                    }}
                     disabled={loading}
                   />
                   {errors.fecha_fin && (
-                    <p className="mt-1 text-xs text-red-600">{errors.fecha_fin}</p>
+                    <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                      {errors.fecha_fin}
+                    </p>
                   )}
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label 
+                    className="block text-sm font-medium mb-2"
+                    style={{ color: 'var(--text-primary)' }}
+                  >
+                    <i className="far fa-clock mr-2"></i>
                     Hora
                   </label>
                   <input
                     type="time"
                     value={formData.hora_fin}
                     onChange={(e) => setFormData({ ...formData, hora_fin: e.target.value })}
-                    className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 text-sm ${
-                      errors.hora_fin ? 'border-red-500' : 'border-gray-300'
-                    }`}
+                    className="w-full px-4 py-2.5 rounded-lg transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      border: errors.hora_fin ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                    }}
                     disabled={loading}
                   />
                   {errors.hora_fin && (
-                    <p className="mt-1 text-xs text-red-600">{errors.hora_fin}</p>
+                    <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                      {errors.hora_fin}
+                    </p>
                   )}
                 </div>
               </div>
@@ -240,86 +438,86 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ bloqueo, barberoId, onClose
 
             {/* Motivo */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivo del Bloqueo (opcional)
+              <label 
+                className="block text-sm font-medium mb-2"
+                style={{ color: 'var(--text-primary)' }}
+              >
+                <i className="fas fa-comment-dots mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                Motivo (opcional)
               </label>
               <textarea
                 value={formData.motivo}
                 onChange={(e) => setFormData({ ...formData, motivo: e.target.value })}
-                rows={3}
                 placeholder="Ej: Vacaciones, Permiso médico, Evento especial..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                rows={3}
+                className="w-full px-4 py-2.5 rounded-lg transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)'
+                }}
                 disabled={loading}
               />
-              <p className="mt-1 text-xs text-gray-500">
-                Este motivo es para tu referencia interna
-              </p>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-              <p className="text-xs font-medium text-blue-800 mb-2">
-                <i className="fas fa-magic mr-1"></i>
-                Acciones Rápidas
-              </p>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const today = new Date().toISOString().split('T')[0]
-                    setFormData({
-                      ...formData,
-                      fecha_inicio: today,
-                      fecha_fin: today,
-                      hora_inicio: '00:00',
-                      hora_fin: '23:59'
-                    })
-                  }}
-                  className="text-xs px-2 py-1 bg-white border border-blue-300 rounded text-blue-700 hover:bg-blue-50"
-                  disabled={loading}
+            {/* Info Box */}
+            <div 
+              className="rounded-lg p-4"
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)'
+              }}
+            >
+              <div className="flex gap-3">
+                <div className="flex-shrink-0">
+                  <i className="fas fa-exclamation-triangle" style={{ color: '#EF4444' }}></i>
+                </div>
+                <p 
+                  className="text-xs leading-relaxed"
+                  style={{ color: 'var(--text-primary)', opacity: 0.9 }}
                 >
-                  Todo el día hoy
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    const today = new Date()
-                    const nextWeek = new Date(today)
-                    nextWeek.setDate(today.getDate() + 7)
-                    
-                    setFormData({
-                      ...formData,
-                      fecha_inicio: today.toISOString().split('T')[0],
-                      fecha_fin: nextWeek.toISOString().split('T')[0],
-                      hora_inicio: '00:00',
-                      hora_fin: '23:59'
-                    })
-                  }}
-                  className="text-xs px-2 py-1 bg-white border border-blue-300 rounded text-blue-700 hover:bg-blue-50"
-                  disabled={loading}
-                >
-                  Próxima semana
-                </button>
+                  Durante el período bloqueado, los clientes no podrán reservar citas con este barbero. 
+                  El bloqueo puede ser editado o eliminado en cualquier momento.
+                </p>
               </div>
             </div>
           </div>
         </form>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-2">
+        <div 
+          className="px-6 py-4 flex justify-end gap-3"
+          style={{ 
+            backgroundColor: 'var(--bg-primary)',
+            borderTop: '1px solid var(--border-color)' 
+          }}
+        >
           <button
             type="button"
             onClick={onClose}
             disabled={loading}
-            className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
+            style={{
+              backgroundColor: 'transparent',
+              color: 'var(--text-primary)',
+              border: '1px solid var(--border-color)',
+              opacity: loading ? 0.5 : 1
+            }}
           >
+            <i className="fas fa-times mr-2"></i>
             Cancelar
           </button>
           <button
             type="submit"
             onClick={handleSubmit}
             disabled={loading}
-            className="px-4 py-2 bg-amber-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+            className="px-5 py-2.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
+            style={{
+              backgroundColor: 'var(--accent-color)',
+              color: 'var(--bg-primary)',
+              border: 'none',
+              opacity: loading ? 0.7 : 1
+            }}
           >
             {loading ? (
               <>

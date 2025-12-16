@@ -221,327 +221,392 @@ const HorariosTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+        <div 
+          className="animate-spin rounded-full h-12 w-12 border-b-2" 
+          style={{ borderColor: 'var(--accent-color)' }}
+        ></div>
       </div>
     )
   }
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900">Gestión de Horarios</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Configura los horarios de atención y bloqueos
-          </p>
+      {/* Header con estilo mejorado */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div>
+            <h2 
+              className="text-2xl sm:text-3xl font-bold mb-2" 
+              style={{ color: 'var(--accent-color)' }}
+            >
+              <i className="fas fa-clock mr-3"></i>
+              Gestión de Horarios
+            </h2>
+            <p style={{ color: 'var(--text-primary)', opacity: 0.7 }} className="text-sm">
+              Configura los horarios de atención y bloqueos
+            </p>
+          </div>
+          
+          {/* Selector de barbero mejorado */}
+          <div className="flex-shrink-0">
+            <label 
+              className="block text-sm font-medium mb-2"
+              style={{ color: 'var(--accent-color)' }}
+            >
+              <i className="fas fa-user-tie mr-2"></i>
+              Barbero
+            </label>
+            <select
+              value={selectedBarbero}
+              onChange={(e) => setSelectedBarbero(e.target.value)}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-lg transition-all"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                color: 'var(--text-primary)',
+                border: '1px solid var(--border-color)',
+                minWidth: '250px'
+              }}
+            >
+              {barberos.map(b => (
+                <option key={b.id} value={b.id}>
+                  {b.nombre} {b.apellido}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
-        <select
-          value={selectedBarbero}
-          onChange={(e) => setSelectedBarbero(e.target.value)}
-          className="px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+      </div>
+
+      {/* Tabs de navegación mejorados */}
+      <div 
+        className="flex space-x-1 rounded-lg p-1 mb-6"
+        style={{ 
+          backgroundColor: 'var(--bg-primary)',
+          border: '1px solid var(--border-color)'
+        }}
+      >
+        <button
+          onClick={() => setActiveView('atencion')}
+          className="flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+          style={{
+            backgroundColor: activeView === 'atencion' ? 'var(--accent-color)' : 'transparent',
+            color: activeView === 'atencion' ? 'var(--bg-primary)' : 'var(--text-primary)',
+            border: activeView === 'atencion' ? 'none' : '1px solid transparent'
+          }}
         >
-          {barberos.map(b => (
-            <option key={b.id} value={b.id}>{b.nombre} {b.apellido}</option>
-          ))}
-        </select>
+          <i className="fas fa-calendar-week"></i>
+          <span className="hidden sm:inline">Horarios de Atención</span>
+          <span className="sm:hidden">Atención</span>
+        </button>
+        <button
+          onClick={() => setActiveView('bloqueados')}
+          className="flex-1 py-3 px-4 rounded-lg font-medium transition-all flex items-center justify-center gap-2"
+          style={{
+            backgroundColor: activeView === 'bloqueados' ? 'var(--accent-color)' : 'transparent',
+            color: activeView === 'bloqueados' ? 'var(--bg-primary)' : 'var(--text-primary)',
+            border: activeView === 'bloqueados' ? 'none' : '1px solid transparent'
+          }}
+        >
+          <i className="fas fa-ban"></i>
+          <span className="hidden sm:inline">Horarios Bloqueados</span>
+          <span className="sm:hidden">Bloqueados</span>
+        </button>
       </div>
 
-      {/* Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            onClick={() => setActiveView('atencion')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeView === 'atencion'
-                ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <i className="fas fa-clock mr-2"></i>
-            Horarios de Atención
-          </button>
-          <button
-            onClick={() => setActiveView('bloqueados')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-              activeView === 'bloqueados'
-                ? 'border-amber-500 text-amber-600'
-                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            }`}
-          >
-            <i className="fas fa-ban mr-2"></i>
-            Horarios Bloqueados
-          </button>
-        </nav>
-      </div>
-
-      {/* Content */}
-      {activeView === 'atencion' ? (
-        <div className="bg-white shadow rounded-lg overflow-hidden">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Día de la Semana
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Horario
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {diasSemana.map(dia => {
-                const horarioDia = horariosAtencion.find(h => h.dia_semana === dia.num)
-                
-                return (
-                  <tr key={dia.num} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0 h-10 w-10">
-                          <div className="h-10 w-10 rounded-full bg-amber-100 flex items-center justify-center">
-                            <span className="text-amber-600 font-semibold">{dia.abrev}</span>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{dia.nombre}</div>
-                        </div>
+      {/* Vista de Horarios de Atención */}
+      {activeView === 'atencion' && (
+        <div>
+          <div className="grid gap-3">
+            {diasSemana.map(dia => {
+              const horarioDelDia = horariosAtencion.find(h => h.dia_semana === dia.num)
+              
+              return (
+                <div
+                  key={dia.num}
+                  className="rounded-lg p-4 sm:p-5 transition-all hover:shadow-lg"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                      {/* Badge del día */}
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg flex-shrink-0"
+                        style={{
+                          backgroundColor: horarioDelDia?.activo ? 'var(--accent-color)' : 'var(--bg-primary)',
+                          color: horarioDelDia?.activo ? 'var(--bg-primary)' : 'var(--text-primary)',
+                          border: !horarioDelDia?.activo ? '2px solid var(--border-color)' : 'none'
+                        }}
+                      >
+                        {dia.abrev}
                       </div>
-                    </td>
-                    {horarioDia ? (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {formatTime(horarioDia.hora_inicio)} - {formatTime(horarioDia.hora_fin)}
+                      
+                      {/* Información del día */}
+                      <div className="flex-1">
+                        <h3 
+                          className="font-semibold text-lg"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {dia.nombre}
+                        </h3>
+                        {horarioDelDia ? (
+                          <div className="flex items-center gap-3 mt-1">
+                            <span 
+                              className="text-sm font-medium"
+                              style={{ color: 'var(--accent-color)' }}
+                            >
+                              <i className="far fa-clock mr-1"></i>
+                              {formatTime(horarioDelDia.hora_inicio)} - {formatTime(horarioDelDia.hora_fin)}
+                            </span>
+                            <span
+                              className="text-xs px-2 py-1 rounded-full font-medium"
+                              style={{
+                                backgroundColor: horarioDelDia.activo 
+                                  ? 'rgba(16, 185, 129, 0.2)' 
+                                  : 'rgba(239, 68, 68, 0.2)',
+                                color: horarioDelDia.activo ? '#10B981' : '#EF4444'
+                              }}
+                            >
+                              {horarioDelDia.activo ? 'Disponible' : 'No disponible'}
+                            </span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <button
-                            onClick={() => handleToggleActivo(horarioDia.id, horarioDia.activo)}
-                            className={`inline-flex px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
-                              horarioDia.activo 
-                                ? 'bg-green-100 text-green-800 hover:bg-green-200' 
-                                : 'bg-red-100 text-red-800 hover:bg-red-200'
-                            }`}
+                        ) : (
+                          <p 
+                            className="text-sm italic mt-1"
+                            style={{ color: 'var(--text-primary)', opacity: 0.6 }}
                           >
-                            {horarioDia.activo ? 'Activo' : 'Inactivo'}
-                          </button>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            Sin horario configurado
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      {horarioDelDia ? (
+                        <>
+                          {/* Toggle activo */}
                           <button
-                            onClick={() => handleEditHorario(horarioDia)}
-                            className="text-amber-600 hover:text-amber-900 mr-3"
-                            title="Editar"
+                            onClick={() => handleToggleActivo(horarioDelDia.id, horarioDelDia.activo)}
+                            className="p-2.5 rounded-lg transition-all hover:scale-105"
+                            style={{
+                              backgroundColor: horarioDelDia.activo ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                              color: horarioDelDia.activo ? '#10B981' : '#EF4444',
+                              border: '1px solid ' + (horarioDelDia.activo ? '#10B981' : '#EF4444')
+                            }}
+                            title={horarioDelDia.activo ? 'Desactivar' : 'Activar'}
+                          >
+                            <i className={`fas ${horarioDelDia.activo ? 'fa-toggle-on' : 'fa-toggle-off'}`}></i>
+                          </button>
+                          
+                          {/* Editar */}
+                          <button
+                            onClick={() => handleEditHorario(horarioDelDia)}
+                            className="p-2.5 rounded-lg transition-all hover:scale-105"
+                            style={{
+                              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                              color: '#3B82F6',
+                              border: '1px solid #3B82F6'
+                            }}
+                            title="Editar horario"
                           >
                             <i className="fas fa-edit"></i>
                           </button>
+                          
+                          {/* Eliminar */}
                           <button
-                            onClick={() => handleDeleteHorario(horarioDia.id)}
-                            className="text-red-600 hover:text-red-900"
-                            title="Eliminar"
+                            onClick={() => handleDeleteHorario(horarioDelDia.id)}
+                            className="p-2.5 rounded-lg transition-all hover:scale-105"
+                            style={{
+                              backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                              color: '#EF4444',
+                              border: '1px solid #EF4444'
+                            }}
+                            title="Eliminar horario"
                           >
                             <i className="fas fa-trash"></i>
                           </button>
-                        </td>
-                      </>
-                    ) : (
-                      <>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-400 italic">Sin horario configurado</span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="inline-flex px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800">
-                            No disponible
-                          </span>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                          <button
-                            onClick={() => handleCreateHorario(dia.num)}
-                            className="text-amber-600 hover:text-amber-900"
-                            title="Agregar horario"
-                          >
-                            <i className="fas fa-plus-circle mr-1"></i>
-                            Agregar
-                          </button>
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-
-          {/* Info Box */}
-          <div className="bg-blue-50 border-t border-blue-100 px-6 py-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <i className="fas fa-info-circle text-blue-400 text-lg"></i>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">Información sobre horarios</h3>
-                <div className="mt-2 text-sm text-blue-700">
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Los horarios se aplican semanalmente para el barbero seleccionado</li>
-                    <li>Puedes activar/desactivar días específicos según necesites</li>
-                    <li>Los clientes solo verán disponibles los días con horario activo</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div>
-          {/* Header de bloqueados */}
-          <div className="flex justify-end mb-4">
-            <button
-              onClick={handleCreateBloqueo}
-              className="px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors"
-            >
-              <i className="fas fa-plus mr-2"></i>
-              Nuevo Bloqueo
-            </button>
-          </div>
-
-          {/* Tabla de bloqueados */}
-          <div className="bg-white shadow rounded-lg overflow-hidden">
-            {horariosBloqueados.length === 0 ? (
-              <div className="text-center py-12">
-                <i className="fas fa-calendar-times text-gray-400 text-5xl mb-4"></i>
-                <p className="text-gray-500 text-lg">No hay horarios bloqueados</p>
-                <p className="text-gray-400 text-sm mt-2">
-                  Crea un bloqueo para marcar fechas u horarios no disponibles
-                </p>
-                <button
-                  onClick={handleCreateBloqueo}
-                  className="mt-4 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors"
-                >
-                  <i className="fas fa-plus mr-2"></i>
-                  Crear Primer Bloqueo
-                </button>
-              </div>
-            ) : (
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha y Hora Inicio
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Fecha y Hora Fin
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Motivo
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {horariosBloqueados.map(bloqueo => (
-                    <tr key={bloqueo.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatDate(bloqueo.fecha_hora_inicio)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {formatTime(bloqueo.fecha_hora_inicio)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">
-                          {formatDate(bloqueo.fecha_hora_fin)}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {formatTime(bloqueo.fecha_hora_fin)}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 max-w-xs truncate">
-                          {bloqueo.motivo || <span className="text-gray-400 italic">Sin motivo</span>}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        </>
+                      ) : (
                         <button
-                          onClick={() => handleEditBloqueo(bloqueo)}
-                          className="text-amber-600 hover:text-amber-900 mr-3"
-                          title="Editar"
+                          onClick={() => handleCreateHorario(dia.num)}
+                          className="px-4 py-2.5 rounded-lg font-medium transition-all hover:scale-105 flex items-center gap-2"
+                          style={{
+                            backgroundColor: 'var(--accent-color)',
+                            color: 'var(--bg-primary)'
+                          }}
                         >
-                          <i className="fas fa-edit"></i>
+                          <i className="fas fa-plus"></i>
+                          <span className="hidden sm:inline">Agregar</span>
                         </button>
-                        <button
-                          onClick={() => handleDeleteBloqueo(bloqueo.id)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Eliminar"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
-          </div>
-
-          {/* Info Box */}
-          <div className="mt-4 bg-orange-50 border border-orange-100 rounded-lg px-6 py-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <i className="fas fa-exclamation-triangle text-orange-400 text-lg"></i>
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-orange-800">Información sobre bloqueos</h3>
-                <div className="mt-2 text-sm text-orange-700">
-                  <ul className="list-disc list-inside space-y-1">
-                    <li>Los bloqueos impiden que los clientes reserven en esos horarios</li>
-                    <li>Útil para vacaciones, permisos médicos, o eventos especiales</li>
-                    <li>Puedes bloquear desde minutos hasta días completos</li>
-                  </ul>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
+              )
+            })}
           </div>
         </div>
       )}
 
-      {/* Modals */}
+      {/* Vista de Horarios Bloqueados */}
+      {activeView === 'bloqueados' && (
+        <div>
+          {/* Botón crear bloqueo */}
+          <div className="mb-6">
+            <button
+              onClick={handleCreateBloqueo}
+              className="px-6 py-3 rounded-lg font-medium transition-all hover:scale-105 flex items-center gap-2"
+              style={{
+                backgroundColor: 'var(--accent-color)',
+                color: 'var(--bg-primary)'
+              }}
+            >
+              <i className="fas fa-plus-circle"></i>
+              Crear Bloqueo
+            </button>
+          </div>
+
+          {/* Lista de bloqueos */}
+          {horariosBloqueados.length === 0 ? (
+            <div 
+              className="text-center py-12 rounded-lg"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)'
+              }}
+            >
+              <i 
+                className="fas fa-calendar-check text-6xl mb-4"
+                style={{ color: 'var(--accent-color)', opacity: 0.3 }}
+              ></i>
+              <p 
+                className="text-lg"
+                style={{ color: 'var(--text-primary)', opacity: 0.7 }}
+              >
+                No hay horarios bloqueados
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {horariosBloqueados.map(bloqueo => (
+                <div
+                  key={bloqueo.id}
+                  className="rounded-lg p-4 sm:p-5 transition-all hover:shadow-lg"
+                  style={{
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)'
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      {/* Icono */}
+                      <div
+                        className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                          color: '#EF4444'
+                        }}
+                      >
+                        <i className="fas fa-ban"></i>
+                      </div>
+                      
+                      {/* Información del bloqueo */}
+                      <div className="flex-1">
+                        <h4 
+                          className="font-semibold text-base mb-1"
+                          style={{ color: 'var(--text-primary)' }}
+                        >
+                          {bloqueo.motivo || 'Bloqueo sin motivo'}
+                        </h4>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                          <span 
+                            className="text-sm"
+                            style={{ color: 'var(--accent-color)' }}
+                          >
+                            <i className="far fa-calendar mr-1"></i>
+                            {formatDate(bloqueo.fecha_hora_inicio)}
+                          </span>
+                          <span 
+                            className="text-sm"
+                            style={{ color: 'var(--text-primary)', opacity: 0.7 }}
+                          >
+                            <i className="far fa-clock mr-1"></i>
+                            {formatTime(bloqueo.fecha_hora_inicio)} - {formatTime(bloqueo.fecha_hora_fin)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Acciones */}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleEditBloqueo(bloqueo)}
+                        className="p-2.5 rounded-lg transition-all hover:scale-105"
+                        style={{
+                          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                          color: '#3B82F6',
+                          border: '1px solid #3B82F6'
+                        }}
+                        title="Editar bloqueo"
+                      >
+                        <i className="fas fa-edit"></i>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBloqueo(bloqueo.id)}
+                        className="p-2.5 rounded-lg transition-all hover:scale-105"
+                        style={{
+                          backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                          color: '#EF4444',
+                          border: '1px solid #EF4444'
+                        }}
+                        title="Eliminar bloqueo"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Modales */}
       {showHorarioModal && (
         <HorarioModal
-          horario={editingHorario}
-          barberoId={selectedBarbero}
+          isOpen={showHorarioModal}
           onClose={() => {
             setShowHorarioModal(false)
             setEditingHorario(null)
           }}
-          onSave={() => {
+          onSuccess={() => {
             setShowHorarioModal(false)
             setEditingHorario(null)
             loadHorariosAtencion()
           }}
+          barberoId={selectedBarbero}
+          horario={editingHorario}
         />
       )}
 
       {showBloqueoModal && (
         <BloqueoModal
-          bloqueo={editingBloqueo}
-          barberoId={selectedBarbero}
+          isOpen={showBloqueoModal}
           onClose={() => {
             setShowBloqueoModal(false)
             setEditingBloqueo(null)
           }}
-          onSave={() => {
+          onSuccess={() => {
             setShowBloqueoModal(false)
             setEditingBloqueo(null)
             loadHorariosBloqueados()
           }}
+          barberoId={selectedBarbero}
+          bloqueo={editingBloqueo}
         />
       )}
     </div>
