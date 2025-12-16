@@ -17,6 +17,7 @@ export default function SolicitudesTab() {
   const supabase = useSupabaseClient<Database>()
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([])
   const [loading, setLoading] = useState(true)
+  const [errorTablaNoExiste, setErrorTablaNoExiste] = useState(false)
   const [filtroEstado, setFiltroEstado] = useState<string>('pendiente')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedSolicitud, setSelectedSolicitud] = useState<Solicitud | null>(null)
@@ -49,16 +50,26 @@ export default function SolicitudesTab() {
   const loadSolicitudes = async () => {
     try {
       setLoading(true)
+      setErrorTablaNoExiste(false)
       const { data, error } = await supabase
         .from('solicitudes_barberos')
         .select('*')
         .order('fecha_solicitud', { ascending: false })
 
-      if (error) throw error
+      if (error) {
+        // Error específico si la tabla no existe
+        if (error.code === '42P01') {
+          console.error('❌ [SolicitudesTab] Tabla solicitudes_barberos no existe en la base de datos')
+          setErrorTablaNoExiste(true)
+          setSolicitudes([])
+          return
+        }
+        throw error
+      }
       setSolicitudes(data || [])
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error loading solicitudes:', error)
-      toast.error('Error al cargar solicitudes')
+      toast.error(error.message || 'Error al cargar solicitudes')
     } finally {
       setLoading(false)
     }
@@ -186,6 +197,50 @@ export default function SolicitudesTab() {
     return (
       <div className="flex justify-center items-center py-12">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+      </div>
+    )
+  }
+
+  // Mostrar error si la tabla no existe
+  if (errorTablaNoExiste) {
+    return (
+      <div className="max-w-2xl mx-auto mt-8">
+        <div className="rounded-lg p-6" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', border: '2px solid rgba(239, 68, 68, 0.3)' }}>
+          <div className="flex items-center mb-4">
+            <i className="fas fa-exclamation-triangle text-3xl text-red-500 mr-4"></i>
+            <h3 className="text-xl font-bold text-red-600">Funcionalidad No Disponible</h3>
+          </div>
+          <p className="text-gray-700 mb-4">
+            La tabla <code className="bg-gray-200 px-2 py-1 rounded">solicitudes_barberos</code> no existe en la base de datos.
+          </p>
+          <p className="text-gray-600 mb-4">
+            Esta funcionalidad permite gestionar solicitudes de nuevos barberos que quieren unirse al sistema.
+          </p>
+          <div className="bg-white p-4 rounded border border-gray-300 mb-4">
+            <p className="font-semibold text-gray-800 mb-2">Para habilitar esta funcionalidad:</p>
+            <ol className="list-decimal list-inside text-gray-700 space-y-1">
+              <li>Ejecuta el script SQL de creación de la tabla</li>
+              <li>Configura los permisos RLS apropiados</li>
+              <li>Recarga esta página</li>
+            </ol>
+          </div>
+          <div className="flex gap-3">
+            <button
+              onClick={loadSolicitudes}
+              className="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+            >
+              <i className="fas fa-sync-alt mr-2"></i>
+              Reintentar
+            </button>
+            <a
+              href="/admin"
+              className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600 transition-colors inline-block"
+            >
+              <i className="fas fa-arrow-left mr-2"></i>
+              Volver al Dashboard
+            </a>
+          </div>
+        </div>
       </div>
     )
   }
