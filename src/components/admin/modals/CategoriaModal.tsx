@@ -9,7 +9,7 @@ type Categoria = {
   descripcion: string | null
   icono: string | null
   orden: number
-  activa: boolean
+  activo: boolean
 }
 
 interface CategoriaModalProps {
@@ -45,7 +45,7 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({
     nombre: '',
     descripcion: '',
     icono: '💈',
-    activa: true
+    activo: true
   })
 
   useEffect(() => {
@@ -54,14 +54,14 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({
         nombre: categoria.nombre,
         descripcion: categoria.descripcion || '',
         icono: categoria.icono || '💈',
-        activa: categoria.activa
+        activo: categoria.activo
       })
     } else {
       setFormData({
         nombre: '',
         descripcion: '',
         icono: '💈',
-        activa: true
+        activo: true
       })
     }
   }, [categoria, isOpen])
@@ -85,7 +85,7 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({
             nombre: formData.nombre.trim().toLowerCase(),
             descripcion: formData.descripcion.trim() || null,
             icono: formData.icono || null,
-            activa: formData.activa
+            activo: formData.activo
           })
           .eq('id', categoria.id)
 
@@ -110,7 +110,7 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({
             descripcion: formData.descripcion.trim() || null,
             icono: formData.icono || null,
             orden: nuevoOrden,
-            activa: formData.activa
+            activo: formData.activo
           })
 
         if (error) throw error
@@ -274,8 +274,8 @@ const CategoriaModal: React.FC<CategoriaModalProps> = ({
                   <input
                     type="checkbox"
                     id="activa"
-                    checked={formData.activa}
-                    onChange={(e) => setFormData({ ...formData, activa: e.target.checked })}
+                    checked={formData.activo}
+                    onChange={(e) => setFormData({ ...formData, activo: e.target.checked })}
                     className="h-4 w-4 rounded"
                     style={{ accentColor: 'var(--accent-color)' }}
                   />

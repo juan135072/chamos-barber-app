@@ -11,7 +11,7 @@ type Categoria = {
   descripcion: string | null
   icono: string | null
   orden: number
-  activa: boolean
+  activo: boolean
   created_at: string
 }
 
@@ -163,13 +163,13 @@ const CategoriasTab: React.FC = () => {
       console.log('🔄 [CategoriasTab] Intentando cambiar estado de categoría:', {
         id: categoria.id,
         nombre: categoria.nombre,
-        estado_actual: categoria.activa,
-        nuevo_estado: !categoria.activa
+        estado_actual: categoria.activo,
+        nuevo_estado: !categoria.activo
       })
 
       const { data, error, count } = await supabase
         .from('categorias_servicios')
-        .update({ activa: !categoria.activa })
+        .update({ activo: !categoria.activo })
         .eq('id', categoria.id)
         .select()
 
@@ -187,7 +187,7 @@ const CategoriasTab: React.FC = () => {
       }
 
       console.log('✅ [CategoriasTab] Categoría actualizada exitosamente')
-      toast.success(`Categoría ${!categoria.activa ? 'activada' : 'desactivada'}`)
+      toast.success(`Categoría ${!categoria.activo ? 'activada' : 'desactivada'}`)
       loadCategorias()
     } catch (error: any) {
       console.error('💥 [CategoriasTab] Error en handleToggleActive:', error)
@@ -369,10 +369,10 @@ const CategoriasTab: React.FC = () => {
                     <button
                       onClick={() => handleToggleActive(categoria)}
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        categoria.activa ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        categoria.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                       }`}
                     >
-                      {categoria.activa ? 'Activa' : 'Inactiva'}
+                      {categoria.activo ? 'Activa' : 'Inactiva'}
                     </button>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
