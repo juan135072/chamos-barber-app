@@ -101,8 +101,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
           body: 'Esta es una notificación de prueba local',
           icon: '/icon-192x192.png',
           badge: '/icon-96x96.png',
-          tag: 'test',
-          timestamp: Date.now()
+          tag: 'test'
         })
       }
 
