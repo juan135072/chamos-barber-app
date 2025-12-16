@@ -79,41 +79,38 @@ export default function OneSignalProvider({
             console.log('✅ [OneSignal] Inicializado correctamente')
             setInitialized(true)
 
-            // Verificar estado de permisos actual
-            OneSignal.Notifications.permission.then((permission: boolean) => {
-              const permStatus = permission ? 'granted' : 'default'
-              console.log('🔔 [OneSignal] Estado de permisos:', permStatus)
-              setPermissionStatus(permStatus as 'default' | 'granted' | 'denied')
+            // Verificar estado de permisos actual (propiedad, no promesa)
+            const permission = OneSignal.Notifications.permission
+            const permStatus = permission ? 'granted' : 'default'
+            console.log('🔔 [OneSignal] Estado de permisos:', permStatus)
+            setPermissionStatus(permStatus as 'default' | 'granted' | 'denied')
 
-              // Escuchar cambios de permisos
-              OneSignal.Notifications.addEventListener('permissionChange', (granted: boolean) => {
-                console.log('🔔 Permiso cambió:', granted ? 'concedido' : 'denegado')
-                setPermissionStatus(granted ? 'granted' : 'denied')
-                if (granted) {
-                  setShowPrompt(false)
-                }
-              })
-
-              // Verificar si el usuario ya está suscrito
-              OneSignal.User.PushSubscription.optedIn.then((isSubscribed: boolean) => {
-                console.log('📬 Usuario suscrito:', isSubscribed)
-              })
-
-              // Si autoPrompt está habilitado y no hay permisos, solicitar automáticamente
-              if (autoPrompt && permStatus === 'default') {
-                setTimeout(() => {
-                  console.log('🔔 Solicitando permisos de notificación automáticamente...')
-                  OneSignal.Notifications.requestPermission().then((granted: boolean) => {
-                    console.log('✅ Resultado de permisos:', granted ? 'Concedido' : 'Denegado')
-                    setPermissionStatus(granted ? 'granted' : 'denied')
-                  }).catch((error: any) => {
-                    console.error('❌ Error solicitando permisos:', error)
-                    // Fallback: mostrar el prompt personalizado
-                    setShowPrompt(true)
-                  })
-                }, 2000) // Esperar 2 segundos antes de solicitar
+            // Escuchar cambios de permisos
+            OneSignal.Notifications.addEventListener('permissionChange', (granted: boolean) => {
+              console.log('🔔 Permiso cambió:', granted ? 'concedido' : 'denegado')
+              setPermissionStatus(granted ? 'granted' : 'denied')
+              if (granted) {
+                setShowPrompt(false)
               }
             })
+
+            // Verificar si el usuario ya está suscrito
+            console.log('📬 Usuario suscrito:', OneSignal.User.PushSubscription.optedIn)
+
+            // Si autoPrompt está habilitado y no hay permisos, solicitar automáticamente
+            if (autoPrompt && permStatus === 'default') {
+              setTimeout(() => {
+                console.log('🔔 Solicitando permisos de notificación automáticamente...')
+                OneSignal.Notifications.requestPermission().then((granted: boolean) => {
+                  console.log('✅ Resultado de permisos:', granted ? 'Concedido' : 'Denegado')
+                  setPermissionStatus(granted ? 'granted' : 'denied')
+                }).catch((error: any) => {
+                  console.error('❌ Error solicitando permisos:', error)
+                  // Fallback: mostrar el prompt personalizado
+                  setShowPrompt(true)
+                })
+              }, 2000) // Esperar 2 segundos antes de solicitar
+            }
           })
         }
 
