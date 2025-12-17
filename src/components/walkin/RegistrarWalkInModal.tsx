@@ -100,13 +100,13 @@ export default function RegistrarWalkInModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 overflow-y-auto"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.7)' }}
       onClick={handleClose}
     >
       <div
-        className="relative w-full max-w-md rounded-lg shadow-xl"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
+        className="relative w-full max-w-md rounded-lg shadow-xl my-8"
+        style={{ backgroundColor: 'var(--bg-secondary)', maxHeight: '90vh', overflowY: 'auto' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

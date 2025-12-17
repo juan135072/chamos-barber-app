@@ -279,8 +279,9 @@ export default function WalkInClientsPanel() {
             placeholder="Buscar por nombre, teléfono o email..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
+            className="w-full pr-4 py-2 rounded-lg border focus:outline-none focus:ring-2"
             style={{
+              paddingLeft: '2.75rem',
               backgroundColor: 'var(--bg-secondary)',
               borderColor: 'var(--border-color)',
               color: 'var(--text-primary)'
