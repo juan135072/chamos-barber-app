@@ -89,6 +89,9 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       }]
 
       // Insertar factura directamente con el esquema correcto
+      // Schema real: numero_factura, cita_id, barbero_id, cliente_nombre, cliente_telefono,
+      // subtotal, descuento, total, metodo_pago, monto_recibido, cambio,
+      // porcentaje_comision, comision_barbero, ingreso_casa, anulada, created_by, items
       const facturaPayload = {
         numero_factura: numeroFactura,
         cita_id: cita.id,
@@ -98,7 +101,6 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         items: items,
         subtotal: montoTotal,
         descuento: 0,
-        iva: 0,
         total: montoTotal,
         metodo_pago: metodoPago,
         monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseFloat(montoRecibido) : montoTotal,
@@ -106,7 +108,6 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         porcentaje_comision: porcentajeComision,
         comision_barbero: comisionBarbero,
         ingreso_casa: ingresoCasa,
-        impresa: false,
         anulada: false,
         created_by: usuario.id
       }
