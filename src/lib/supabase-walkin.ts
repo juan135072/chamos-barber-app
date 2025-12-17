@@ -38,7 +38,8 @@ export interface CreateWalkInClientParams {
  * Obtener todos los walk-in clients registrados
  */
 export async function getAllWalkInClients(): Promise<WalkInClient[]> {
-  const { data, error } = await supabase
+  // @ts-ignore - La tabla walk_in_clients será creada con la migración SQL
+  const { data, error } = await (supabase as any)
     .from('walk_in_clients')
     .select('*')
     .order('created_at', { ascending: false })
@@ -48,14 +49,15 @@ export async function getAllWalkInClients(): Promise<WalkInClient[]> {
     throw error
   }
 
-  return data || []
+  return (data || []) as WalkInClient[]
 }
 
 /**
  * Obtener walk-in client por ID
  */
 export async function getWalkInClientById(id: string): Promise<WalkInClient | null> {
-  const { data, error } = await supabase
+  // @ts-ignore - La tabla walk_in_clients será creada con la migración SQL
+  const { data, error } = await (supabase as any)
     .from('walk_in_clients')
     .select('*')
     .eq('id', id)
@@ -66,14 +68,15 @@ export async function getWalkInClientById(id: string): Promise<WalkInClient | nu
     throw error
   }
 
-  return data
+  return data as WalkInClient | null
 }
 
 /**
  * Buscar walk-in client por teléfono
  */
 export async function searchWalkInClientByPhone(telefono: string): Promise<WalkInClient | null> {
-  const { data, error } = await supabase
+  // @ts-ignore - La tabla walk_in_clients será creada con la migración SQL
+  const { data, error } = await (supabase as any)
     .from('walk_in_clients')
     .select('*')
     .eq('telefono', telefono)
@@ -84,7 +87,7 @@ export async function searchWalkInClientByPhone(telefono: string): Promise<WalkI
     throw error
   }
 
-  return data
+  return data as WalkInClient | null
 }
 
 // =====================================================
@@ -102,7 +105,8 @@ export async function createWalkInClient(params: CreateWalkInClientParams): Prom
     throw new Error('Ya existe un cliente registrado con este teléfono')
   }
 
-  const { data, error } = await supabase
+  // @ts-ignore - La tabla walk_in_clients será creada con la migración SQL
+  const { data, error } = await (supabase as any)
     .from('walk_in_clients')
     .insert([
       {
@@ -121,8 +125,8 @@ export async function createWalkInClient(params: CreateWalkInClientParams): Prom
     throw error
   }
 
-  console.log('✅ Walk-in client creado:', data.id)
-  return data
+  console.log('✅ Walk-in client creado:', data?.id)
+  return data as WalkInClient
 }
 
 // =====================================================
@@ -136,7 +140,8 @@ export async function updateWalkInClient(
   id: string,
   updates: Partial<CreateWalkInClientParams>
 ): Promise<WalkInClient> {
-  const { data, error } = await supabase
+  // @ts-ignore - La tabla walk_in_clients será creada con la migración SQL
+  const { data, error } = await (supabase as any)
     .from('walk_in_clients')
     .update({
       ...updates,
@@ -151,8 +156,8 @@ export async function updateWalkInClient(
     throw error
   }
 
-  console.log('✅ Walk-in client actualizado:', data.id)
-  return data
+  console.log('✅ Walk-in client actualizado:', data?.id)
+  return data as WalkInClient
 }
 
 // =====================================================
@@ -163,7 +168,8 @@ export async function updateWalkInClient(
  * Eliminar un walk-in client
  */
 export async function deleteWalkInClient(id: string): Promise<boolean> {
-  const { error } = await supabase
+  // @ts-ignore - La tabla walk_in_clients será creada con la migración SQL
+  const { error } = await (supabase as any)
     .from('walk_in_clients')
     .delete()
     .eq('id', id)
