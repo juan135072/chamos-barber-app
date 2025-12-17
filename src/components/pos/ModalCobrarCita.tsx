@@ -33,7 +33,7 @@ interface ModalCobrarCitaProps {
 
 export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: ModalCobrarCitaProps) {
   const [metodoPago, setMetodoPago] = useState('efectivo')
-  const [montoCobrar, setMontoCobrar] = useState(cita.servicio.precio.toString())
+  const [montoCobrar, setMontoCobrar] = useState(Math.floor(cita.servicio.precio).toString())
   const [montoRecibido, setMontoRecibido] = useState('')
   const [procesando, setProcesando] = useState(false)
   const [cobroExitoso, setCobroExitoso] = useState<{
@@ -41,7 +41,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     numeroFactura: string
   } | null>(null)
 
-  const montoTotal = parseFloat(montoCobrar) || cita.servicio.precio
+  const montoTotal = parseInt(montoCobrar) || Math.floor(cita.servicio.precio)
   const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseFloat(montoRecibido) - montoTotal) : 0
 
   const handleCobrar = async () => {
@@ -149,6 +149,17 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       
       setProcesando(false)
 
+      // Imprimir automáticamente después de cobrar
+      try {
+        const datosFactura = await obtenerDatosFactura(facturaData.id, supabase)
+        if (datosFactura) {
+          await generarEImprimirFactura(datosFactura, 'imprimir')
+        }
+      } catch (printError) {
+        console.warn('⚠️ Error al imprimir automáticamente:', printError)
+        // No bloquear el flujo si falla la impresión
+      }
+
     } catch (error: any) {
       console.error('❌ Error al cobrar cita:', error)
       
@@ -252,8 +263,10 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
       style: 'currency',
-      currency: 'USD'
-    }).format(amount)
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(Math.floor(amount))
   }
 
   return (
@@ -388,7 +401,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           </label>
           <input
             type="number"
-            step="0.01"
+            step="1"
             min="0"
             value={montoCobrar}
             onChange={(e) => setMontoCobrar(e.target.value)}
@@ -398,22 +411,22 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           <div className="mt-2 flex gap-2">
             <button
               type="button"
-              onClick={() => setMontoCobrar((parseFloat(montoCobrar) - 1).toString())}
-              disabled={parseFloat(montoCobrar) <= 1}
+              onClick={() => setMontoCobrar((parseInt(montoCobrar) - 1).toString())}
+              disabled={parseInt(montoCobrar) <= 1}
               className="px-3 py-1 text-sm rounded transition-all"
               style={{
                 backgroundColor: 'var(--bg-primary)',
                 border: '1px solid var(--border-color)',
                 color: 'var(--text-primary)',
-                opacity: parseFloat(montoCobrar) <= 1 ? 0.5 : 1,
-                cursor: parseFloat(montoCobrar) <= 1 ? 'not-allowed' : 'pointer'
+                opacity: parseInt(montoCobrar) <= 1 ? 0.5 : 1,
+                cursor: parseInt(montoCobrar) <= 1 ? 'not-allowed' : 'pointer'
               }}
             >
               -$1
             </button>
             <button
               type="button"
-              onClick={() => setMontoCobrar(cita.servicio.precio.toString())}
+              onClick={() => setMontoCobrar(Math.floor(cita.servicio.precio).toString())}
               className="px-3 py-1 text-sm rounded transition-all"
               style={{
                 backgroundColor: 'var(--bg-primary)',
@@ -425,7 +438,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             </button>
             <button
               type="button"
-              onClick={() => setMontoCobrar((parseFloat(montoCobrar) + 1).toString())}
+              onClick={() => setMontoCobrar((parseInt(montoCobrar) + 1).toString())}
               className="px-3 py-1 text-sm rounded transition-all"
               style={{
                 backgroundColor: 'var(--bg-primary)',
@@ -436,12 +449,12 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               +$1
             </button>
           </div>
-          {parseFloat(montoCobrar) !== cita.servicio.precio && (
+          {parseInt(montoCobrar) !== Math.floor(cita.servicio.precio) && (
             <p className="mt-2 text-sm" style={{ color: 'var(--accent-color)' }}>
-              {parseFloat(montoCobrar) < cita.servicio.precio ? (
-                <span><i className="fas fa-arrow-down mr-1"></i>Descuento: {formatCurrency(cita.servicio.precio - parseFloat(montoCobrar))}</span>
+              {parseInt(montoCobrar) < Math.floor(cita.servicio.precio) ? (
+                <span><i className="fas fa-arrow-down mr-1"></i>Descuento: ${Math.floor(cita.servicio.precio) - parseInt(montoCobrar)}</span>
               ) : (
-                <span><i className="fas fa-arrow-up mr-1"></i>Incremento: {formatCurrency(parseFloat(montoCobrar) - cita.servicio.precio)}</span>
+                <span><i className="fas fa-arrow-up mr-1"></i>Incremento: ${parseInt(montoCobrar) - Math.floor(cita.servicio.precio)}</span>
               )}
             </p>
           )}
