@@ -46,13 +46,13 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseInt(montoRecibido) - montoTotal) : 0
   
   // Calcular comisión en tiempo real basada en el porcentaje del barbero
-  // CRÍTICO: La comisión se calcula sobre el MONTO RECIBIDO (si existe), NO sobre el monto a cobrar
+  // LÓGICA CORRECTA:
+  // - La comisión se calcula sobre el "Monto a Cobrar" (montoTotal)
+  // - Este puede ser el precio original O el precio editado (descuento/propina)
+  // - El "Monto Recibido" es solo para calcular el cambio
   const porcentajeComision = cita.barbero.porcentaje_comision || 50
-  const montoParaComision = (metodoPago === 'efectivo' && montoRecibido) 
-    ? parseInt(montoRecibido) 
-    : montoTotal
-  const comisionBarberoRealTime = Math.floor(montoParaComision * (porcentajeComision / 100))
-  const ingresoCasaRealTime = montoParaComision - comisionBarberoRealTime
+  const comisionBarberoRealTime = Math.floor(montoTotal * (porcentajeComision / 100))
+  const ingresoCasaRealTime = montoTotal - comisionBarberoRealTime
 
   const handleCobrar = async () => {
     try {
@@ -85,17 +85,16 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       // Generar número de factura
       const numeroFactura = `FAC-${Date.now()}`
 
-      // Calcular comisiones sobre el monto REAL RECIBIDO
+      // Calcular comisiones sobre el MONTO A COBRAR (editado o no)
       const barbero = cita.barbero
       const porcentajeComision = barbero.porcentaje_comision || 50 // Obtener de la BD o default 50%
       
-      // CRÍTICO: La comisión se calcula sobre el MONTO RECIBIDO, no sobre el monto a cobrar
-      const montoParaComision = (metodoPago === 'efectivo' && montoRecibido) 
-        ? parseInt(montoRecibido) 
-        : montoTotal
-      
-      const comisionBarbero = Math.floor(montoParaComision * (porcentajeComision / 100))
-      const ingresoCasa = montoParaComision - comisionBarbero
+      // LÓGICA CORRECTA:
+      // - La comisión se calcula sobre montoTotal (Monto a Cobrar)
+      // - Este puede ser el precio original O el editado (descuento/propina)
+      // - El "Monto Recibido" es solo para el cambio
+      const comisionBarbero = Math.floor(montoTotal * (porcentajeComision / 100))
+      const ingresoCasa = montoTotal - comisionBarbero
 
       // Preparar items de la factura
       const items = [{
@@ -115,15 +114,15 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         cliente_nombre: cita.cliente_nombre,
         cliente_telefono: cita.cliente_telefono || null,
         items: items,
-        subtotal: montoTotal,  // Lo que se debía cobrar
+        subtotal: montoTotal,  // Precio del servicio (editado o no)
         descuento: 0,
-        total: montoParaComision,  // Lo que realmente se recibió (base para comisión)
+        total: montoTotal,     // Base para la comisión
         metodo_pago: metodoPago,
         monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseInt(montoRecibido) : montoTotal,
         cambio: cambio,
         porcentaje_comision: porcentajeComision,
-        comision_barbero: comisionBarbero,  // Calculado sobre monto_recibido
-        ingreso_casa: ingresoCasa,           // Calculado sobre monto_recibido
+        comision_barbero: comisionBarbero,  // Calculado sobre montoTotal (Monto a Cobrar)
+        ingreso_casa: ingresoCasa,           // Calculado sobre montoTotal (Monto a Cobrar)
         anulada: false,
         created_by: usuario.id
       }
