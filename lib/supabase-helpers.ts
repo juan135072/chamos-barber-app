@@ -145,9 +145,10 @@ export const chamosSupabase = {
   },
 
   // Servicios
-  getServicios: async (activo: boolean = true) => {
+  getServicios: async (activo?: boolean) => {
     const query = supabase.from('servicios').select('*')
     
+    // Solo filtrar por activo si se proporciona explícitamente
     if (activo !== undefined) {
       query.eq('activo', activo)
     }
@@ -193,6 +194,24 @@ export const chamosSupabase = {
   },
 
   deleteServicio: async (id: string) => {
+    // Primero verificar si hay citas asociadas
+    const { data: citas, error: citasError } = await supabase
+      .from('citas')
+      .select('id')
+      .eq('servicio_id', id)
+      .limit(1)
+    
+    if (citasError) throw citasError
+    
+    // Si hay citas asociadas, lanzar error descriptivo
+    if (citas && citas.length > 0) {
+      throw new Error(
+        'No se puede eliminar este servicio porque tiene citas asociadas. ' +
+        'Por favor, desactiva el servicio en lugar de eliminarlo, o elimina primero las citas asociadas.'
+      )
+    }
+    
+    // Si no hay citas, proceder con la eliminación
     const { error } = await supabase
       .from('servicios')
       .delete()

@@ -28,6 +28,7 @@ const ServiciosTab: React.FC = () => {
   const loadServicios = async () => {
     try {
       setLoading(true)
+      // No pasar parámetro para obtener TODOS los servicios (activos e inactivos)
       const data = await chamosSupabase.getServicios()
       setServicios(data || [])
     } catch (error) {
