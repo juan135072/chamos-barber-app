@@ -15,6 +15,7 @@ import CategoriasTab from '../components/admin/tabs/CategoriasTab'
 import ClientesTab from '../components/admin/tabs/ClientesTab'
 import ComisionesTab from '../components/admin/tabs/ComisionesTab'
 import GananciasTab from '../components/admin/tabs/GananciasTab'
+import CalendarView from '../components/admin/dashboard/CalendarView'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -372,7 +373,7 @@ export default function AdminPage() {
                   ))}
                 </div>
 
-                {/* Recent Appointments */}
+                {/* Calendar View - Reservas por Barbero */}
                 <div
                   className="rounded-xl p-6"
                   style={{
@@ -380,67 +381,13 @@ export default function AdminPage() {
                     border: '1px solid rgba(255, 255, 255, 0.05)'
                   }}
                 >
-                  <h2 className="text-lg font-semibold mb-6" style={{ color: '#FFF' }}>
-                    Citas Recientes
-                  </h2>
-                  
-                  {citas.length === 0 ? (
-                    <div className="text-center py-12">
-                      <i className="fas fa-calendar-times text-4xl mb-3" style={{ color: '#333' }}></i>
-                      <p style={{ color: '#666' }}>No hay citas registradas</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {citas.slice(0, 5).map((cita) => (
-                        <div
-                          key={cita.id}
-                          className="flex items-center justify-between p-4 rounded-lg transition-all hover:bg-white hover:bg-opacity-5"
-                          style={{ border: '1px solid rgba(255, 255, 255, 0.05)' }}
-                        >
-                          <div className="flex items-center gap-4">
-                            <div 
-                              className="w-10 h-10 rounded-full flex items-center justify-center"
-                              style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37' }}
-                            >
-                              <i className="fas fa-user"></i>
-                            </div>
-                            <div>
-                              <p className="font-medium" style={{ color: '#FFF', fontSize: '14px' }}>
-                                {cita.cliente_nombre}
-                              </p>
-                              <p style={{ color: '#666', fontSize: '13px' }}>
-                                {cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido}` : 'Sin barbero'}
-                                {cita.servicios && ` • ${cita.servicios.nombre}`}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p style={{ color: '#FFF', fontSize: '13px' }}>
-                              {new Date(cita.fecha + 'T' + cita.hora).toLocaleDateString('es-ES', {
-                                day: '2-digit',
-                                month: 'short'
-                              })}
-                            </p>
-                            <span
-                              className="inline-block px-2 py-1 rounded text-xs font-medium mt-1"
-                              style={{
-                                backgroundColor: 
-                                  cita.estado === 'confirmada' ? 'rgba(16, 185, 129, 0.2)' :
-                                  cita.estado === 'pendiente' ? 'rgba(245, 158, 11, 0.2)' :
-                                  'rgba(239, 68, 68, 0.2)',
-                                color: 
-                                  cita.estado === 'confirmada' ? '#10B981' :
-                                  cita.estado === 'pendiente' ? '#F59E0B' :
-                                  '#EF4444'
-                              }}
-                            >
-                              {cita.estado}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                  <CalendarView 
+                    barberos={barberos}
+                    onDateSelect={(date) => {
+                      // Opcionalmente abrir el tab de Citas con la fecha seleccionada
+                      console.log('Fecha seleccionada:', date)
+                    }}
+                  />
                 </div>
               </div>
             )}
