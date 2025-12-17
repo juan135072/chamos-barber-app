@@ -16,6 +16,7 @@ import ClientesTab from '../components/admin/tabs/ClientesTab'
 import ComisionesTab from '../components/admin/tabs/ComisionesTab'
 import GananciasTab from '../components/admin/tabs/GananciasTab'
 import CalendarView from '../components/admin/dashboard/CalendarView'
+import WalkInClientsPanel from '../components/walkin/WalkInClientsPanel'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -145,6 +146,7 @@ export default function AdminPage() {
     { id: 'dashboard', icon: 'fas fa-th-large', label: 'Dashboard' },
     { id: 'citas', icon: 'fas fa-calendar-alt', label: 'Citas' },
     { id: 'clientes', icon: 'fas fa-users', label: 'Clientes' },
+    { id: 'walkin', icon: 'fas fa-walking', label: 'Walk-In' },
     { id: 'barberos', icon: 'fas fa-user-tie', label: 'Barberos' },
     { id: 'horarios', icon: 'fas fa-clock', label: 'Horarios' },
     { id: 'servicios', icon: 'fas fa-scissors', label: 'Servicios' },
@@ -394,6 +396,7 @@ export default function AdminPage() {
 
             {/* Other Tabs */}
             {activeTab === 'clientes' && <ClientesTab />}
+            {activeTab === 'walkin' && <WalkInClientsPanel />}
             {activeTab === 'barberos' && <BarberosTab />}
             {activeTab === 'comisiones' && <ComisionesTab />}
             {activeTab === 'ganancias' && <GananciasTab />}
