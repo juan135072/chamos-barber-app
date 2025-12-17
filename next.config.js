@@ -13,7 +13,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
 
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
+  // swcMinify removed - SWC is now the default minifier in Next.js 14+
   
   // Configuración para imágenes externas
   images: {

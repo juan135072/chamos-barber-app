@@ -75,25 +75,45 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       // Generar número de factura
       const numeroFactura = `FAC-${Date.now()}`
 
-      // Insertar factura directamente
-      const { data: facturaData, error: facturaError } = await supabase
+      // Calcular comisiones
+      const barbero = cita.barbero
+      const porcentajeComision = 50 // Default 50%, deberías obtenerlo del barbero
+      const comisionBarbero = montoTotal * (porcentajeComision / 100)
+      const ingresoCasa = montoTotal - comisionBarbero
+
+      // Preparar items de la factura
+      const items = [{
+        servicio: cita.servicio.nombre,
+        precio: montoTotal,
+        cantidad: 1
+      }]
+
+      // Insertar factura directamente con el esquema correcto
+      const facturaPayload = {
+        numero_factura: numeroFactura,
+        cita_id: cita.id,
+        barbero_id: cita.barbero_id || cita.barbero?.id || '',
+        cliente_nombre: cita.cliente_nombre,
+        cliente_telefono: cita.cliente_telefono || null,
+        items: items,
+        subtotal: montoTotal,
+        descuento: 0,
+        iva: 0,
+        total: montoTotal,
+        metodo_pago: metodoPago,
+        monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseFloat(montoRecibido) : montoTotal,
+        cambio: cambio,
+        porcentaje_comision: porcentajeComision,
+        comision_barbero: comisionBarbero,
+        ingreso_casa: ingresoCasa,
+        impresa: false,
+        anulada: false,
+        created_by: usuario.id
+      }
+
+      const { data: facturaData, error: facturaError } = await (supabase as any)
         .from('facturas')
-        .insert({
-          cita_id: cita.id,
-          barbero_id: cita.barbero_id || cita.barbero?.id || null,
-          servicio_id: cita.servicio_id || cita.servicio?.id || null,
-          cliente_nombre: cita.cliente_nombre,
-          servicio_nombre: cita.servicio.nombre,
-          monto_total: montoTotal,
-          metodo_pago: metodoPago,
-          fecha: new Date().toISOString().split('T')[0],
-          hora: new Date().toTimeString().split(' ')[0],
-          estado: 'pagado',
-          numero_factura: numeroFactura,
-          usuario_id: usuario.id,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
+        .insert(facturaPayload)
         .select()
         .single()
 
@@ -105,13 +125,15 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       console.log('✅ Factura creada:', facturaData)
 
       // Actualizar estado de pago de la cita
-      const { error: citaError } = await supabase
+      const citaUpdate = { 
+        estado_pago: 'pagado',
+        estado: 'completada',
+        updated_at: new Date().toISOString()
+      }
+      
+      const { error: citaError } = await (supabase as any)
         .from('citas')
-        .update({ 
-          estado_pago: 'pagado',
-          estado: 'completada',
-          updated_at: new Date().toISOString()
-        })
+        .update(citaUpdate)
         .eq('id', cita.id)
 
       if (citaError) {
