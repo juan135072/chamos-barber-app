@@ -46,9 +46,13 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseInt(montoRecibido) - montoTotal) : 0
   
   // Calcular comisión en tiempo real basada en el porcentaje del barbero
+  // CRÍTICO: La comisión se calcula sobre el MONTO RECIBIDO (si existe), NO sobre el monto a cobrar
   const porcentajeComision = cita.barbero.porcentaje_comision || 50
-  const comisionBarberoRealTime = Math.floor(montoTotal * (porcentajeComision / 100))
-  const ingresoCasaRealTime = montoTotal - comisionBarberoRealTime
+  const montoParaComision = (metodoPago === 'efectivo' && montoRecibido) 
+    ? parseInt(montoRecibido) 
+    : montoTotal
+  const comisionBarberoRealTime = Math.floor(montoParaComision * (porcentajeComision / 100))
+  const ingresoCasaRealTime = montoParaComision - comisionBarberoRealTime
 
   const handleCobrar = async () => {
     try {
@@ -81,11 +85,17 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       // Generar número de factura
       const numeroFactura = `FAC-${Date.now()}`
 
-      // Calcular comisiones sobre el monto REAL cobrado
+      // Calcular comisiones sobre el monto REAL RECIBIDO
       const barbero = cita.barbero
       const porcentajeComision = barbero.porcentaje_comision || 50 // Obtener de la BD o default 50%
-      const comisionBarbero = Math.floor(montoTotal * (porcentajeComision / 100))
-      const ingresoCasa = montoTotal - comisionBarbero
+      
+      // CRÍTICO: La comisión se calcula sobre el MONTO RECIBIDO, no sobre el monto a cobrar
+      const montoParaComision = (metodoPago === 'efectivo' && montoRecibido) 
+        ? parseInt(montoRecibido) 
+        : montoTotal
+      
+      const comisionBarbero = Math.floor(montoParaComision * (porcentajeComision / 100))
+      const ingresoCasa = montoParaComision - comisionBarbero
 
       // Preparar items de la factura
       const items = [{
@@ -105,15 +115,15 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         cliente_nombre: cita.cliente_nombre,
         cliente_telefono: cita.cliente_telefono || null,
         items: items,
-        subtotal: montoTotal,
+        subtotal: montoTotal,  // Lo que se debía cobrar
         descuento: 0,
-        total: montoTotal,
+        total: montoParaComision,  // Lo que realmente se recibió (base para comisión)
         metodo_pago: metodoPago,
-        monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseFloat(montoRecibido) : montoTotal,
+        monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseInt(montoRecibido) : montoTotal,
         cambio: cambio,
         porcentaje_comision: porcentajeComision,
-        comision_barbero: comisionBarbero,
-        ingreso_casa: ingresoCasa,
+        comision_barbero: comisionBarbero,  // Calculado sobre monto_recibido
+        ingreso_casa: ingresoCasa,           // Calculado sobre monto_recibido
         anulada: false,
         created_by: usuario.id
       }
