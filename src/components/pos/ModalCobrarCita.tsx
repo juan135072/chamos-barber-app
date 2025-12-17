@@ -42,7 +42,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   } | null>(null)
 
   const montoTotal = parseInt(montoCobrar) || Math.floor(cita.servicio.precio)
-  const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseFloat(montoRecibido) - montoTotal) : 0
+  const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseInt(montoRecibido) - montoTotal) : 0
 
   const handleCobrar = async () => {
     try {
@@ -458,6 +458,30 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               )}
             </p>
           )}
+          
+          {/* Mostrar comisión calculada en tiempo real */}
+          <div className="mt-3 p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--accent-color)' }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium" style={{ color: 'var(--accent-color)' }}>
+                <i className="fas fa-hand-holding-usd mr-2"></i>
+                Comisión (60%):
+              </span>
+            </div>
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Barbero:</span>
+                <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
+                  ${Math.floor(montoTotal * 0.6)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Casa:</span>
+                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                  ${Math.floor(montoTotal * 0.4)}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Método de Pago */}
@@ -488,10 +512,10 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             </label>
             <input
               type="number"
-              step="0.01"
+              step="1"
               value={montoRecibido}
               onChange={(e) => setMontoRecibido(e.target.value)}
-              placeholder={`Mínimo: $${montoTotal.toFixed(2)}`}
+              placeholder={`Mínimo: $${montoTotal}`}
               className="form-input"
             />
             {cambio > 0 && (
