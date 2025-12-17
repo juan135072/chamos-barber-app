@@ -464,20 +464,20 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium" style={{ color: 'var(--accent-color)' }}>
                 <i className="fas fa-hand-holding-usd mr-2"></i>
-                Comisión (60%):
+                Comisión (50%):
               </span>
             </div>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Barbero:</span>
                 <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
-                  ${Math.floor(montoTotal * 0.6)}
+                  USD {Math.floor(montoTotal * 0.5).toLocaleString('es-VE')}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Casa:</span>
                 <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                  ${Math.floor(montoTotal * 0.4)}
+                  USD {Math.floor(montoTotal * 0.5).toLocaleString('es-VE')}
                 </span>
               </div>
             </div>
