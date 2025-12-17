@@ -261,7 +261,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       onClick={(e) => e.target === e.currentTarget && onClose()}
     >
       <div 
-        className="rounded-lg shadow-xl max-w-md w-full p-6"
+        className="rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
         style={{ backgroundColor: 'var(--bg-secondary)', border: '2px solid var(--accent-color)' }}
       >
         {/* Header */}
