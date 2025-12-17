@@ -35,6 +35,7 @@ import {
 } from '@/lib/supabase-liquidaciones'
 import CrearLiquidacionModal from './CrearLiquidacionModal'
 import PagarLiquidacionModal from './PagarLiquidacionModal'
+import { generarPDFLiquidacion } from '@/lib/pdf-liquidacion'
 
 export default function AdminLiquidacionesPanel() {
   // Estado
@@ -102,6 +103,15 @@ export default function AdminLiquidacionesPanel() {
 
   const handleSuccess = () => {
     cargarDatos()
+  }
+
+  const handleDescargarPDF = async (liquidacion: Liquidacion) => {
+    try {
+      await generarPDFLiquidacion(liquidacion)
+    } catch (err) {
+      console.error('Error generando PDF:', err)
+      setError('Error al generar el PDF')
+    }
   }
 
   // Filtrar liquidaciones
@@ -550,18 +560,31 @@ export default function AdminLiquidacionesPanel() {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     {liquidacion.estado === 'pendiente' ? (
-                      <button
-                        onClick={() => handlePagarLiquidacion(liquidacion)}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
-                        style={{ backgroundColor: '#22c55e', color: 'white' }}
-                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
-                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#22c55e'}
-                      >
-                        <DollarSign className="w-4 h-4" />
-                        Pagar
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handlePagarLiquidacion(liquidacion)}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
+                          style={{ backgroundColor: '#22c55e', color: 'white' }}
+                          onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#16a34a'}
+                          onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#22c55e'}
+                        >
+                          <DollarSign className="w-4 h-4" />
+                          Pagar
+                        </button>
+                        <button
+                          onClick={() => handleDescargarPDF(liquidacion)}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg transition-colors"
+                          style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                          onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+                          onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                          title="Ver PDF"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </div>
                     ) : liquidacion.estado === 'pagada' ? (
                       <button
+                        onClick={() => handleDescargarPDF(liquidacion)}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg transition-colors"
                         style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
                         onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
