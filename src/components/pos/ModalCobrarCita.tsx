@@ -410,7 +410,22 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             step="1"
             min="0"
             value={montoCobrar}
-            onChange={(e) => setMontoCobrar(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value
+              // Solo permitir enteros, eliminar decimales
+              if (value.includes('.') || value.includes(',')) {
+                setMontoCobrar(Math.floor(parseFloat(value) || 0).toString())
+              } else {
+                setMontoCobrar(value)
+              }
+            }}
+            onBlur={(e) => {
+              // Forzar entero al perder el foco
+              const value = e.target.value
+              if (value) {
+                setMontoCobrar(Math.floor(parseFloat(value) || 0).toString())
+              }
+            }}
             className="form-input text-xl font-bold"
             style={{ color: 'var(--accent-color)' }}
           />
@@ -520,7 +535,22 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               type="number"
               step="1"
               value={montoRecibido}
-              onChange={(e) => setMontoRecibido(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value
+                // Solo permitir enteros, eliminar decimales
+                if (value.includes('.') || value.includes(',')) {
+                  setMontoRecibido(Math.floor(parseFloat(value) || 0).toString())
+                } else {
+                  setMontoRecibido(value)
+                }
+              }}
+              onBlur={(e) => {
+                // Forzar entero al perder el foco
+                const value = e.target.value
+                if (value) {
+                  setMontoRecibido(Math.floor(parseFloat(value) || 0).toString())
+                }
+              }}
               placeholder={`Mínimo: $${montoTotal}`}
               className="form-input"
             />
