@@ -237,44 +237,48 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
       </div>
 
       {/* Vista de calendario por horas */}
-      <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+      <div className="overflow-x-auto overflow-y-auto rounded-lg" style={{ border: '1px solid rgba(255, 255, 255, 0.05)', maxHeight: '70vh' }}>
         <table className="w-full" style={{ minWidth: '800px' }}>
-          <thead>
+          <thead className="sticky top-0 z-20">
             <tr>
               <th 
-                className="text-left p-4 sticky left-0 z-10"
+                className="text-left p-4 sticky left-0 z-30"
                 style={{ 
                   backgroundColor: '#0A0A0A',
-                  minWidth: '80px',
-                  borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
+                  minWidth: '100px',
+                  borderBottom: '2px solid rgba(212, 175, 55, 0.3)',
+                  borderRight: '2px solid rgba(255, 255, 255, 0.1)'
                 }}
               >
-                <span className="text-sm font-medium" style={{ color: '#888' }}>Hora</span>
+                <span className="text-sm font-bold" style={{ color: '#D4AF37' }}>Hora</span>
               </th>
-              {barberos.map((barbero) => (
+              {barberos.map((barbero, idx) => (
                 <th
                   key={barbero.id}
                   className="p-4 text-center"
                   style={{ 
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                    minWidth: '180px'
+                    backgroundColor: '#0A0A0A',
+                    borderBottom: '2px solid rgba(212, 175, 55, 0.3)',
+                    borderRight: idx < barberos.length - 1 ? '2px solid rgba(255, 255, 255, 0.1)' : 'none',
+                    minWidth: '200px'
                   }}
                 >
                   <div className="flex flex-col items-center gap-2">
                     <div
-                      className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
+                      className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg"
                       style={{
-                        backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                        color: '#D4AF37'
+                        backgroundColor: 'rgba(212, 175, 55, 0.15)',
+                        color: '#D4AF37',
+                        border: '2px solid rgba(212, 175, 55, 0.3)'
                       }}
                     >
-                      <i className="fas fa-user-tie text-base"></i>
+                      <i className="fas fa-user-tie text-lg"></i>
                     </div>
                     <div>
-                      <p className="text-sm font-semibold" style={{ color: '#FFF' }}>
+                      <p className="text-sm font-bold" style={{ color: '#FFF' }}>
                         {barbero.nombre}
                       </p>
-                      <p className="text-xs" style={{ color: '#666' }}>
+                      <p className="text-xs font-medium" style={{ color: '#D4AF37' }}>
                         {barbero.apellido}
                       </p>
                     </div>
@@ -284,36 +288,41 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
             </tr>
           </thead>
           <tbody>
-            {timeSlots.map((timeSlot) => (
-              <tr key={timeSlot} className="hover:bg-white hover:bg-opacity-[0.02] transition-all">
+            {timeSlots.map((timeSlot, rowIdx) => (
+              <tr key={timeSlot} className="hover:bg-white hover:bg-opacity-[0.015] transition-all group">
                 <td 
                   className="p-4 sticky left-0 z-10"
                   style={{ 
                     backgroundColor: '#0A0A0A',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                    borderRight: '2px solid rgba(255, 255, 255, 0.1)'
                   }}
                 >
-                  <span className="text-sm font-medium" style={{ color: '#888' }}>
-                    {timeSlot}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold" style={{ color: '#D4AF37' }}>
+                      {timeSlot}
+                    </span>
+                  </div>
                 </td>
-                {barberos.map((barbero) => {
+                {barberos.map((barbero, colIdx) => {
                   const cita = getCitaForTime(barbero.id, timeSlot)
                   return (
                     <td
                       key={barbero.id}
                       className="p-3 align-top"
                       style={{ 
-                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                        backgroundColor: colIdx % 2 === 0 ? 'rgba(212, 175, 55, 0.02)' : 'transparent',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+                        borderRight: colIdx < barberos.length - 1 ? '2px solid rgba(255, 255, 255, 0.1)' : 'none'
                       }}
                     >
                       {cita ? (
                         <div
-                          className="p-3 rounded-lg text-xs transition-all hover:scale-[1.02] cursor-pointer"
+                          className="p-3 rounded-lg text-xs transition-all hover:scale-[1.03] hover:shadow-xl cursor-pointer"
                           style={{
-                            backgroundColor: `${getEstadoColor(cita.estado)}10`,
-                            borderLeft: `3px solid ${getEstadoColor(cita.estado)}`,
-                            border: '1px solid rgba(255, 255, 255, 0.05)'
+                            backgroundColor: `${getEstadoColor(cita.estado)}15`,
+                            borderLeft: `4px solid ${getEstadoColor(cita.estado)}`,
+                            border: '1px solid rgba(255, 255, 255, 0.08)'
                           }}
                           onClick={() => onDateSelect && onDateSelect(selectedDay)}
                         >
@@ -322,7 +331,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                               {cita.hora.substring(0, 5)}
                             </span>
                             <span
-                              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
+                              className="text-[10px] px-2 py-0.5 rounded-full font-bold"
                               style={{
                                 backgroundColor: getEstadoColor(cita.estado),
                                 color: '#FFF'
@@ -333,18 +342,18 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                                cita.estado === 'cancelada' ? '×' : '✓'}
                             </span>
                           </div>
-                          <p className="truncate font-medium mb-1" style={{ color: '#DDD' }}>
+                          <p className="truncate font-semibold mb-1" style={{ color: '#FFF' }}>
                             {cita.cliente_nombre}
                           </p>
                           {cita.servicios && (
-                            <p className="text-[11px] truncate" style={{ color: '#888' }}>
+                            <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
                               {cita.servicios.nombre}
                             </p>
                           )}
                         </div>
                       ) : (
                         <div className="flex items-center justify-center h-16">
-                          <span className="text-xs" style={{ color: '#222' }}>—</span>
+                          <span className="text-xs" style={{ color: '#1A1A1A' }}>—</span>
                         </div>
                       )}
                     </td>
