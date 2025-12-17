@@ -185,26 +185,26 @@ export async function generarPDFLiquidacion(liquidacion: Liquidacion): Promise<v
 
   yPosition += 10
 
-  // Línea 1: Total ventas
+  // Línea 1: Cantidad de servicios/ventas
   doc.setFontSize(11)
   doc.setTextColor(COLORS.lightGray)
   doc.setFont('helvetica', 'normal')
-  doc.text('Total de Ventas:', 30, yPosition)
+  doc.text('Cantidad de Servicios:', 30, yPosition)
   
   doc.setTextColor(COLORS.white)
   doc.setFont('helvetica', 'bold')
-  doc.text(liquidacion.total_ventas.toString(), pageWidth - 30, yPosition, { align: 'right' })
+  doc.text(liquidacion.cantidad_servicios.toString(), pageWidth - 30, yPosition, { align: 'right' })
 
   yPosition += 8
 
-  // Línea 2: Monto vendido
+  // Línea 2: Monto total
   doc.setTextColor(COLORS.lightGray)
   doc.setFont('helvetica', 'normal')
   doc.text('Monto Total Vendido:', 30, yPosition)
   
   doc.setTextColor(COLORS.white)
   doc.setFont('helvetica', 'bold')
-  doc.text(formatCLP(liquidacion.total_vendido), pageWidth - 30, yPosition, { align: 'right' })
+  doc.text(formatCLP(liquidacion.total_ventas), pageWidth - 30, yPosition, { align: 'right' })
 
   yPosition += 8
 
@@ -238,8 +238,8 @@ export async function generarPDFLiquidacion(liquidacion: Liquidacion): Promise<v
 
   yPosition += 20
 
-  // ==================== OBSERVACIONES ====================
-  if (liquidacion.observaciones) {
+  // ==================== NOTAS/OBSERVACIONES ====================
+  if (liquidacion.notas) {
     doc.setFillColor(COLORS.primary)
     doc.roundedRect(20, yPosition, pageWidth - 40, 2, 1, 1, 'F')
     
@@ -248,7 +248,7 @@ export async function generarPDFLiquidacion(liquidacion: Liquidacion): Promise<v
     doc.setFontSize(14)
     doc.setTextColor(COLORS.primary)
     doc.setFont('helvetica', 'bold')
-    doc.text('OBSERVACIONES', 25, yPosition)
+    doc.text('NOTAS', 25, yPosition)
 
     yPosition += 8
 
@@ -257,10 +257,10 @@ export async function generarPDFLiquidacion(liquidacion: Liquidacion): Promise<v
     doc.setFont('helvetica', 'normal')
     
     // Split text si es muy largo
-    const observacionesLines = doc.splitTextToSize(liquidacion.observaciones, pageWidth - 50)
-    doc.text(observacionesLines, 25, yPosition)
+    const notasLines = doc.splitTextToSize(liquidacion.notas, pageWidth - 50)
+    doc.text(notasLines, 25, yPosition)
     
-    yPosition += (observacionesLines.length * 5) + 10
+    yPosition += (notasLines.length * 5) + 10
   }
 
   // ==================== FOOTER ====================
