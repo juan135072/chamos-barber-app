@@ -15,14 +15,15 @@ interface CalendarViewProps {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) => {
   const supabase = useSupabaseClient<Database>()
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [selectedDate, setSelectedDate] = useState(new Date())
+  const [selectedDay, setSelectedDay] = useState(new Date())
   const [weekDays, setWeekDays] = useState<Date[]>([])
   const [citasPorBarbero, setCitasPorBarbero] = useState<Record<string, Cita[]>>({})
   const [loading, setLoading] = useState(true)
 
   // Generar los 7 días de la semana actual
   useEffect(() => {
-    const startOfWeek = new Date(currentDate)
+    const startOfWeek = new Date(selectedDate)
     const day = startOfWeek.getDay()
     const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1) // Lunes como inicio
     startOfWeek.setDate(diff)
@@ -34,19 +35,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
       days.push(date)
     }
     setWeekDays(days)
-  }, [currentDate])
+    
+    // Seleccionar el día actual por defecto
+    const today = new Date()
+    const todayInWeek = days.find(d => d.toDateString() === today.toDateString())
+    if (todayInWeek) {
+      setSelectedDay(todayInWeek)
+    } else {
+      setSelectedDay(days[0])
+    }
+  }, [selectedDate])
 
-  // Cargar citas de la semana
+  // Cargar citas del día seleccionado
   useEffect(() => {
-    if (weekDays.length === 0) return
+    if (!selectedDay) return
     loadCitas()
-  }, [weekDays, barberos])
+  }, [selectedDay, barberos])
 
   const loadCitas = async () => {
     setLoading(true)
     try {
-      const startDate = weekDays[0].toISOString().split('T')[0]
-      const endDate = weekDays[6].toISOString().split('T')[0]
+      const dateStr = selectedDay.toISOString().split('T')[0]
 
       const { data, error } = await supabase
         .from('citas')
@@ -55,8 +64,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
           barberos (nombre, apellido),
           servicios (nombre, duracion_minutos)
         `)
-        .gte('fecha', startDate)
-        .lte('fecha', endDate)
+        .eq('fecha', dateStr)
         .order('hora')
 
       if (error) throw error
@@ -77,25 +85,41 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
     }
   }
 
-  const getCitasForDay = (barberoId: string, date: Date): Cita[] => {
-    const dateStr = date.toISOString().split('T')[0]
-    return (citasPorBarbero[barberoId] || []).filter(cita => cita.fecha === dateStr)
+  // Generar franjas horarias (8:00 - 20:00)
+  const generateTimeSlots = () => {
+    const slots: string[] = []
+    for (let hour = 8; hour <= 20; hour++) {
+      slots.push(`${hour.toString().padStart(2, '0')}:00`)
+    }
+    return slots
+  }
+
+  const timeSlots = generateTimeSlots()
+
+  const getCitaForTime = (barberoId: string, timeSlot: string): Cita | null => {
+    const citas = citasPorBarbero[barberoId] || []
+    // Buscar cita que coincida con esta hora
+    return citas.find(cita => {
+      const citaHour = cita.hora.substring(0, 5)
+      const slotHour = timeSlot.substring(0, 2)
+      return citaHour.startsWith(slotHour)
+    }) || null
   }
 
   const previousWeek = () => {
-    const newDate = new Date(currentDate)
+    const newDate = new Date(selectedDate)
     newDate.setDate(newDate.getDate() - 7)
-    setCurrentDate(newDate)
+    setSelectedDate(newDate)
   }
 
   const nextWeek = () => {
-    const newDate = new Date(currentDate)
+    const newDate = new Date(selectedDate)
     newDate.setDate(newDate.getDate() + 7)
-    setCurrentDate(newDate)
+    setSelectedDate(newDate)
   }
 
   const goToToday = () => {
-    setCurrentDate(new Date())
+    setSelectedDate(new Date())
   }
 
   const getDayName = (date: Date) => {
@@ -109,6 +133,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
   const isToday = (date: Date) => {
     const today = new Date()
     return date.toDateString() === today.toDateString()
+  }
+
+  const isSelectedDay = (date: Date) => {
+    return date.toDateString() === selectedDay.toDateString()
   }
 
   const getEstadoColor = (estado: string) => {
@@ -138,7 +166,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
             Calendario de Reservas
           </h2>
           <p className="text-sm" style={{ color: '#666' }}>
-            {currentDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
+            {selectedDate.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}
           </p>
         </div>
 
@@ -171,7 +199,44 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
         </div>
       </div>
 
-      {/* Calendario */}
+      {/* Selector de días de la semana */}
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {weekDays.map((day, idx) => (
+          <button
+            key={idx}
+            onClick={() => setSelectedDay(day)}
+            className="flex-shrink-0 px-4 py-3 rounded-lg transition-all"
+            style={{
+              backgroundColor: isSelectedDay(day) 
+                ? '#D4AF37' 
+                : isToday(day)
+                ? 'rgba(212, 175, 55, 0.1)'
+                : 'rgba(255, 255, 255, 0.05)',
+              border: isSelectedDay(day) 
+                ? '1px solid #D4AF37' 
+                : '1px solid rgba(255, 255, 255, 0.05)',
+              minWidth: '80px'
+            }}
+          >
+            <div className="flex flex-col items-center gap-1">
+              <span 
+                className="text-xs font-medium uppercase tracking-wider" 
+                style={{ color: isSelectedDay(day) ? '#121212' : '#666' }}
+              >
+                {getDayName(day)}
+              </span>
+              <span 
+                className="text-lg font-bold" 
+                style={{ color: isSelectedDay(day) ? '#121212' : isToday(day) ? '#D4AF37' : '#888' }}
+              >
+                {getDayNumber(day)}
+              </span>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {/* Vista de calendario por horas */}
       <div className="overflow-x-auto rounded-lg" style={{ border: '1px solid rgba(255, 255, 255, 0.05)' }}>
         <table className="w-full" style={{ minWidth: '800px' }}>
           <thead>
@@ -180,51 +245,22 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                 className="text-left p-4 sticky left-0 z-10"
                 style={{ 
                   backgroundColor: '#0A0A0A',
-                  minWidth: '180px',
+                  minWidth: '80px',
                   borderBottom: '1px solid rgba(255, 255, 255, 0.08)'
                 }}
               >
-                <span className="text-sm font-medium" style={{ color: '#888' }}>Barbero</span>
+                <span className="text-sm font-medium" style={{ color: '#888' }}>Hora</span>
               </th>
-              {weekDays.map((day, idx) => (
+              {barberos.map((barbero) => (
                 <th
-                  key={idx}
+                  key={barbero.id}
                   className="p-4 text-center"
                   style={{ 
                     borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
-                    minWidth: '140px',
-                    backgroundColor: isToday(day) ? 'rgba(212, 175, 55, 0.03)' : 'transparent'
+                    minWidth: '180px'
                   }}
                 >
                   <div className="flex flex-col items-center gap-2">
-                    <span className="text-xs font-medium uppercase tracking-wider" style={{ color: '#666' }}>
-                      {getDayName(day)}
-                    </span>
-                    <div
-                      className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition-all"
-                      style={{
-                        color: isToday(day) ? '#121212' : '#888',
-                        backgroundColor: isToday(day) ? '#D4AF37' : 'rgba(255, 255, 255, 0.05)'
-                      }}
-                    >
-                      {getDayNumber(day)}
-                    </div>
-                  </div>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {barberos.map((barbero) => (
-              <tr key={barbero.id} className="hover:bg-white hover:bg-opacity-[0.02] transition-all">
-                <td 
-                  className="p-4 sticky left-0 z-10"
-                  style={{ 
-                    backgroundColor: '#0A0A0A',
-                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
-                  }}
-                >
-                  <div className="flex items-center gap-3">
                     <div
                       className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0"
                       style={{
@@ -234,72 +270,83 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                     >
                       <i className="fas fa-user-tie text-base"></i>
                     </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold truncate" style={{ color: '#FFF' }}>
+                    <div>
+                      <p className="text-sm font-semibold" style={{ color: '#FFF' }}>
                         {barbero.nombre}
                       </p>
-                      <p className="text-xs truncate" style={{ color: '#666' }}>
+                      <p className="text-xs" style={{ color: '#666' }}>
                         {barbero.apellido}
                       </p>
                     </div>
                   </div>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {timeSlots.map((timeSlot) => (
+              <tr key={timeSlot} className="hover:bg-white hover:bg-opacity-[0.02] transition-all">
+                <td 
+                  className="p-4 sticky left-0 z-10"
+                  style={{ 
+                    backgroundColor: '#0A0A0A',
+                    borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+                  }}
+                >
+                  <span className="text-sm font-medium" style={{ color: '#888' }}>
+                    {timeSlot}
+                  </span>
                 </td>
-                {weekDays.map((day, dayIdx) => {
-                  const citas = getCitasForDay(barbero.id, day)
+                {barberos.map((barbero) => {
+                  const cita = getCitaForTime(barbero.id, timeSlot)
                   return (
                     <td
-                      key={dayIdx}
+                      key={barbero.id}
                       className="p-3 align-top"
                       style={{ 
-                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-                        backgroundColor: isToday(day) ? 'rgba(212, 175, 55, 0.03)' : 'transparent'
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
                       }}
                     >
-                      <div className="space-y-2 min-h-[80px]">
-                        {citas.length === 0 ? (
-                          <div className="flex items-center justify-center h-full py-6">
-                            <span className="text-xs" style={{ color: '#333' }}>—</span>
-                          </div>
-                        ) : (
-                          citas.map((cita) => (
-                            <div
-                              key={cita.id}
-                              className="p-3 rounded-lg text-xs transition-all hover:scale-[1.02] cursor-pointer group"
+                      {cita ? (
+                        <div
+                          className="p-3 rounded-lg text-xs transition-all hover:scale-[1.02] cursor-pointer"
+                          style={{
+                            backgroundColor: `${getEstadoColor(cita.estado)}10`,
+                            borderLeft: `3px solid ${getEstadoColor(cita.estado)}`,
+                            border: '1px solid rgba(255, 255, 255, 0.05)'
+                          }}
+                          onClick={() => onDateSelect && onDateSelect(selectedDay)}
+                        >
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-bold text-sm" style={{ color: '#FFF' }}>
+                              {cita.hora.substring(0, 5)}
+                            </span>
+                            <span
+                              className="text-[10px] px-2 py-0.5 rounded-full font-medium"
                               style={{
-                                backgroundColor: `${getEstadoColor(cita.estado)}10`,
-                                borderLeft: `2px solid ${getEstadoColor(cita.estado)}`,
-                                border: '1px solid rgba(255, 255, 255, 0.05)'
+                                backgroundColor: getEstadoColor(cita.estado),
+                                color: '#FFF'
                               }}
-                              onClick={() => onDateSelect && onDateSelect(day)}
                             >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="font-bold text-sm" style={{ color: '#FFF' }}>
-                                  {cita.hora.substring(0, 5)}
-                                </span>
-                                <span
-                                  className="text-[10px] px-2 py-0.5 rounded-full font-medium"
-                                  style={{
-                                    backgroundColor: getEstadoColor(cita.estado),
-                                    color: '#FFF'
-                                  }}
-                                >
-                                  {cita.estado === 'confirmada' ? '✓' : 
-                                   cita.estado === 'pendiente' ? '⋯' :
-                                   cita.estado === 'cancelada' ? '×' : '✓'}
-                                </span>
-                              </div>
-                              <p className="truncate font-medium mb-1" style={{ color: '#DDD' }}>
-                                {cita.cliente_nombre}
-                              </p>
-                              {cita.servicios && (
-                                <p className="text-[11px] truncate" style={{ color: '#888' }}>
-                                  {cita.servicios.nombre}
-                                </p>
-                              )}
-                            </div>
-                          ))
-                        )}
-                      </div>
+                              {cita.estado === 'confirmada' ? '✓' : 
+                               cita.estado === 'pendiente' ? '⋯' :
+                               cita.estado === 'cancelada' ? '×' : '✓'}
+                            </span>
+                          </div>
+                          <p className="truncate font-medium mb-1" style={{ color: '#DDD' }}>
+                            {cita.cliente_nombre}
+                          </p>
+                          {cita.servicios && (
+                            <p className="text-[11px] truncate" style={{ color: '#888' }}>
+                              {cita.servicios.nombre}
+                            </p>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-16">
+                          <span className="text-xs" style={{ color: '#222' }}>—</span>
+                        </div>
+                      )}
                     </td>
                   )
                 })}
