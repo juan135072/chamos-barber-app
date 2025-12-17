@@ -22,16 +22,21 @@ interface Venta {
 
 interface Cita {
   id: string
+  barbero_id: string
+  servicio_id: string
   cliente_nombre: string
   cliente_telefono: string
   fecha: string
   hora: string  // Campo real de la BD
   estado_pago: string
   barbero: {
+    id: string
     nombre: string
     apellido: string
+    porcentaje_comision?: number
   }
   servicio: {
+    id: string
     nombre: string
     precio: number
     duracion_minutos: number
@@ -88,16 +93,21 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         .from('citas')
         .select(`
           id,
+          barbero_id,
+          servicio_id,
           cliente_nombre,
           cliente_telefono,
           fecha,
           hora,
           estado_pago,
           barbero:barberos!citas_barbero_id_fkey (
+            id,
             nombre,
-            apellido
+            apellido,
+            porcentaje_comision
           ),
           servicio:servicios!citas_servicio_id_fkey (
+            id,
             nombre,
             precio,
             duracion_minutos
