@@ -9,11 +9,15 @@ interface Cita {
   fecha: string
   hora: string  // Campo real de la BD
   estado_pago: string
+  barbero_id?: string
   barbero: {
+    id?: string
     nombre: string
     apellido: string
   }
+  servicio_id?: string
   servicio: {
+    id?: string
     nombre: string
     precio: number
     duracion_minutos: number
@@ -29,6 +33,7 @@ interface ModalCobrarCitaProps {
 
 export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: ModalCobrarCitaProps) {
   const [metodoPago, setMetodoPago] = useState('efectivo')
+  const [montoCobrar, setMontoCobrar] = useState(cita.servicio.precio.toString())
   const [montoRecibido, setMontoRecibido] = useState('')
   const [procesando, setProcesando] = useState(false)
   const [cobroExitoso, setCobroExitoso] = useState<{
@@ -36,63 +41,87 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     numeroFactura: string
   } | null>(null)
 
-  const total = cita.servicio.precio
-  const cambio = montoRecibido ? Math.max(0, parseFloat(montoRecibido) - total) : 0
+  const montoTotal = parseFloat(montoCobrar) || cita.servicio.precio
+  const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseFloat(montoRecibido) - montoTotal) : 0
 
   const handleCobrar = async () => {
     try {
       setProcesando(true)
 
-      // Validación adicional
+      // Validar monto a cobrar
+      if (!montoCobrar || parseFloat(montoCobrar) <= 0) {
+        alert('El monto a cobrar debe ser mayor a $0')
+        setProcesando(false)
+        return
+      }
+
+      // Validación adicional para efectivo
       if (metodoPago === 'efectivo' && montoRecibido) {
         const recibido = parseFloat(montoRecibido)
-        if (recibido < total) {
-          alert(`El monto recibido ($${recibido.toFixed(2)}) es menor al total ($${total.toFixed(2)})`)
+        if (recibido < montoTotal) {
+          alert(`El monto recibido ($${recibido.toFixed(2)}) es menor al total a cobrar ($${montoTotal.toFixed(2)})`)
+          setProcesando(false)
           return
         }
       }
 
       console.log('🔍 DEBUG: Cobrando cita', {
         cita_id: cita.id,
+        monto_total: montoTotal,
         metodo_pago: metodoPago,
-        monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseFloat(montoRecibido) : total,
-        usuario_id: usuario.id,
-        total: total
+        usuario_id: usuario.id
       })
 
-      // Llamar a la función RPC para cobrar la cita
-      const { data, error } = await (supabase as any)
-        .rpc('cobrar_cita', {
-          p_cita_id: cita.id,
-          p_metodo_pago: metodoPago,
-          p_monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseFloat(montoRecibido) : total,
-          p_usuario_id: usuario.id
+      // Generar número de factura
+      const numeroFactura = `FAC-${Date.now()}`
+
+      // Insertar factura directamente
+      const { data: facturaData, error: facturaError } = await supabase
+        .from('facturas')
+        .insert({
+          cita_id: cita.id,
+          barbero_id: cita.barbero_id || cita.barbero?.id || null,
+          servicio_id: cita.servicio_id || cita.servicio?.id || null,
+          cliente_nombre: cita.cliente_nombre,
+          servicio_nombre: cita.servicio.nombre,
+          monto_total: montoTotal,
+          metodo_pago: metodoPago,
+          fecha: new Date().toISOString().split('T')[0],
+          hora: new Date().toTimeString().split(' ')[0],
+          estado: 'pagado',
+          numero_factura: numeroFactura,
+          usuario_id: usuario.id,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
+        .select()
+        .single()
 
-      console.log('📊 Respuesta RPC:', { data, error })
-
-      if (error) {
-        console.error('❌ Error en RPC:', error)
-        throw error
+      if (facturaError) {
+        console.error('❌ Error al crear factura:', facturaError)
+        throw facturaError
       }
 
-      if (!data || data.length === 0) {
-        throw new Error('No se recibió respuesta de la función cobrar_cita()')
-      }
+      console.log('✅ Factura creada:', facturaData)
 
-      const resultado = data[0]
-      
-      console.log('✅ Resultado:', resultado)
-      
-      if (!resultado.success) {
-        alert(resultado.mensaje || 'Error desconocido al procesar el cobro')
-        return
+      // Actualizar estado de pago de la cita
+      const { error: citaError } = await supabase
+        .from('citas')
+        .update({ 
+          estado_pago: 'pagado',
+          estado: 'completada',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', cita.id)
+
+      if (citaError) {
+        console.warn('⚠️ Error al actualizar cita:', citaError)
       }
 
       // Guardar resultado del cobro exitoso
       setCobroExitoso({
-        facturaId: resultado.factura_id,
-        numeroFactura: resultado.numero_factura
+        facturaId: facturaData.id,
+        numeroFactura: numeroFactura
       })
       
       setProcesando(false)
@@ -240,7 +269,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
                 Factura: <span className="font-bold">{cobroExitoso.numeroFactura}</span>
               </p>
               <p className="text-xl font-bold mt-2" style={{ color: 'var(--accent-color)' }}>
-                Total: {formatCurrency(total)}
+                Total: {formatCurrency(montoTotal)}
               </p>
               {metodoPago === 'efectivo' && cambio > 0 && (
                 <p className="text-lg mt-2" style={{ color: 'var(--text-primary)' }}>
@@ -320,12 +349,79 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               <span className="font-medium" style={{ color: 'var(--text-primary)' }}>{cita.servicio.nombre}</span>
             </div>
             <div className="flex justify-between pt-2" style={{ borderTop: '1px solid var(--border-color)' }}>
-              <span className="font-bold" style={{ color: 'var(--text-primary)' }}>Total:</span>
-              <span className="font-bold text-xl" style={{ color: 'var(--accent-color)' }}>
-                {formatCurrency(total)}
+              <span className="font-bold" style={{ color: 'var(--text-primary)' }}>Precio Original:</span>
+              <span className="font-bold text-lg" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                {formatCurrency(cita.servicio.precio)}
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Monto a Cobrar - EDITABLE */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium mb-2 form-label">
+            <i className="fas fa-dollar-sign mr-2"></i>
+            Monto a Cobrar (Editable)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={montoCobrar}
+            onChange={(e) => setMontoCobrar(e.target.value)}
+            className="form-input text-xl font-bold"
+            style={{ color: 'var(--accent-color)' }}
+          />
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMontoCobrar((parseFloat(montoCobrar) - 1).toString())}
+              disabled={parseFloat(montoCobrar) <= 1}
+              className="px-3 py-1 text-sm rounded transition-all"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                opacity: parseFloat(montoCobrar) <= 1 ? 0.5 : 1,
+                cursor: parseFloat(montoCobrar) <= 1 ? 'not-allowed' : 'pointer'
+              }}
+            >
+              -$1
+            </button>
+            <button
+              type="button"
+              onClick={() => setMontoCobrar(cita.servicio.precio.toString())}
+              className="px-3 py-1 text-sm rounded transition-all"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--accent-color)',
+                color: 'var(--accent-color)'
+              }}
+            >
+              Restaurar
+            </button>
+            <button
+              type="button"
+              onClick={() => setMontoCobrar((parseFloat(montoCobrar) + 1).toString())}
+              className="px-3 py-1 text-sm rounded transition-all"
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)'
+              }}
+            >
+              +$1
+            </button>
+          </div>
+          {parseFloat(montoCobrar) !== cita.servicio.precio && (
+            <p className="mt-2 text-sm" style={{ color: 'var(--accent-color)' }}>
+              {parseFloat(montoCobrar) < cita.servicio.precio ? (
+                <span><i className="fas fa-arrow-down mr-1"></i>Descuento: {formatCurrency(cita.servicio.precio - parseFloat(montoCobrar))}</span>
+              ) : (
+                <span><i className="fas fa-arrow-up mr-1"></i>Incremento: {formatCurrency(parseFloat(montoCobrar) - cita.servicio.precio)}</span>
+              )}
+            </p>
+          )}
         </div>
 
         {/* Método de Pago */}
@@ -359,7 +455,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               step="0.01"
               value={montoRecibido}
               onChange={(e) => setMontoRecibido(e.target.value)}
-              placeholder={`Mínimo: $${total.toFixed(2)}`}
+              placeholder={`Mínimo: $${montoTotal.toFixed(2)}`}
               className="form-input"
             />
             {cambio > 0 && (
