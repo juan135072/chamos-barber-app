@@ -14,6 +14,7 @@ interface Cita {
     id?: string
     nombre: string
     apellido: string
+    porcentaje_comision?: number
   }
   servicio_id?: string
   servicio: {
@@ -43,6 +44,11 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
 
   const montoTotal = parseInt(montoCobrar) || Math.floor(cita.servicio.precio)
   const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseInt(montoRecibido) - montoTotal) : 0
+  
+  // Calcular comisión en tiempo real basada en el porcentaje del barbero
+  const porcentajeComision = cita.barbero.porcentaje_comision || 50
+  const comisionBarberoRealTime = Math.floor(montoTotal * (porcentajeComision / 100))
+  const ingresoCasaRealTime = montoTotal - comisionBarberoRealTime
 
   const handleCobrar = async () => {
     try {
@@ -75,10 +81,10 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       // Generar número de factura
       const numeroFactura = `FAC-${Date.now()}`
 
-      // Calcular comisiones
+      // Calcular comisiones sobre el monto REAL cobrado
       const barbero = cita.barbero
-      const porcentajeComision = 50 // Default 50%, deberías obtenerlo del barbero
-      const comisionBarbero = montoTotal * (porcentajeComision / 100)
+      const porcentajeComision = barbero.porcentaje_comision || 50 // Obtener de la BD o default 50%
+      const comisionBarbero = Math.floor(montoTotal * (porcentajeComision / 100))
       const ingresoCasa = montoTotal - comisionBarbero
 
       // Preparar items de la factura
@@ -464,20 +470,20 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium" style={{ color: 'var(--accent-color)' }}>
                 <i className="fas fa-hand-holding-usd mr-2"></i>
-                Comisión (50%):
+                Comisión ({porcentajeComision}%):
               </span>
             </div>
             <div className="space-y-1 text-sm">
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Barbero:</span>
                 <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
-                  USD {Math.floor(montoTotal * 0.5).toLocaleString('es-VE')}
+                  USD {comisionBarberoRealTime.toLocaleString('es-VE')}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Casa:</span>
                 <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                  USD {Math.floor(montoTotal * 0.5).toLocaleString('es-VE')}
+                  USD {ingresoCasaRealTime.toLocaleString('es-VE')}
                 </span>
               </div>
             </div>
