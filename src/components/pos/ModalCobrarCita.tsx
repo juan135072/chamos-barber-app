@@ -95,7 +95,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       const facturaPayload = {
         numero_factura: numeroFactura,
         cita_id: cita.id,
-        barbero_id: cita.barbero_id || cita.barbero?.id || '',
+        barbero_id: cita.barbero_id || cita.barbero?.id || null,  // Fix: null en lugar de ''
         cliente_nombre: cita.cliente_nombre,
         cliente_telefono: cita.cliente_telefono || null,
         items: items,
