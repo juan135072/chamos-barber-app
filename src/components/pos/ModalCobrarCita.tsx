@@ -477,13 +477,13 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Barbero:</span>
                 <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
-                  USD {comisionBarberoRealTime.toLocaleString('es-VE')}
+                  {formatCurrency(comisionBarberoRealTime)}
                 </span>
               </div>
               <div className="flex justify-between">
                 <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>• Casa:</span>
                 <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                  USD {ingresoCasaRealTime.toLocaleString('es-VE')}
+                  {formatCurrency(ingresoCasaRealTime)}
                 </span>
               </div>
             </div>
