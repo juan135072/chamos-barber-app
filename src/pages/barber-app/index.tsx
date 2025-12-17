@@ -3,7 +3,7 @@
 // Página principal mobile-first para barberos
 // ================================================================
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useBarberAppAuth } from '../../hooks/useBarberAppAuth'
@@ -13,6 +13,7 @@ import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
 import MetricasRapidas from '../../components/barber-app/dashboard/MetricasRapidas'
 import CitasList from '../../components/barber-app/citas/CitasList'
 import LoadingSpinner from '../../components/barber-app/shared/LoadingSpinner'
+import ModalCobro from '../../components/barber-app/cobro/ModalCobro'
 
 export default function BarberAppPage() {
   const router = useRouter()
@@ -21,6 +22,10 @@ export default function BarberAppPage() {
     session?.barberoId || null
   )
   const { metricas, loading: metricasLoading } = useMetricasDiarias(session?.barberoId || null)
+  
+  // Estado para el modal de cobro
+  const [citaParaCobrar, setCitaParaCobrar] = useState<any>(null)
+  const [modalCobroOpen, setModalCobroOpen] = useState(false)
 
   // Configurar OneSignal con datos del barbero
   useEffect(() => {
@@ -79,11 +84,48 @@ export default function BarberAppPage() {
   }
 
   const handleCompletar = async (citaId: string) => {
-    const result = await cambiarEstadoCita(citaId, 'completada')
-    if (result.success) {
-      console.log('✅ Cita completada')
-    } else {
-      alert('Error al completar cita')
+    // Buscar la cita para abrir el modal de cobro
+    const cita = citas.find(c => c.id === citaId)
+    if (!cita) {
+      alert('Cita no encontrada')
+      return
+    }
+    
+    // Abrir modal de cobro
+    setCitaParaCobrar(cita)
+    setModalCobroOpen(true)
+  }
+  
+  const handleConfirmarCobro = async (citaId: string, montoCobrado: number, metodoPago: string) => {
+    try {
+      // Completar la cita y registrar el cobro
+      const response = await fetch('/api/barbero/completar-cita-con-cobro', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          cita_id: citaId,
+          monto_cobrado: montoCobrado,
+          metodo_pago: metodoPago,
+          barbero_id: session?.barberoId
+        })
+      })
+      
+      const result = await response.json()
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Error al procesar el cobro')
+      }
+      
+      // Refrescar las citas
+      await refresh()
+      
+      console.log('✅ Cita completada y cobro registrado')
+      alert('✅ Cobro procesado exitosamente')
+    } catch (error: any) {
+      console.error('Error al confirmar cobro:', error)
+      throw error
     }
   }
 
@@ -166,6 +208,19 @@ export default function BarberAppPage() {
           onCompletar={handleCompletar}
           onCancelar={handleCancelar}
         />
+        
+        {/* Modal de Cobro */}
+        {citaParaCobrar && (
+          <ModalCobro
+            cita={citaParaCobrar}
+            isOpen={modalCobroOpen}
+            onClose={() => {
+              setModalCobroOpen(false)
+              setCitaParaCobrar(null)
+            }}
+            onConfirmar={handleConfirmarCobro}
+          />
+        )}
       </BarberAppLayout>
 
       <style jsx global>{`
