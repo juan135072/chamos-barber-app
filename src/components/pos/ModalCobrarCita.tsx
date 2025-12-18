@@ -53,6 +53,17 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   const porcentajeComision = cita.barbero.porcentaje_comision || 50
   const comisionBarberoRealTime = Math.floor(montoTotal * (porcentajeComision / 100))
   const ingresoCasaRealTime = montoTotal - comisionBarberoRealTime
+  
+  // DEBUG: Log para verificar cálculos
+  console.log('🔍 DEBUG Comisión:', {
+    montoCobrar,
+    montoTotal,
+    montoRecibido,
+    porcentajeComision,
+    comisionBarberoRealTime,
+    ingresoCasaRealTime,
+    precioServicio: cita.servicio.precio
+  })
 
   const handleCobrar = async () => {
     try {
@@ -276,12 +287,11 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   }
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(Math.floor(amount))
+    // Formatear sin decimales usando formato manual
+    // El locale 'es-VE' fuerza decimales, así que usamos formato manual
+    const valorEntero = Math.floor(amount)
+    const valorFormateado = valorEntero.toLocaleString('es-ES')
+    return `USD ${valorFormateado}`
   }
 
   return (
