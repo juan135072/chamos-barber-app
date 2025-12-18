@@ -497,8 +497,51 @@ const ReservarPage: React.FC = () => {
                             No hay horarios disponibles para esta fecha
                           </p>
                           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
-                            Por favor selecciona otra fecha o prueba con otro barbero
+                            {(() => {
+                              if (!formData.fecha) return 'Por favor selecciona otra fecha.'
+                              
+                              const date = new Date(formData.fecha + 'T00:00:00')
+                              const day = date.getDay() // 0 = Domingo, 1 = Lunes, etc.
+                              const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+                              const selectedDay = days[day]
+                              
+                              // Check if barbero works on this day of week logic could be complex here without passing full schedule
+                              // So we keep a generic but helpful message
+                              return `Es posible que el barbero no trabaje los días ${selectedDay} o que ya esté todo reservado.`
+                            })()}
                           </p>
+                          <button 
+                            type="button"
+                            onClick={() => {
+                                // Reset fecha
+                                handleInputChange('fecha', '')
+                                if (dateInputRef.current) {
+                                    // Intentar abrir calendario
+                                    setTimeout(() => {
+                                        try {
+                                            dateInputRef.current?.showPicker()
+                                        } catch (e) {
+                                            dateInputRef.current?.focus()
+                                        }
+                                    }, 100)
+                                }
+                            }}
+                            style={{
+                                marginTop: '1rem',
+                                padding: '0.5rem 1rem',
+                                background: 'transparent',
+                                border: '1px solid var(--accent-color)',
+                                color: 'var(--accent-color)',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                fontSize: '0.9rem',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(212, 175, 55, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                          >
+                            Seleccionar otra fecha
+                          </button>
                         </div>
                       ) : (
                         <>

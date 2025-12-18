@@ -92,6 +92,72 @@ const HorariosTab: React.FC = () => {
     }
   }
 
+  // Función para replicar el horario de un día a otro
+  const handleReplicarHorario = async (origenHorario: HorarioAtencion, destinoDia: number) => {
+    try {
+      // Verificar si ya existe un horario para el día destino
+      const existente = horariosAtencion.find(h => h.dia_semana === destinoDia)
+      
+      if (existente) {
+        // Actualizar existente
+        const { error } = await supabase
+          .from('horarios_atencion')
+          .update({
+            hora_inicio: origenHorario.hora_inicio,
+            hora_fin: origenHorario.hora_fin,
+            activo: true, // Lo activamos por defecto al copiar
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', existente.id)
+        
+        if (error) throw error
+      } else {
+        // Crear nuevo
+        const { error } = await supabase
+          .from('horarios_atencion')
+          .insert({
+            barbero_id: selectedBarbero,
+            dia_semana: destinoDia,
+            hora_inicio: origenHorario.hora_inicio,
+            hora_fin: origenHorario.hora_fin,
+            activo: true
+          })
+        
+        if (error) throw error
+      }
+      
+      toast.success('Horario copiado exitosamente')
+      loadHorariosAtencion()
+    } catch (error) {
+      console.error('Error replicando horario:', error)
+      toast.error('Error al copiar el horario')
+    }
+  }
+
+  // Función para copiar horario a todos los días laborales (Lunes a Viernes)
+  const handleCopiarALunesViernes = async (horarioBase: HorarioAtencion) => {
+    if (!confirm('¿Estás seguro? Esto sobrescribirá los horarios de Lunes a Viernes con este horario.')) return
+    
+    setLoading(true)
+    try {
+      const diasLaborales = [1, 2, 3, 4, 5] // Lunes a Viernes
+      
+      // Filtrar el día actual para no "copiarse a sí mismo" innecesariamente, aunque no hace daño
+      const diasDestino = diasLaborales.filter(d => d !== horarioBase.dia_semana)
+      
+      for (const dia of diasDestino) {
+        await handleReplicarHorario(horarioBase, dia)
+      }
+      
+      toast.success('Horario aplicado de Lunes a Viernes')
+    } catch (error) {
+      console.error('Error copying schedule:', error)
+      toast.error('Error al copiar horarios')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const loadHorariosBloqueados = async () => {
     if (!selectedBarbero) return
 
@@ -326,6 +392,24 @@ const HorariosTab: React.FC = () => {
                     <div className="flex items-center gap-1.5 flex-shrink-0">
                       {horarioDelDia ? (
                         <>
+                          <div className="relative group">
+                            <button
+                              className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-10 text-gray-400"
+                              title="Copiar horario"
+                            >
+                              <i className="fas fa-copy text-sm"></i>
+                            </button>
+                            {/* Dropdown simple para copiar */}
+                            <div className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-[#333] rounded-lg shadow-xl z-50 hidden group-hover:block">
+                              <button
+                                onClick={() => handleCopiarALunesViernes(horarioDelDia)}
+                                className="w-full text-left px-4 py-2 text-xs hover:bg-[#333] text-gray-300 rounded-lg"
+                              >
+                                Aplicar a Lunes-Viernes
+                              </button>
+                            </div>
+                          </div>
+
                           <button
                             onClick={() => handleToggleActivo(horarioDelDia.id, horarioDelDia.activo)}
                             className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-10"
