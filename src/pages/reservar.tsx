@@ -72,54 +72,12 @@ const ReservarPage: React.FC = () => {
         console.log('❌ Ocupados:', data.filter((s: any) => !s.disponible).length)
         setAvailableSlots(data)
       } else {
-        console.warn('⚠️ No se recibieron horarios, usando defaults')
-        // Horarios por defecto si la función no existe o falla
-        const defaultSlots = [
-          { hora: '09:00', disponible: true, motivo: 'Disponible' },
-          { hora: '09:30', disponible: true, motivo: 'Disponible' },
-          { hora: '10:00', disponible: true, motivo: 'Disponible' },
-          { hora: '10:30', disponible: true, motivo: 'Disponible' },
-          { hora: '11:00', disponible: true, motivo: 'Disponible' },
-          { hora: '11:30', disponible: true, motivo: 'Disponible' },
-          { hora: '12:00', disponible: true, motivo: 'Disponible' },
-          { hora: '12:30', disponible: true, motivo: 'Disponible' },
-          { hora: '14:00', disponible: true, motivo: 'Disponible' },
-          { hora: '14:30', disponible: true, motivo: 'Disponible' },
-          { hora: '15:00', disponible: true, motivo: 'Disponible' },
-          { hora: '15:30', disponible: true, motivo: 'Disponible' },
-          { hora: '16:00', disponible: true, motivo: 'Disponible' },
-          { hora: '16:30', disponible: true, motivo: 'Disponible' },
-          { hora: '17:00', disponible: true, motivo: 'Disponible' },
-          { hora: '17:30', disponible: true, motivo: 'Disponible' },
-          { hora: '18:00', disponible: true, motivo: 'Disponible' },
-          { hora: '18:30', disponible: true, motivo: 'Disponible' }
-        ]
-        setAvailableSlots(defaultSlots)
+        console.warn('⚠️ No se recibieron horarios o lista vacía')
+        setAvailableSlots([]) // No usar defaults hardcoded que mienten
       }
     } catch (error) {
       console.error('❌ Error loading available slots:', error)
-      // Horarios por defecto en caso de error
-      const defaultSlots = [
-        { hora: '09:00', disponible: true, motivo: 'Disponible' },
-        { hora: '09:30', disponible: true, motivo: 'Disponible' },
-        { hora: '10:00', disponible: true, motivo: 'Disponible' },
-        { hora: '10:30', disponible: true, motivo: 'Disponible' },
-        { hora: '11:00', disponible: true, motivo: 'Disponible' },
-        { hora: '11:30', disponible: true, motivo: 'Disponible' },
-        { hora: '12:00', disponible: true, motivo: 'Disponible' },
-        { hora: '12:30', disponible: true, motivo: 'Disponible' },
-        { hora: '14:00', disponible: true, motivo: 'Disponible' },
-        { hora: '14:30', disponible: true, motivo: 'Disponible' },
-        { hora: '15:00', disponible: true, motivo: 'Disponible' },
-        { hora: '15:30', disponible: true, motivo: 'Disponible' },
-        { hora: '16:00', disponible: true, motivo: 'Disponible' },
-        { hora: '16:30', disponible: true, motivo: 'Disponible' },
-        { hora: '17:00', disponible: true, motivo: 'Disponible' },
-        { hora: '17:30', disponible: true, motivo: 'Disponible' },
-        { hora: '18:00', disponible: true, motivo: 'Disponible' },
-        { hora: '18:30', disponible: true, motivo: 'Disponible' }
-      ]
-      setAvailableSlots(defaultSlots)
+      setAvailableSlots([]) // En error, mejor no mostrar nada que mostrar algo falso
     }
   }
 
