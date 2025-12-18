@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react'
 import { X, UserPlus, Phone, Mail, User, FileText, Calendar, Clock, Scissors } from 'lucide-react'
 import { createWalkInClient, type CreateWalkInClientParams } from '@/lib/supabase-walkin'
 import { supabase } from '@/lib/supabase'
-import { chamosSupabase } from '@/lib/supabase-helpers'
+import { chamosSupabase } from '../../../lib/supabase-helpers'
 import toast from 'react-hot-toast'
 
 interface RegistrarWalkInModalProps {
