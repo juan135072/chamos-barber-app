@@ -563,9 +563,27 @@ const HorariosTab: React.FC = () => {
                                 </span>
                               </div>
                             ) : (
-                              <p className="text-minimal-caption mt-1">
-                                Sin configurar
-                              </p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-xs text-red-400 bg-red-400/10 px-2 py-1 rounded font-medium">
+                                  ● Sin atención configurada
+                                </span>
+                                {dia.num !== 1 && ( // Si no es lunes, ofrecer copiar del día anterior
+                                  <button
+                                    onClick={() => {
+                                      const diaAnterior = dia.num === 0 ? 6 : dia.num - 1
+                                      const horarioAnterior = horariosAtencion.find(h => h.dia_semana === diaAnterior)
+                                      if (horarioAnterior) {
+                                        handleReplicarHorario(horarioAnterior, dia.num)
+                                      } else {
+                                        toast.error('El día anterior tampoco tiene horario configurado')
+                                      }
+                                    }}
+                                    className="text-xs text-[var(--accent-color)] hover:underline flex items-center gap-1"
+                                  >
+                                    <i className="fas fa-copy"></i> Copiar del día anterior
+                                  </button>
+                                )}
+                              </div>
                             )}
                           </div>
                         </div>
