@@ -8,6 +8,9 @@ import BloqueoModal from '../modals/BloqueoModal'
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type HorarioAtencion = Database['public']['Tables']['horarios_atencion']['Row']
 type HorarioBloqueado = Database['public']['Tables']['horarios_bloqueados']['Row']
+type Cita = Database['public']['Tables']['citas']['Row'] & {
+  servicios: { nombre: string; duracion_minutos: number } | null
+}
 
 const diasSemana = [
   { num: 1, nombre: 'Lunes', abrev: 'L' },
@@ -28,6 +31,11 @@ const HorariosTab: React.FC = () => {
   const [selectedBarbero, setSelectedBarbero] = useState<string>('')
   const [horariosAtencion, setHorariosAtencion] = useState<HorarioAtencion[]>([])
   
+  // Estado para visualización de reservas
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [citasDelDia, setCitasDelDia] = useState<Cita[]>([])
+  const [loadingCitas, setLoadingCitas] = useState(false)
+
   // Estado para horarios bloqueados
   const [horariosBloqueados, setHorariosBloqueados] = useState<HorarioBloqueado[]>([])
   
@@ -48,8 +56,45 @@ const HorariosTab: React.FC = () => {
       if (activeView === 'bloqueados') {
         loadHorariosBloqueados()
       }
+      // Cargar citas si estamos en la vista de atención (para ver agenda del día)
+      if (activeView === 'atencion' && selectedDate) {
+        loadCitasDelDia()
+      }
     }
-  }, [selectedBarbero, activeView])
+  }, [selectedBarbero, activeView, selectedDate])
+
+  const loadCitasDelDia = async () => {
+    if (!selectedBarbero || !selectedDate) return
+    
+    setLoadingCitas(true)
+    try {
+      const { data, error } = await supabase
+        .from('citas')
+        .select(`
+          *,
+          servicios (nombre, duracion_minutos)
+        `)
+        .eq('barbero_id', selectedBarbero)
+        .eq('fecha', selectedDate)
+        .in('estado', ['pendiente', 'confirmada', 'completada'])
+        .order('hora')
+
+      if (error) throw error
+      
+      // Mapear para asegurar tipo correcto (Supabase devuelve array de objetos para joins)
+      const citasMapeadas = (data || []).map(cita => ({
+        ...cita,
+        servicios: Array.isArray(cita.servicios) ? cita.servicios[0] : cita.servicios
+      })) as unknown as Cita[]
+
+      setCitasDelDia(citasMapeadas)
+    } catch (error) {
+      console.error('Error loading citas:', error)
+      toast.error('Error al cargar reservas del día')
+    } finally {
+      setLoadingCitas(false)
+    }
+  }
 
   const loadBarberos = async () => {
     try {
@@ -318,6 +363,26 @@ const HorariosTab: React.FC = () => {
         </select>
       </div>
 
+      {activeView === 'atencion' && (
+        <div className="mb-6 bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-[var(--accent-color)] bg-opacity-10 flex items-center justify-center text-[var(--accent-color)]">
+              <i className="fas fa-calendar-day"></i>
+            </div>
+            <div>
+              <h3 className="font-medium text-sm text-[var(--text-primary)]">Visualizar Agenda</h3>
+              <p className="text-xs text-[var(--text-secondary)]">Selecciona una fecha para ver las reservas dentro de cada día</p>
+            </div>
+          </div>
+          <input 
+            type="date" 
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent-color)]"
+          />
+        </div>
+      )}
+
       {/* Minimal Tabs */}
       <div className="flex gap-2 mb-6">
         <button
@@ -347,13 +412,18 @@ const HorariosTab: React.FC = () => {
             {diasSemana.map(dia => {
               const horarioDelDia = horariosAtencion.find(h => h.dia_semana === dia.num)
               
+              // Verificar si el día corresponde a la fecha seleccionada
+              const fechaSeleccionada = new Date(selectedDate + 'T00:00:00')
+              const diaSeleccionadoNum = fechaSeleccionada.getDay()
+              const esDiaSeleccionado = dia.num === diaSeleccionadoNum
+
               return (
                 <div
                   key={dia.num}
-                  className="minimal-card p-4 hover-lift"
+                  className={`minimal-card p-4 hover-lift transition-all duration-300 ${esDiaSeleccionado ? 'ring-2 ring-[var(--accent-color)] bg-[var(--bg-secondary)]' : ''}`}
                 >
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                    <div className="flex items-start gap-4 flex-1">
                       {/* Badge del día */}
                       <div
                         className="w-10 h-10 rounded-lg flex items-center justify-center font-semibold text-sm flex-shrink-0"
@@ -367,23 +437,72 @@ const HorariosTab: React.FC = () => {
                       </div>
                       
                       {/* Información del día */}
-                      <div className="flex-1">
-                        <h3 className="text-minimal-h3">
-                          {dia.nombre}
-                        </h3>
-                        {horarioDelDia ? (
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-minimal-caption" style={{ color: '#888' }}>
-                              {formatTime(horarioDelDia.hora_inicio)} - {formatTime(horarioDelDia.hora_fin)}
-                            </span>
-                            <span className={`badge-minimal ${horarioDelDia.activo ? 'badge-success' : 'badge-error'}`}>
-                              {horarioDelDia.activo ? 'Activo' : 'Inactivo'}
-                            </span>
+                      <div className="flex-1 w-full">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="text-minimal-h3 flex items-center gap-2">
+                              {dia.nombre}
+                              {esDiaSeleccionado && (
+                                <span className="text-xs bg-[var(--accent-color)] text-[var(--bg-primary)] px-2 py-0.5 rounded-full font-bold">
+                                  {new Date(selectedDate + 'T00:00:00').toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
+                                </span>
+                              )}
+                            </h3>
+                            {horarioDelDia ? (
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-minimal-caption" style={{ color: '#888' }}>
+                                  {formatTime(horarioDelDia.hora_inicio)} - {formatTime(horarioDelDia.hora_fin)}
+                                </span>
+                                <span className={`badge-minimal ${horarioDelDia.activo ? 'badge-success' : 'badge-error'}`}>
+                                  {horarioDelDia.activo ? 'Activo' : 'Inactivo'}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="text-minimal-caption mt-1">
+                                Sin configurar
+                              </p>
+                            )}
                           </div>
-                        ) : (
-                          <p className="text-minimal-caption mt-1">
-                            Sin configurar
-                          </p>
+                        </div>
+
+                        {/* Visualización de Reservas (Solo si es el día seleccionado y hay horario activo) */}
+                        {esDiaSeleccionado && horarioDelDia?.activo && (
+                          <div className="mt-4 pt-4 border-t border-[var(--border-color)] w-full animate-fadeIn">
+                            <h4 className="text-xs font-semibold text-[var(--accent-color)] mb-3 uppercase tracking-wider flex items-center justify-between">
+                              <span>Agenda del Día ({citasDelDia.length} reservas)</span>
+                              {loadingCitas && <span className="text-[var(--text-secondary)] normal-case font-normal"><i className="fas fa-spinner fa-spin mr-1"></i> Cargando...</span>}
+                            </h4>
+                            
+                            {citasDelDia.length > 0 ? (
+                              <div className="grid grid-cols-1 gap-2">
+                                {citasDelDia.map((cita) => (
+                                  <div key={cita.id} className="flex items-center gap-3 p-2 rounded bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors">
+                                    <div className="font-mono text-sm font-bold text-[var(--accent-color)] bg-[var(--accent-color)] bg-opacity-10 px-2 py-1 rounded">
+                                      {cita.hora.substring(0, 5)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium truncate text-[var(--text-primary)]">{cita.cliente_nombre}</div>
+                                      <div className="text-xs text-[var(--text-secondary)] truncate">
+                                        {cita.servicios?.nombre || 'Servicio'} ({cita.servicios?.duracion_minutos || 30} min)
+                                      </div>
+                                    </div>
+                                    <div className={`text-xs px-2 py-1 rounded-full ${
+                                      cita.estado === 'confirmada' ? 'bg-green-500/20 text-green-500' :
+                                      cita.estado === 'completada' ? 'bg-blue-500/20 text-blue-500' :
+                                      'bg-yellow-500/20 text-yellow-500'
+                                    }`}>
+                                      {cita.estado}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="text-center py-4 text-[var(--text-secondary)] text-sm bg-[var(--bg-primary)] rounded border border-dashed border-[var(--border-color)]">
+                                <i className="far fa-calendar-times mb-1 block text-lg opacity-50"></i>
+                                No hay reservas para este día
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
