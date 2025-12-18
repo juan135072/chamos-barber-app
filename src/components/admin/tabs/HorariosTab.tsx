@@ -138,6 +138,38 @@ const HorariosTab: React.FC = () => {
     setSelectedDate(newDate)
   }
 
+  // Funciones de navegación por semanas
+  const handlePrevWeek = () => {
+    const date = new Date(selectedDate + 'T00:00:00')
+    date.setDate(date.getDate() - 7)
+    setSelectedDate(date.toISOString().split('T')[0])
+  }
+
+  const handleNextWeek = () => {
+    const date = new Date(selectedDate + 'T00:00:00')
+    date.setDate(date.getDate() + 7)
+    setSelectedDate(date.toISOString().split('T')[0])
+  }
+
+  const handleToday = () => {
+    setSelectedDate(new Date().toISOString().split('T')[0])
+  }
+
+  const getWeekRange = () => {
+    const date = new Date(selectedDate + 'T00:00:00')
+    const day = date.getDay()
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Ajustar al lunes
+    
+    const monday = new Date(date)
+    monday.setDate(diff)
+    
+    const sunday = new Date(monday)
+    sunday.setDate(monday.getDate() + 6)
+    
+    const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
+    return `${monday.toLocaleDateString('es-CL', options)} - ${sunday.toLocaleDateString('es-CL', options)}`
+  }
+
   const loadBarberos = async () => {
     try {
       const { data, error } = await supabase
@@ -406,22 +438,48 @@ const HorariosTab: React.FC = () => {
       </div>
 
       {activeView === 'atencion' && (
-        <div className="mb-6 bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-[var(--accent-color)] bg-opacity-10 flex items-center justify-center text-[var(--accent-color)]">
+        <div className="mb-6 bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-3 w-full sm:w-auto">
+            <div className="w-10 h-10 rounded-full bg-[var(--accent-color)] bg-opacity-10 flex items-center justify-center text-[var(--accent-color)] flex-shrink-0">
               <i className="fas fa-calendar-day"></i>
             </div>
             <div>
-              <h3 className="font-medium text-sm text-[var(--text-primary)]">Visualizar Agenda</h3>
-              <p className="text-xs text-[var(--text-secondary)]">Selecciona una fecha para ver las reservas dentro de cada día</p>
+              <h3 className="font-medium text-sm text-[var(--text-primary)]">Agenda Semanal</h3>
+              <p className="text-xs text-[var(--text-secondary)]">Semana del {getWeekRange()}</p>
             </div>
           </div>
-          <input 
-            type="date" 
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent-color)]"
-          />
+          
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button 
+              onClick={handlePrevWeek}
+              className="p-2 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
+              title="Semana Anterior"
+            >
+              <i className="fas fa-chevron-left"></i>
+            </button>
+            <button 
+              onClick={handleToday}
+              className="px-3 py-2 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm font-medium transition-colors border border-[var(--border-color)]"
+            >
+              Hoy
+            </button>
+            <button 
+              onClick={handleNextWeek}
+              className="p-2 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
+              title="Semana Siguiente"
+            >
+              <i className="fas fa-chevron-right"></i>
+            </button>
+            
+            <div className="h-8 w-px bg-[var(--border-color)] mx-2 hidden sm:block"></div>
+            
+            <input 
+              type="date" 
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              className="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent-color)]"
+            />
+          </div>
         </div>
       )}
 
