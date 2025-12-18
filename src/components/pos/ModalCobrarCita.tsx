@@ -419,11 +419,14 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         </div>
 
         {/* Monto a Cobrar - EDITABLE */}
-        <div className="mb-4">
+        <div className="mb-4 p-4 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '2px solid var(--accent-color)' }}>
           <label className="block text-sm font-medium mb-2 form-label">
-            <i className="fas fa-dollar-sign mr-2"></i>
-            Monto a Cobrar (Editable)
+            <i className="fas fa-edit mr-2"></i>
+            💰 MONTO A COBRAR (Editable - Importante para descuentos/propinas)
           </label>
+          <p className="text-xs mb-2" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+            ⚠️ Edita este monto si hay descuento o propina. La comisión se calcula sobre este valor.
+          </p>
           <input
             type="number"
             step="1"
