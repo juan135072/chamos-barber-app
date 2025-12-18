@@ -124,21 +124,32 @@ export default function RegistrarWalkInModal({
 
       // 2. Si es reserva manual, crear la cita en la tabla 'citas'
       if (activeTab === 'reserva') {
+          // Preparamos las notas incluyendo los servicios extra si hay más de uno
+          let notasFinales = `[WALK-IN] ${formData.notas || ''}`;
+          if (selectedServicios.length > 0) {
+             // Buscar nombres de servicios para agregarlos a las notas
+             const serviciosNombres = selectedServicios.map(id => {
+                 const s = servicios.find(srv => srv.id === id);
+                 return s ? s.nombre : id;
+             }).join(', ');
+             notasFinales += ` - Servicios: ${serviciosNombres}`;
+          }
+
           const citaPayload = {
               barbero_id: selectedBarbero,
-              servicio_id: selectedServicios[0], // Principal (legacy support)
-              servicios_ids: selectedServicios, // Array completo si tu backend lo soporta, sino solo el primero
+              servicio_id: selectedServicios[0] || null, // Principal (campo obligatorio o FK)
+              // servicios_ids: selectedServicios, // REMOVIDO: No existe en la definición de tipos de la BD actual
               fecha: fechaReserva,
               hora: horaReserva,
               cliente_nombre: formData.nombre,
               cliente_telefono: formData.telefono,
               cliente_email: formData.email || null,
-              notas: `[WALK-IN] ${formData.notas || ''} - Servicios: ${selectedServicios.length}`,
+              notas: notasFinales,
               estado: 'confirmada', // Confirmada directamente
-              origen: 'walk-in' // Campo opcional si existe en tu schema, sino ignorar
+              // origen: 'walk-in' // REMOVIDO: No existe en la definición de tipos, se maneja vía notas o lógica de negocio
           }
 
-          // Insertar cita usando supabase directo para evitar validaciones estrictas de horarios del helper público
+          // Insertar cita usando supabase directo
           const { error: citaError } = await supabase
               .from('citas')
               .insert([citaPayload])
