@@ -284,7 +284,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
   }
 
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
-  const cambio = montoRecibido ? Math.max(0, parseFloat(montoRecibido) - total) : 0
+  const cambio = 0 // Eliminado cálculo de cambio en UI
 
   if (cargando) {
     return (

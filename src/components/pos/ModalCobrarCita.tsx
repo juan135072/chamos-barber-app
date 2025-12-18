@@ -43,7 +43,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
   } | null>(null)
 
   const montoTotal = parseInt(montoCobrar) || Math.floor(cita.servicio.precio)
-  const cambio = montoRecibido && metodoPago === 'efectivo' ? Math.max(0, parseInt(montoRecibido) - montoTotal) : 0
+  const cambio = 0 // Ya no calculamos cambio en UI
   
   // Calcular comisión en tiempo real basada en el porcentaje del barbero
   // LÓGICA CORRECTA:
@@ -76,7 +76,8 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         return
       }
 
-      // Validación adicional para efectivo
+      // Validación adicional para efectivo (ELIMINADA)
+      /*
       if (metodoPago === 'efectivo' && montoRecibido) {
         const recibido = parseFloat(montoRecibido)
         if (recibido < montoTotal) {
@@ -85,6 +86,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           return
         }
       }
+      */
 
       console.log('🔍 DEBUG: Cobrando cita', {
         cita_id: cita.id,
@@ -129,8 +131,8 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         descuento: 0,
         total: montoTotal,     // Base para la comisión
         metodo_pago: metodoPago,
-        monto_recibido: metodoPago === 'efectivo' && montoRecibido ? parseInt(montoRecibido) : montoTotal,
-        cambio: cambio,
+        monto_recibido: montoTotal, // Asumimos pago exacto
+        cambio: 0,
         porcentaje_comision: porcentajeComision,
         comision_barbero: comisionBarbero,  // Calculado sobre montoTotal (Monto a Cobrar)
         ingreso_casa: ingresoCasa,           // Calculado sobre montoTotal (Monto a Cobrar)
@@ -527,66 +529,27 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           </div>
         </div>
 
-        {/* Método de Pago */}
-        <div className="mb-4">
-          <label className="block text-sm font-medium mb-2 form-label">
-            <i className="fas fa-money-bill-wave mr-2"></i>
-            Método de Pago
-          </label>
-          <select
-            value={metodoPago}
-            onChange={(e) => setMetodoPago(e.target.value)}
-            className="form-select"
-          >
-            <option value="efectivo">💵 Efectivo</option>
-            <option value="tarjeta">💳 Tarjeta</option>
-            <option value="transferencia">📱 Transferencia</option>
-            <option value="zelle">💰 Zelle</option>
-            <option value="binance">₿ Binance</option>
-          </select>
-        </div>
-
-        {/* Monto Recibido (solo para efectivo) */}
-        {metodoPago === 'efectivo' && (
-          <div className="mb-4">
+          {/* Método de Pago */}
+          <div>
             <label className="block text-sm font-medium mb-2 form-label">
-              <i className="fas fa-dollar-sign mr-2"></i>
-              Monto Recibido
+              <i className="fas fa-money-bill-wave mr-2"></i>
+              Método de Pago
             </label>
-            <input
-              type="number"
-              step="1"
-              value={montoRecibido}
-              onChange={(e) => {
-                const value = e.target.value
-                // Solo permitir enteros, eliminar decimales
-                if (value.includes('.') || value.includes(',')) {
-                  setMontoRecibido(Math.floor(parseFloat(value) || 0).toString())
-                } else {
-                  setMontoRecibido(value)
-                }
-              }}
-              onBlur={(e) => {
-                // Forzar entero al perder el foco
-                const value = e.target.value
-                if (value) {
-                  setMontoRecibido(Math.floor(parseFloat(value) || 0).toString())
-                }
-              }}
-              placeholder={`Mínimo: $${montoTotal}`}
-              className="form-input"
-            />
-            {cambio > 0 && (
-              <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--accent-color)' }}>
-                <i className="fas fa-exchange-alt mr-2"></i>
-                Cambio: {formatCurrency(cambio)}
-              </p>
-            )}
+            <select
+              value={metodoPago}
+              onChange={(e) => setMetodoPago(e.target.value)}
+              className="form-select"
+            >
+              <option value="efectivo">💵 Efectivo</option>
+              <option value="tarjeta">💳 Tarjeta</option>
+              <option value="transferencia">📱 Transferencia</option>
+              <option value="zelle">💰 Zelle</option>
+              <option value="binance">₿ Binance</option>
+            </select>
           </div>
-        )}
 
-        {/* Botones */}
-        <div className="flex gap-3">
+          {/* Botones */}
+          <div className="flex gap-3">
           <button
             onClick={onClose}
             disabled={procesando}
