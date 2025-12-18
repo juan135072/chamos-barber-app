@@ -169,6 +169,27 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     setCarrito(carrito.filter((_, i) => i !== index))
   }
 
+  const actualizarPrecioItem = (index: number, nuevoPrecio: string) => {
+    // Permitir vacío mientras se escribe
+    if (nuevoPrecio === '') {
+      const nuevosItems = [...carrito]
+      // Guardamos temporalmente como 0 o manejamos la UI para permitir string vacío
+      // Para simplificar, si es vacío es 0 en el estado, pero el input lo controlará
+      nuevosItems[index].precio = 0
+      nuevosItems[index].subtotal = 0
+      setCarrito(nuevosItems)
+      return
+    }
+
+    const precio = parseFloat(nuevoPrecio)
+    if (isNaN(precio) || precio < 0) return
+
+    const nuevosItems = [...carrito]
+    nuevosItems[index].precio = precio
+    nuevosItems[index].subtotal = precio * nuevosItems[index].cantidad
+    setCarrito(nuevosItems)
+  }
+
   const handleCobrar = async () => {
     // Validaciones
     if (!clienteNombre.trim()) {
@@ -506,24 +527,50 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             </h3>
             <div className="space-y-2">
               {carrito.map((item, index) => (
-                <div key={index} className="flex items-center justify-between p-3 rounded" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex-1">
+                <div key={index} className="flex flex-col sm:flex-row items-center justify-between p-3 rounded gap-3" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                  <div className="flex-1 w-full sm:w-auto">
                     <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.nombre}</div>
                     <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                      {formatCurrency(item.precio)} x {item.cantidad}
+                       Cantidad: {item.cantidad}
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <span className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                      {formatCurrency(item.subtotal)}
-                    </span>
-                    <button
-                      onClick={() => removerDelCarrito(index)}
-                      className="hover:opacity-70 transition-opacity"
-                      style={{ color: '#ef4444' }}
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
+                  
+                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                    <div className="flex flex-col items-end">
+                      <label className="text-xs mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                        Precio Editable:
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="100"
+                          value={item.precio || ''}
+                          onChange={(e) => actualizarPrecioItem(index, e.target.value)}
+                          className="w-32 px-2 pl-6 py-1 rounded border focus:ring-2 focus:ring-yellow-500 outline-none transition-all font-bold text-right"
+                          style={{ 
+                            backgroundColor: 'var(--bg-primary)', 
+                            color: 'var(--text-primary)',
+                            borderColor: 'var(--border-color)' 
+                          }}
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 ml-2">
+                        <span className="font-bold hidden sm:block" style={{ color: 'var(--text-primary)' }}>
+                        = {formatCurrency(item.subtotal)}
+                        </span>
+                        <button
+                        onClick={() => removerDelCarrito(index)}
+                        className="hover:opacity-70 transition-opacity p-2 rounded-full hover:bg-red-50"
+                        style={{ color: '#ef4444' }}
+                        title="Eliminar servicio"
+                        >
+                        <i className="fas fa-trash"></i>
+                        </button>
+                    </div>
                   </div>
                 </div>
               ))}
