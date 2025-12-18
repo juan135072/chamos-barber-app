@@ -509,15 +509,24 @@ const ReservarPage: React.FC = () => {
                   {formData.fecha && (
                     <div>
                       <label className="form-label">
-                        Horarios disponibles:
-                        {availableSlots.filter(slot => slot.disponible).length > 0 && (
-                          <span style={{ fontSize: '0.85rem', opacity: 0.8, marginLeft: '0.5rem' }}>
-                            ({availableSlots.filter(slot => slot.disponible).length} disponibles)
+                        Horarios:
+                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--bg-primary)', border: '1px solid var(--accent-color)' }}></div>
+                            Disponible
                           </span>
-                        )}
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}></div>
+                            Ocupado
+                          </span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-color)', border: '1px solid var(--accent-color)' }}></div>
+                            Seleccionado
+                          </span>
+                        </div>
                       </label>
                       
-                      {availableSlots.filter(slot => slot.disponible).length === 0 ? (
+                      {availableSlots.length === 0 ? (
                         <div style={{ 
                           padding: '2rem', 
                           textAlign: 'center',
@@ -536,21 +545,43 @@ const ReservarPage: React.FC = () => {
                       ) : (
                         <>
                           <div className="time-slots">
-                            {availableSlots.filter(slot => slot.disponible).map(slot => (
-                              <div 
-                                key={slot.hora}
-                                className={`time-slot ${formData.hora === slot.hora ? 'selected' : ''}`}
-                                onClick={() => handleInputChange('hora', slot.hora)}
-                                title="Click para seleccionar"
-                              >
-                                <span style={{ fontWeight: '600' }}>{slot.hora}</span>
-                                <i className="fas fa-check-circle" style={{ 
-                                  fontSize: '0.8rem', 
-                                  marginLeft: '0.5rem',
-                                  opacity: formData.hora === slot.hora ? 1 : 0
-                                }}></i>
-                              </div>
-                            ))}
+                            {availableSlots.map(slot => {
+                              const isAvailable = slot.disponible
+                              const isSelected = formData.hora === slot.hora
+                              
+                              return (
+                                <div 
+                                  key={slot.hora}
+                                  className={`time-slot ${isSelected ? 'selected' : ''}`}
+                                  onClick={() => isAvailable ? handleInputChange('hora', slot.hora) : null}
+                                  title={isAvailable ? "Click para seleccionar" : "Horario no disponible"}
+                                  style={{
+                                    opacity: isAvailable ? 1 : 0.4,
+                                    cursor: isAvailable ? 'pointer' : 'not-allowed',
+                                    backgroundColor: isAvailable 
+                                      ? (isSelected ? 'var(--accent-color)' : 'var(--bg-primary)')
+                                      : 'rgba(255, 255, 255, 0.05)',
+                                    borderColor: isAvailable 
+                                      ? (isSelected ? 'var(--accent-color)' : 'var(--border-color)')
+                                      : 'transparent',
+                                    transform: isAvailable && isSelected ? 'scale(1.05)' : 'scale(1)',
+                                    pointerEvents: isAvailable ? 'auto' : 'none',
+                                    color: isAvailable ? (isSelected ? 'var(--bg-primary)' : 'var(--text-primary)') : 'var(--text-secondary)'
+                                  }}
+                                >
+                                  <span style={{ fontWeight: isAvailable ? '600' : '400' }}>{slot.hora}</span>
+                                  {isAvailable && isSelected && (
+                                    <i className="fas fa-check-circle" style={{ 
+                                      fontSize: '0.8rem', 
+                                      marginLeft: '0.5rem'
+                                    }}></i>
+                                  )}
+                                  {!isAvailable && (
+                                    <span style={{ fontSize: '0.7rem', display: 'block', marginTop: '2px', fontStyle: 'italic' }}>Ocupado</span>
+                                  )}
+                                </div>
+                              )
+                            })}
                           </div>
                         </>
                       )}
