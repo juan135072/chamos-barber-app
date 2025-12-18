@@ -559,10 +559,10 @@ const ReservarPage: React.FC = () => {
                                     opacity: isAvailable ? 1 : 0.4,
                                     cursor: isAvailable ? 'pointer' : 'not-allowed',
                                     backgroundColor: isAvailable 
-                                      ? (isSelected ? 'var(--accent-color)' : 'var(--bg-primary)')
+                                      ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.05)') // Fondo sutil dorado para disponibles
                                       : 'rgba(255, 255, 255, 0.05)',
                                     borderColor: isAvailable 
-                                      ? (isSelected ? 'var(--accent-color)' : 'var(--border-color)')
+                                      ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.5)') // Borde dorado visible para coincidir con leyenda
                                       : 'transparent',
                                     transform: isAvailable && isSelected ? 'scale(1.05)' : 'scale(1)',
                                     pointerEvents: isAvailable ? 'auto' : 'none',
