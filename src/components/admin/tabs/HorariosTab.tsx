@@ -96,6 +96,48 @@ const HorariosTab: React.FC = () => {
     }
   }
 
+  const handleUpdateCitaEstado = async (citaId: string, nuevoEstado: string) => {
+    try {
+      const { error } = await supabase
+        .from('citas')
+        .update({ estado: nuevoEstado })
+        .eq('id', citaId)
+
+      if (error) throw error
+      
+      toast.success('Estado actualizado')
+      loadCitasDelDia() // Recargar citas
+    } catch (error) {
+      console.error('Error updating cita:', error)
+      toast.error('Error al actualizar estado')
+    }
+  }
+
+  // Helper para obtener la fecha de un día de la semana específico en la semana actual seleccionada
+  const getDateFromDayOfWeek = (dayIndex: number) => {
+    const currentSelectedDate = new Date(selectedDate + 'T00:00:00')
+    const currentDayIndex = currentSelectedDate.getDay() // 0-6
+    
+    // Calcular la diferencia de días
+    const diff = dayIndex - currentDayIndex
+    
+    // Crear nueva fecha sumando la diferencia
+    const newDate = new Date(currentSelectedDate)
+    newDate.setDate(newDate.getDate() + diff)
+    
+    // Formatear a YYYY-MM-DD
+    const year = newDate.getFullYear()
+    const month = String(newDate.getMonth() + 1).padStart(2, '0')
+    const day = String(newDate.getDate()).padStart(2, '0')
+    
+    return `${year}-${month}-${day}`
+  }
+
+  const handleDayClick = (dayIndex: number) => {
+    const newDate = getDateFromDayOfWeek(dayIndex)
+    setSelectedDate(newDate)
+  }
+
   const loadBarberos = async () => {
     try {
       const { data, error } = await supabase
@@ -420,7 +462,12 @@ const HorariosTab: React.FC = () => {
               return (
                 <div
                   key={dia.num}
-                  className={`minimal-card p-4 hover-lift transition-all duration-300 ${esDiaSeleccionado ? 'ring-2 ring-[var(--accent-color)] bg-[var(--bg-secondary)]' : ''}`}
+                  className={`minimal-card p-4 hover-lift transition-all duration-300 ${esDiaSeleccionado ? 'ring-2 ring-[var(--accent-color)] bg-[var(--bg-secondary)]' : 'cursor-pointer hover:bg-[var(--bg-secondary)] hover:bg-opacity-50'}`}
+                  onClick={(e) => {
+                    // Evitar que clicks en botones internos disparen el cambio de fecha
+                    if ((e.target as HTMLElement).closest('button')) return
+                    handleDayClick(dia.num)
+                  }}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <div className="flex items-start gap-4 flex-1">
@@ -486,12 +533,22 @@ const HorariosTab: React.FC = () => {
                                         {cita.servicios?.nombre || 'Servicio'} ({cita.servicios?.duracion_minutos || 30} min)
                                       </div>
                                     </div>
-                                    <div className={`text-xs px-2 py-1 rounded-full ${
-                                      cita.estado === 'confirmada' ? 'bg-green-500/20 text-green-500' :
-                                      cita.estado === 'completada' ? 'bg-blue-500/20 text-blue-500' :
-                                      'bg-yellow-500/20 text-yellow-500'
-                                    }`}>
-                                      {cita.estado}
+                                    <div className="flex items-center gap-2">
+                                      <select
+                                        value={cita.estado}
+                                        onChange={(e) => handleUpdateCitaEstado(cita.id, e.target.value)}
+                                        className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer outline-none focus:ring-1 focus:ring-offset-1 focus:ring-offset-[var(--bg-primary)] ${
+                                          cita.estado === 'confirmada' ? 'bg-green-500/20 text-green-500 focus:ring-green-500' :
+                                          cita.estado === 'completada' ? 'bg-blue-500/20 text-blue-500 focus:ring-blue-500' :
+                                          'bg-yellow-500/20 text-yellow-500 focus:ring-yellow-500'
+                                        }`}
+                                        onClick={(e) => e.stopPropagation()}
+                                      >
+                                        <option value="pendiente">Pendiente</option>
+                                        <option value="confirmada">Confirmada</option>
+                                        <option value="completada">Completada</option>
+                                        <option value="cancelada">Cancelar</option>
+                                      </select>
                                     </div>
                                   </div>
                                 ))}
