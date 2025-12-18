@@ -194,8 +194,10 @@ const ReservarPage: React.FC = () => {
 
   const getMinDate = () => {
     const today = new Date()
-    today.setDate(today.getDate() + 1) // Mínimo mañana
-    return today.toISOString().split('T')[0]
+    // Obtener fecha local respetando el timezone del usuario
+    const offset = today.getTimezoneOffset()
+    const localDate = new Date(today.getTime() - (offset * 60 * 1000))
+    return localDate.toISOString().split('T')[0]
   }
 
   const getMaxDate = () => {
