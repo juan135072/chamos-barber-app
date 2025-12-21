@@ -327,12 +327,13 @@ export const chamosSupabase = {
   },
 
   // Horarios disponibles
-  getHorariosDisponibles: async (barbero_id: string, fecha: string) => {
+  getHorariosDisponibles: async (barbero_id: string, fecha: string, duracion_minutos: number = 30) => {
     try {
       const { data, error } = await supabase
         .rpc('get_horarios_disponibles', {
           barbero_id_param: barbero_id,
-          fecha_param: fecha
+          fecha_param: fecha,
+          duracion_minutos_param: duracion_minutos
         })
       
       if (error) {

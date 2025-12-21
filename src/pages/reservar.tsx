@@ -41,7 +41,7 @@ const ReservarPage: React.FC = () => {
     if (formData.fecha && formData.barbero_id) {
       loadAvailableSlots()
     }
-  }, [formData.fecha, formData.barbero_id])
+  }, [formData.fecha, formData.barbero_id, serviciosSeleccionados]) // Recargar si cambian servicios
 
   const loadBarberosYServicios = async () => {
     try {
@@ -59,12 +59,21 @@ const ReservarPage: React.FC = () => {
 
   const loadAvailableSlots = async () => {
     try {
+      // Calcular duración total solicitada
+      const { duracionTotal } = calcularTotales()
+      const duracionSolicitada = duracionTotal > 0 ? duracionTotal : 30 // Mínimo 30 min
+
       console.log('🔍 Cargando horarios disponibles para:', {
         barbero_id: formData.barbero_id,
-        fecha: formData.fecha
+        fecha: formData.fecha,
+        duracion: duracionSolicitada
       })
       
-      const data = await chamosSupabase.getHorariosDisponibles(formData.barbero_id, formData.fecha)
+      const data = await chamosSupabase.getHorariosDisponibles(
+        formData.barbero_id, 
+        formData.fecha,
+        duracionSolicitada
+      )
       
       if (data && data.length > 0) {
         console.log('✅ Horarios recibidos:', data.length, 'slots')
