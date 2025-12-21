@@ -312,6 +312,7 @@ export interface Database {
           tags: string[] | null
           created_at: string
           updated_at: string
+          imagen_url: string | null
         }
         Insert: {
           id?: string

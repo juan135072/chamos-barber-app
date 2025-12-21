@@ -1,10 +1,10 @@
 // ================================================================
 // 💰 COMPONENTE: ModalCobro
-// Modal para procesar cobro con CRM (Notas y Fotos)
+// Modal para procesar cobro (Simplificado)
 // ================================================================
 
 import React, { useState, useEffect } from 'react'
-import { DollarSign, CreditCard, Banknote, X, Check, Camera, ClipboardList, History } from 'lucide-react'
+import { DollarSign, CreditCard, Banknote, X } from 'lucide-react'
 
 interface ModalCobroProps {
   cita: {
@@ -15,19 +15,13 @@ interface ModalCobroProps {
   }
   isOpen: boolean
   onClose: () => void
-  onConfirmar: (citaId: string, montoCobrado: number, metodoPago: string, notasTecnicas?: string, fotoResultado?: File | null) => Promise<void>
+  onConfirmar: (citaId: string, montoCobrado: number, metodoPago: string) => Promise<void>
 }
 
 export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: ModalCobroProps) {
   const [montoCobrado, setMontoCobrado] = useState(cita.servicio_precio)
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta'>('efectivo')
   const [processing, setProcessing] = useState(false)
-  const [notasTecnicas, setNotasTecnicas] = useState('')
-  const [fotoResultado, setFotoResultado] = useState<File | null>(null)
-  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
-  const [showHistory, setShowHistory] = useState(false)
-  const [historialCitas, setHistorialCitas] = useState<any[]>([])
-  const [loadingHistorial, setLoadingHistorial] = useState(false)
 
   // Resetear valores cuando se abre el modal
   useEffect(() => {
@@ -35,48 +29,8 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
       setMontoCobrado(cita.servicio_precio)
       setMetodoPago('efectivo')
       setProcessing(false)
-      setNotasTecnicas('')
-      setFotoResultado(null)
-      setFotoPreview(null)
-      setShowHistory(false)
     }
   }, [isOpen, cita.servicio_precio])
-
-  const fetchHistorial = async () => {
-    if (loadingHistorial) return
-    setLoadingHistorial(true)
-    try {
-      const response = await fetch(`/api/barbero/historial-cliente?nombre=${encodeURIComponent(cita.cliente_nombre)}`)
-      const result = await response.json()
-      if (result.success) {
-        setHistorialCitas(result.data || [])
-      }
-    } catch (error) {
-      console.error('Error cargando historial:', error)
-    } finally {
-      setLoadingHistorial(false)
-    }
-  }
-
-  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setFotoResultado(file)
-      const reader = new FileReader()
-      reader.onloadend = () => {
-        setFotoPreview(reader.result as string)
-      }
-      reader.readAsDataURL(file)
-    }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
 
   const handleMontoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/[^0-9]/g, '')
@@ -91,7 +45,7 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
 
     setProcessing(true)
     try {
-      await onConfirmar(cita.id, montoCobrado, metodoPago, notasTecnicas, fotoResultado)
+      await onConfirmar(cita.id, montoCobrado, metodoPago)
       onClose()
     } catch (error) {
       console.error('Error al procesar cobro:', error)
@@ -170,82 +124,6 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
                   <CreditCard size={20} />
                   <span>Tarjeta</span>
                 </button>
-              </div>
-            </div>
-
-            {/* SECCIÓN CRM: Ficha Técnica */}
-            <div className="crm-section">
-              <div className="section-header">
-                <label className="input-label">
-                  <ClipboardList size={18} />
-                  Ficha Técnica (Notas del Barbero)
-                </label>
-                <button
-                  className="history-toggle"
-                  onClick={() => {
-                    setShowHistory(!showHistory)
-                    if (!showHistory) fetchHistorial()
-                  }}
-                >
-                  <History size={16} />
-                  {showHistory ? 'Ocultar Historial' : 'Ver Historial'}
-                </button>
-              </div>
-
-              {showHistory && (
-                <div className="history-container">
-                  {loadingHistorial ? (
-                    <div className="history-loading">Cargando historial...</div>
-                  ) : historialCitas.length > 0 ? (
-                    <div className="history-list">
-                      {historialCitas.map((past, idx) => (
-                        <div key={idx} className="history-item">
-                          <div className="history-date">
-                            {new Date(past.fecha).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
-                          </div>
-                          <div className="history-content">
-                            <div className="history-service">{past.servicios?.name || 'Servicio'}</div>
-                            {past.notas_tecnicas && <div className="history-notes">"{past.notas_tecnicas}"</div>}
-                            {past.foto_resultado_url && (
-                              <img src={past.foto_resultado_url} className="history-photo" alt="Corte pasado" />
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="no-history">No hay registros previos.</div>
-                  )}
-                </div>
-              )}
-
-              <textarea
-                className="crm-textarea"
-                placeholder="Ej: Usa la #2 a los lados, tijera arriba..."
-                value={notasTecnicas}
-                onChange={(e) => setNotasTecnicas(e.target.value)}
-                disabled={processing}
-              />
-
-              <div className="photo-upload-container">
-                <input
-                  type="file"
-                  id="foto-corte"
-                  accept="image/*"
-                  onChange={handleFotoChange}
-                  style={{ display: 'none' }}
-                  disabled={processing}
-                />
-                <label htmlFor="foto-corte" className={`photo-btn ${fotoPreview ? 'has-photo' : ''}`}>
-                  {fotoPreview ? (
-                    <img src={fotoPreview} alt="Preview" className="photo-preview" />
-                  ) : (
-                    <>
-                      <Camera size={20} />
-                      <span>Subir Foto del Resultado</span>
-                    </>
-                  )}
-                </label>
               </div>
             </div>
           </div>
@@ -363,29 +241,6 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
         }
         .metodo-btn.active { border-color: #D4AF37; background: rgba(212, 175, 55, 0.1); color: #D4AF37; }
 
-        .crm-section { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1.5rem; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
-        .history-toggle { background: none; border: none; color: #D4AF37; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
-
-        .history-container { background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 1rem; max-height: 150px; overflow-y: auto; font-size: 0.813rem; }
-        .history-item { display: flex; gap: 0.75rem; padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .history-date { color: #D4AF37; font-weight: 600; }
-        .history-photo { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; }
-
-        .crm-textarea {
-          width: 100%; min-height: 80px; background: rgba(255,255,255,0.05);
-          border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
-          color: #fff; padding: 0.75rem; font-size: 0.875rem; resize: none; margin-bottom: 1rem;
-        }
-
-        .photo-btn {
-          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
-          background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4);
-          border-radius: 12px; color: #D4AF37; padding: 1rem; cursor: pointer;
-        }
-        .photo-btn.has-photo { padding: 0; height: 120px; border-style: solid; overflow: hidden; }
-        .photo-preview { width: 100%; height: 100%; object-fit: cover; }
-
         .modal-footer { display: flex; gap: 0.75rem; padding: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.2); }
         .btn-secondary { flex: 1; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: none; border-radius: 12px; color: #fff; cursor: pointer; }
         .btn-primary { flex: 2; padding: 1rem; background: #D4AF37; border: none; border-radius: 12px; color: #121212; font-weight: 700; cursor: pointer; }
@@ -393,3 +248,4 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
     </>
   )
 }
+

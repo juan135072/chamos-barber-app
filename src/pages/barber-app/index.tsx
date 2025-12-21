@@ -109,21 +109,10 @@ export default function BarberAppPage() {
   const handleConfirmarCobro = async (
     citaId: string,
     montoCobrado: number,
-    metodoPago: string,
-    notasTecnicas?: string,
-    fotoResultado?: File | null
+    metodoPago: string
   ) => {
     try {
-      let fotoUrl = null
-
-      // 1. Subir foto si existe
-      if (fotoResultado) {
-        console.log('📤 Subiendo foto del resultado...')
-        const uploadResult = await chamosSupabase.uploadCorteFoto(fotoResultado, citaId)
-        fotoUrl = uploadResult.publicUrl
-      }
-
-      // 2. Completar la cita y registrar el cobro
+      // 1. Completar la cita y registrar el cobro
       const response = await fetch('/api/barbero/completar-cita-con-cobro', {
         method: 'POST',
         headers: {
@@ -133,9 +122,7 @@ export default function BarberAppPage() {
           cita_id: citaId,
           monto_cobrado: montoCobrado,
           metodo_pago: metodoPago,
-          barbero_id: session?.barberoId,
-          notas_tecnicas: notasTecnicas,
-          foto_resultado_url: fotoUrl
+          barbero_id: session?.barberoId
         })
       })
 

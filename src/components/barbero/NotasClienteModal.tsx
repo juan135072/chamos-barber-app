@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../lib/database.types'
+import { chamosSupabase } from '../../../lib/supabase-helpers'
 import toast from 'react-hot-toast'
 
 type NotaCliente = Database['public']['Tables']['notas_clientes']['Row']
@@ -33,6 +34,9 @@ export default function NotasClienteModal({
   const [tagInput, setTagInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [loadingNotas, setLoadingNotas] = useState(true)
+  const [fotoFile, setFotoFile] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const fileInputRef = useState<{ current: HTMLInputElement | null }>({ current: null })[0]
 
   // Tags predefinidos
   const tagsDisponibles = [
@@ -80,6 +84,28 @@ export default function NotasClienteModal({
 
     try {
       setLoading(true)
+      let fotoUrl: string | null = null
+
+      // Subir foto si existe
+      if (fotoFile && citaId) {
+        try {
+          const result = await chamosSupabase.uploadCorteFoto(fotoFile, citaId)
+          fotoUrl = result.publicUrl
+        } catch (uploadError) {
+          console.error('Error uploading photo:', uploadError)
+          toast.error('Error al subir la foto, pero se guardará la nota')
+        }
+      } else if (fotoFile) {
+        // Si no hay citaId, usamos un "dummy" o generamos nombre unico
+        const dummyId = `nota-${Date.now()}`
+        try {
+          const result = await chamosSupabase.uploadCorteFoto(fotoFile, dummyId)
+          fotoUrl = result.publicUrl
+        } catch (uploadError) {
+          console.error('Error uploading photo:', uploadError)
+        }
+      }
+
       const { error } = await supabase
         .from('notas_clientes')
         .insert({
@@ -89,7 +115,8 @@ export default function NotasClienteModal({
           cliente_telefono: clienteTelefono || null,
           notas: nuevaNota.trim(),
           cita_id: citaId || null,
-          tags: tags.length > 0 ? tags : null
+          tags: tags.length > 0 ? tags : null,
+          imagen_url: fotoUrl
         })
 
       if (error) throw error
@@ -98,6 +125,8 @@ export default function NotasClienteModal({
       setNuevaNota('')
       setTags([])
       setTagInput('')
+      setFotoFile(null)
+      setFotoPreview(null)
       await loadNotasCliente()
       onNotaSaved?.()
     } catch (error) {
@@ -148,7 +177,7 @@ export default function NotasClienteModal({
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       style={{
         position: 'fixed',
         top: 0,
@@ -164,7 +193,7 @@ export default function NotasClienteModal({
       }}
       onClick={onClose}
     >
-      <div 
+      <div
         style={{
           background: 'var(--bg-secondary)',
           border: '1px solid var(--border-color)',
@@ -186,9 +215,9 @@ export default function NotasClienteModal({
           alignItems: 'center'
         }}>
           <div>
-            <h2 style={{ 
-              fontSize: '20px', 
-              fontWeight: 'bold', 
+            <h2 style={{
+              fontSize: '20px',
+              fontWeight: 'bold',
               color: 'var(--accent-color)',
               marginBottom: '4px'
             }}>
@@ -221,16 +250,16 @@ export default function NotasClienteModal({
         <div style={{ padding: '24px' }}>
           {/* Nueva Nota */}
           <div style={{ marginBottom: '24px' }}>
-            <h3 style={{ 
-              fontSize: '16px', 
-              fontWeight: '600', 
+            <h3 style={{
+              fontSize: '16px',
+              fontWeight: '600',
               color: 'var(--text-primary)',
               marginBottom: '12px'
             }}>
               <i className="fas fa-plus-circle" style={{ marginRight: '8px', color: 'var(--accent-color)' }}></i>
               Agregar Nueva Nota
             </h3>
-            
+
             <textarea
               value={nuevaNota}
               onChange={(e) => setNuevaNota(e.target.value)}
@@ -249,11 +278,88 @@ export default function NotasClienteModal({
               }}
             />
 
+            {/* Foto Upload */}
+            <div style={{ marginBottom: '16px' }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setFotoFile(file)
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      setFotoPreview(reader.result as string)
+                    }
+                    reader.readAsDataURL(file)
+                  }
+                }}
+                style={{ display: 'none' }}
+                id="foto-upload-nota"
+              />
+              <button
+                onClick={() => document.getElementById('foto-upload-nota')?.click()}
+                style={{
+                  padding: '8px 16px',
+                  background: 'var(--bg-tertiary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '6px',
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  width: '100%',
+                  justifyContent: 'center'
+                }}
+              >
+                <i className="fas fa-camera"></i>
+                {fotoFile ? 'Cambiar Foto' : 'Agregar Foto'}
+              </button>
+              {fotoPreview && (
+                <div style={{ marginTop: '8px', position: 'relative', width: 'fit-content' }}>
+                  <img
+                    src={fotoPreview}
+                    alt="Preview"
+                    style={{
+                      width: '100%',
+                      maxWidth: '200px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  />
+                  <button
+                    onClick={() => {
+                      setFotoFile(null)
+                      setFotoPreview(null)
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      right: '-8px',
+                      background: '#EF4444',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '50%',
+                      width: '24px',
+                      height: '24px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <i className="fas fa-times" style={{ fontSize: '12px' }}></i>
+                  </button>
+                </div>
+              )}
+            </div>
+
             {/* Tags */}
             <div style={{ marginBottom: '12px' }}>
-              <label style={{ 
-                display: 'block', 
-                fontSize: '14px', 
+              <label style={{
+                display: 'block',
+                fontSize: '14px',
                 fontWeight: '500',
                 color: 'var(--text-primary)',
                 opacity: 0.9,
@@ -262,7 +368,7 @@ export default function NotasClienteModal({
                 <i className="fas fa-tags" style={{ marginRight: '6px' }}></i>
                 Etiquetas
               </label>
-              
+
               {/* Tags seleccionados */}
               {tags.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
@@ -387,9 +493,9 @@ export default function NotasClienteModal({
 
           {/* Historial de Notas */}
           <div>
-            <h3 style={{ 
-              fontSize: '16px', 
-              fontWeight: '600', 
+            <h3 style={{
+              fontSize: '16px',
+              fontWeight: '600',
               color: 'var(--text-primary)',
               marginBottom: '16px'
             }}>
@@ -412,9 +518,9 @@ export default function NotasClienteModal({
                 borderRadius: '8px',
                 border: '1px solid var(--border-color)'
               }}>
-                <i className="fas fa-clipboard" style={{ 
-                  fontSize: '48px', 
-                  color: 'var(--text-primary)', 
+                <i className="fas fa-clipboard" style={{
+                  fontSize: '48px',
+                  color: 'var(--text-primary)',
                   opacity: 0.3,
                   marginBottom: '16px',
                   display: 'block'
@@ -439,15 +545,15 @@ export default function NotasClienteModal({
                       position: 'relative'
                     }}
                   >
-                    <div style={{ 
-                      display: 'flex', 
+                    <div style={{
+                      display: 'flex',
                       justifyContent: 'space-between',
                       marginBottom: '8px'
                     }}>
-                      <span style={{ 
-                        fontSize: '12px', 
-                        color: 'var(--text-primary)', 
-                        opacity: 0.6 
+                      <span style={{
+                        fontSize: '12px',
+                        color: 'var(--text-primary)',
+                        opacity: 0.6
                       }}>
                         <i className="fas fa-calendar-alt" style={{ marginRight: '4px' }}></i>
                         {new Date(nota.created_at).toLocaleDateString('es-ES', {
@@ -473,15 +579,32 @@ export default function NotasClienteModal({
                         <i className="fas fa-trash"></i>
                       </button>
                     </div>
-                    
-                    <p style={{ 
-                      color: 'var(--text-primary)', 
-                      fontSize: '14px', 
+
+                    <p style={{
+                      color: 'var(--text-primary)',
+                      fontSize: '14px',
                       lineHeight: '1.6',
-                      marginBottom: nota.tags && nota.tags.length > 0 ? '12px' : 0
+                      marginBottom: (nota.tags && nota.tags.length > 0) || nota.imagen_url ? '12px' : 0
                     }}>
                       {nota.notas}
                     </p>
+
+                    {nota.imagen_url && (
+                      <div style={{ marginBottom: '12px' }}>
+                        <img
+                          src={nota.imagen_url}
+                          alt="Foto del corte"
+                          style={{
+                            maxWidth: '100%',
+                            maxHeight: '200px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => window.open(nota.imagen_url!, '_blank')}
+                        />
+                      </div>
+                    )}
 
                     {nota.tags && nota.tags.length > 0 && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
