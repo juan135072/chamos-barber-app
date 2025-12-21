@@ -14,14 +14,14 @@ export const chamosSupabase = {
   // Barberos
   getBarberos: async (activo?: boolean) => {
     const query = supabase.from('barberos').select('*')
-    
+
     // Solo filtrar por activo si se especifica explícitamente
     if (activo !== undefined && activo !== null) {
       query.eq('activo', activo)
     }
-    
+
     const { data, error } = await query.order('nombre')
-    
+
     if (error) throw error
     return data as Barbero[]
   },
@@ -32,7 +32,7 @@ export const chamosSupabase = {
       .select('*')
       .eq('id', id)
       .single()
-    
+
     if (error) throw error
     return data as Barbero
   },
@@ -64,9 +64,9 @@ export const chamosSupabase = {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           barberoId: id,
-          activo: updates.activo 
+          activo: updates.activo
         })
       })
 
@@ -85,9 +85,9 @@ export const chamosSupabase = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         barberoId: id,
-        updates 
+        updates
       })
     })
 
@@ -108,9 +108,9 @@ export const chamosSupabase = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         barberoId: id,
-        activo: false 
+        activo: false
       })
     })
 
@@ -131,7 +131,7 @@ export const chamosSupabase = {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         barberoId: id
       })
     })
@@ -147,14 +147,14 @@ export const chamosSupabase = {
   // Servicios
   getServicios: async (activo?: boolean) => {
     const query = supabase.from('servicios').select('*')
-    
+
     // Solo filtrar por activo si se proporciona explícitamente
     if (activo !== undefined) {
       query.eq('activo', activo)
     }
-    
+
     const { data, error } = await query.order('nombre')
-    
+
     if (error) throw error
     return data as Servicio[]
   },
@@ -165,7 +165,7 @@ export const chamosSupabase = {
       .select('*')
       .eq('id', id)
       .single()
-    
+
     if (error) throw error
     return data as Servicio
   },
@@ -176,7 +176,7 @@ export const chamosSupabase = {
       .insert([servicio] as any)
       .select()
       .single()
-    
+
     if (error) throw error
     return data as Servicio
   },
@@ -188,7 +188,7 @@ export const chamosSupabase = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data as Servicio
   },
@@ -200,9 +200,9 @@ export const chamosSupabase = {
       .select('id')
       .eq('servicio_id', id)
       .limit(1)
-    
+
     if (citasError) throw citasError
-    
+
     // Si hay citas asociadas, lanzar error descriptivo
     if (citas && citas.length > 0) {
       throw new Error(
@@ -210,13 +210,13 @@ export const chamosSupabase = {
         'Por favor, desactiva el servicio en lugar de eliminarlo, o elimina primero las citas asociadas.'
       )
     }
-    
+
     // Si no hay citas, proceder con la eliminación
     const { error } = await supabase
       .from('servicios')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -245,7 +245,7 @@ export const chamosSupabase = {
     }
 
     const { data, error } = await query.order('fecha').order('hora')
-    
+
     if (error) throw error
     return data || []
   },
@@ -260,7 +260,7 @@ export const chamosSupabase = {
       `)
       .eq('id', id)
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -282,7 +282,7 @@ export const chamosSupabase = {
     // VALIDACIÓN 2: Verificar que no sea una hora pasada
     const fechaHora = new Date(`${cita.fecha}T${cita.hora}`)
     const ahora = new Date()
-    
+
     if (fechaHora <= ahora) {
       throw new Error('⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.')
     }
@@ -293,7 +293,7 @@ export const chamosSupabase = {
       .insert([cita] as any)
       .select()
       .single()
-    
+
     if (error) {
       // Si es un error de constraint único (race condition), mensaje más claro
       if (error.code === '23505') {
@@ -301,7 +301,7 @@ export const chamosSupabase = {
       }
       throw error
     }
-    
+
     return data as Cita
   },
 
@@ -312,7 +312,7 @@ export const chamosSupabase = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data as Cita
   },
@@ -322,7 +322,7 @@ export const chamosSupabase = {
       .from('citas')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -335,12 +335,12 @@ export const chamosSupabase = {
           fecha_param: fecha,
           duracion_minutos_param: duracion_minutos
         })
-      
+
       if (error) {
         console.error('Error en getHorariosDisponibles:', error)
         throw error
       }
-      
+
       return data || []
     } catch (error) {
       console.error('Error calling get_horarios_disponibles:', error)
@@ -363,7 +363,7 @@ export const chamosSupabase = {
     }
 
     const { data, error } = await query.order('dia_semana').order('hora_inicio')
-    
+
     if (error) throw error
     return data
   },
@@ -374,7 +374,7 @@ export const chamosSupabase = {
       .insert([horario] as any)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -386,7 +386,7 @@ export const chamosSupabase = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -396,7 +396,7 @@ export const chamosSupabase = {
       .from('horarios_atencion')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -414,7 +414,7 @@ export const chamosSupabase = {
     }
 
     const { data, error } = await query.order('fecha_hora_inicio', { ascending: false })
-    
+
     if (error) throw error
     return data
   },
@@ -425,7 +425,7 @@ export const chamosSupabase = {
       .insert([bloqueo] as any)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -437,7 +437,7 @@ export const chamosSupabase = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -447,7 +447,7 @@ export const chamosSupabase = {
       .from('horarios_bloqueados')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -488,7 +488,7 @@ export const chamosSupabase = {
     const { data, error } = await query
       .eq('activo', true)
       .order('orden')
-    
+
     if (error) throw error
     return data
   },
@@ -499,7 +499,7 @@ export const chamosSupabase = {
       .insert([item] as any)
       .select()
       .single()
-    
+
     if (error) throw error
     return data as PortfolioItem
   },
@@ -511,7 +511,7 @@ export const chamosSupabase = {
       .eq('id', id)
       .select()
       .single()
-    
+
     if (error) throw error
     return data as PortfolioItem
   },
@@ -521,7 +521,7 @@ export const chamosSupabase = {
       .from('barbero_portfolio')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
@@ -531,7 +531,7 @@ export const chamosSupabase = {
       .from('admin_users')
       .select('id, email, nombre, rol, activo, created_at')
       .order('nombre')
-    
+
     if (error) throw error
     return data
   },
@@ -543,7 +543,7 @@ export const chamosSupabase = {
       .eq('email', email)
       .eq('activo', true)
       .single()
-    
+
     if (error) throw error
     return data as AdminUser
   },
@@ -554,7 +554,7 @@ export const chamosSupabase = {
       .insert([user] as any)
       .select('id, email, nombre, rol, activo, created_at')
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -566,7 +566,7 @@ export const chamosSupabase = {
       .eq('id', id)
       .select('id, email, nombre, rol, activo, created_at')
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -576,20 +576,20 @@ export const chamosSupabase = {
       .from('admin_users')
       .delete()
       .eq('id', id)
-    
+
     if (error) throw error
   },
 
   // Configuración del sitio
   getConfiguracion: async (clave?: string) => {
     let query = supabase.from('sitio_configuracion').select('*')
-    
+
     if (clave) {
       query = query.eq('clave', clave).single()
     }
-    
+
     const { data, error } = await query.order('clave')
-    
+
     if (error) throw error
     return data
   },
@@ -597,14 +597,14 @@ export const chamosSupabase = {
   updateConfiguracion: async (clave: string, valor: string) => {
     const { data, error } = await supabase
       .from('sitio_configuracion')
-      .update({ 
+      .update({
         valor,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString()
       } as any)
       .eq('clave', clave)
       .select()
       .single()
-    
+
     if (error) throw error
     return data
   },
@@ -765,6 +765,38 @@ export const chamosSupabase = {
         console.log('⚠️ [deleteServicioFoto] Archivo no encontrado, continuando...')
         return
       }
+      throw error
+    }
+  },
+
+  // Storage - Subir foto de resultado de corte
+  uploadCorteFoto: async (file: File, citaId: string) => {
+    try {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Solo se permiten imágenes (JPG, PNG, WEBP)')
+      }
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${citaId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { data, error } = await supabase.storage
+        .from('cortes')
+        .upload(filePath, file)
+
+      if (error) throw error
+
+      const { data: urlData } = supabase.storage
+        .from('cortes')
+        .getPublicUrl(data.path)
+
+      return {
+        path: data.path,
+        publicUrl: urlData.publicUrl
+      }
+    } catch (error: any) {
+      console.error('❌ [uploadCorteFoto] Error:', error)
       throw error
     }
   }

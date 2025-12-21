@@ -18,7 +18,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    const { cita_id, monto_cobrado, metodo_pago, barbero_id } = req.body
+    const { cita_id, monto_cobrado, metodo_pago, barbero_id, notas_tecnicas, foto_resultado_url } = req.body
 
     // Validar parámetros requeridos
     if (!cita_id || !monto_cobrado || !metodo_pago || !barbero_id) {
@@ -105,6 +105,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       .from('citas')
       .update({
         estado: 'completada',
+        notas_tecnicas: notas_tecnicas || null,
+        foto_resultado_url: foto_resultado_url || null,
         updated_at: new Date().toISOString()
       })
       .eq('id', cita_id)

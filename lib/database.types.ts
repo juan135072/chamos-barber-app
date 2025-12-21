@@ -256,6 +256,8 @@ export interface Database {
           fecha_confirmacion: string | null
           created_at: string
           updated_at: string
+          foto_resultado_url: string | null
+          notas_tecnicas: string | null
         }
         Insert: {
           id?: string
@@ -274,6 +276,8 @@ export interface Database {
           fecha_confirmacion?: string | null
           created_at?: string
           updated_at?: string
+          foto_resultado_url?: string | null
+          notas_tecnicas?: string | null
         }
         Update: {
           id?: string
@@ -292,6 +296,8 @@ export interface Database {
           fecha_confirmacion?: string | null
           created_at?: string
           updated_at?: string
+          foto_resultado_url?: string | null
+          notas_tecnicas?: string | null
         }
       }
       notas_clientes: {

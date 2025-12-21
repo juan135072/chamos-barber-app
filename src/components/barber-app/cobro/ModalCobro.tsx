@@ -1,10 +1,10 @@
 // ================================================================
 // 💰 COMPONENTE: ModalCobro
-// Modal para procesar cobro con monto editable
+// Modal para procesar cobro con CRM (Notas y Fotos)
 // ================================================================
 
 import React, { useState, useEffect } from 'react'
-import { DollarSign, CreditCard, Banknote, X, Check } from 'lucide-react'
+import { DollarSign, CreditCard, Banknote, X, Check, Camera, ClipboardList, History } from 'lucide-react'
 
 interface ModalCobroProps {
   cita: {
@@ -15,13 +15,19 @@ interface ModalCobroProps {
   }
   isOpen: boolean
   onClose: () => void
-  onConfirmar: (citaId: string, montoCobrado: number, metodoPago: string) => Promise<void>
+  onConfirmar: (citaId: string, montoCobrado: number, metodoPago: string, notasTecnicas?: string, fotoResultado?: File | null) => Promise<void>
 }
 
 export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: ModalCobroProps) {
   const [montoCobrado, setMontoCobrado] = useState(cita.servicio_precio)
   const [metodoPago, setMetodoPago] = useState<'efectivo' | 'tarjeta'>('efectivo')
   const [processing, setProcessing] = useState(false)
+  const [notasTecnicas, setNotasTecnicas] = useState('')
+  const [fotoResultado, setFotoResultado] = useState<File | null>(null)
+  const [fotoPreview, setFotoPreview] = useState<string | null>(null)
+  const [showHistory, setShowHistory] = useState(false)
+  const [historialCitas, setHistorialCitas] = useState<any[]>([])
+  const [loadingHistorial, setLoadingHistorial] = useState(false)
 
   // Resetear valores cuando se abre el modal
   useEffect(() => {
@@ -29,8 +35,40 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
       setMontoCobrado(cita.servicio_precio)
       setMetodoPago('efectivo')
       setProcessing(false)
+      setNotasTecnicas('')
+      setFotoResultado(null)
+      setFotoPreview(null)
+      setShowHistory(false)
     }
   }, [isOpen, cita.servicio_precio])
+
+  const fetchHistorial = async () => {
+    if (loadingHistorial) return
+    setLoadingHistorial(true)
+    try {
+      const response = await fetch(`/api/barbero/historial-cliente?nombre=${encodeURIComponent(cita.cliente_nombre)}`)
+      const result = await response.json()
+      if (result.success) {
+        setHistorialCitas(result.data || [])
+      }
+    } catch (error) {
+      console.error('Error cargando historial:', error)
+    } finally {
+      setLoadingHistorial(false)
+    }
+  }
+
+  const handleFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setFotoResultado(file)
+      const reader = new FileReader()
+      reader.onloadend = () => {
+        setFotoPreview(reader.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-CL', {
@@ -53,7 +91,7 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
 
     setProcessing(true)
     try {
-      await onConfirmar(cita.id, montoCobrado, metodoPago)
+      await onConfirmar(cita.id, montoCobrado, metodoPago, notasTecnicas, fotoResultado)
       onClose()
     } catch (error) {
       console.error('Error al procesar cobro:', error)
@@ -92,13 +130,9 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
                 <span className="label">Servicio:</span>
                 <span className="value">{cita.servicio_nombre}</span>
               </div>
-              <div className="info-row">
-                <span className="label">Precio Original:</span>
-                <span className="value original-price">{formatCurrency(cita.servicio_precio)}</span>
-              </div>
             </div>
 
-            {/* Monto a Cobrar - EDITABLE */}
+            {/* Monto a Cobrar */}
             <div className="monto-section">
               <label className="input-label">Monto a Cobrar</label>
               <div className="monto-input-wrapper">
@@ -113,37 +147,6 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
                   disabled={processing}
                   autoFocus
                 />
-              </div>
-              <div className="monto-preview">
-                {formatCurrency(montoCobrado)}
-              </div>
-            </div>
-
-            {/* Botones Rápidos para Ajustar Monto */}
-            <div className="quick-adjust-section">
-              <span className="quick-label">Ajuste Rápido:</span>
-              <div className="quick-buttons">
-                <button
-                  className="quick-btn"
-                  onClick={() => setMontoCobrado(Math.max(0, montoCobrado - 1000))}
-                  disabled={processing || montoCobrado <= 0}
-                >
-                  -$1.000
-                </button>
-                <button
-                  className="quick-btn"
-                  onClick={() => setMontoCobrado(cita.servicio_precio)}
-                  disabled={processing}
-                >
-                  Restaurar
-                </button>
-                <button
-                  className="quick-btn"
-                  onClick={() => setMontoCobrado(montoCobrado + 1000)}
-                  disabled={processing}
-                >
-                  +$1.000
-                </button>
               </div>
             </div>
 
@@ -169,33 +172,91 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
                 </button>
               </div>
             </div>
+
+            {/* SECCIÓN CRM: Ficha Técnica */}
+            <div className="crm-section">
+              <div className="section-header">
+                <label className="input-label">
+                  <ClipboardList size={18} />
+                  Ficha Técnica (Notas del Barbero)
+                </label>
+                <button
+                  className="history-toggle"
+                  onClick={() => {
+                    setShowHistory(!showHistory)
+                    if (!showHistory) fetchHistorial()
+                  }}
+                >
+                  <History size={16} />
+                  {showHistory ? 'Ocultar Historial' : 'Ver Historial'}
+                </button>
+              </div>
+
+              {showHistory && (
+                <div className="history-container">
+                  {loadingHistorial ? (
+                    <div className="history-loading">Cargando historial...</div>
+                  ) : historialCitas.length > 0 ? (
+                    <div className="history-list">
+                      {historialCitas.map((past, idx) => (
+                        <div key={idx} className="history-item">
+                          <div className="history-date">
+                            {new Date(past.fecha).toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}
+                          </div>
+                          <div className="history-content">
+                            <div className="history-service">{past.servicios?.name || 'Servicio'}</div>
+                            {past.notas_tecnicas && <div className="history-notes">"{past.notas_tecnicas}"</div>}
+                            {past.foto_resultado_url && (
+                              <img src={past.foto_resultado_url} className="history-photo" alt="Corte pasado" />
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-history">No hay registros previos.</div>
+                  )}
+                </div>
+              )}
+
+              <textarea
+                className="crm-textarea"
+                placeholder="Ej: Usa la #2 a los lados, tijera arriba..."
+                value={notasTecnicas}
+                onChange={(e) => setNotasTecnicas(e.target.value)}
+                disabled={processing}
+              />
+
+              <div className="photo-upload-container">
+                <input
+                  type="file"
+                  id="foto-corte"
+                  accept="image/*"
+                  onChange={handleFotoChange}
+                  style={{ display: 'none' }}
+                  disabled={processing}
+                />
+                <label htmlFor="foto-corte" className={`photo-btn ${fotoPreview ? 'has-photo' : ''}`}>
+                  {fotoPreview ? (
+                    <img src={fotoPreview} alt="Preview" className="photo-preview" />
+                  ) : (
+                    <>
+                      <Camera size={20} />
+                      <span>Subir Foto del Resultado</span>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
           </div>
 
           {/* Footer */}
           <div className="modal-footer">
-            <button
-              className="btn-secondary"
-              onClick={onClose}
-              disabled={processing}
-            >
+            <button className="btn-secondary" onClick={onClose} disabled={processing}>
               Cancelar
             </button>
-            <button
-              className="btn-primary"
-              onClick={handleSubmit}
-              disabled={processing || montoCobrado <= 0}
-            >
-              {processing ? (
-                <>
-                  <div className="spinner"></div>
-                  <span>Procesando...</span>
-                </>
-              ) : (
-                <>
-                  <Check size={20} />
-                  <span>Confirmar Cobro</span>
-                </>
-              )}
+            <button className="btn-primary" onClick={handleSubmit} disabled={processing || montoCobrado <= 0}>
+              {processing ? 'Procesando...' : 'Confirmar Cobro'}
             </button>
           </div>
         </div>
@@ -204,10 +265,7 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
       <style jsx>{`
         .modal-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: 0; left: 0; right: 0; bottom: 0;
           background: rgba(0, 0, 0, 0.85);
           backdrop-filter: blur(8px);
           display: flex;
@@ -215,16 +273,6 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
           justify-content: center;
           z-index: 9999;
           padding: 1rem;
-          animation: fadeIn 0.2s ease;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
         }
 
         .modal-content {
@@ -236,18 +284,6 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
           max-height: 90vh;
           overflow-y: auto;
           box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-          animation: slideUp 0.3s ease;
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
         }
 
         .modal-header {
@@ -269,27 +305,10 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
         }
 
         .close-btn {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 40px;
-          height: 40px;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(255, 255, 255, 0.1);
-          border-radius: 10px;
-          color: rgba(255, 255, 255, 0.7);
+          background: none;
+          border: none;
+          color: rgba(255, 255, 255, 0.5);
           cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .close-btn:hover {
-          background: rgba(255, 255, 255, 0.1);
-          color: #ffffff;
-        }
-
-        .close-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
         }
 
         .modal-body {
@@ -298,7 +317,6 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
 
         .info-section {
           background: rgba(255, 255, 255, 0.03);
-          border: 1px solid rgba(212, 175, 55, 0.2);
           border-radius: 12px;
           padding: 1rem;
           margin-bottom: 1.5rem;
@@ -307,263 +325,70 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
         .info-row {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          padding: 0.5rem 0;
+          margin-bottom: 0.5rem;
         }
 
-        .info-row:not(:last-child) {
-          border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-        }
+        .label { color: rgba(255, 255, 255, 0.5); font-size: 0.875rem; }
+        .value { color: #fff; font-weight: 600; }
 
-        .label {
-          font-size: 0.875rem;
-          color: rgba(255, 255, 255, 0.6);
-        }
-
-        .value {
-          font-size: 0.938rem;
-          font-weight: 600;
-          color: #ffffff;
-        }
-
-        .original-price {
-          color: #D4AF37;
-        }
-
-        .monto-section {
-          margin-bottom: 1.5rem;
-        }
-
-        .input-label {
-          display: block;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: rgba(255, 255, 255, 0.8);
-          margin-bottom: 0.75rem;
-        }
-
+        .monto-section { margin-bottom: 1.5rem; }
+        .input-label { display: block; color: rgba(255, 255, 255, 0.8); margin-bottom: 0.5rem; font-size: 0.875rem; font-weight: 600; }
+        
         .monto-input-wrapper {
           position: relative;
           display: flex;
           align-items: center;
         }
 
-        .currency-symbol {
-          position: absolute;
-          left: 1.25rem;
-          font-size: 1.5rem;
-          font-weight: 700;
-          color: #D4AF37;
-          pointer-events: none;
-        }
-
+        .currency-symbol { position: absolute; left: 1rem; color: #D4AF37; font-weight: 700; }
         .monto-input {
           width: 100%;
-          padding: 1rem 1rem 1rem 3rem;
+          padding: 1rem 1rem 1rem 2rem;
           background: rgba(255, 255, 255, 0.05);
-          border: 2px solid rgba(212, 175, 55, 0.3);
+          border: 1px solid rgba(212, 175, 55, 0.3);
           border-radius: 12px;
+          color: #fff;
           font-size: 1.5rem;
           font-weight: 700;
-          color: #ffffff;
-          text-align: right;
-          transition: all 0.3s ease;
-        }
-
-        .monto-input:focus {
-          outline: none;
-          border-color: #D4AF37;
-          background: rgba(255, 255, 255, 0.08);
-          box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
-        }
-
-        .monto-input:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .monto-preview {
-          margin-top: 0.5rem;
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: #10b981;
           text-align: right;
         }
 
-        .quick-adjust-section {
-          margin-bottom: 1.5rem;
-        }
-
-        .quick-label {
-          display: block;
-          font-size: 0.813rem;
-          color: rgba(255, 255, 255, 0.6);
-          margin-bottom: 0.5rem;
-        }
-
-        .quick-buttons {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 0.5rem;
-        }
-
-        .quick-btn {
-          padding: 0.625rem;
-          background: rgba(255, 255, 255, 0.05);
-          border: 1px solid rgba(212, 175, 55, 0.2);
-          border-radius: 8px;
-          font-size: 0.813rem;
-          font-weight: 600;
-          color: #D4AF37;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .quick-btn:hover {
-          background: rgba(212, 175, 55, 0.1);
-          border-color: #D4AF37;
-        }
-
-        .quick-btn:active {
-          transform: scale(0.95);
-        }
-
-        .quick-btn:disabled {
-          opacity: 0.3;
-          cursor: not-allowed;
-        }
-
-        .metodo-pago-section {
-          margin-bottom: 1.5rem;
-        }
-
-        .metodo-buttons {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 0.75rem;
-        }
-
+        .metodo-pago-section { margin-bottom: 1.5rem; }
+        .metodo-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
         .metodo-btn {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 1rem;
-          background: rgba(255, 255, 255, 0.05);
-          border: 2px solid rgba(255, 255, 255, 0.1);
-          border-radius: 12px;
-          color: rgba(255, 255, 255, 0.7);
-          font-size: 0.875rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: all 0.2s ease;
+          display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
+          padding: 1rem; background: rgba(255, 255, 255, 0.05);
+          border: 2px solid transparent; border-radius: 12px;
+          color: rgba(255, 255, 255, 0.7); cursor: pointer;
+        }
+        .metodo-btn.active { border-color: #D4AF37; background: rgba(212, 175, 55, 0.1); color: #D4AF37; }
+
+        .crm-section { border-top: 1px solid rgba(255, 255, 255, 0.05); padding-top: 1.5rem; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .history-toggle { background: none; border: none; color: #D4AF37; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
+
+        .history-container { background: rgba(0,0,0,0.2); border-radius: 8px; margin-bottom: 1rem; max-height: 150px; overflow-y: auto; font-size: 0.813rem; }
+        .history-item { display: flex; gap: 0.75rem; padding: 0.5rem; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .history-date { color: #D4AF37; font-weight: 600; }
+        .history-photo { width: 50px; height: 50px; border-radius: 4px; object-fit: cover; }
+
+        .crm-textarea {
+          width: 100%; min-height: 80px; background: rgba(255,255,255,0.05);
+          border: 1px solid rgba(255,255,255,0.1); border-radius: 12px;
+          color: #fff; padding: 0.75rem; font-size: 0.875rem; resize: none; margin-bottom: 1rem;
         }
 
-        .metodo-btn:hover {
-          background: rgba(255, 255, 255, 0.08);
-          border-color: rgba(212, 175, 55, 0.3);
+        .photo-btn {
+          display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+          background: rgba(212, 175, 55, 0.05); border: 1px dashed rgba(212, 175, 55, 0.4);
+          border-radius: 12px; color: #D4AF37; padding: 1rem; cursor: pointer;
         }
+        .photo-btn.has-photo { padding: 0; height: 120px; border-style: solid; overflow: hidden; }
+        .photo-preview { width: 100%; height: 100%; object-fit: cover; }
 
-        .metodo-btn.active {
-          background: rgba(212, 175, 55, 0.15);
-          border-color: #D4AF37;
-          color: #D4AF37;
-          box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
-        }
-
-        .metodo-btn:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .modal-footer {
-          display: flex;
-          gap: 0.75rem;
-          padding: 1.5rem;
-          border-top: 1px solid rgba(212, 175, 55, 0.2);
-        }
-
-        .btn-secondary,
-        .btn-primary {
-          flex: 1;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          gap: 0.5rem;
-          padding: 1rem;
-          border: none;
-          border-radius: 12px;
-          font-size: 0.938rem;
-          font-weight: 700;
-          cursor: pointer;
-          transition: all 0.2s ease;
-        }
-
-        .btn-secondary {
-          background: rgba(255, 255, 255, 0.05);
-          color: rgba(255, 255, 255, 0.8);
-        }
-
-        .btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.1);
-        }
-
-        .btn-primary {
-          background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-          color: #ffffff;
-          box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-
-        .btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4);
-        }
-
-        .btn-primary:active {
-          transform: translateY(0);
-        }
-
-        .btn-secondary:disabled,
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-          transform: none;
-        }
-
-        .spinner {
-          width: 18px;
-          height: 18px;
-          border: 3px solid rgba(255, 255, 255, 0.3);
-          border-top-color: #ffffff;
-          border-radius: 50%;
-          animation: spin 0.8s linear infinite;
-        }
-
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        @media (max-width: 480px) {
-          .modal-content {
-            border-radius: 20px 20px 0 0;
-            max-height: 95vh;
-          }
-
-          .monto-input {
-            font-size: 1.25rem;
-          }
-
-          .quick-buttons {
-            grid-template-columns: repeat(3, 1fr);
-          }
-
-          .quick-btn {
-            font-size: 0.75rem;
-            padding: 0.5rem 0.25rem;
-          }
-        }
+        .modal-footer { display: flex; gap: 0.75rem; padding: 1.5rem; border-top: 1px solid rgba(212, 175, 55, 0.2); }
+        .btn-secondary { flex: 1; padding: 1rem; background: rgba(255, 255, 255, 0.05); border: none; border-radius: 12px; color: #fff; cursor: pointer; }
+        .btn-primary { flex: 2; padding: 1rem; background: #D4AF37; border: none; border-radius: 12px; color: #121212; font-weight: 700; cursor: pointer; }
       `}</style>
     </>
   )

@@ -10,6 +10,7 @@ import { useBarberAppAuth } from '../../hooks/useBarberAppAuth'
 import { useCitasRealtime } from '../../hooks/useCitasRealtime'
 import { useMetricasDiarias } from '../../hooks/useMetricasDiarias'
 import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
+import { chamosSupabase } from '../../../lib/supabase-helpers'
 import MetricasRapidas from '../../components/barber-app/dashboard/MetricasRapidas'
 import ProximaCitaCard from '../../components/barber-app/dashboard/ProximaCitaCard'
 import CitasList from '../../components/barber-app/citas/CitasList'
@@ -105,9 +106,24 @@ export default function BarberAppPage() {
     setModalCobroOpen(true)
   }
 
-  const handleConfirmarCobro = async (citaId: string, montoCobrado: number, metodoPago: string) => {
+  const handleConfirmarCobro = async (
+    citaId: string,
+    montoCobrado: number,
+    metodoPago: string,
+    notasTecnicas?: string,
+    fotoResultado?: File | null
+  ) => {
     try {
-      // Completar la cita y registrar el cobro
+      let fotoUrl = null
+
+      // 1. Subir foto si existe
+      if (fotoResultado) {
+        console.log('📤 Subiendo foto del resultado...')
+        const uploadResult = await chamosSupabase.uploadCorteFoto(fotoResultado, citaId)
+        fotoUrl = uploadResult.publicUrl
+      }
+
+      // 2. Completar la cita y registrar el cobro
       const response = await fetch('/api/barbero/completar-cita-con-cobro', {
         method: 'POST',
         headers: {
@@ -117,7 +133,9 @@ export default function BarberAppPage() {
           cita_id: citaId,
           monto_cobrado: montoCobrado,
           metodo_pago: metodoPago,
-          barbero_id: session?.barberoId
+          barbero_id: session?.barberoId,
+          notas_tecnicas: notasTecnicas,
+          foto_resultado_url: fotoUrl
         })
       })
 
