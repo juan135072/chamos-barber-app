@@ -152,6 +152,17 @@ const ReservarPage: React.FC = () => {
     return { duracionTotal, precioTotal, serviciosInfo }
   }
 
+  const calculateEndTime = (startTime: string) => {
+    if (!startTime) return ''
+    const { duracionTotal } = calcularTotales()
+    const [hours, minutes] = startTime.split(':').map(Number)
+    const date = new Date()
+    date.setHours(hours)
+    date.setMinutes(minutes + (duracionTotal || 30))
+    // Formato HH:mm
+    return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }).substring(0, 5)
+  }
+
   const handleSubmit = async () => {
     setLoading(true)
     try {
@@ -640,6 +651,21 @@ const ReservarPage: React.FC = () => {
                               )
                             })}
                           </div>
+                          
+                          {/* Feedback de hora de finalización */}
+                          {formData.hora && (
+                            <div className="mt-4 p-3 rounded-lg border border-[var(--accent-color)] bg-[var(--bg-secondary)] text-center animate-fadeIn">
+                              <p className="text-sm">
+                                <span className="opacity-80">Horario estimado: </span>
+                                <strong className="text-[var(--accent-color)] text-lg ml-1">
+                                  {formData.hora} - {calculateEndTime(formData.hora)}
+                                </strong>
+                              </p>
+                              <p className="text-xs opacity-60 mt-1">
+                                Duración total: {calcularTotales().duracionTotal} minutos
+                              </p>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
@@ -773,7 +799,7 @@ const ReservarPage: React.FC = () => {
                       month: 'long', 
                       day: 'numeric' 
                     })}</div>
-                    <div><strong>Hora:</strong> {formData.hora}</div>
+                    <div><strong>Hora:</strong> {formData.hora} - {calculateEndTime(formData.hora)}</div>
                     <div><strong>Cliente:</strong> {formData.cliente_nombre}</div>
                     <div><strong>Teléfono:</strong> {formData.cliente_telefono}</div>
                     {formData.cliente_email && <div><strong>Email:</strong> {formData.cliente_email}</div>}
