@@ -8,6 +8,7 @@ interface CrearBloqueoModalProps {
   isOpen: boolean
   barberoId: string
   fecha: string
+  horaInicio?: string
   onClose: () => void
   onSuccess: () => void
 }
@@ -31,11 +32,12 @@ export default function CrearBloqueoModal({
   isOpen,
   barberoId,
   fecha,
+  horaInicio: horaInicioProp,
   onClose,
   onSuccess
 }: CrearBloqueoModalProps) {
   const supabase = useSupabaseClient<Database>()
-  const [horaInicio, setHoraInicio] = useState('13:00')
+  const [horaInicio, setHoraInicio] = useState(horaInicioProp || '13:00')
   const [duracion, setDuracion] = useState(60)
   const [tipo, setTipo] = useState('Almuerzo')
   const [notas, setNotas] = useState('')
@@ -49,7 +51,7 @@ export default function CrearBloqueoModal({
       // Calcular fecha fin
       const fechaHoraInicio = new Date(`${fecha}T${horaInicio}:00`)
       const fechaHoraFin = new Date(fechaHoraInicio.getTime() + duracion * 60000)
-      
+
       // Formato para DB: YYYY-MM-DDTHH:mm:ss
       const inicioISO = fechaHoraInicio.toISOString().slice(0, 19) // Sin timezone para simplificar local
       const finISO = fechaHoraFin.toISOString().slice(0, 19)
@@ -124,11 +126,10 @@ export default function CrearBloqueoModal({
                   key={t.value}
                   type="button"
                   onClick={() => setTipo(t.value)}
-                  className={`flex items-center gap-2 p-3 rounded-lg border text-sm transition-all ${
-                    tipo === t.value
+                  className={`flex items-center gap-2 p-3 rounded-lg border text-sm transition-all ${tipo === t.value
                       ? 'border-orange-500 bg-orange-500/10 text-orange-500'
                       : 'border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:border-orange-500/50'
-                  }`}
+                    }`}
                 >
                   <span className="text-lg">{t.icon}</span>
                   {t.label}

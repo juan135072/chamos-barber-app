@@ -27,12 +27,12 @@ const diasSemana = [
 const HorariosTab: React.FC = () => {
   const supabase = useSupabaseClient<Database>()
   const [activeView, setActiveView] = useState<'atencion' | 'bloqueados'>('atencion')
-
+  
   // Estado para horarios de atención
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [selectedBarbero, setSelectedBarbero] = useState<string>('')
   const [horariosAtencion, setHorariosAtencion] = useState<HorarioAtencion[]>([])
-
+  
   // Estado para visualización de reservas
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
   const [citasDelDia, setCitasDelDia] = useState<Cita[]>([])
@@ -41,13 +41,12 @@ const HorariosTab: React.FC = () => {
   // Estado para horarios bloqueados
   const [horariosBloqueados, setHorariosBloqueados] = useState<HorarioBloqueado[]>([])
   const [bloqueosDelDia, setBloqueosDelDia] = useState<HorarioBloqueado[]>([])
-
+  
   // Estado general
   const [loading, setLoading] = useState(true)
   const [showHorarioModal, setShowHorarioModal] = useState(false)
   const [showBloqueoModal, setShowBloqueoModal] = useState(false)
   const [showCrearBloqueoModal, setShowCrearBloqueoModal] = useState(false)
-  const [selectedSlot, setSelectedSlot] = useState<string>('')
   const [editingHorario, setEditingHorario] = useState<HorarioAtencion | null>(null)
   const [editingBloqueo, setEditingBloqueo] = useState<HorarioBloqueado | null>(null)
 
@@ -71,7 +70,7 @@ const HorariosTab: React.FC = () => {
 
   const loadBloqueosDelDia = async () => {
     if (!selectedBarbero || !selectedDate) return
-
+    
     try {
       const inicioDia = `${selectedDate}T00:00:00`
       const finDia = `${selectedDate}T23:59:59`
@@ -93,7 +92,7 @@ const HorariosTab: React.FC = () => {
 
   const loadCitasDelDia = async () => {
     if (!selectedBarbero || !selectedDate) return
-
+    
     setLoadingCitas(true)
     try {
       const { data, error } = await supabase
@@ -108,7 +107,7 @@ const HorariosTab: React.FC = () => {
         .order('hora')
 
       if (error) throw error
-
+      
       // Mapear para asegurar tipo correcto (Supabase devuelve array de objetos para joins)
       const citasMapeadas = (data || []).map(cita => ({
         ...cita,
@@ -132,7 +131,7 @@ const HorariosTab: React.FC = () => {
         .eq('id', citaId)
 
       if (error) throw error
-
+      
       toast.success('Estado actualizado')
       loadCitasDelDia() // Recargar citas
     } catch (error) {
@@ -145,19 +144,19 @@ const HorariosTab: React.FC = () => {
   const getDateFromDayOfWeek = (dayIndex: number) => {
     const currentSelectedDate = new Date(selectedDate + 'T00:00:00')
     const currentDayIndex = currentSelectedDate.getDay() // 0-6
-
+    
     // Calcular la diferencia de días
     const diff = dayIndex - currentDayIndex
-
+    
     // Crear nueva fecha sumando la diferencia
     const newDate = new Date(currentSelectedDate)
     newDate.setDate(newDate.getDate() + diff)
-
+    
     // Formatear a YYYY-MM-DD
     const year = newDate.getFullYear()
     const month = String(newDate.getMonth() + 1).padStart(2, '0')
     const day = String(newDate.getDate()).padStart(2, '0')
-
+    
     return `${year}-${month}-${day}`
   }
 
@@ -187,13 +186,13 @@ const HorariosTab: React.FC = () => {
     const date = new Date(selectedDate + 'T00:00:00')
     const day = date.getDay()
     const diff = date.getDate() - day + (day === 0 ? -6 : 1) // Ajustar al lunes
-
+    
     const monday = new Date(date)
     monday.setDate(diff)
-
+    
     const sunday = new Date(monday)
     sunday.setDate(monday.getDate() + 6)
-
+    
     const options: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' }
     return `${monday.toLocaleDateString('es-CL', options)} - ${sunday.toLocaleDateString('es-CL', options)}`
   }
@@ -244,7 +243,7 @@ const HorariosTab: React.FC = () => {
     try {
       // Verificar si ya existe un horario para el día destino
       const existente = horariosAtencion.find(h => h.dia_semana === destinoDia)
-
+      
       if (existente) {
         // Actualizar existente
         const { error } = await supabase
@@ -256,7 +255,7 @@ const HorariosTab: React.FC = () => {
             updated_at: new Date().toISOString()
           })
           .eq('id', existente.id)
-
+        
         if (error) throw error
       } else {
         // Crear nuevo
@@ -269,10 +268,10 @@ const HorariosTab: React.FC = () => {
             hora_fin: origenHorario.hora_fin,
             activo: true
           })
-
+        
         if (error) throw error
       }
-
+      
       toast.success('Horario copiado exitosamente')
       loadHorariosAtencion()
     } catch (error) {
@@ -284,18 +283,18 @@ const HorariosTab: React.FC = () => {
   // Función para copiar horario a todos los días laborales (Lunes a Viernes)
   const handleCopiarALunesViernes = async (horarioBase: HorarioAtencion) => {
     if (!confirm('¿Estás seguro? Esto sobrescribirá los horarios de Lunes a Viernes con este horario.')) return
-
+    
     setLoading(true)
     try {
       const diasLaborales = [1, 2, 3, 4, 5] // Lunes a Viernes
-
+      
       // Filtrar el día actual para no "copiarse a sí mismo" innecesariamente, aunque no hace daño
       const diasDestino = diasLaborales.filter(d => d !== horarioBase.dia_semana)
-
+      
       for (const dia of diasDestino) {
         await handleReplicarHorario(horarioBase, dia)
       }
-
+      
       toast.success('Horario aplicado de Lunes a Viernes')
     } catch (error) {
       console.error('Error copying schedule:', error)
@@ -434,31 +433,12 @@ const HorariosTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div
-          className="animate-spin rounded-full h-12 w-12 border-b-2"
+        <div 
+          className="animate-spin rounded-full h-12 w-12 border-b-2" 
           style={{ borderColor: 'var(--accent-color)' }}
         ></div>
       </div>
     )
-  }
-
-  // Handlers para la agenda visual
-  const handleSlotClick = (hora: string) => {
-    setSelectedSlot(hora)
-    setShowCrearBloqueoModal(true)
-  }
-
-  const handleCitaClick = (cita: Cita) => {
-    const nuevoEstado = prompt(`Gestionar cita de ${cita.cliente_nombre}.\nEscribe el nuevo estado (pendiente/confirmada/completada/cancelada):`, cita.estado)
-    if (nuevoEstado && ['pendiente', 'confirmada', 'completada', 'cancelada'].includes(nuevoEstado)) {
-      handleUpdateCitaEstado(cita.id, nuevoEstado)
-    }
-  }
-
-  const handleBloqueoClick = (bloqueo: HorarioBloqueado) => {
-    if (confirm('¿Eliminar este bloqueo?')) {
-      handleDeleteBloqueo(bloqueo.id)
-    }
   }
 
   return (
@@ -469,7 +449,7 @@ const HorariosTab: React.FC = () => {
           <h2 className="text-minimal-h2 mb-1">Horarios</h2>
           <p className="text-minimal-body">Gestiona horarios y bloqueos</p>
         </div>
-
+        
         <select
           value={selectedBarbero}
           onChange={(e) => setSelectedBarbero(e.target.value)}
@@ -495,33 +475,33 @@ const HorariosTab: React.FC = () => {
               <p className="text-xs text-[var(--text-secondary)]">Semana del {getWeekRange()}</p>
             </div>
           </div>
-
+          
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
-            <button
+            <button 
               onClick={handlePrevWeek}
               className="p-2 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
               title="Semana Anterior"
             >
               <i className="fas fa-chevron-left"></i>
             </button>
-            <button
+            <button 
               onClick={handleToday}
               className="px-3 py-2 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)] text-sm font-medium transition-colors border border-[var(--border-color)]"
             >
               Hoy
             </button>
-            <button
+            <button 
               onClick={handleNextWeek}
               className="p-2 rounded hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)]"
               title="Semana Siguiente"
             >
               <i className="fas fa-chevron-right"></i>
             </button>
-
+            
             <div className="h-8 w-px bg-[var(--border-color)] mx-2 hidden sm:block"></div>
-
-            <input
-              type="date"
+            
+            <input 
+              type="date" 
               value={selectedDate}
               onChange={(e) => setSelectedDate(e.target.value)}
               className="bg-[var(--bg-primary)] border border-[var(--border-color)] text-[var(--text-primary)] rounded px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent-color)]"
@@ -534,16 +514,18 @@ const HorariosTab: React.FC = () => {
       <div className="flex gap-2 mb-6">
         <button
           onClick={() => setActiveView('atencion')}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeView === 'atencion' ? 'btn-minimal-primary' : 'btn-minimal-ghost'
-            }`}
+          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            activeView === 'atencion' ? 'btn-minimal-primary' : 'btn-minimal-ghost'
+          }`}
         >
           <i className="fas fa-calendar-week"></i>
           <span className="hidden sm:inline">Horarios</span>
         </button>
         <button
           onClick={() => setActiveView('bloqueados')}
-          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${activeView === 'bloqueados' ? 'btn-minimal-primary' : 'btn-minimal-ghost'
-            }`}
+          className={`flex-1 py-2.5 px-4 rounded-lg text-sm font-medium transition-all flex items-center justify-center gap-2 ${
+            activeView === 'bloqueados' ? 'btn-minimal-primary' : 'btn-minimal-ghost'
+          }`}
         >
           <i className="fas fa-ban"></i>
           <span className="hidden sm:inline">Bloqueados</span>
@@ -556,7 +538,7 @@ const HorariosTab: React.FC = () => {
           <div className="space-y-2">
             {diasSemana.map(dia => {
               const horarioDelDia = horariosAtencion.find(h => h.dia_semana === dia.num)
-
+              
               // Verificar si el día corresponde a la fecha seleccionada
               const fechaSeleccionada = new Date(selectedDate + 'T00:00:00')
               const diaSeleccionadoNum = fechaSeleccionada.getDay()
@@ -585,7 +567,7 @@ const HorariosTab: React.FC = () => {
                       >
                         {dia.abrev}
                       </div>
-
+                      
                       {/* Información del día */}
                       <div className="flex-1 w-full">
                         <div className="flex justify-between items-start">
@@ -633,6 +615,34 @@ const HorariosTab: React.FC = () => {
                           </div>
                         </div>
 
+  const [showCrearBloqueoModal, setShowCrearBloqueoModal] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<string>('') // Para pasar la hora seleccionada al modal
+
+  // ... (código existente)
+
+  // Handlers para la agenda visual
+  const handleSlotClick = (hora: string) => {
+    setSelectedSlot(hora)
+    setShowCrearBloqueoModal(true)
+  }
+
+  const handleCitaClick = (cita: Cita) => {
+    // Podríamos abrir un modal de detalles o edición rápida aquí
+    // Por ahora usamos un confirm simple para cambiar estado, o redirigir
+    const nuevoEstado = prompt(`Gestionar cita de ${cita.cliente_nombre}.\nEscribe el nuevo estado (pendiente/confirmada/completada/cancelada):`, cita.estado)
+    if (nuevoEstado && ['pendiente', 'confirmada', 'completada', 'cancelada'].includes(nuevoEstado)) {
+      handleUpdateCitaEstado(cita.id, nuevoEstado)
+    }
+  }
+
+  const handleBloqueoClick = (bloqueo: HorarioBloqueado) => {
+    if (confirm('¿Eliminar este bloqueo?')) {
+      handleDeleteBloqueo(bloqueo.id)
+    }
+  }
+
+  // ... (código existente)
+
                         {/* Visualización de Reservas (Solo si es el día seleccionado y hay horario activo) */}
                         {esDiaSeleccionado && horarioDelDia?.activo && (
                           <div className="mt-4 pt-4 border-t border-[var(--border-color)] w-full animate-fadeIn">
@@ -642,7 +652,7 @@ const HorariosTab: React.FC = () => {
                                 {loadingCitas && <span className="ml-2 text-[var(--text-secondary)] normal-case font-normal"><i className="fas fa-spinner fa-spin"></i></span>}
                               </h4>
                             </div>
-
+                            
                             <AgendaVisual
                               citas={citasDelDia}
                               bloqueos={bloqueosDelDia}
@@ -762,7 +772,7 @@ const HorariosTab: React.FC = () => {
                       >
                         <i className="fas fa-ban text-sm"></i>
                       </div>
-
+                      
                       <div className="flex-1 min-w-0">
                         <h4 className="text-minimal-h3 truncate">
                           {bloqueo.motivo || 'Bloqueo'}
@@ -836,21 +846,6 @@ const HorariosTab: React.FC = () => {
           }}
           barberoId={selectedBarbero}
           bloqueo={editingBloqueo}
-        />
-      )}
-
-      {showCrearBloqueoModal && (
-        <CrearBloqueoModal
-          isOpen={showCrearBloqueoModal}
-          onClose={() => setShowCrearBloqueoModal(false)}
-          onSuccess={() => {
-            setShowCrearBloqueoModal(false)
-            loadBloqueosDelDia()
-            loadHorariosBloqueados()
-          }}
-          barberoId={selectedBarbero}
-          fecha={selectedDate}
-          horaInicio={selectedSlot}
         />
       )}
     </div>
