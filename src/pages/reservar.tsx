@@ -46,9 +46,21 @@ const ReservarPage: React.FC = () => {
     if (formData.fecha && formData.barbero_id) {
       loadAvailableSlots()
     }
-  }, [formData.fecha, formData.barbero_id, serviciosSeleccionados])
+  }, [formData.fecha, formData.barbero_id, serviciosSeleccionados]) // Recargar si cambian servicios
 
-  // ... (código existente)
+  const loadBarberosYServicios = async () => {
+    try {
+      // Cargar barberos usando helper de Supabase
+      const barberosData = await chamosSupabase.getBarberos(true)
+      setBarberos(barberosData || [])
+
+      // Cargar servicios usando helper de Supabase
+      const serviciosData = await chamosSupabase.getServicios(true)
+      setServicios(serviciosData || [])
+    } catch (error) {
+      console.error('Error loading data:', error)
+    }
+  }
 
   const loadAvailableSlots = async () => {
     try {
