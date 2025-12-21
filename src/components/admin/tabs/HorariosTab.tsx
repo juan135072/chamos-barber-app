@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import HorarioModal from '../modals/HorarioModal'
 import BloqueoModal from '../modals/BloqueoModal'
 import CrearBloqueoModal from '../modals/CrearBloqueoModal'
+import AgendaVisual from '../agenda/AgendaVisual'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type HorarioAtencion = Database['public']['Tables']['horarios_atencion']['Row']
@@ -614,88 +615,53 @@ const HorariosTab: React.FC = () => {
                           </div>
                         </div>
 
+  const [showCrearBloqueoModal, setShowCrearBloqueoModal] = useState(false)
+  const [selectedSlot, setSelectedSlot] = useState<string>('') // Para pasar la hora seleccionada al modal
+
+  // ... (código existente)
+
+  // Handlers para la agenda visual
+  const handleSlotClick = (hora: string) => {
+    setSelectedSlot(hora)
+    setShowCrearBloqueoModal(true)
+  }
+
+  const handleCitaClick = (cita: Cita) => {
+    // Podríamos abrir un modal de detalles o edición rápida aquí
+    // Por ahora usamos un confirm simple para cambiar estado, o redirigir
+    const nuevoEstado = prompt(`Gestionar cita de ${cita.cliente_nombre}.\nEscribe el nuevo estado (pendiente/confirmada/completada/cancelada):`, cita.estado)
+    if (nuevoEstado && ['pendiente', 'confirmada', 'completada', 'cancelada'].includes(nuevoEstado)) {
+      handleUpdateCitaEstado(cita.id, nuevoEstado)
+    }
+  }
+
+  const handleBloqueoClick = (bloqueo: HorarioBloqueado) => {
+    if (confirm('¿Eliminar este bloqueo?')) {
+      handleDeleteBloqueo(bloqueo.id)
+    }
+  }
+
+  // ... (código existente)
+
                         {/* Visualización de Reservas (Solo si es el día seleccionado y hay horario activo) */}
                         {esDiaSeleccionado && horarioDelDia?.activo && (
                           <div className="mt-4 pt-4 border-t border-[var(--border-color)] w-full animate-fadeIn">
                             <div className="flex items-center justify-between mb-3">
                               <h4 className="text-xs font-semibold text-[var(--accent-color)] uppercase tracking-wider">
-                                <span>Agenda del Día ({citasDelDia.length + bloqueosDelDia.length} eventos)</span>
+                                <span>Agenda del Día</span>
                                 {loadingCitas && <span className="ml-2 text-[var(--text-secondary)] normal-case font-normal"><i className="fas fa-spinner fa-spin"></i></span>}
                               </h4>
-                              <button
-                                onClick={() => setShowCrearBloqueoModal(true)}
-                                className="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)] flex items-center gap-1"
-                                title="Agregar bloqueo rápido (almuerzo, descanso)"
-                              >
-                                <i className="fas fa-coffee text-orange-400"></i> Bloqueo
-                              </button>
                             </div>
                             
-                            {(citasDelDia.length > 0 || bloqueosDelDia.length > 0) ? (
-                              <div className="grid grid-cols-1 gap-2">
-                                {/* Renderizar Bloqueos */}
-                                {bloqueosDelDia.map((bloqueo) => (
-                                  <div key={bloqueo.id} className="flex items-center gap-3 p-2 rounded bg-orange-500/5 border border-orange-500/20 hover:border-orange-500/40 transition-colors relative group">
-                                    <div className="font-mono text-sm font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded">
-                                      {formatTime(bloqueo.fecha_hora_inicio)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium truncate text-orange-200">
-                                        <i className="fas fa-ban mr-1 text-xs"></i>
-                                        {bloqueo.motivo || 'Bloqueo'}
-                                      </div>
-                                      <div className="text-xs text-orange-200/60 truncate">
-                                        Duración: {Math.round((new Date(bloqueo.fecha_hora_fin).getTime() - new Date(bloqueo.fecha_hora_inicio).getTime()) / 60000)} min
-                                      </div>
-                                    </div>
-                                    <button
-                                      onClick={() => handleDeleteBloqueo(bloqueo.id)}
-                                      className="text-xs p-1.5 text-orange-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                                      title="Eliminar bloqueo"
-                                    >
-                                      <i className="fas fa-trash"></i>
-                                    </button>
-                                  </div>
-                                ))}
-
-                                {/* Renderizar Citas */}
-                                {citasDelDia.map((cita) => (
-                                  <div key={cita.id} className="flex items-center gap-3 p-2 rounded bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors">
-                                    <div className="font-mono text-sm font-bold text-[var(--accent-color)] bg-[var(--accent-color)] bg-opacity-10 px-2 py-1 rounded">
-                                      {cita.hora.substring(0, 5)}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <div className="text-sm font-medium truncate text-[var(--text-primary)]">{cita.cliente_nombre}</div>
-                                      <div className="text-xs text-[var(--text-secondary)] truncate">
-                                        {cita.servicios?.nombre || 'Servicio'} ({cita.servicios?.duracion_minutos || 30} min)
-                                      </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <select
-                                        value={cita.estado}
-                                        onChange={(e) => handleUpdateCitaEstado(cita.id, e.target.value)}
-                                        className={`text-xs px-2 py-1 rounded-full border-0 cursor-pointer outline-none focus:ring-1 focus:ring-offset-1 focus:ring-offset-[var(--bg-primary)] ${
-                                          cita.estado === 'confirmada' ? 'bg-green-500/20 text-green-500 focus:ring-green-500' :
-                                          cita.estado === 'completada' ? 'bg-blue-500/20 text-blue-500 focus:ring-blue-500' :
-                                          'bg-yellow-500/20 text-yellow-500 focus:ring-yellow-500'
-                                        }`}
-                                        onClick={(e) => e.stopPropagation()}
-                                      >
-                                        <option value="pendiente">Pendiente</option>
-                                        <option value="confirmada">Confirmada</option>
-                                        <option value="completada">Completada</option>
-                                        <option value="cancelada">Cancelar</option>
-                                      </select>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            ) : (
-                              <div className="text-center py-4 text-[var(--text-secondary)] text-sm bg-[var(--bg-primary)] rounded border border-dashed border-[var(--border-color)]">
-                                <i className="far fa-calendar-times mb-1 block text-lg opacity-50"></i>
-                                No hay eventos para este día
-                              </div>
-                            )}
+                            <AgendaVisual
+                              citas={citasDelDia}
+                              bloqueos={bloqueosDelDia}
+                              horaInicio={horarioDelDia.hora_inicio}
+                              horaFin={horarioDelDia.hora_fin}
+                              onSlotClick={handleSlotClick}
+                              onCitaClick={handleCitaClick}
+                              onBloqueoClick={handleBloqueoClick}
+                            />
                           </div>
                         )}
                       </div>
