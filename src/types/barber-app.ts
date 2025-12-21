@@ -11,7 +11,9 @@ export interface Cita {
   cliente_nombre: string
   cliente_email: string
   cliente_telefono: string
-  fecha_hora: string
+  fecha: string
+  hora: string
+  fecha_hora?: string
   duracion: number
   estado: EstadoCita
   notas: string | null
@@ -50,11 +52,22 @@ export interface Barbero {
 }
 
 export interface MetricasDiarias {
-  total_citas: number
-  citas_completadas: number
-  citas_pendientes: number
-  ganancia_total: number
-  promedio_por_cita: number
+  hoy: {
+    ganancia: number
+    total_citas: number
+    completadas: number
+    pendientes: number
+  }
+  semana: {
+    ganancia: number
+  }
+  mes: {
+    ganancia: number
+    total_servicios: number
+  }
+  // Mantener compatibilidad si es necesario, pero migraremos al nuevo formato
+  total_citas?: number
+  ganancia_total?: number
 }
 
 export interface BarberoSession {

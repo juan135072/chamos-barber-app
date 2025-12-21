@@ -9,11 +9,9 @@ import type { MetricasDiarias } from '../types/barber-app'
 
 export function useMetricasDiarias(barberoId: string | null) {
   const [metricas, setMetricas] = useState<MetricasDiarias>({
-    total_citas: 0,
-    citas_completadas: 0,
-    citas_pendientes: 0,
-    ganancia_total: 0,
-    promedio_por_cita: 0
+    hoy: { ganancia: 0, total_citas: 0, completadas: 0, pendientes: 0 },
+    semana: { ganancia: 0 },
+    mes: { ganancia: 0, total_servicios: 0 }
   })
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -28,15 +26,15 @@ export function useMetricasDiarias(barberoId: string | null) {
       setLoading(true)
       setError(null)
 
-      // Usar función RPC optimizada
-      const { data, error: rpcError } = await (supabase as any).rpc('obtener_metricas_diarias_barbero', {
+      // Usar nueva función RPC para métricas acumuladas
+      const { data, error: rpcError } = await (supabase as any).rpc('get_barber_dashboard_metrics_v2', {
         barbero_uuid: barberoId
       })
 
       if (rpcError) throw rpcError
 
-      if (data && (data as any).length > 0) {
-        setMetricas((data as any)[0])
+      if (data) {
+        setMetricas(data as MetricasDiarias)
       }
     } catch (err: any) {
       console.error('Error al obtener métricas:', err)

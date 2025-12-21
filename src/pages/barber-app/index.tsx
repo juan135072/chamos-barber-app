@@ -11,6 +11,7 @@ import { useCitasRealtime } from '../../hooks/useCitasRealtime'
 import { useMetricasDiarias } from '../../hooks/useMetricasDiarias'
 import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
 import MetricasRapidas from '../../components/barber-app/dashboard/MetricasRapidas'
+import ProximaCitaCard from '../../components/barber-app/dashboard/ProximaCitaCard'
 import CitasList from '../../components/barber-app/citas/CitasList'
 import LoadingSpinner from '../../components/barber-app/shared/LoadingSpinner'
 import ModalCobro from '../../components/barber-app/cobro/ModalCobro'
@@ -22,7 +23,15 @@ export default function BarberAppPage() {
     session?.barberoId || null
   )
   const { metricas, loading: metricasLoading } = useMetricasDiarias(session?.barberoId || null)
-  
+
+  // Calcular la próxima cita
+  const hoyStr = new Date().toISOString().split('T')[0]
+  const proximaCita = citas
+    ? citas
+      .filter(c => c.fecha === hoyStr && (c.estado === 'pendiente' || c.estado === 'confirmada'))
+      .sort((a, b) => a.hora.localeCompare(b.hora))[0] || null
+    : null
+
   // Estado para el modal de cobro
   const [citaParaCobrar, setCitaParaCobrar] = useState<any>(null)
   const [modalCobroOpen, setModalCobroOpen] = useState(false)
@@ -90,12 +99,12 @@ export default function BarberAppPage() {
       alert('Cita no encontrada')
       return
     }
-    
+
     // Abrir modal de cobro
     setCitaParaCobrar(cita)
     setModalCobroOpen(true)
   }
-  
+
   const handleConfirmarCobro = async (citaId: string, montoCobrado: number, metodoPago: string) => {
     try {
       // Completar la cita y registrar el cobro
@@ -111,16 +120,16 @@ export default function BarberAppPage() {
           barbero_id: session?.barberoId
         })
       })
-      
+
       const result = await response.json()
-      
+
       if (!response.ok || !result.success) {
         throw new Error(result.error || 'Error al procesar el cobro')
       }
-      
+
       // Refrescar las citas
       await refresh()
-      
+
       console.log('✅ Cita completada y cobro registrado')
       alert('✅ Cobro procesado exitosamente')
     } catch (error: any) {
@@ -143,10 +152,10 @@ export default function BarberAppPage() {
   // Mostrar loading mientras autentica
   if (authLoading) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)'
       }}>
@@ -158,10 +167,10 @@ export default function BarberAppPage() {
   // Mostrar error de autenticación
   if (authError || !session || !barbero) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
         padding: '2rem'
@@ -199,6 +208,9 @@ export default function BarberAppPage() {
         {/* Métricas rápidas */}
         <MetricasRapidas metricas={metricas} loading={metricasLoading} />
 
+        {/* Próxima Cita Highlight */}
+        <ProximaCitaCard cita={proximaCita} loading={citasLoading} />
+
         {/* Lista de citas con Realtime */}
         <CitasList
           citas={citas}
@@ -208,7 +220,7 @@ export default function BarberAppPage() {
           onCompletar={handleCompletar}
           onCancelar={handleCancelar}
         />
-        
+
         {/* Modal de Cobro */}
         {citaParaCobrar && (
           <ModalCobro
