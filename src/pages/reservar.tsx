@@ -37,31 +37,25 @@ const ReservarPage: React.FC = () => {
     loadBarberosYServicios()
   }, [])
 
+  const [sugerenciaParcial, setSugerenciaParcial] = useState<{
+    servicio: Servicio,
+    horarios: {hora: string, disponible: boolean}[]
+  } | null>(null)
+
   useEffect(() => {
     if (formData.fecha && formData.barbero_id) {
       loadAvailableSlots()
     }
-  }, [formData.fecha, formData.barbero_id, serviciosSeleccionados]) // Recargar si cambian servicios
+  }, [formData.fecha, formData.barbero_id, serviciosSeleccionados])
 
-  const loadBarberosYServicios = async () => {
-    try {
-      // Cargar barberos usando helper de Supabase
-      const barberosData = await chamosSupabase.getBarberos(true)
-      setBarberos(barberosData || [])
-
-      // Cargar servicios usando helper de Supabase
-      const serviciosData = await chamosSupabase.getServicios(true)
-      setServicios(serviciosData || [])
-    } catch (error) {
-      console.error('Error loading data:', error)
-    }
-  }
+  // ... (código existente)
 
   const loadAvailableSlots = async () => {
     try {
-      // Calcular duración total solicitada
-      const { duracionTotal } = calcularTotales()
-      const duracionSolicitada = duracionTotal > 0 ? duracionTotal : 30 // Mínimo 30 min
+      setSugerenciaParcial(null) // Reset sugerencia
+      
+      const { duracionTotal, serviciosInfo } = calcularTotales()
+      const duracionSolicitada = duracionTotal > 0 ? duracionTotal : 30
 
       console.log('🔍 Cargando horarios disponibles para:', {
         barbero_id: formData.barbero_id,
@@ -75,18 +69,37 @@ const ReservarPage: React.FC = () => {
         duracionSolicitada
       )
       
-      if (data && data.length > 0) {
-        console.log('✅ Horarios recibidos:', data.length, 'slots')
-        console.log('📊 Disponibles:', data.filter((s: any) => s.disponible).length)
-        console.log('❌ Ocupados:', data.filter((s: any) => !s.disponible).length)
+      if (data && data.some((s: any) => s.disponible)) {
         setAvailableSlots(data)
       } else {
-        console.warn('⚠️ No se recibieron horarios o lista vacía')
-        setAvailableSlots([]) // No usar defaults hardcoded que mienten
+        setAvailableSlots(data || [])
+        
+        // LÓGICA DE SUGERENCIA PARCIAL
+        // Si no hay cupo total y hay múltiples servicios, intentar buscar cupo para uno solo
+        if (serviciosInfo.length > 1) {
+          // Ordenar servicios por duración (ascendente) para encontrar el que más fácil encaje
+          const servicioAlternativo = [...serviciosInfo].sort((a, b) => a.duracion_minutos - b.duracion_minutos)[0]
+          
+          if (servicioAlternativo) {
+            console.log('💡 Buscando alternativa parcial para:', servicioAlternativo.nombre)
+            const dataAlternativa = await chamosSupabase.getHorariosDisponibles(
+              formData.barbero_id,
+              formData.fecha,
+              servicioAlternativo.duracion_minutos
+            )
+            
+            if (dataAlternativa && dataAlternativa.some((s: any) => s.disponible)) {
+              setSugerenciaParcial({
+                servicio: servicioAlternativo,
+                horarios: dataAlternativa
+              })
+            }
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error loading available slots:', error)
-      setAvailableSlots([]) // En error, mejor no mostrar nada que mostrar algo falso
+      setAvailableSlots([])
     }
   }
 
@@ -495,7 +508,7 @@ const ReservarPage: React.FC = () => {
                         </div>
                       </label>
                       
-                      {availableSlots.length === 0 ? (
+                      {availableSlots.length === 0 || !availableSlots.some(s => s.disponible) ? (
                         <div style={{ 
                           padding: '2rem', 
                           textAlign: 'center',
@@ -505,29 +518,49 @@ const ReservarPage: React.FC = () => {
                         }}>
                           <i className="fas fa-calendar-times" style={{ fontSize: '2rem', color: '#ef4444', marginBottom: '1rem' }}></i>
                           <p style={{ margin: 0, fontWeight: '600' }}>
-                            No hay horarios disponibles para esta fecha
+                            No hay horarios disponibles para todos los servicios seleccionados
                           </p>
                           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
                             {(() => {
                               if (!formData.fecha) return 'Por favor selecciona otra fecha.'
                               
                               const date = new Date(formData.fecha + 'T00:00:00')
-                              const day = date.getDay() // 0 = Domingo, 1 = Lunes, etc.
+                              const day = date.getDay()
                               const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
                               const selectedDay = days[day]
                               
-                              // Check if barbero works on this day of week logic could be complex here without passing full schedule
-                              // So we keep a generic but helpful message
-                              return `Es posible que el barbero no trabaje los días ${selectedDay} o que ya esté todo reservado.`
+                              return `El tiempo total requerido (${calcularTotales().duracionTotal} min) no cabe en la agenda del ${selectedDay}.`
                             })()}
                           </p>
+
+                          {/* SUGERENCIA PARCIAL */}
+                          {sugerenciaParcial && (
+                            <div className="mt-4 p-3 bg-[var(--bg-secondary)] border border-[var(--accent-color)] rounded-lg text-left animate-pulse">
+                              <p className="text-sm font-semibold text-[var(--accent-color)] mb-1">
+                                <i className="fas fa-lightbulb mr-2"></i> Sugerencia:
+                              </p>
+                              <p className="text-sm mb-3">
+                                No tenemos espacio para todo, pero sí puedes reservar solo:
+                                <br/>
+                                <strong className="text-white">{sugerenciaParcial.servicio.nombre} ({sugerenciaParcial.servicio.duracion_minutos} min)</strong>
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setServiciosSeleccionados([sugerenciaParcial.servicio.id])
+                                }}
+                                className="w-full py-2 bg-[var(--accent-color)] text-[var(--bg-primary)] font-bold rounded hover:opacity-90 transition-opacity text-sm"
+                              >
+                                Reservar solo {sugerenciaParcial.servicio.nombre}
+                              </button>
+                            </div>
+                          )}
+
                           <button 
                             type="button"
                             onClick={() => {
-                                // Reset fecha
                                 handleInputChange('fecha', '')
                                 if (dateInputRef.current) {
-                                    // Intentar abrir calendario
                                     setTimeout(() => {
                                         try {
                                             dateInputRef.current?.showPicker()
