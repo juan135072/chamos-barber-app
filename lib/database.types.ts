@@ -107,6 +107,7 @@ export interface Database {
           descripcion: string | null
           precio: number
           duracion_minutos: number
+          tiempo_buffer: number
           activo: boolean
           categoria: string
           imagen_url: string | null
@@ -121,6 +122,7 @@ export interface Database {
           descripcion?: string | null
           precio: number
           duracion_minutos: number
+          tiempo_buffer?: number
           activo?: boolean
           categoria?: string
           imagen_url?: string | null
@@ -135,6 +137,7 @@ export interface Database {
           descripcion?: string | null
           precio?: number
           duracion_minutos?: number
+          tiempo_buffer?: number
           activo?: boolean
           categoria?: string
           imagen_url?: string | null

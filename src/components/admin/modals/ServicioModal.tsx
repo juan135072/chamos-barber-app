@@ -14,6 +14,7 @@ const servicioSchema = z.object({
   descripcion: z.string().optional(),
   precio: z.number().min(0, 'Precio debe ser mayor a 0'),
   duracion_minutos: z.number().min(5).max(300),
+  tiempo_buffer: z.number().min(0).max(60),
   categoria: z.string().min(1, 'Categoría requerida'),
   imagen_url: z.string().url('URL inválida').optional().or(z.literal('')),
   activo: z.boolean()
@@ -43,6 +44,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
       descripcion: servicio.descripcion || '',
       precio: servicio.precio,
       duracion_minutos: servicio.duracion_minutos,
+      tiempo_buffer: (servicio as any).tiempo_buffer || 5,
       categoria: servicio.categoria,
       imagen_url: servicio.imagen_url || '',
       activo: servicio.activo
@@ -51,6 +53,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
       descripcion: '',
       precio: 15000,
       duracion_minutos: 30,
+      tiempo_buffer: 5,
       categoria: 'cortes',
       imagen_url: '',
       activo: true
@@ -115,6 +118,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
               descripcion: data.descripcion || null,
               precio: data.precio,
               duracion_minutos: data.duracion_minutos,
+              tiempo_buffer: data.tiempo_buffer,
               categoria: data.categoria,
               imagen_url: null,
               activo: data.activo
@@ -141,6 +145,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
         descripcion: data.descripcion || null,
         precio: data.precio,
         duracion_minutos: data.duracion_minutos,
+        tiempo_buffer: data.tiempo_buffer,
         categoria: data.categoria,
         imagen_url: imagenUrl,
         activo: data.activo
@@ -199,6 +204,12 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Buffer/Limpieza (min)</label>
+            <input type="number" {...register('tiempo_buffer', { valueAsNumber: true })} min="0" max="60" step="1" className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500" />
+            {errors.tiempo_buffer && <p className="mt-1 text-sm text-red-600">{errors.tiempo_buffer.message}</p>}
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Categoría *</label>
             <select {...register('categoria')} className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500">
               <option value="cortes">Cortes</option>
@@ -213,7 +224,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
 
           <div className="md:col-span-2">
             <label className="block text-sm font-medium text-gray-700 mb-2">Imagen del Servicio</label>
-            
+
             {/* Preview de imagen */}
             {imagePreview && (
               <div className="mb-3 flex items-center gap-4">
@@ -235,9 +246,9 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
             )}
 
             {/* Input de archivo */}
-            <div 
+            <div
               className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors"
-              style={{ 
+              style={{
                 borderColor: 'var(--border-color)',
                 backgroundColor: 'rgba(212, 175, 55, 0.03)'
               }}
@@ -250,7 +261,7 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
                   <label
                     htmlFor="file-upload"
                     className="relative cursor-pointer rounded-md font-medium"
-                    style={{ 
+                    style={{
                       color: 'var(--accent-color)',
                       backgroundColor: 'transparent',
                       transition: 'var(--transition)'

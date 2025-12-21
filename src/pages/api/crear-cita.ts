@@ -139,7 +139,7 @@ export default async function handler(
     // 2. Verificar que todos los servicios existen y están activos (LO NECESITAMOS PARA CALCULAR DURACIÓN)
     const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios')
-      .select('id, nombre, activo, duracion_minutos')
+      .select('id, nombre, activo, duracion_minutos, tiempo_buffer')
       .in('id', serviciosIds)
 
     if (serviciosError || !serviciosData || serviciosData.length !== serviciosIds.length) {
@@ -157,13 +157,17 @@ export default async function handler(
       })
     }
 
-    // 3. Calcular duración y tiempos de la nueva cita
-    const duracionNuevaCita = (serviciosData as any[]).reduce((sum: number, s: any) => sum + (s.duracion_minutos || 30), 0)
+    // 3. Calcular duración y tiempos de la nueva cita (incluyendo BUFFER)
+    const totalServiciosMinutos = (serviciosData as any[]).reduce((sum: number, s: any) => sum + (s.duracion_minutos || 30), 0)
+    // Usamos el buffer máximo de los servicios seleccionados como margen de limpieza final
+    const tiempoBuffer = (serviciosData as any[]).reduce((max: number, s: any) => Math.max(max, s.tiempo_buffer || 5), 0)
+
+    const duracionNuevaCita = totalServiciosMinutos + tiempoBuffer
     const [hStart, mStart] = citaData.hora.split(':').map(Number)
     const totalMinutosInicio = hStart * 60 + mStart
     const totalMinutosFin = totalMinutosInicio + duracionNuevaCita
 
-    console.log(`⏱️ [crear-cita] Validando rango: ${citaData.hora} (${totalMinutosInicio}m) -> +${duracionNuevaCita}min -> (${totalMinutosFin}m)`)
+    console.log(`⏱️ [crear-cita] Validando rango: ${citaData.hora} (${totalMinutosInicio}m) -> Serv: ${totalServiciosMinutos}m + Buff: ${tiempoBuffer}m -> Final: (${totalMinutosFin}m)`)
 
     // 4. Verificar Horario de Atención (horarios_atencion)
     const diaSemana = new Date(citaData.fecha + 'T12:00:00').getDay()
@@ -199,6 +203,13 @@ export default async function handler(
       .eq('fecha', citaData.fecha)
       .in('estado', ['pendiente', 'confirmada'])
 
+    // Obtener todos los servicios para validar duraciones exactas de citas existentes
+    const { data: allServices } = await supabase
+      .from('servicios')
+      .select('id, duracion_minutos, tiempo_buffer')
+
+    const servicesMap = new Map<string, any>(allServices?.map((s: any) => [s.id, s]) || [])
+
     for (const cita of (citasDelDia || [])) {
       const citaAny = cita as any
       const [hCita, mCita] = citaAny.hora.split(':').map(Number)
@@ -206,10 +217,10 @@ export default async function handler(
 
       let duracionExistente = 30
       if (citaAny.notas && citaAny.notas.includes('[SERVICIOS SOLICITADOS:')) {
-        duracionExistente = 60 // Estimación razonable para citas múltiples
+        duracionExistente = 60 + 5 // Estimación con buffer
       } else {
-        const sExistente = (serviciosData as any[]).find((s: any) => s.id === citaAny.servicio_id)
-        duracionExistente = sExistente?.duracion_minutos || 30
+        const sInfo = servicesMap.get(citaAny.servicio_id)
+        duracionExistente = (sInfo?.duracion_minutos || 30) + (sInfo?.tiempo_buffer || 5)
       }
 
       const minCitaFin = minCitaInicio + duracionExistente

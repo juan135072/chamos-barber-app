@@ -26,8 +26,8 @@ const ReservarPage: React.FC = () => {
     notas: ''
   })
   const [loading, setLoading] = useState(false)
-  const [availableSlots, setAvailableSlots] = useState<{hora: string, disponible: boolean, motivo?: string}[]>([])
-  
+  const [availableSlots, setAvailableSlots] = useState<{ hora: string, disponible: boolean, motivo?: string }[]>([])
+
   // Ref para el input de fecha
   const dateInputRef = useRef<HTMLInputElement>(null)
 
@@ -39,7 +39,7 @@ const ReservarPage: React.FC = () => {
 
   const [sugerenciaParcial, setSugerenciaParcial] = useState<{
     servicio: Servicio,
-    horarios: {hora: string, disponible: boolean}[]
+    horarios: { hora: string, disponible: boolean }[]
   } | null>(null)
 
   useEffect(() => {
@@ -65,7 +65,7 @@ const ReservarPage: React.FC = () => {
   const loadAvailableSlots = async () => {
     try {
       setSugerenciaParcial(null) // Reset sugerencia
-      
+
       const { duracionTotal, serviciosInfo } = calcularTotales()
       const duracionSolicitada = duracionTotal > 0 ? duracionTotal : 30
 
@@ -74,24 +74,24 @@ const ReservarPage: React.FC = () => {
         fecha: formData.fecha,
         duracion: duracionSolicitada
       })
-      
+
       const data = await chamosSupabase.getHorariosDisponibles(
-        formData.barbero_id, 
+        formData.barbero_id,
         formData.fecha,
         duracionSolicitada
       )
-      
+
       if (data && data.some((s: any) => s.disponible)) {
         setAvailableSlots(data)
       } else {
         setAvailableSlots(data || [])
-        
+
         // LÓGICA DE SUGERENCIA PARCIAL
         // Si no hay cupo total y hay múltiples servicios, intentar buscar cupo para uno solo
         if (serviciosInfo.length > 1) {
           // Ordenar servicios por duración (ascendente) para encontrar el que más fácil encaje
           const servicioAlternativo = [...serviciosInfo].sort((a, b) => a.duracion_minutos - b.duracion_minutos)[0]
-          
+
           if (servicioAlternativo) {
             console.log('💡 Buscando alternativa parcial para:', servicioAlternativo.nombre)
             const dataAlternativa = await chamosSupabase.getHorariosDisponibles(
@@ -99,7 +99,7 @@ const ReservarPage: React.FC = () => {
               formData.fecha,
               servicioAlternativo.duracion_minutos
             )
-            
+
             if (dataAlternativa && dataAlternativa.some((s: any) => s.disponible)) {
               setSugerenciaParcial({
                 servicio: servicioAlternativo,
@@ -142,23 +142,27 @@ const ReservarPage: React.FC = () => {
   }
 
   const calcularTotales = () => {
-    const serviciosInfo = serviciosSeleccionados.map(id => 
+    const serviciosInfo = serviciosSeleccionados.map(id =>
       servicios.find(s => s.id === id)
-    ).filter(Boolean) as Servicio[]
+    ).filter(Boolean) as (Servicio & { tiempo_buffer?: number })[]
 
-    const duracionTotal = serviciosInfo.reduce((sum, s) => sum + s.duracion_minutos, 0)
+    const duracionServicios = serviciosInfo.reduce((sum, s) => sum + s.duracion_minutos, 0)
+    // El buffer que bloqueamos es el máximo de los servicios elegidos (limpieza final)
+    const maxBuffer = serviciosInfo.reduce((max, s) => Math.max(max, s.tiempo_buffer || 5), 0)
+
+    const duracionTotal = duracionServicios + (serviciosInfo.length > 0 ? maxBuffer : 0)
     const precioTotal = serviciosInfo.reduce((sum, s) => sum + s.precio, 0)
 
-    return { duracionTotal, precioTotal, serviciosInfo }
+    return { duracionTotal, duracionServicios, precioTotal, serviciosInfo }
   }
 
   const calculateEndTime = (startTime: string) => {
     if (!startTime) return ''
-    const { duracionTotal } = calcularTotales()
+    const { duracionServicios } = calcularTotales()
     const [hours, minutes] = startTime.split(':').map(Number)
     const date = new Date()
     date.setHours(hours)
-    date.setMinutes(minutes + (duracionTotal || 30))
+    date.setMinutes(minutes + (duracionServicios || 30))
     // Formato HH:mm
     return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }).substring(0, 5)
   }
@@ -167,7 +171,7 @@ const ReservarPage: React.FC = () => {
     setLoading(true)
     try {
       console.log('📤 Enviando solicitud de cita...')
-      
+
       // Usar API route en vez de helper directo
       // Esto bypassa el problema de RLS usando SERVICE_ROLE_KEY en el backend
       const response = await fetch('/api/crear-cita', {
@@ -206,7 +210,7 @@ const ReservarPage: React.FC = () => {
       }
 
       alert(result.message || '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
-      
+
       // Reset form
       setServiciosSeleccionados([])
       setFormData({
@@ -252,7 +256,7 @@ const ReservarPage: React.FC = () => {
   }
 
   return (
-    <Layout 
+    <Layout
       title="Reservar Cita - Chamos Barber"
       description="Reserva tu cita con nuestros expertos barberos. Proceso simple y rápido para garantizar tu lugar."
     >
@@ -268,7 +272,7 @@ const ReservarPage: React.FC = () => {
           <div className="booking-form">
             {/* Progress Bar */}
             <div className="progress-bar">
-              <div 
+              <div
                 className="progress-fill"
                 style={{ width: `${(currentStep / totalSteps) * 100}%` }}
               ></div>
@@ -294,7 +298,7 @@ const ReservarPage: React.FC = () => {
                       <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
                         <i className="fas fa-check-circle"></i> {serviciosSeleccionados.length} servicio{serviciosSeleccionados.length !== 1 ? 's' : ''} seleccionado{serviciosSeleccionados.length !== 1 ? 's' : ''}
                       </span>
-                      <button 
+                      <button
                         type="button"
                         onClick={() => setServiciosSeleccionados([])}
                         style={{
@@ -310,7 +314,7 @@ const ReservarPage: React.FC = () => {
                       </button>
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem' }}>
-                      <span><strong>Duración total:</strong> {calcularTotales().duracionTotal} min</span>
+                      <span><strong>Servicio:</strong> {calcularTotales().duracionServicios} min</span>
                       <span><strong>Precio total:</strong> ${calcularTotales().precioTotal.toLocaleString()}</span>
                     </div>
                   </div>
@@ -320,12 +324,12 @@ const ReservarPage: React.FC = () => {
                   {servicios.map(servicio => {
                     const isSelected = serviciosSeleccionados.includes(servicio.id)
                     return (
-                      <div 
+                      <div
                         key={servicio.id}
                         className={`barber-option ${isSelected ? 'selected' : ''}`}
                         onClick={() => toggleServicio(servicio.id)}
-                        style={{ 
-                          textAlign: 'left', 
+                        style={{
+                          textAlign: 'left',
                           padding: '1.5rem',
                           cursor: 'pointer',
                           position: 'relative',
@@ -335,7 +339,7 @@ const ReservarPage: React.FC = () => {
                         }}
                       >
                         {/* Checkbox */}
-                        <div style={{ 
+                        <div style={{
                           position: 'absolute',
                           top: '1rem',
                           right: '1rem',
@@ -362,7 +366,7 @@ const ReservarPage: React.FC = () => {
                             overflow: 'hidden',
                             border: '2px solid var(--border-color)'
                           }}>
-                            <img 
+                            <img
                               src={servicio.imagen_url}
                               alt={servicio.nombre}
                               style={{
@@ -412,13 +416,13 @@ const ReservarPage: React.FC = () => {
 
                 <div className="barbers-grid">
                   {barberos.map(barbero => (
-                    <div 
+                    <div
                       key={barbero.id}
                       className={`barber-option ${formData.barbero_id === barbero.id ? 'selected' : ''}`}
                       onClick={() => handleInputChange('barbero_id', barbero.id)}
                     >
-                      <img 
-                        src={getImageUrl(barbero.imagen_url)} 
+                      <img
+                        src={getImageUrl(barbero.imagen_url)}
                         alt={`${barbero.nombre} ${barbero.apellido}`}
                         style={{ width: '80px', height: '80px', borderRadius: '50%', marginBottom: '1rem', objectFit: 'cover' }}
                       />
@@ -446,7 +450,7 @@ const ReservarPage: React.FC = () => {
                       <i className="fas fa-calendar-alt" style={{ color: 'var(--accent-color)' }}></i>
                       Selecciona una fecha (haz click en el calendario):
                     </label>
-                    <div 
+                    <div
                       onClick={() => {
                         // Al hacer click en cualquier parte del wrapper, abrir el calendario
                         if (dateInputRef.current) {
@@ -466,7 +470,7 @@ const ReservarPage: React.FC = () => {
                           }
                         }
                       }}
-                      style={{ 
+                      style={{
                         position: 'relative',
                         border: '2px solid var(--accent-color)',
                         borderRadius: 'var(--border-radius)',
@@ -477,7 +481,7 @@ const ReservarPage: React.FC = () => {
                       }}
                       className="date-input-wrapper"
                     >
-                      <input 
+                      <input
                         ref={dateInputRef}
                         type="date"
                         className="form-input"
@@ -530,10 +534,10 @@ const ReservarPage: React.FC = () => {
                           </span>
                         </div>
                       </label>
-                      
+
                       {availableSlots.length === 0 || !availableSlots.some(s => s.disponible) ? (
-                        <div style={{ 
-                          padding: '2rem', 
+                        <div style={{
+                          padding: '2rem',
                           textAlign: 'center',
                           background: 'rgba(239, 68, 68, 0.1)',
                           borderRadius: 'var(--border-radius)',
@@ -546,12 +550,12 @@ const ReservarPage: React.FC = () => {
                           <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
                             {(() => {
                               if (!formData.fecha) return 'Por favor selecciona otra fecha.'
-                              
+
                               const date = new Date(formData.fecha + 'T00:00:00')
                               const day = date.getDay()
                               const days = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
                               const selectedDay = days[day]
-                              
+
                               return `El tiempo total requerido (${calcularTotales().duracionTotal} min) no cabe en la agenda del ${selectedDay}.`
                             })()}
                           </p>
@@ -564,7 +568,7 @@ const ReservarPage: React.FC = () => {
                               </p>
                               <p className="text-sm mb-3">
                                 No tenemos espacio para todo, pero sí puedes reservar solo:
-                                <br/>
+                                <br />
                                 <strong className="text-white">{sugerenciaParcial.servicio.nombre} ({sugerenciaParcial.servicio.duracion_minutos} min)</strong>
                               </p>
                               <button
@@ -579,30 +583,30 @@ const ReservarPage: React.FC = () => {
                             </div>
                           )}
 
-                          <button 
+                          <button
                             type="button"
                             onClick={() => {
-                                handleInputChange('fecha', '')
-                                if (dateInputRef.current) {
-                                    setTimeout(() => {
-                                        try {
-                                            dateInputRef.current?.showPicker()
-                                        } catch (e) {
-                                            dateInputRef.current?.focus()
-                                        }
-                                    }, 100)
-                                }
+                              handleInputChange('fecha', '')
+                              if (dateInputRef.current) {
+                                setTimeout(() => {
+                                  try {
+                                    dateInputRef.current?.showPicker()
+                                  } catch (e) {
+                                    dateInputRef.current?.focus()
+                                  }
+                                }, 100)
+                              }
                             }}
                             style={{
-                                marginTop: '1rem',
-                                padding: '0.5rem 1rem',
-                                background: 'transparent',
-                                border: '1px solid var(--accent-color)',
-                                color: 'var(--accent-color)',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                fontSize: '0.9rem',
-                                transition: 'all 0.2s'
+                              marginTop: '1rem',
+                              padding: '0.5rem 1rem',
+                              background: 'transparent',
+                              border: '1px solid var(--accent-color)',
+                              color: 'var(--accent-color)',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.9rem',
+                              transition: 'all 0.2s'
                             }}
                             onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(212, 175, 55, 0.1)'}
                             onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
@@ -616,9 +620,9 @@ const ReservarPage: React.FC = () => {
                             {availableSlots.map(slot => {
                               const isAvailable = slot.disponible
                               const isSelected = formData.hora === slot.hora
-                              
+
                               return (
-                                <div 
+                                <div
                                   key={slot.hora}
                                   className={`time-slot ${isSelected ? 'selected' : ''}`}
                                   onClick={() => isAvailable ? handleInputChange('hora', slot.hora) : null}
@@ -626,10 +630,10 @@ const ReservarPage: React.FC = () => {
                                   style={{
                                     opacity: isAvailable ? 1 : 0.4,
                                     cursor: isAvailable ? 'pointer' : 'not-allowed',
-                                    backgroundColor: isAvailable 
+                                    backgroundColor: isAvailable
                                       ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.05)') // Fondo sutil dorado para disponibles
                                       : 'rgba(255, 255, 255, 0.05)',
-                                    borderColor: isAvailable 
+                                    borderColor: isAvailable
                                       ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.5)') // Borde dorado visible para coincidir con leyenda
                                       : 'transparent',
                                     transform: isAvailable && isSelected ? 'scale(1.05)' : 'scale(1)',
@@ -639,8 +643,8 @@ const ReservarPage: React.FC = () => {
                                 >
                                   <span style={{ fontWeight: isAvailable ? '600' : '400' }}>{slot.hora}</span>
                                   {isAvailable && isSelected && (
-                                    <i className="fas fa-check-circle" style={{ 
-                                      fontSize: '0.8rem', 
+                                    <i className="fas fa-check-circle" style={{
+                                      fontSize: '0.8rem',
                                       marginLeft: '0.5rem'
                                     }}></i>
                                   )}
@@ -653,18 +657,18 @@ const ReservarPage: React.FC = () => {
                               )
                             })}
                           </div>
-                          
+
                           {/* Feedback de hora de finalización */}
                           {formData.hora && (
                             <div className="mt-4 p-3 rounded-lg border border-[var(--accent-color)] bg-[var(--bg-secondary)] text-center animate-fadeIn">
                               <p className="text-sm">
-                                <span className="opacity-80">Horario estimado: </span>
+                                <span className="opacity-80">Finaliza apróx.: </span>
                                 <strong className="text-[var(--accent-color)] text-lg ml-1">
-                                  {formData.hora} - {calculateEndTime(formData.hora)}
+                                  {calculateEndTime(formData.hora)}
                                 </strong>
                               </p>
                               <p className="text-xs opacity-60 mt-1">
-                                Duración total: {calcularTotales().duracionTotal} minutos
+                                Duración: {calcularTotales().duracionServicios} minutos
                               </p>
                             </div>
                           )}
@@ -687,7 +691,7 @@ const ReservarPage: React.FC = () => {
                 <div style={{ display: 'grid', gap: '1.5rem' }}>
                   <div className="form-group">
                     <label className="form-label">Nombre completo *</label>
-                    <input 
+                    <input
                       type="text"
                       className="form-input"
                       value={formData.cliente_nombre}
@@ -702,7 +706,7 @@ const ReservarPage: React.FC = () => {
                       <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
                       Teléfono (WhatsApp) *
                     </label>
-                    <input 
+                    <input
                       type="tel"
                       className="form-input"
                       value={formData.cliente_telefono}
@@ -720,8 +724,8 @@ const ReservarPage: React.FC = () => {
                         letterSpacing: '0.05em'
                       }}
                     />
-                    <p style={{ 
-                      fontSize: '0.85rem', 
+                    <p style={{
+                      fontSize: '0.85rem',
                       marginTop: '0.5rem',
                       opacity: 0.8,
                       display: 'flex',
@@ -735,7 +739,7 @@ const ReservarPage: React.FC = () => {
 
                   <div className="form-group">
                     <label className="form-label">Email</label>
-                    <input 
+                    <input
                       type="email"
                       className="form-input"
                       value={formData.cliente_email}
@@ -746,7 +750,7 @@ const ReservarPage: React.FC = () => {
 
                   <div className="form-group">
                     <label className="form-label">Notas adicionales</label>
-                    <textarea 
+                    <textarea
                       className="form-input"
                       value={formData.notas}
                       onChange={(e) => handleInputChange('notas', e.target.value)}
@@ -767,27 +771,27 @@ const ReservarPage: React.FC = () => {
                   <p className="step-subtitle">Todo listo. Revisa tu ticket antes de confirmar.</p>
                 </div>
 
-                <div style={{ 
-                  background: 'var(--bg-secondary)', 
+                <div style={{
+                  background: 'var(--bg-secondary)',
                   borderRadius: '16px',
                   border: '1px solid var(--border-color)',
                   overflow: 'hidden',
                   boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
                 }}>
                   {/* 1. Header del Ticket: Fecha y Hora Visual */}
-                  <div style={{ 
+                  <div style={{
                     background: 'linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%)',
                     padding: '2rem',
                     borderBottom: '1px dashed var(--border-color)',
                     position: 'relative'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div style={{ 
-                        background: 'var(--accent-color)', 
-                        color: 'var(--bg-primary)', 
-                        padding: '0.25rem 0.75rem', 
-                        borderRadius: '20px', 
-                        fontSize: '0.8rem', 
+                      <div style={{
+                        background: 'var(--accent-color)',
+                        color: 'var(--bg-primary)',
+                        padding: '0.25rem 0.75rem',
+                        borderRadius: '20px',
+                        fontSize: '0.8rem',
                         fontWeight: 'bold',
                         textTransform: 'uppercase'
                       }}>
@@ -803,14 +807,14 @@ const ReservarPage: React.FC = () => {
                         <span style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.25rem' }}>INICIO</span>
                         <span style={{ display: 'block', fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{formData.hora}</span>
                       </div>
-                      
+
                       <div style={{ flex: 1, position: 'relative', height: '2px', background: 'var(--border-color)', margin: '0 1rem' }}>
-                        <div style={{ 
-                          position: 'absolute', 
-                          top: '50%', 
-                          left: '50%', 
-                          transform: 'translate(-50%, -50%)', 
-                          background: 'var(--bg-secondary)', 
+                        <div style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          background: 'var(--bg-secondary)',
                           padding: '0 0.5rem',
                           fontSize: '0.75rem',
                           color: 'var(--accent-color)',
@@ -828,8 +832,8 @@ const ReservarPage: React.FC = () => {
                     </div>
 
                     <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '1.1rem', fontWeight: '500' }}>
-                      {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-ES', { 
-                        weekday: 'long', 
+                      {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-ES', {
+                        weekday: 'long',
                         day: 'numeric',
                         month: 'long'
                       })}
@@ -844,8 +848,8 @@ const ReservarPage: React.FC = () => {
                         const barbero = barberos.find(b => b.id === formData.barbero_id)
                         return barbero ? (
                           <>
-                            <img 
-                              src={getImageUrl(barbero.imagen_url)} 
+                            <img
+                              src={getImageUrl(barbero.imagen_url)}
                               alt={barbero.nombre}
                               style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-color)' }}
                             />
@@ -892,7 +896,7 @@ const ReservarPage: React.FC = () => {
 
             {/* Navigation */}
             <div className="form-navigation">
-              <button 
+              <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={prevStep}
@@ -908,7 +912,7 @@ const ReservarPage: React.FC = () => {
               </span>
 
               {currentStep < totalSteps ? (
-                <button 
+                <button
                   type="button"
                   className="btn btn-primary"
                   onClick={nextStep}
@@ -923,7 +927,7 @@ const ReservarPage: React.FC = () => {
                   <i className="fas fa-arrow-right"></i>
                 </button>
               ) : (
-                <button 
+                <button
                   type="button"
                   className={`btn btn-primary ${loading ? 'loading' : ''}`}
                   onClick={handleSubmit}
