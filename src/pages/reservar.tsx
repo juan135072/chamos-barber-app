@@ -645,7 +645,9 @@ const ReservarPage: React.FC = () => {
                                     }}></i>
                                   )}
                                   {!isAvailable && (
-                                    <span style={{ fontSize: '0.7rem', display: 'block', marginTop: '2px', fontStyle: 'italic' }}>Ocupado</span>
+                                    <span style={{ fontSize: '0.65rem', display: 'block', marginTop: '2px', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                                      {slot.motivo || 'No disponible'}
+                                    </span>
                                   )}
                                 </div>
                               )
