@@ -757,66 +757,132 @@ const ReservarPage: React.FC = () => {
               </div>
             )}
 
-            {/* Step 5: Confirmación */}
+            {/* Step 5: Confirmación Premium */}
             {currentStep === 5 && (
-              <div className="form-step active">
+              <div className="form-step active animate-fadeIn">
                 <div className="step-header">
                   <h2 className="step-title">Confirma tu Reserva</h2>
-                  <p className="step-subtitle">Revisa los detalles antes de confirmar</p>
+                  <p className="step-subtitle">Todo listo. Revisa tu ticket antes de confirmar.</p>
                 </div>
 
                 <div style={{ 
-                  background: 'var(--bg-primary)', 
-                  padding: '2rem', 
-                  borderRadius: 'var(--border-radius)',
-                  border: '1px solid var(--border-color)'
+                  background: 'var(--bg-secondary)', 
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-color)',
+                  overflow: 'hidden',
+                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
                 }}>
-                  <h3 style={{ color: 'var(--accent-color)', marginBottom: '1rem' }}>
-                    Resumen de tu cita:
-                  </h3>
-                  
-                  <div style={{ display: 'grid', gap: '1rem' }}>
-                    <div>
-                      <strong>Servicio{serviciosSeleccionados.length > 1 ? 's' : ''}:</strong>
-                      <ul style={{ margin: '0.5rem 0 0 1.5rem', padding: 0 }}>
-                        {calcularTotales().serviciosInfo.map(servicio => (
-                          <li key={servicio.id} style={{ marginBottom: '0.25rem' }}>
-                            {servicio.nombre} - ${servicio.precio.toLocaleString()} ({servicio.duracion_minutos} min)
-                          </li>
-                        ))}
-                      </ul>
-                      <div style={{ marginTop: '0.5rem', fontWeight: '600', color: 'var(--accent-color)' }}>
-                        Total: ${calcularTotales().precioTotal.toLocaleString()} - {calcularTotales().duracionTotal} min
+                  {/* 1. Header del Ticket: Fecha y Hora Visual */}
+                  <div style={{ 
+                    background: 'linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%)',
+                    padding: '2rem',
+                    borderBottom: '1px dashed var(--border-color)',
+                    position: 'relative'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                      <div style={{ 
+                        background: 'var(--accent-color)', 
+                        color: 'var(--bg-primary)', 
+                        padding: '0.25rem 0.75rem', 
+                        borderRadius: '20px', 
+                        fontSize: '0.8rem', 
+                        fontWeight: 'bold',
+                        textTransform: 'uppercase'
+                      }}>
+                        Reserva Pendiente
+                      </div>
+                      <div style={{ fontSize: '0.9rem', opacity: 0.6 }}>
+                        {new Date().getFullYear()}
                       </div>
                     </div>
-                    <div><strong>Barbero:</strong> {(() => {
-                      const barbero = barberos.find(b => b.id === formData.barbero_id)
-                      return barbero ? `${barbero.nombre} ${barbero.apellido}` : ''
-                    })()}</div>
-                    <div><strong>Fecha:</strong> {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-ES', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}</div>
-                    <div><strong>Hora:</strong> {formData.hora} - {calculateEndTime(formData.hora)}</div>
-                    <div><strong>Cliente:</strong> {formData.cliente_nombre}</div>
-                    <div><strong>Teléfono:</strong> {formData.cliente_telefono}</div>
-                    {formData.cliente_email && <div><strong>Email:</strong> {formData.cliente_email}</div>}
-                    {formData.notas && <div><strong>Notas:</strong> {formData.notas}</div>}
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.25rem' }}>INICIO</span>
+                        <span style={{ display: 'block', fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{formData.hora}</span>
+                      </div>
+                      
+                      <div style={{ flex: 1, position: 'relative', height: '2px', background: 'var(--border-color)', margin: '0 1rem' }}>
+                        <div style={{ 
+                          position: 'absolute', 
+                          top: '50%', 
+                          left: '50%', 
+                          transform: 'translate(-50%, -50%)', 
+                          background: 'var(--bg-secondary)', 
+                          padding: '0 0.5rem',
+                          fontSize: '0.75rem',
+                          color: 'var(--accent-color)',
+                          fontWeight: '600',
+                          whiteSpace: 'nowrap'
+                        }}>
+                          {calcularTotales().duracionTotal} min
+                        </div>
+                      </div>
+
+                      <div style={{ textAlign: 'center' }}>
+                        <span style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.25rem' }}>FIN APROX</span>
+                        <span style={{ display: 'block', fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{calculateEndTime(formData.hora)}</span>
+                      </div>
+                    </div>
+
+                    <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '1.1rem', fontWeight: '500' }}>
+                      {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-ES', { 
+                        weekday: 'long', 
+                        day: 'numeric',
+                        month: 'long'
+                      })}
+                    </div>
                   </div>
 
-                  <div style={{ 
-                    marginTop: '2rem', 
-                    padding: '1rem', 
-                    background: 'rgba(212, 175, 55, 0.1)',
-                    borderRadius: 'var(--border-radius)',
-                    border: '1px solid var(--accent-color)'
-                  }}>
-                    <p style={{ fontSize: '0.9rem', opacity: '0.9' }}>
-                      <strong>Nota:</strong> Te contactaremos por WhatsApp para confirmar tu cita. 
-                      Si necesitas cancelar o reprogramar, hazlo con al menos 2 horas de anticipación.
-                    </p>
+                  {/* 2. Cuerpo del Ticket: Barbero y Servicios */}
+                  <div style={{ padding: '2rem' }}>
+                    {/* Barbero Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                      {(() => {
+                        const barbero = barberos.find(b => b.id === formData.barbero_id)
+                        return barbero ? (
+                          <>
+                            <img 
+                              src={getImageUrl(barbero.imagen_url)} 
+                              alt={barbero.nombre}
+                              style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-color)' }}
+                            />
+                            <div>
+                              <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.2rem' }}>TU PROFESIONAL</p>
+                              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0 }}>{barbero.nombre} {barbero.apellido}</h3>
+                            </div>
+                          </>
+                        ) : null
+                      })()}
+                    </div>
+
+                    {/* Lista de Servicios */}
+                    <div style={{ marginBottom: '2rem' }}>
+                      <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Servicios Seleccionados</p>
+                      {calcularTotales().serviciosInfo.map(servicio => (
+                        <div key={servicio.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
+                          <div>
+                            <span style={{ display: 'block', fontWeight: '500' }}>{servicio.nombre}</span>
+                            <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{servicio.duracion_minutos} min</span>
+                          </div>
+                          <span style={{ fontWeight: '500' }}>${servicio.precio.toLocaleString()}</span>
+                        </div>
+                      ))}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '1.2rem', color: 'var(--accent-color)' }}>
+                        <span style={{ fontWeight: 'bold' }}>TOTAL A PAGAR</span>
+                        <span style={{ fontWeight: 'bold' }}>${calcularTotales().precioTotal.toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    {/* Datos de Contacto (Resumen Compacto) */}
+                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.5rem' }}>DATOS DE CONTACTO</p>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <span style={{ fontWeight: '500' }}><i className="fas fa-user mr-2 opacity-50"></i> {formData.cliente_nombre}</span>
+                        <span style={{ fontWeight: '500' }}><i className="fab fa-whatsapp mr-2 opacity-50"></i> {formData.cliente_telefono}</span>
+                        {formData.cliente_email && <span style={{ fontSize: '0.9rem', opacity: 0.8 }}><i className="fas fa-envelope mr-2 opacity-50"></i> {formData.cliente_email}</span>}
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
