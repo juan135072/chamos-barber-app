@@ -152,7 +152,7 @@ export default function RegistrarWalkInModal({
           // Insertar cita usando supabase directo
           const { error: citaError } = await supabase
               .from('citas')
-              .insert([citaPayload])
+              .insert([citaPayload] as any)
           
           if (citaError) throw citaError
           
