@@ -336,6 +336,40 @@ export class FacturaTermica {
     this.addSpace(2)
   }
 
+  // Función para imprimir directo usando el servicio local
+  async imprimirDirecto(datos: DatosFactura): Promise<boolean> {
+    try {
+      console.log('🖨️ Intentando imprimir directo...')
+      // Intentar conectar al servicio local
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 2000) // 2 segundos timeout
+
+      const response = await fetch('http://localhost:3001/print', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ factura: datos }),
+        signal: controller.signal
+      })
+
+      clearTimeout(timeoutId)
+
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          console.log('✅ Impresión directa exitosa')
+          return true
+        }
+      }
+      
+      throw new Error('Servicio respondió con error')
+    } catch (error) {
+      console.warn('⚠️ Falló impresión directa (Servicio no disponible):', error)
+      return false
+    }
+  }
+
   descargar(nombreArchivo?: string): void {
     const nombre = nombreArchivo || `factura_${Date.now()}.pdf`
     this.pdf.save(nombre)
@@ -387,7 +421,13 @@ export async function generarEImprimirFactura(datos: DatosFactura, accion: 'impr
     await factura.generarFactura(datos)
 
     if (accion === 'imprimir' || accion === 'ambos') {
-      factura.imprimir()
+        // Intentar impresión directa primero
+        const impresaDirecto = await factura.imprimirDirecto(datos)
+        
+        // Si falla la directa, usar el método clásico del navegador
+        if (!impresaDirecto) {
+            factura.imprimir()
+        }
     }
 
     if (accion === 'descargar' || accion === 'ambos') {

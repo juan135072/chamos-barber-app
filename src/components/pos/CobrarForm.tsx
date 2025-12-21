@@ -243,14 +243,30 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       // Éxito - NO mostrar comisiones al usuario/cliente
       const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'
-      const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nCliente: ${clienteNombre}${tipoDocumento === 'factura' ? `\nRUT: ${rut}` : ''}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}\n\n¿Deseas imprimir la factura?`)
-
-      if (confirmar) {
-        // Obtener datos completos de la factura e imprimir
+      
+      // Intentar impresión directa primero (silenciosa)
+      let impresionExitosa = false
+      try {
         const datosFactura = await obtenerDatosFactura(factura.id, supabase)
         if (datosFactura) {
-          // IMPORTANTE: La factura impresa NO debe mostrar las comisiones
-          await generarEImprimirFactura(datosFactura, 'imprimir')
+          impresionExitosa = await generarEImprimirFactura(datosFactura, 'imprimir')
+        }
+      } catch (err) {
+        console.warn('Error en impresión automática:', err)
+      }
+
+      if (impresionExitosa) {
+        // Si se imprimió directo, solo mostrar confirmación simple
+        alert(`¡Venta registrada y ticket impreso!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}`)
+      } else {
+        // Fallback clásico
+        const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nCliente: ${clienteNombre}${tipoDocumento === 'factura' ? `\nRUT: ${rut}` : ''}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}\n\n¿Deseas imprimir la factura?`)
+
+        if (confirmar) {
+          const datosFactura = await obtenerDatosFactura(factura.id, supabase)
+          if (datosFactura) {
+            await generarEImprimirFactura(datosFactura, 'imprimir')
+          }
         }
       }
 
@@ -492,30 +508,66 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             })}
           </div>
 
-          {/* Botones de acción */}
-          <div className="flex gap-2">
-            <button
-              onClick={agregarAlCarrito}
-              disabled={serviciosSeleccionados.length === 0}
-              className="flex-1 btn btn-primary"
-              style={{
-                opacity: serviciosSeleccionados.length === 0 ? 0.5 : 1,
-                cursor: serviciosSeleccionados.length === 0 ? 'not-allowed' : 'pointer'
-              }}
-            >
-              <i className="fas fa-plus mr-2"></i>
-              Agregar al Carrito {serviciosSeleccionados.length > 0 && `(${serviciosSeleccionados.length})`}
-            </button>
-            {serviciosSeleccionados.length > 0 && (
+            {/* Botones de acción */}
+            <div className="flex gap-2">
               <button
-                onClick={limpiarSeleccion}
-                className="btn btn-secondary"
+                onClick={agregarAlCarrito}
+                disabled={serviciosSeleccionados.length === 0}
+                className="flex-1 btn btn-primary"
+                style={{
+                  opacity: serviciosSeleccionados.length === 0 ? 0.5 : 1,
+                  cursor: serviciosSeleccionados.length === 0 ? 'not-allowed' : 'pointer'
+                }}
               >
-                <i className="fas fa-times mr-2"></i>
-                Limpiar
+                <i className="fas fa-plus mr-2"></i>
+                Agregar al Carrito {serviciosSeleccionados.length > 0 && `(${serviciosSeleccionados.length})`}
               </button>
-            )}
-          </div>
+              
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    const controller = new AbortController()
+                    const timeoutId = setTimeout(() => controller.abort(), 2000)
+                    
+                    const response = await fetch('http://localhost:3001/open-drawer', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      signal: controller.signal
+                    })
+                    clearTimeout(timeoutId)
+                    
+                    if (response.ok) {
+                      alert('✅ Cajón abierto')
+                    } else {
+                      throw new Error('Error al abrir cajón')
+                    }
+                  } catch (e) {
+                    alert('⚠️ No se pudo conectar con la impresora local para abrir el cajón.\nAsegúrate de ejecutar "run.bat" en la computadora de caja.')
+                  }
+                }}
+                className="px-4 py-2 rounded font-medium transition-all"
+                style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--accent-color)',
+                  color: 'var(--accent-color)'
+                }}
+                title="Abrir cajón de dinero (Requiere servicio local)"
+              >
+                <i className="fas fa-inbox mr-2"></i>
+                Abrir Caja
+              </button>
+
+              {serviciosSeleccionados.length > 0 && (
+                <button
+                  onClick={limpiarSeleccion}
+                  className="btn btn-secondary"
+                >
+                  <i className="fas fa-times mr-2"></i>
+                  Limpiar
+                </button>
+              )}
+            </div>
         </div>
 
         {/* Carrito */}

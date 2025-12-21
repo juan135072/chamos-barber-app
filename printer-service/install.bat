@@ -1,31 +1,15 @@
 @echo off
-echo ========================================
-echo Instalador del Servicio de Impresion
-echo ========================================
+echo ===================================================
+echo INSTALADOR DEL SERVICIO DE IMPRESION - CHAMOS BARBER
+echo ===================================================
 echo.
-
-echo [1/3] Instalando dependencias de Node.js...
+echo 1. Instalando dependencias...
 call npm install
-if %errorlevel% neq 0 (
-    echo Error instalando dependencias
-    pause
-    exit /b 1
-)
-
 echo.
-echo [2/3] Verificando impresora...
-echo Asegurate de que la impresora POS-8250 este conectada por USB
-pause
-
+echo 2. Instalando driver USB (si es necesario)...
+echo    Nota: Si la impresora no funciona, usa Zadig para instalar driver WinUSB
 echo.
-echo [3/3] Instalacion completada!
-echo.
-echo Para iniciar el servicio, ejecuta:
-echo     npm start
-echo.
-echo O para instalarlo como servicio permanente:
-echo     npm install -g pm2
-echo     pm2 start server.js --name printer-service
-echo     pm2 save
-echo.
+echo ===================================================
+echo INSTALACION COMPLETADA
+echo ===================================================
 pause

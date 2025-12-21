@@ -178,14 +178,20 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       setProcesando(false)
 
       // Imprimir automáticamente después de cobrar
+      let impresionExitosa = false
       try {
         const datosFactura = await obtenerDatosFactura(facturaData.id, supabase)
         if (datosFactura) {
-          await generarEImprimirFactura(datosFactura, 'imprimir')
+          // Intentar impresión directa primero
+          impresionExitosa = await generarEImprimirFactura(datosFactura, 'imprimir')
         }
       } catch (printError) {
         console.warn('⚠️ Error al imprimir automáticamente:', printError)
-        // No bloquear el flujo si falla la impresión
+      }
+      
+      if (!impresionExitosa) {
+          // Fallback manual si falla la automática
+          alert('La impresión automática falló. Por favor, imprime manualmente desde la siguiente pantalla.')
       }
 
     } catch (error: any) {
@@ -565,10 +571,47 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
             <i className="fas fa-times mr-2"></i>
             Cancelar
           </button>
+          
+          <button
+            onClick={async () => {
+              try {
+                const controller = new AbortController()
+                const timeoutId = setTimeout(() => controller.abort(), 2000)
+                
+                const response = await fetch('http://localhost:3001/open-drawer', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  signal: controller.signal
+                })
+                clearTimeout(timeoutId)
+                
+                if (response.ok) {
+                  alert('✅ Cajón abierto')
+                } else {
+                  throw new Error('Error al abrir cajón')
+                }
+              } catch (e) {
+                alert('⚠️ No se pudo conectar con la impresora local para abrir el cajón.')
+              }
+            }}
+            type="button"
+            disabled={procesando}
+            className="px-4 py-3 rounded-lg font-medium transition-all flex items-center justify-center"
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              border: '1px solid var(--accent-color)',
+              color: 'var(--accent-color)',
+              cursor: procesando ? 'not-allowed' : 'pointer'
+            }}
+            title="Abrir solo caja"
+          >
+            <i className="fas fa-inbox"></i>
+          </button>
+
           <button
             onClick={handleCobrar}
             disabled={procesando}
-            className="flex-1 px-4 py-3 font-bold rounded-lg transition-all"
+            className="flex-[2] px-4 py-3 font-bold rounded-lg transition-all"
             style={{
               backgroundColor: 'var(--accent-color)',
               color: 'var(--bg-primary)',
