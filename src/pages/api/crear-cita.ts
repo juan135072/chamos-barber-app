@@ -20,7 +20,7 @@ export default async function handler(
 ) {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
   console.log('🔵 [crear-cita] Request received:', req.method, 'from IP:', clientIp)
-  
+
   // Solo permitir POST
   if (req.method !== 'POST') {
     console.log('❌ [crear-cita] Method not allowed:', req.method)
@@ -35,18 +35,18 @@ export default async function handler(
 
   try {
     console.log('🔵 [crear-cita] Creating Supabase client...')
-    
+
     // Verificar variables de entorno
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.error('❌ [crear-cita] NEXT_PUBLIC_SUPABASE_URL not found')
       return res.status(500).json({ error: 'Configuración de Supabase no encontrada' })
     }
-    
+
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('❌ [crear-cita] SUPABASE_SERVICE_ROLE_KEY not found')
       return res.status(500).json({ error: 'Clave de servicio de Supabase no encontrada' })
     }
-    
+
     // Crear cliente Supabase con SERVICE_ROLE_KEY
     // Esto bypassa todas las políticas RLS
     const supabase = createClient<Database>(
@@ -59,7 +59,7 @@ export default async function handler(
         }
       }
     )
-    
+
     console.log('✅ [crear-cita] Supabase client created')
 
     // 🛡️ STEP 2: Validación mejorada
@@ -68,14 +68,14 @@ export default async function handler(
 
     // Extraer servicios_ids (nuevo formato) o servicio_id (legacy)
     const serviciosIds: string[] = citaData.servicios_ids || (citaData.servicio_id ? [citaData.servicio_id] : [])
-    
+
     console.log('🔵 [crear-cita] Services to book:', serviciosIds)
 
     // VALIDACIÓN 1: Verificar que tenemos todos los campos requeridos
-    if (serviciosIds.length === 0 || !citaData.barbero_id || !citaData.fecha || 
-        !citaData.hora || !citaData.cliente_nombre || !citaData.cliente_telefono) {
+    if (serviciosIds.length === 0 || !citaData.barbero_id || !citaData.fecha ||
+      !citaData.hora || !citaData.cliente_nombre || !citaData.cliente_telefono) {
       console.log('❌ [crear-cita] Missing required fields')
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Faltan campos requeridos',
         details: 'servicio(s), barbero_id, fecha, hora, cliente_nombre y cliente_telefono son obligatorios'
       })
@@ -85,10 +85,10 @@ export default async function handler(
     // Solo cuenta citas pendientes/confirmadas que aún no han pasado
     // Esto permite a clientes frecuentes seguir reservando después de completar sus citas
     console.log('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
-    
+
     const fechaActual = new Date().toISOString().split('T')[0] // YYYY-MM-DD formato
     const horaActual = new Date().toTimeString().split(' ')[0].substring(0, 5) // HH:MM formato
-    
+
     const { data: citasActivasFuturas, error: errorActivas } = await supabase
       .from('citas')
       .select('id, fecha, hora, estado')
@@ -108,10 +108,10 @@ export default async function handler(
 
     // Validar límites usando la función helper
     const validationResult = validateReservationLimits(citasActivasFuturas?.length || 0)
-    
+
     if (!validationResult.allowed) {
       console.log('⚠️ [crear-cita] Appointment limit reached:', validationResult)
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: validationResult.reason,
         code: 'LIMITE_CITAS_ALCANZADO',
         citas_activas: validationResult.currentCount,
@@ -120,76 +120,151 @@ export default async function handler(
       })
     }
 
-    // VALIDACIÓN 3: Verificar disponibilidad (evitar duplicados)
-    const { data: existingCitas } = await supabase
-      .from('citas')
-      .select('id, cliente_nombre')
-      .eq('barbero_id', citaData.barbero_id)
-      .eq('fecha', citaData.fecha)
-      .eq('hora', citaData.hora)
-      .in('estado', ['pendiente', 'confirmada'])
+    // 🛡️ STEP 3: Validación de Disponibilidad Robusta (Rango y Bloqueos)
 
-    if (existingCitas && existingCitas.length > 0) {
-      return res.status(409).json({ 
-        error: '⚠️ Lo sentimos, este horario acaba de ser reservado por otro cliente. Por favor selecciona otro horario.',
-        code: 'HORARIO_OCUPADO'
-      })
-    }
-
-    // VALIDACIÓN 4: Verificar que no sea una hora pasada
-    const fechaHora = new Date(`${citaData.fecha}T${citaData.hora}`)
-    const ahora = new Date()
-    
-    if (fechaHora <= ahora) {
-      return res.status(400).json({ 
-        error: '⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.',
-        code: 'FECHA_PASADA'
-      })
-    }
-
-    // VALIDACIÓN 4: Verificar que el barbero existe y está activo
+    // 1. Verificar que el barbero existe y está activo (LO NECESITAMOS PARA CONTINUAR)
     const { data: barbero, error: barberoError } = await supabase
       .from('barberos')
       .select('id, nombre, apellido, activo')
       .eq('id', citaData.barbero_id)
       .single()
 
-    // @ts-ignore - Bypass strict type checking for barbero.activo in build environment
-    if (barberoError || !barbero || !barbero.activo) {
-      return res.status(400).json({ 
+    if (barberoError || !barbero || !(barbero as any).activo) {
+      return res.status(400).json({
         error: 'El barbero seleccionado no está disponible',
         code: 'BARBERO_NO_DISPONIBLE'
       })
     }
 
-    // VALIDACIÓN 6: Verificar que todos los servicios existen y están activos
-    const { data: servicios, error: serviciosError } = await supabase
+    // 2. Verificar que todos los servicios existen y están activos (LO NECESITAMOS PARA CALCULAR DURACIÓN)
+    const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios')
-      .select('id, nombre, activo')
+      .select('id, nombre, activo, duracion_minutos')
       .in('id', serviciosIds)
 
-    if (serviciosError || !servicios || servicios.length !== serviciosIds.length) {
-      return res.status(400).json({ 
+    if (serviciosError || !serviciosData || serviciosData.length !== serviciosIds.length) {
+      return res.status(400).json({
         error: 'Uno o más servicios seleccionados no están disponibles',
         code: 'SERVICIO_NO_DISPONIBLE'
       })
     }
 
-    // @ts-ignore - Bypass strict type checking
-    const serviciosInactivos = servicios.filter((s: any) => !s.activo)
+    const serviciosInactivos = (serviciosData as any[]).filter((s: any) => !s.activo)
     if (serviciosInactivos.length > 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: `Servicio(s) no disponible(s): ${serviciosInactivos.map((s: any) => s.nombre).join(', ')}`,
         code: 'SERVICIO_NO_DISPONIBLE'
+      })
+    }
+
+    // 3. Calcular duración y tiempos de la nueva cita
+    const duracionNuevaCita = (serviciosData as any[]).reduce((sum: number, s: any) => sum + (s.duracion_minutos || 30), 0)
+    const [hStart, mStart] = citaData.hora.split(':').map(Number)
+    const totalMinutosInicio = hStart * 60 + mStart
+    const totalMinutosFin = totalMinutosInicio + duracionNuevaCita
+
+    console.log(`⏱️ [crear-cita] Validando rango: ${citaData.hora} (${totalMinutosInicio}m) -> +${duracionNuevaCita}min -> (${totalMinutosFin}m)`)
+
+    // 4. Verificar Horario de Atención (horarios_atencion)
+    const diaSemana = new Date(citaData.fecha + 'T12:00:00').getDay()
+    const { data: horarioAtencion } = await supabase
+      .from('horarios_atencion')
+      .select('hora_inicio, hora_fin, activo')
+      .eq('barbero_id', citaData.barbero_id)
+      .eq('dia_semana', diaSemana)
+      .eq('activo', true)
+      .single()
+
+    if (horarioAtencion) {
+      const hAtStartStr = (horarioAtencion as any).hora_inicio
+      const hAtEndStr = (horarioAtencion as any).hora_fin
+      const [hAtStart, mAtStart] = hAtStartStr.split(':').map(Number)
+      const [hAtEnd, mAtEnd] = hAtEndStr.split(':').map(Number)
+      const minAtStart = hAtStart * 60 + mAtStart
+      const minAtEnd = hAtEnd * 60 + mAtEnd
+
+      if (totalMinutosInicio < minAtStart || totalMinutosFin > minAtEnd) {
+        return res.status(400).json({
+          error: `⚠️ El barbero no atiende en este horario o el servicio excede su hora de salida (${hAtEndStr}).`,
+          code: 'FUERA_DE_HORARIO'
+        })
+      }
+    }
+
+    // 5. Verificar Solapamientos con Citas Existentes (Rango)
+    const { data: citasDelDia } = await supabase
+      .from('citas')
+      .select('id, hora, notas, servicio_id')
+      .eq('barbero_id', citaData.barbero_id)
+      .eq('fecha', citaData.fecha)
+      .in('estado', ['pendiente', 'confirmada'])
+
+    for (const cita of (citasDelDia || [])) {
+      const citaAny = cita as any
+      const [hCita, mCita] = citaAny.hora.split(':').map(Number)
+      const minCitaInicio = hCita * 60 + mCita
+
+      let duracionExistente = 30
+      if (citaAny.notas && citaAny.notas.includes('[SERVICIOS SOLICITADOS:')) {
+        duracionExistente = 60 // Estimación razonable para citas múltiples
+      } else {
+        const sExistente = (serviciosData as any[]).find((s: any) => s.id === citaAny.servicio_id)
+        duracionExistente = sExistente?.duracion_minutos || 30
+      }
+
+      const minCitaFin = minCitaInicio + duracionExistente
+
+      if (totalMinutosInicio < minCitaFin && totalMinutosFin > minCitaInicio) {
+        return res.status(409).json({
+          error: '⚠️ Este horario se solapa con otra cita ya reservada. Por favor selecciona otro horario.',
+          code: 'HORARIO_OCUPADO_SOLAPAMIENTO'
+        })
+      }
+    }
+
+    // 6. Verificar Solapamientos con Horarios Bloqueados (Descansos, etc)
+    const { data: bloqueos } = await supabase
+      .from('horarios_bloqueados')
+      .select('fecha_hora_inicio, fecha_hora_fin')
+      .eq('barbero_id', citaData.barbero_id)
+
+    const bloqueosDelDia = (bloqueos || []).filter(b => {
+      const inicio = new Date((b as any).fecha_hora_inicio)
+      return inicio.toISOString().split('T')[0] === citaData.fecha
+    })
+
+    for (const bloqueo of bloqueosDelDia) {
+      const bAny = bloqueo as any
+      const dInicio = new Date(bAny.fecha_hora_inicio)
+      const dFin = new Date(bAny.fecha_hora_fin)
+      const minBlInicio = dInicio.getHours() * 60 + dInicio.getMinutes()
+      const minBlFin = dFin.getHours() * 60 + dFin.getMinutes()
+
+      if (totalMinutosInicio < minBlFin && totalMinutosFin > minBlInicio) {
+        return res.status(409).json({
+          error: '⚠️ El barbero tiene este horario bloqueado (descanso o compromiso).',
+          code: 'HORARIO_BLOQUEADO'
+        })
+      }
+    }
+
+    // 7. Verificar que no sea una hora pasada (Diferencia horaria Chile)
+    const ahoraChile = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }))
+    const fechaHoraReserva = new Date(`${citaData.fecha}T${citaData.hora}:00`)
+
+    if (fechaHoraReserva <= ahoraChile) {
+      return res.status(400).json({
+        error: '⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.',
+        code: 'FECHA_PASADA'
       })
     }
 
     // PREPARAR DATOS PARA INSERTAR
     // Si hay múltiples servicios, agregar la información a las notas
     let notasCompletas = citaData.notas || ''
-    
+
     if (serviciosIds.length > 1) {
-      const nombresServicios = servicios.map((s: any) => s.nombre).join(', ')
+      const nombresServicios = (serviciosData as any[]).map((s: any) => s.nombre).join(', ')
       const infoServicios = `\n\n[SERVICIOS SOLICITADOS: ${nombresServicios}]`
       notasCompletas = notasCompletas + infoServicios
     }
@@ -219,16 +294,16 @@ export default async function handler(
 
     if (insertError) {
       console.error('❌ [crear-cita] Error inserting appointment:', insertError)
-      
+
       // Manejar error de constraint único (race condition)
       if (insertError.code === '23505') {
-        return res.status(409).json({ 
+        return res.status(409).json({
           error: '⚠️ Este horario fue reservado mientras completabas el formulario. Por favor selecciona otro horario.',
           code: 'RACE_CONDITION'
         })
       }
-      
-      return res.status(500).json({ 
+
+      return res.status(500).json({
         error: 'Error al crear la cita',
         details: insertError.message
       })
@@ -237,13 +312,13 @@ export default async function handler(
     // ÉXITO
     // @ts-ignore - nuevaCita is guaranteed to exist here if no insertError
     console.log('✅ [crear-cita] Appointment created successfully:', nuevaCita.id)
-    
+
     // Security logging está implementado en src/lib/security/logger.ts
     // Para activarlo, descomentar:
     // const { logSecurityEvent, SecurityEventType } = await import('../../../lib/security/logger')
     // logSecurityEvent({ eventType: SecurityEventType.DATA_MODIFICATION, ... })
-    
-    return res.status(201).json({ 
+
+    return res.status(201).json({
       success: true,
       data: nuevaCita,
       message: '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.'
@@ -251,24 +326,24 @@ export default async function handler(
 
   } catch (error) {
     console.error('❌ [crear-cita] Unexpected error:', error)
-    
+
     // API error logging está implementado en src/lib/security/logger.ts
     // Para activarlo, descomentar:
     // if (error instanceof Error) {
     //   const { logApiError } = await import('../../../lib/security/logger')
     //   logApiError('/api/crear-cita', 'POST', error, clientIp as string)
     // }
-    
+
     // Manejo de error más detallado
     let errorMessage = 'Error interno del servidor'
     let errorDetails = 'Unknown error'
-    
+
     if (error instanceof Error) {
       errorMessage = error.message
       errorDetails = error.stack || error.message
     }
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       error: errorMessage,
       details: errorDetails
     })
