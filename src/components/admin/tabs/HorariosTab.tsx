@@ -4,6 +4,7 @@ import type { Database } from '../../../../lib/database.types'
 import toast from 'react-hot-toast'
 import HorarioModal from '../modals/HorarioModal'
 import BloqueoModal from '../modals/BloqueoModal'
+import CrearBloqueoModal from '../modals/CrearBloqueoModal'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type HorarioAtencion = Database['public']['Tables']['horarios_atencion']['Row']
@@ -38,11 +39,13 @@ const HorariosTab: React.FC = () => {
 
   // Estado para horarios bloqueados
   const [horariosBloqueados, setHorariosBloqueados] = useState<HorarioBloqueado[]>([])
+  const [bloqueosDelDia, setBloqueosDelDia] = useState<HorarioBloqueado[]>([])
   
   // Estado general
   const [loading, setLoading] = useState(true)
   const [showHorarioModal, setShowHorarioModal] = useState(false)
   const [showBloqueoModal, setShowBloqueoModal] = useState(false)
+  const [showCrearBloqueoModal, setShowCrearBloqueoModal] = useState(false)
   const [editingHorario, setEditingHorario] = useState<HorarioAtencion | null>(null)
   const [editingBloqueo, setEditingBloqueo] = useState<HorarioBloqueado | null>(null)
 
@@ -59,9 +62,32 @@ const HorariosTab: React.FC = () => {
       // Cargar citas si estamos en la vista de atención (para ver agenda del día)
       if (activeView === 'atencion' && selectedDate) {
         loadCitasDelDia()
+        loadBloqueosDelDia()
       }
     }
   }, [selectedBarbero, activeView, selectedDate])
+
+  const loadBloqueosDelDia = async () => {
+    if (!selectedBarbero || !selectedDate) return
+    
+    try {
+      const inicioDia = `${selectedDate}T00:00:00`
+      const finDia = `${selectedDate}T23:59:59`
+
+      const { data, error } = await supabase
+        .from('horarios_bloqueados')
+        .select('*')
+        .eq('barbero_id', selectedBarbero)
+        .gte('fecha_hora_inicio', inicioDia)
+        .lte('fecha_hora_inicio', finDia)
+        .order('fecha_hora_inicio')
+
+      if (error) throw error
+      setBloqueosDelDia(data || [])
+    } catch (error) {
+      console.error('Error loading bloqueos del día:', error)
+    }
+  }
 
   const loadCitasDelDia = async () => {
     if (!selectedBarbero || !selectedDate) return
@@ -591,13 +617,48 @@ const HorariosTab: React.FC = () => {
                         {/* Visualización de Reservas (Solo si es el día seleccionado y hay horario activo) */}
                         {esDiaSeleccionado && horarioDelDia?.activo && (
                           <div className="mt-4 pt-4 border-t border-[var(--border-color)] w-full animate-fadeIn">
-                            <h4 className="text-xs font-semibold text-[var(--accent-color)] mb-3 uppercase tracking-wider flex items-center justify-between">
-                              <span>Agenda del Día ({citasDelDia.length} reservas)</span>
-                              {loadingCitas && <span className="text-[var(--text-secondary)] normal-case font-normal"><i className="fas fa-spinner fa-spin mr-1"></i> Cargando...</span>}
-                            </h4>
+                            <div className="flex items-center justify-between mb-3">
+                              <h4 className="text-xs font-semibold text-[var(--accent-color)] uppercase tracking-wider">
+                                <span>Agenda del Día ({citasDelDia.length + bloqueosDelDia.length} eventos)</span>
+                                {loadingCitas && <span className="ml-2 text-[var(--text-secondary)] normal-case font-normal"><i className="fas fa-spinner fa-spin"></i></span>}
+                              </h4>
+                              <button
+                                onClick={() => setShowCrearBloqueoModal(true)}
+                                className="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] text-[var(--text-primary)] transition-colors border border-[var(--border-color)] flex items-center gap-1"
+                                title="Agregar bloqueo rápido (almuerzo, descanso)"
+                              >
+                                <i className="fas fa-coffee text-orange-400"></i> Bloqueo
+                              </button>
+                            </div>
                             
-                            {citasDelDia.length > 0 ? (
+                            {(citasDelDia.length > 0 || bloqueosDelDia.length > 0) ? (
                               <div className="grid grid-cols-1 gap-2">
+                                {/* Renderizar Bloqueos */}
+                                {bloqueosDelDia.map((bloqueo) => (
+                                  <div key={bloqueo.id} className="flex items-center gap-3 p-2 rounded bg-orange-500/5 border border-orange-500/20 hover:border-orange-500/40 transition-colors relative group">
+                                    <div className="font-mono text-sm font-bold text-orange-500 bg-orange-500/10 px-2 py-1 rounded">
+                                      {formatTime(bloqueo.fecha_hora_inicio)}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-sm font-medium truncate text-orange-200">
+                                        <i className="fas fa-ban mr-1 text-xs"></i>
+                                        {bloqueo.motivo || 'Bloqueo'}
+                                      </div>
+                                      <div className="text-xs text-orange-200/60 truncate">
+                                        Duración: {Math.round((new Date(bloqueo.fecha_hora_fin).getTime() - new Date(bloqueo.fecha_hora_inicio).getTime()) / 60000)} min
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteBloqueo(bloqueo.id)}
+                                      className="text-xs p-1.5 text-orange-400 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      title="Eliminar bloqueo"
+                                    >
+                                      <i className="fas fa-trash"></i>
+                                    </button>
+                                  </div>
+                                ))}
+
+                                {/* Renderizar Citas */}
                                 {citasDelDia.map((cita) => (
                                   <div key={cita.id} className="flex items-center gap-3 p-2 rounded bg-[var(--bg-primary)] border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors">
                                     <div className="font-mono text-sm font-bold text-[var(--accent-color)] bg-[var(--accent-color)] bg-opacity-10 px-2 py-1 rounded">
@@ -632,7 +693,7 @@ const HorariosTab: React.FC = () => {
                             ) : (
                               <div className="text-center py-4 text-[var(--text-secondary)] text-sm bg-[var(--bg-primary)] rounded border border-dashed border-[var(--border-color)]">
                                 <i className="far fa-calendar-times mb-1 block text-lg opacity-50"></i>
-                                No hay reservas para este día
+                                No hay eventos para este día
                               </div>
                             )}
                           </div>
