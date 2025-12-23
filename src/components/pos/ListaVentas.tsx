@@ -54,6 +54,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   const [ventaAEditar, setVentaAEditar] = useState<Venta | null>(null)
   const [citaAEditar, setCitaAEditar] = useState<any | null>(null)
   const [barberos, setBarberos] = useState<any[]>([])
+  const [servicios, setServicios] = useState<any[]>([])
 
   useEffect(() => {
     cargarDatos()
@@ -135,13 +136,22 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
 
       const ventasFinales = ventasData || []
 
-      // Cargar barberos para corrección si es necesario
+      // Cargar barberos y servicios para corrección si es necesario
       if (barberos.length === 0) {
         const { data: barberosData } = await supabase
           .from('barberos')
           .select('id, nombre, apellido')
           .eq('activo', true)
         setBarberos(barberosData || [])
+      }
+
+      if (servicios.length === 0) {
+        const { data: serviciosData } = await supabase
+          .from('servicios')
+          .select('id, nombre, precio')
+          .eq('activo', true)
+          .order('nombre')
+        setServicios(serviciosData || [])
       }
 
       console.log('💾 Estado ANTES de actualizar - ventas:', ventas.length, 'citas:', citasPendientes.length)
@@ -227,6 +237,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         <ModalEditarBarberoVenta
           venta={ventaAEditar}
           barberos={barberos}
+          servicios={servicios}
           onClose={() => setVentaAEditar(null)}
           onSuccess={() => {
             setVentaAEditar(null)
@@ -235,11 +246,12 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         />
       )}
 
-      {/* Modal para cambiar barbero de la cita (antes del cobro) */}
+      {/* Modal para cambiar barbero/servicio de la cita (antes del cobro) */}
       {citaAEditar && (
         <ModalEditarBarberoVenta
           venta={citaAEditar}
           barberos={barberos}
+          servicios={servicios}
           esCita={true}
           onClose={() => setCitaAEditar(null)}
           onSuccess={() => {
