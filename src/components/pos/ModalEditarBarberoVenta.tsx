@@ -143,7 +143,7 @@ export default function ModalEditarBarberoVenta({
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
                         <i className="fas fa-edit mr-2"></i>
-                        {esCita ? 'Editar Cita Pendiente' : 'Corregir Venta Realizada'}
+                        Editar Cobro
                     </h2>
                     <button onClick={onClose} style={{ color: 'var(--text-primary)' }}>
                         <i className="fas fa-times"></i>

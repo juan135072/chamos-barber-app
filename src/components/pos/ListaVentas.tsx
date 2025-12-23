@@ -374,8 +374,8 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                           className="mt-2 w-full text-xs hover:opacity-70 transition-opacity flex items-center justify-end"
                           style={{ color: 'var(--accent-color)', opacity: 0.8 }}
                         >
-                          <i className="fas fa-user-edit mr-1"></i>
-                          Cambiar Barbero
+                          <i className="fas fa-edit mr-1"></i>
+                          Editar Cobro
                         </button>
                       )}
                     </div>
@@ -447,7 +447,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                           }}
                         >
                           <i className="fas fa-edit"></i>
-                          <span>Corregir Barbero</span>
+                          <span>Editar Cobro</span>
                         </button>
                       )}
                     </div>
