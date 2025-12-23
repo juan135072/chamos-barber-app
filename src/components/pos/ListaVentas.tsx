@@ -52,6 +52,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   const [mostrarCitas, setMostrarCitas] = useState(true)
   const [citaACobrar, setCitaACobrar] = useState<Cita | null>(null)
   const [ventaAEditar, setVentaAEditar] = useState<Venta | null>(null)
+  const [citaAEditar, setCitaAEditar] = useState<any | null>(null)
   const [barberos, setBarberos] = useState<any[]>([])
 
   useEffect(() => {
@@ -234,6 +235,20 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         />
       )}
 
+      {/* Modal para cambiar barbero de la cita (antes del cobro) */}
+      {citaAEditar && (
+        <ModalEditarBarberoVenta
+          venta={citaAEditar}
+          barberos={barberos}
+          esCita={true}
+          onClose={() => setCitaAEditar(null)}
+          onSuccess={() => {
+            setCitaAEditar(null)
+            cargarDatos()
+          }}
+        />
+      )}
+
       <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
         {/* Tabs */}
         <div className="flex items-center justify-between mb-4">
@@ -340,6 +355,17 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                         <i className="fas fa-cash-register mr-2"></i>
                         Cobrar
                       </button>
+
+                      {(usuario.rol === 'admin' || usuario.rol === 'cajero') && (
+                        <button
+                          onClick={() => setCitaAEditar(cita)}
+                          className="mt-2 w-full text-xs hover:opacity-70 transition-opacity flex items-center justify-end"
+                          style={{ color: 'var(--accent-color)', opacity: 0.8 }}
+                        >
+                          <i className="fas fa-user-edit mr-1"></i>
+                          Cambiar Barbero
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>

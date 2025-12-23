@@ -9,11 +9,13 @@ interface Barbero {
 
 interface Venta {
     id: string
-    numero_factura: string
+    numero_factura?: string
     cliente_nombre: string
-    total: number
+    total?: number
+    precio?: number
     barbero_id?: string
     barbero?: {
+        id?: string
         nombre: string
         apellido: string
     }
@@ -24,10 +26,11 @@ interface ModalEditarBarberoVentaProps {
     barberos: Barbero[]
     onClose: () => void
     onSuccess: () => void
+    esCita?: boolean
 }
 
-export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSuccess }: ModalEditarBarberoVentaProps) {
-    const [nuevoBarberoId, setNuevoBarberoId] = useState(venta.barbero_id || '')
+export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSuccess, esCita = false }: ModalEditarBarberoVentaProps) {
+    const [nuevoBarberoId, setNuevoBarberoId] = useState(venta.barbero_id || venta.barbero?.id || '')
     const [procesando, setProcesando] = useState(false)
 
     const handleGuardar = async () => {
@@ -36,7 +39,8 @@ export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSu
             return
         }
 
-        if (nuevoBarberoId === venta.barbero_id) {
+        const barberoActualId = venta.barbero_id || venta.barbero?.id
+        if (nuevoBarberoId === barberoActualId) {
             onClose()
             return
         }
@@ -44,25 +48,43 @@ export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSu
         try {
             setProcesando(true)
 
-            const response = await fetch('/api/pos/corregir-barbero', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    facturaId: venta.id,
-                    nuevoBarberoId: nuevoBarberoId
-                }),
-            })
+            if (esCita) {
+                // Actualizar directamente en la tabla de citas
+                const { error } = await (supabase as any)
+                    .from('citas')
+                    .update({
+                        barbero_id: nuevoBarberoId,
+                        updated_at: new Date().toISOString()
+                    })
+                    .eq('id', venta.id)
 
-            const result = await response.json()
+                if (error) throw error
 
-            if (response.ok && result.success) {
-                alert('✅ Barbero actualizado correctamente')
+                alert('✅ Barbero de la cita actualizado')
                 onSuccess()
                 onClose()
             } else {
-                throw new Error(result.message || 'Error al actualizar barbero')
+                // Usar el endpoint de corrección para facturas
+                const response = await fetch('/api/pos/corregir-barbero', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        facturaId: venta.id,
+                        nuevoBarberoId: nuevoBarberoId
+                    }),
+                })
+
+                const result = await response.json()
+
+                if (response.ok && result.success) {
+                    alert('✅ Barbero de la venta actualizado')
+                    onSuccess()
+                    onClose()
+                } else {
+                    throw new Error(result.message || 'Error al actualizar barbero')
+                }
             }
         } catch (error: any) {
             console.error('Error actualizando barbero:', error)
@@ -81,7 +103,7 @@ export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSu
                 <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
                         <i className="fas fa-user-edit mr-2"></i>
-                        Corregir Barbero
+                        {esCita ? 'Cambiar Barbero (Cita)' : 'Corregir Barbero (Venta)'}
                     </h2>
                     <button onClick={onClose} style={{ color: 'var(--text-primary)' }}>
                         <i className="fas fa-times"></i>
@@ -90,8 +112,12 @@ export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSu
 
                 <div className="space-y-4">
                     <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-                        <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Venta:</p>
-                        <p className="font-bold" style={{ color: 'var(--text-primary)' }}>{venta.numero_factura} - {venta.cliente_nombre}</p>
+                        <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                            {esCita ? 'Cita Pendiente:' : 'Venta Realizada:'}
+                        </p>
+                        <p className="font-bold" style={{ color: 'var(--text-primary)' }}>
+                            {!esCita && `${venta.numero_factura} - `}{venta.cliente_nombre}
+                        </p>
                         <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Barbero actual:</p>
                         <p style={{ color: 'var(--text-primary)' }}>
                             {venta.barbero ? `${venta.barbero.nombre} ${venta.barbero.apellido}` : 'No asignado'}
@@ -144,7 +170,7 @@ export default function ModalEditarBarberoVenta({ venta, barberos, onClose, onSu
                                 opacity: procesando ? 0.6 : 1
                             }}
                         >
-                            {procesando ? 'Guardando...' : 'Guardar Cambio'}
+                            {procesando ? 'Guardando...' : 'Confirmar'}
                         </button>
                     </div>
                 </div>

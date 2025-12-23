@@ -14,7 +14,7 @@ if (process.env.NODE_ENV === 'production' && !process.env.NEXTAUTH_SECRET) {
 const nextConfig = {
   reactStrictMode: true,
   // swcMinify removed - SWC is now the default minifier in Next.js 14+
-  
+
   // Configuración para imágenes externas
   images: {
     remotePatterns: [
@@ -36,17 +36,17 @@ const nextConfig = {
       },
     ],
   },
-  
+
   // Variables de entorno
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'chamos-barber-secret-key-development-only',
   },
-  
+
   // Configuración para VPS
   trailingSlash: false,
   // output: 'standalone', // Comentado para permitir carga correcta de CSS
-  
+
   // 🔒 Headers de seguridad mejorados
   async headers() {
     return [
@@ -87,7 +87,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com https://onesignal.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com https://onesignal.com https://*.onesignal.com",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com https://onesignal.com https://*.onesignal.com http://localhost:3001",
               "frame-src 'none'",
               "object-src 'none'",
               "base-uri 'self'",
@@ -100,7 +100,7 @@ const nextConfig = {
       },
     ];
   },
-  
+
   // Redirects para mantener compatibilidad con URLs antiguas
   async redirects() {
     return [
