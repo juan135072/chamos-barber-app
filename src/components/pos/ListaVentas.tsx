@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import ModalCobrarCita from './ModalCobrarCita'
+import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
 
 interface ListaVentasProps {
   usuario: UsuarioConPermisos
@@ -14,6 +15,7 @@ interface Venta {
   total: number
   metodo_pago: string
   created_at: string
+  barbero_id?: string
   barbero?: {
     nombre: string
     apellido: string
@@ -49,6 +51,8 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   const [cargando, setCargando] = useState(true)
   const [mostrarCitas, setMostrarCitas] = useState(true)
   const [citaACobrar, setCitaACobrar] = useState<Cita | null>(null)
+  const [ventaAEditar, setVentaAEditar] = useState<Venta | null>(null)
+  const [barberos, setBarberos] = useState<any[]>([])
 
   useEffect(() => {
     cargarDatos()
@@ -69,6 +73,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
           total,
           metodo_pago,
           created_at,
+          barbero_id,
           barbero:barberos!facturas_barbero_id_fkey (
             nombre,
             apellido
@@ -119,7 +124,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         .order('fecha', { ascending: true })
         .order('hora', { ascending: true })
         .limit(10)
-      
+
       console.log('🔍 Citas cargadas:', citasData)
 
       if (citasError) throw citasError
@@ -128,12 +133,22 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       const citasConHora = citasData || []
 
       const ventasFinales = ventasData || []
+
+      // Cargar barberos para corrección si es necesario
+      if (barberos.length === 0) {
+        const { data: barberosData } = await supabase
+          .from('barberos')
+          .select('id, nombre, apellido')
+          .eq('activo', true)
+        setBarberos(barberosData || [])
+      }
+
       console.log('💾 Estado ANTES de actualizar - ventas:', ventas.length, 'citas:', citasPendientes.length)
       console.log('💾 ACTUALIZANDO estado con:', ventasFinales.length, 'ventas y', citasConHora.length, 'citas')
-      
+
       setVentas(ventasFinales)
       setCitasPendientes(citasConHora)
-      
+
       console.log('✅ setVentas() y setCitasPendientes() llamados')
     } catch (error) {
       console.error('Error cargando datos:', error)
@@ -151,9 +166,9 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleTimeString('es-ES', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString('es-ES', {
+      hour: '2-digit',
+      minute: '2-digit'
     })
   }
 
@@ -206,6 +221,19 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         />
       )}
 
+      {/* Modal para corregir barbero de la venta */}
+      {ventaAEditar && (
+        <ModalEditarBarberoVenta
+          venta={ventaAEditar}
+          barberos={barberos}
+          onClose={() => setVentaAEditar(null)}
+          onSuccess={() => {
+            setVentaAEditar(null)
+            cargarDatos()
+          }}
+        />
+      )}
+
       <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
         {/* Tabs */}
         <div className="flex items-center justify-between mb-4">
@@ -247,137 +275,147 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
           </button>
         </div>
 
-      {/* Contenido según tab seleccionado */}
-      {mostrarCitas ? (
-        /* Citas Pendientes de Pago */
-        citasPendientes.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">✅</div>
-            <p style={{ color: 'var(--text-primary)', opacity: 0.6 }}>No hay citas pendientes de pago</p>
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {citasPendientes.map((cita) => (
-              <div
-                key={cita.id}
-                className="rounded-lg p-4 transition-all"
-                style={{ 
-                  backgroundColor: 'var(--bg-primary)', 
-                  border: '2px solid var(--accent-color)',
-                  boxShadow: '0 0 10px rgba(212, 175, 55, 0.2)'
-                }}
-              >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-2">
-                      <span className="px-2 py-1 rounded text-xs font-semibold" style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}>
-                        PENDIENTE
-                      </span>
-                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                        {new Date(cita.fecha).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })} - {cita.hora}
-                      </span>
-                    </div>
-                    
-                    <div className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
-                      <i className="fas fa-user mr-2"></i>
-                      <span className="font-medium">{cita.cliente_nombre}</span>
-                    </div>
-                    
-                    <div className="text-sm mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                      <i className="fas fa-cut mr-2"></i>
-                      {cita.barbero.nombre} {cita.barbero.apellido}
-                    </div>
-
-                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                      <i className="fas fa-scissors mr-2"></i>
-                      {cita.servicio.nombre}
-                    </div>
-                  </div>
-
-                  <div className="text-right">
-                    <div className="text-xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>
-                      {formatCurrency(cita.servicio.precio)}
-                    </div>
-                    <button
-                      onClick={() => setCitaACobrar(cita)}
-                      className="px-4 py-2 rounded-lg font-medium transition-all"
-                      style={{
-                        backgroundColor: 'var(--accent-color)',
-                        color: 'var(--bg-primary)',
-                        fontSize: '0.875rem'
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
-                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
-                    >
-                      <i className="fas fa-cash-register mr-2"></i>
-                      Cobrar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )
-      ) : (
-        /* Ventas del Día */
-        ventas.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="text-6xl mb-4">📭</div>
-            <p style={{ color: 'var(--text-primary)', opacity: 0.6 }}>No hay ventas registradas hoy</p>
-          </div>
-        ) : (
-          <div className="space-y-3 max-h-96 overflow-y-auto">
-            {ventas.map((venta) => (
-              <div
-                key={venta.id}
-                className="rounded-lg p-4 transition-all"
-                style={{ 
-                  backgroundColor: 'var(--bg-primary)', 
-                  border: '1px solid var(--border-color)' 
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="text-lg font-bold" style={{ color: 'var(--accent-color)' }}>
-                        {venta.numero_factura}
-                      </span>
-                      <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
-                        {formatTime(venta.created_at)}
-                      </span>
-                    </div>
-                    
-                    <div className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
-                      <i className="fas fa-user mr-2"></i>
-                      {venta.cliente_nombre}
-                    </div>
-                    
-                    {venta.barbero && (
-                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                        <i className="fas fa-cut mr-2"></i>
-                        {venta.barbero.nombre} {venta.barbero.apellido}
+        {/* Contenido según tab seleccionado */}
+        {mostrarCitas ? (
+          /* Citas Pendientes de Pago */
+          citasPendientes.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">✅</div>
+              <p style={{ color: 'var(--text-primary)', opacity: 0.6 }}>No hay citas pendientes de pago</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {citasPendientes.map((cita) => (
+                <div
+                  key={cita.id}
+                  className="rounded-lg p-4 transition-all"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '2px solid var(--accent-color)',
+                    boxShadow: '0 0 10px rgba(212, 175, 55, 0.2)'
+                  }}
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <span className="px-2 py-1 rounded text-xs font-semibold" style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}>
+                          PENDIENTE
+                        </span>
+                        <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                          {new Date(cita.fecha).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })} - {cita.hora}
+                        </span>
                       </div>
-                    )}
-                  </div>
 
-                  <div className="text-right">
-                    <div className="text-lg font-bold mb-1" style={{ color: 'var(--accent-color)' }}>
-                      {formatCurrency(venta.total)}
+                      <div className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <i className="fas fa-user mr-2"></i>
+                        <span className="font-medium">{cita.cliente_nombre}</span>
+                      </div>
+
+                      <div className="text-sm mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                        <i className="fas fa-cut mr-2"></i>
+                        {cita.barbero.nombre} {cita.barbero.apellido}
+                      </div>
+
+                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                        <i className="fas fa-scissors mr-2"></i>
+                        {cita.servicio.nombre}
+                      </div>
                     </div>
-                    <div className="text-sm flex items-center justify-end space-x-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                      <span>{getMetodoPagoIcon(venta.metodo_pago)}</span>
-                      <span className="capitalize">{venta.metodo_pago}</span>
+
+                    <div className="text-right">
+                      <div className="text-xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>
+                        {formatCurrency(cita.servicio.precio)}
+                      </div>
+                      <button
+                        onClick={() => setCitaACobrar(cita)}
+                        className="px-4 py-2 rounded-lg font-medium transition-all"
+                        style={{
+                          backgroundColor: 'var(--accent-color)',
+                          color: 'var(--bg-primary)',
+                          fontSize: '0.875rem'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                        onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
+                      >
+                        <i className="fas fa-cash-register mr-2"></i>
+                        Cobrar
+                      </button>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
+              ))}
+            </div>
+          )
+        ) : (
+          /* Ventas del Día */
+          ventas.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="text-6xl mb-4">📭</div>
+              <p style={{ color: 'var(--text-primary)', opacity: 0.6 }}>No hay ventas registradas hoy</p>
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {ventas.map((venta) => (
+                <div
+                  key={venta.id}
+                  className="rounded-lg p-4 transition-all"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    border: '1px solid var(--border-color)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-1">
+                        <span className="text-lg font-bold" style={{ color: 'var(--accent-color)' }}>
+                          {venta.numero_factura}
+                        </span>
+                        <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                          {formatTime(venta.created_at)}
+                        </span>
+                      </div>
+
+                      <div className="text-sm mb-1" style={{ color: 'var(--text-primary)' }}>
+                        <i className="fas fa-user mr-2"></i>
+                        {venta.cliente_nombre}
+                      </div>
+
+                      {venta.barbero && (
+                        <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                          <i className="fas fa-cut mr-2"></i>
+                          {venta.barbero.nombre} {venta.barbero.apellido}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="text-right">
+                      <div className="text-lg font-bold mb-1" style={{ color: 'var(--accent-color)' }}>
+                        {formatCurrency(venta.total)}
+                      </div>
+                      <div className="text-sm flex items-center justify-end space-x-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                        <span>{getMetodoPagoIcon(venta.metodo_pago)}</span>
+                        <span className="capitalize">{venta.metodo_pago}</span>
+                      </div>
+                      {(usuario.rol === 'admin' || usuario.rol === 'cajero') && (
+                        <button
+                          onClick={() => setVentaAEditar(venta)}
+                          className="text-xs mt-2 hover:opacity-70 transition-opacity flex items-center justify-end w-full"
+                          style={{ color: 'var(--accent-color)' }}
+                        >
+                          <i className="fas fa-user-edit mr-1"></i>
+                          Corregir Barbero
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )
+        )}
+      </div>
     </>
   )
 }
