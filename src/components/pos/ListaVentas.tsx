@@ -401,11 +401,15 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                       {(usuario.rol === 'admin' || usuario.rol === 'cajero') && (
                         <button
                           onClick={() => setVentaAEditar(venta)}
-                          className="text-xs mt-2 hover:opacity-70 transition-opacity flex items-center justify-end w-full"
-                          style={{ color: 'var(--accent-color)' }}
+                          className="mt-3 px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-2"
+                          style={{
+                            color: 'var(--accent-color)',
+                            borderColor: 'var(--accent-color)',
+                            backgroundColor: 'transparent'
+                          }}
                         >
-                          <i className="fas fa-user-edit mr-1"></i>
-                          Corregir Barbero
+                          <i className="fas fa-edit"></i>
+                          <span>Corregir Barbero</span>
                         </button>
                       )}
                     </div>
