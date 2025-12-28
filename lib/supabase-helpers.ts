@@ -799,5 +799,52 @@ export const chamosSupabase = {
       console.error('❌ [uploadCorteFoto] Error:', error)
       throw error
     }
+  },
+
+  // Cierres de Caja
+  getCierresCaja: async (limit: number = 30) => {
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .select('*')
+      .order('fecha_inicio', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+    return data
+  },
+
+  getCierreCajaPorRango: async (fechaInicio: string, fechaFin: string) => {
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .select('*')
+      .eq('fecha_inicio', fechaInicio)
+      .eq('fecha_fin', fechaFin)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  },
+
+  crearCierreCaja: async (cierre: any) => {
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .insert([cierre])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  updateCierreCaja: async (id: string, updates: any) => {
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
   }
 }
