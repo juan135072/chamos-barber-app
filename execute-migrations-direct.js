@@ -94,7 +94,7 @@ async function executeMigrationDirect(migrationFile, description) {
     } else {
       console.log(`⚠️  Status Code: ${result.statusCode}`);
       console.log(`⚠️  Error: ${result.error.substring(0, 500)}`);
-      
+
       // Si falla exec_sql, podríamos estar usando una instancia self-hosted
       // sin la función RPC. En ese caso, el usuario debe ejecutar manualmente.
       console.log('\n💡 Sugerencia:');
@@ -103,7 +103,7 @@ async function executeMigrationDirect(migrationFile, description) {
       console.log(`   1. Abre ${supabaseUrl}/`);
       console.log('   2. Ve al SQL Editor');
       console.log(`   3. Copia y ejecuta: supabase/migrations/${migrationFile}\n`);
-      
+
       return false;
     }
   } catch (error) {
@@ -133,49 +133,19 @@ async function main() {
     'Rol de Cajero y Permisos'
   );
 
+  const migration3Success = await executeMigrationDirect(
+    '20251228_fix_historical_commissions.sql',
+    'Corrección de Comisiones Históricas'
+  );
+
   // Resumen
   console.log('\n' + '='.repeat(60));
   console.log('📊 RESUMEN DE MIGRACIONES');
   console.log('='.repeat(60) + '\n');
   console.log(`1. Sistema POS:      ${migration1Success ? '✅ EXITOSO' : '❌ REQUIERE EJECUCIÓN MANUAL'}`);
   console.log(`2. Roles y Permisos: ${migration2Success ? '✅ EXITOSO' : '❌ REQUIERE EJECUCIÓN MANUAL'}`);
+  console.log(`3. Comisión Hist.:   ${migration3Success ? '✅ EXITOSO' : '❌ REQUIERE EJECUCIÓN MANUAL'}`);
   console.log('');
-
-  if (!migration1Success || !migration2Success) {
-    console.log('\n📋 INSTRUCCIONES PARA EJECUCIÓN MANUAL:');
-    console.log('─'.repeat(60));
-    console.log(`\n1. Abre tu Supabase Studio:`);
-    console.log(`   ${supabaseUrl}/`);
-    console.log(`   Usuario: (tu usuario)`);
-    console.log(`   Contraseña: ${process.env.SUPABASE_STUDIO_PASSWORD || '(ver .env.local)'}`);
-    console.log('');
-    console.log('2. Ve a la sección "SQL Editor" en el menú lateral');
-    console.log('');
-    console.log('3. Crea una nueva query y ejecuta (en orden):');
-    console.log('');
-    console.log('   a) Primera migración: add_pos_system.sql');
-    console.log('      Ruta: supabase/migrations/add_pos_system.sql');
-    console.log('      Copia el contenido completo y ejecuta');
-    console.log('');
-    console.log('   b) Segunda migración: add_cajero_role.sql');
-    console.log('      Ruta: supabase/migrations/add_cajero_role.sql');
-    console.log('      Copia el contenido completo y ejecuta');
-    console.log('');
-    console.log('4. Verifica que las tablas fueron creadas:');
-    console.log('   - public.facturas');
-    console.log('   - public.configuracion_comisiones');
-    console.log('   - public.roles_permisos');
-    console.log('');
-    console.log('5. Verifica que las vistas fueron creadas:');
-    console.log('   - public.ventas_diarias_por_barbero');
-    console.log('   - public.cierre_caja_diario');
-    console.log('   - public.usuarios_con_permisos');
-    console.log('');
-    console.log('─'.repeat(60));
-    console.log('\n💡 Una vez ejecutadas manualmente, continúa con el desarrollo frontend\n');
-  } else {
-    console.log('🎉 ¡Todas las migraciones se ejecutaron correctamente!\n');
-  }
 }
 
 main();

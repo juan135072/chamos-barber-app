@@ -24,12 +24,14 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
 
+  // Wizard state
+  const [paso, setPaso] = useState(1)
+
   // Form state
   const [clienteNombre, setClienteNombre] = useState('')
   const [tipoDocumento, setTipoDocumento] = useState<'boleta' | 'factura'>('boleta')
   const [rut, setRut] = useState('')
   const [barberoId, setBarberoId] = useState('')
-  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<string[]>([])
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
   const [carrito, setCarrito] = useState<ItemCarrito[]>([])
@@ -101,7 +103,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       }
     } catch (error) {
       console.error('Error calculando comisión:', error)
-      // Usar valores por defecto
+      // Usar valores por defecto si falla el RPC
       const comisionBarbero = total * 0.5
       const ingresoCasa = total * 0.5
       setComisionInfo({
@@ -112,96 +114,44 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     }
   }
 
-  const toggleServicio = (servicioId: string) => {
-    setServiciosSeleccionados(prev => {
-      if (prev.includes(servicioId)) {
-        return prev.filter(id => id !== servicioId)
-      } else {
-        return [...prev, servicioId]
-      }
-    })
-  }
+  const agregarAlCarrito = (servicioId: string) => {
+    const servicio = servicios.find(s => s.id === servicioId)
+    if (!servicio) return
 
-  const agregarAlCarrito = () => {
-    if (serviciosSeleccionados.length === 0) {
-      alert('Selecciona al menos un servicio')
-      return
-    }
-
-    // Agregar cada servicio seleccionado al carrito
-    const nuevosItems: ItemCarrito[] = []
-    
-    serviciosSeleccionados.forEach(servicioId => {
-      const servicio = servicios.find(s => s.id === servicioId)
-      if (!servicio) return
-
-      // Verificar si ya existe en el carrito
-      const existeIndex = carrito.findIndex(item => item.servicio_id === servicio.id)
-      
+    setCarrito(prev => {
+      const existeIndex = prev.findIndex(item => item.servicio_id === servicioId)
       if (existeIndex >= 0) {
-        // Si ya existe, se incrementará después
-        return
-      } else {
-        // Agregar nuevo
-        nuevosItems.push({
-          servicio_id: servicio.id,
-          nombre: servicio.nombre,
-          precio: parseFloat(servicio.precio.toString()),
-          cantidad: 1,
-          subtotal: parseFloat(servicio.precio.toString())
-        })
+        const nuevoCarrito = [...prev]
+        nuevoCarrito[existeIndex].cantidad += 1
+        nuevoCarrito[existeIndex].subtotal = nuevoCarrito[existeIndex].precio * nuevoCarrito[existeIndex].cantidad
+        return nuevoCarrito
       }
+      return [...prev, {
+        servicio_id: servicio.id,
+        nombre: servicio.nombre,
+        precio: parseFloat(servicio.precio.toString()),
+        cantidad: 1,
+        subtotal: parseFloat(servicio.precio.toString())
+      }]
     })
-
-    if (nuevosItems.length > 0) {
-      setCarrito([...carrito, ...nuevosItems])
-    }
-
-    // Limpiar selección
-    setServiciosSeleccionados([])
   }
 
-  const limpiarSeleccion = () => {
-    setServiciosSeleccionados([])
+  const actualizarCantidad = (index: number, delta: number) => {
+    setCarrito(prev => {
+      const nuevoCarrito = [...prev]
+      const nuevaCantidad = Math.max(1, nuevoCarrito[index].cantidad + delta)
+      nuevoCarrito[index].cantidad = nuevaCantidad
+      nuevoCarrito[index].subtotal = nuevoCarrito[index].precio * nuevaCantidad
+      return nuevoCarrito
+    })
   }
 
   const removerDelCarrito = (index: number) => {
     setCarrito(carrito.filter((_, i) => i !== index))
   }
 
-  const actualizarPrecioItem = (index: number, nuevoPrecio: string) => {
-    // Permitir vacío mientras se escribe
-    if (nuevoPrecio === '') {
-      const nuevosItems = [...carrito]
-      // Guardamos temporalmente como 0 o manejamos la UI para permitir string vacío
-      // Para simplificar, si es vacío es 0 en el estado, pero el input lo controlará
-      nuevosItems[index].precio = 0
-      nuevosItems[index].subtotal = 0
-      setCarrito(nuevosItems)
-      return
-    }
-
-    const precio = parseFloat(nuevoPrecio)
-    if (isNaN(precio) || precio < 0) return
-
-    const nuevosItems = [...carrito]
-    nuevosItems[index].precio = precio
-    nuevosItems[index].subtotal = precio * nuevosItems[index].cantidad
-    setCarrito(nuevosItems)
-  }
-
   const handleCobrar = async () => {
     // Validaciones
-    if (!clienteNombre.trim()) {
-      alert('Ingresa el nombre del cliente')
-      return
-    }
-
-    if (tipoDocumento === 'factura' && !rut.trim()) {
-      alert('Para emitir factura, ingresa el RUT del cliente')
-      return
-    }
-
     if (!barberoId) {
       alert('Selecciona un barbero')
       return
@@ -209,6 +159,11 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
     if (carrito.length === 0) {
       alert('Agrega al menos un servicio')
+      return
+    }
+
+    if (tipoDocumento === 'factura' && !rut.trim()) {
+      alert('Para emitir factura, ingresa el RUT del cliente')
       return
     }
 
@@ -222,7 +177,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
         .from('facturas')
         .insert({
           barbero_id: barberoId,
-          cliente_nombre: clienteNombre.trim(),
+          cliente_nombre: clienteNombre.trim() || 'Consumidor Final',
           cliente_rut: tipoDocumento === 'factura' ? rut.trim() : null,
           tipo_documento: tipoDocumento,
           items: carrito,
@@ -230,7 +185,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
           total: total,
           metodo_pago: metodoPago,
           monto_recibido: montoRecibido ? parseFloat(montoRecibido) : total,
-          cambio: montoRecibido ? parseFloat(montoRecibido) - total : 0,
+          cambio: montoRecibido ? Math.max(0, parseFloat(montoRecibido) - total) : 0,
           porcentaje_comision: comisionInfo.porcentaje,
           comision_barbero: comisionInfo.comisionBarbero,
           ingreso_casa: comisionInfo.ingresoCasa,
@@ -241,10 +196,9 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       if (facturaError) throw facturaError
 
-      // Éxito - NO mostrar comisiones al usuario/cliente
+      // Éxito
       const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'
-      
-      // Intentar impresión directa primero (silenciosa)
+
       let impresionExitosa = false
       try {
         const datosFactura = await obtenerDatosFactura(factura.id, supabase)
@@ -256,12 +210,9 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       }
 
       if (impresionExitosa) {
-        // Si se imprimió directo, solo mostrar confirmación simple
         alert(`¡Venta registrada y ticket impreso!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}`)
       } else {
-        // Fallback clásico
-        const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nCliente: ${clienteNombre}${tipoDocumento === 'factura' ? `\nRUT: ${rut}` : ''}\nTotal: $${total.toFixed(2)}\nMétodo de pago: ${metodoPago}\n\n¿Deseas imprimir la factura?`)
-
+        const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}\n\n¿Deseas imprimir la factura?`)
         if (confirmar) {
           const datosFactura = await obtenerDatosFactura(factura.id, supabase)
           if (datosFactura) {
@@ -270,23 +221,20 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
         }
       }
 
-      // Limpiar formulario
+      // Limpiar y resetear
       setClienteNombre('')
       setTipoDocumento('boleta')
       setRut('')
       setBarberoId('')
-      setServiciosSeleccionados([])
+      setCarrito([])
       setMetodoPago('efectivo')
       setMontoRecibido('')
-      setCarrito([])
-      setComisionInfo({ porcentaje: 50, comisionBarbero: 0, ingresoCasa: 0 })
-
-      // Notificar al componente padre
+      setPaso(1)
       onVentaCreada()
 
     } catch (error) {
       console.error('Error al crear venta:', error)
-      alert('Error al registrar la venta. Intenta nuevamente.')
+      alert('Error al registrar la venta.')
     } finally {
       setGuardando(false)
     }
@@ -300,14 +248,12 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
   }
 
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
-  const cambio = 0 // Eliminado cálculo de cambio en UI
 
   if (cargando) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/4"></div>
-          <div className="h-10 bg-gray-200 rounded"></div>
           <div className="h-10 bg-gray-200 rounded"></div>
         </div>
       </div>
@@ -316,424 +262,363 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
   return (
     <div className="rounded-lg p-6" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-      <h2 className="text-2xl font-bold mb-6" style={{ color: 'var(--accent-color)' }}>
-        <i className="fas fa-cash-register mr-2"></i>
-        Registrar Venta
-      </h2>
-
-      <div className="space-y-4">
-        {/* Cliente */}
-        <div>
-          <label className="block text-sm font-medium mb-2 form-label">
-            <i className="fas fa-user mr-2"></i>
-            Nombre del Cliente *
-          </label>
-          <input
-            type="text"
-            value={clienteNombre}
-            onChange={(e) => setClienteNombre(e.target.value)}
-            placeholder="Ej: Juan Pérez"
-            className="form-input"
-          />
+      {/* Stepper Header */}
+      <div className="flex items-center justify-between mb-8 pb-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
+        <div className="flex items-center space-x-4">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${paso >= 1 ? 'scale-110 shadow-lg' : ''}`}
+            style={{ backgroundColor: paso >= 1 ? 'var(--accent-color)' : '#374151', color: paso >= 1 ? '#1a1a1a' : '#9ca3af' }}>1</div>
+          <span className={`font-medium ${paso === 1 ? 'text-accent' : 'text-gray-400'}`} style={{ color: paso === 1 ? 'var(--accent-color)' : '#9ca3af' }}>General</span>
         </div>
-
-        {/* Tipo de Documento */}
-        <div>
-          <label className="block text-sm font-medium mb-2 form-label">
-            <i className="fas fa-file-invoice mr-2"></i>
-            Tipo de Documento *
-          </label>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() => setTipoDocumento('boleta')}
-              className="p-3 rounded-lg font-medium transition-all border-2"
-              style={{
-                backgroundColor: tipoDocumento === 'boleta' ? 'var(--accent-color)' : 'var(--bg-primary)',
-                borderColor: tipoDocumento === 'boleta' ? 'var(--accent-color)' : 'var(--border-color)',
-                color: tipoDocumento === 'boleta' ? '#1a1a1a' : 'var(--text-primary)'
-              }}
-            >
-              <i className="fas fa-receipt mr-2"></i>
-              Boleta
-            </button>
-            <button
-              type="button"
-              onClick={() => setTipoDocumento('factura')}
-              className="p-3 rounded-lg font-medium transition-all border-2"
-              style={{
-                backgroundColor: tipoDocumento === 'factura' ? 'var(--accent-color)' : 'var(--bg-primary)',
-                borderColor: tipoDocumento === 'factura' ? 'var(--accent-color)' : 'var(--border-color)',
-                color: tipoDocumento === 'factura' ? '#1a1a1a' : 'var(--text-primary)'
-              }}
-            >
-              <i className="fas fa-file-invoice-dollar mr-2"></i>
-              Factura
-            </button>
-          </div>
+        <div className="h-px flex-1 mx-4 bg-gray-700"></div>
+        <div className="flex items-center space-x-4">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${paso >= 2 ? 'scale-110 shadow-lg' : ''}`}
+            style={{ backgroundColor: paso >= 2 ? 'var(--accent-color)' : '#374151', color: paso >= 2 ? '#1a1a1a' : '#9ca3af' }}>2</div>
+          <span className={`font-medium ${paso === 2 ? 'text-accent' : 'text-gray-400'}`} style={{ color: paso === 2 ? 'var(--accent-color)' : '#9ca3af' }}>Servicios</span>
         </div>
+        <div className="h-px flex-1 mx-4 bg-gray-700"></div>
+        <div className="flex items-center space-x-4">
+          <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${paso >= 3 ? 'scale-110 shadow-lg' : ''}`}
+            style={{ backgroundColor: paso >= 3 ? 'var(--accent-color)' : '#374151', color: paso >= 3 ? '#1a1a1a' : '#9ca3af' }}>3</div>
+          <span className={`font-medium ${paso === 3 ? 'text-accent' : 'text-gray-400'}`} style={{ color: paso === 3 ? 'var(--accent-color)' : '#9ca3af' }}>Pago</span>
+        </div>
+      </div>
 
-        {/* RUT (solo si es factura) */}
-        {tipoDocumento === 'factura' && (
-          <div>
-            <label className="block text-sm font-medium mb-2 form-label">
-              <i className="fas fa-id-card mr-2"></i>
-              RUT del Cliente *
-            </label>
-            <input
-              type="text"
-              value={rut}
-              onChange={(e) => setRut(e.target.value)}
-              placeholder="Ej: 12.345.678-9"
-              className="form-input"
-            />
-            <p className="mt-1 text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-              <i className="fas fa-info-circle mr-1"></i>
-              Requerido para emitir factura tributaria
-            </p>
+      <div className="space-y-6">
+        {/* PASO 1: DATOS GENERALES */}
+        {paso === 1 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <h3 className="text-xl font-semibold mb-6 flex items-center" style={{ color: 'var(--text-primary)' }}>
+              <i className="fas fa-info-circle mr-3 text-accent" style={{ color: 'var(--accent-color)' }}></i>
+              Información de la Venta
+            </h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-medium form-label">Barbero *</label>
+                <select
+                  value={barberoId}
+                  onChange={(e) => {
+                    setBarberoId(e.target.value)
+                    if (e.target.value) {
+                      // Auto-advance with a slight delay for better UX
+                      setTimeout(() => setPaso(2), 400)
+                    }
+                  }}
+                  className="form-select h-14 text-lg"
+                >
+                  <option value="">Seleccionar barbero...</option>
+                  {barberos.map((barbero) => (
+                    <option key={barbero.id} value={barbero.id}>
+                      {barbero.nombre} {barbero.apellido}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-sm font-medium form-label">Nombre del Cliente</label>
+                <input
+                  type="text"
+                  value={clienteNombre}
+                  onChange={(e) => setClienteNombre(e.target.value)}
+                  placeholder="Ej: Juan Pérez"
+                  className="form-input h-14 text-lg"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <label className="block text-sm font-medium form-label">Tipo de Documento</label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setTipoDocumento('boleta')}
+                  className="p-5 rounded-2xl font-bold transition-all border-2 text-xl flex items-center justify-center gap-3"
+                  style={{
+                    backgroundColor: tipoDocumento === 'boleta' ? 'var(--accent-color)' : 'var(--bg-primary)',
+                    borderColor: tipoDocumento === 'boleta' ? 'var(--accent-color)' : 'var(--border-color)',
+                    color: tipoDocumento === 'boleta' ? '#1a1a1a' : 'var(--text-primary)'
+                  }}
+                >
+                  <i className="fas fa-receipt"></i> Boleta
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTipoDocumento('factura')}
+                  className="p-5 rounded-2xl font-bold transition-all border-2 text-xl flex items-center justify-center gap-3"
+                  style={{
+                    backgroundColor: tipoDocumento === 'factura' ? 'var(--accent-color)' : 'var(--bg-primary)',
+                    borderColor: tipoDocumento === 'factura' ? 'var(--accent-color)' : 'var(--border-color)',
+                    color: tipoDocumento === 'factura' ? '#1a1a1a' : 'var(--text-primary)'
+                  }}
+                >
+                  <i className="fas fa-file-invoice-dollar"></i> Factura
+                </button>
+              </div>
+            </div>
+
+            {tipoDocumento === 'factura' && (
+              <div className="animate-in slide-in-from-top-2 mb-6">
+                <label className="block text-sm font-medium mb-2 form-label">RUT del Cliente *</label>
+                <input
+                  type="text"
+                  value={rut}
+                  onChange={(e) => setRut(e.target.value)}
+                  placeholder="Ej: 12.345.678-9"
+                  className="form-input h-14 text-lg"
+                />
+              </div>
+            )}
+
+            <div className="pt-4">
+              <button
+                onClick={() => setPaso(2)}
+                disabled={!barberoId}
+                className="w-full btn btn-primary py-5 text-xl font-black rounded-2xl shadow-lg transition-transform active:scale-95"
+                style={{ opacity: !barberoId ? 0.5 : 1 }}
+              >
+                CONTINUAR A SERVICIOS <i className="fas fa-arrow-right ml-2"></i>
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Barbero */}
-        <div>
-          <label className="block text-sm font-medium mb-2 form-label">
-            <i className="fas fa-cut mr-2"></i>
-            Barbero *
-          </label>
-          <select
-            value={barberoId}
-            onChange={(e) => setBarberoId(e.target.value)}
-            className="form-select"
-          >
-            <option value="">Seleccionar barbero...</option>
-            {barberos.map((barbero) => (
-              <option key={barbero.id} value={barbero.id}>
-                {barbero.nombre} {barbero.apellido}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* PASO 2: SERVICIOS */}
+        {paso === 2 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <i className="fas fa-cut mr-3 text-accent" style={{ color: 'var(--accent-color)' }}></i>
+                Seleccionar Servicios
+              </h3>
+              <button
+                onClick={() => setPaso(1)}
+                className="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 transition-colors border border-gray-700"
+              >
+                <i className="fas fa-arrow-left mr-2"></i>Atrás
+              </button>
+            </div>
 
-        {/* Seleccionar Servicios */}
-        <div>
-          <label className="block text-sm font-medium mb-3 form-label">
-            <i className="fas fa-shopping-cart mr-2"></i>
-            Seleccionar Servicios {serviciosSeleccionados.length > 0 && `(${serviciosSeleccionados.length})`}
-          </label>
-          
-          {/* Grid de servicios */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 mb-3" style={{ maxHeight: '400px', overflowY: 'auto' }}>
-            {servicios.map((servicio) => {
-              const isSelected = serviciosSeleccionados.includes(servicio.id)
-              return (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '10px' }}>
+              {servicios.map((servicio) => (
                 <div
                   key={servicio.id}
-                  onClick={() => toggleServicio(servicio.id)}
-                  className="relative p-4 rounded-lg cursor-pointer transition-all border-2"
+                  onClick={() => agregarAlCarrito(servicio.id)}
+                  className="p-4 rounded-2xl cursor-pointer transition-all border-2 hover:border-accent group relative overflow-hidden"
                   style={{
-                    backgroundColor: isSelected ? 'rgba(212, 175, 55, 0.1)' : 'var(--bg-primary)',
-                    borderColor: isSelected ? 'var(--accent-color)' : 'var(--border-color)',
-                    boxShadow: isSelected ? '0 0 10px rgba(212, 175, 55, 0.3)' : 'none'
+                    backgroundColor: 'var(--bg-primary)',
+                    borderColor: 'var(--border-color)'
                   }}
                 >
-                  {/* Checkbox visual */}
-                  <div 
-                    className="absolute top-2 right-2"
-                    style={{
-                      width: '24px',
-                      height: '24px',
-                      borderRadius: '50%',
-                      backgroundColor: isSelected ? 'var(--accent-color)' : 'transparent',
-                      border: `2px solid ${isSelected ? 'var(--accent-color)' : 'var(--border-color)'}`,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      transition: 'all 0.3s ease'
-                    }}
-                  >
-                    {isSelected && (
-                      <i className="fas fa-check" style={{ color: '#1a1a1a', fontSize: '0.75rem' }}></i>
-                    )}
-                  </div>
-
-                  <div className="flex gap-3 pr-8">
-                    {/* Imagen del servicio */}
+                  <div className="flex gap-4">
                     {servicio.imagen_url && (
-                      <div style={{
-                        flexShrink: 0,
-                        width: '60px',
-                        height: '60px',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        border: '2px solid var(--border-color)'
-                      }}>
-                        <img 
-                          src={servicio.imagen_url}
-                          alt={servicio.nombre}
-                          style={{
-                            width: '100%',
-                            height: '100%',
-                            objectFit: 'cover'
-                          }}
-                          onError={(e) => {
-                            // Fallback si la imagen no carga
-                            e.currentTarget.style.display = 'none'
-                          }}
-                        />
-                      </div>
+                      <img
+                        src={servicio.imagen_url}
+                        className="w-20 h-20 rounded-xl object-cover border-2 border-gray-800 group-hover:border-accent transition-colors"
+                        alt={servicio.nombre}
+                      />
                     )}
-
-                    {/* Contenido */}
-                    <div className="flex-1">
-                      <h4 className="font-semibold mb-1" style={{ color: 'var(--text-primary)' }}>
-                        {servicio.nombre}
-                      </h4>
-                      {servicio.categoria && (
-                        <p className="text-xs mb-2" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
-                          {servicio.categoria}
-                        </p>
-                      )}
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold" style={{ color: 'var(--accent-color)' }}>
+                    <div className="flex-1 flex flex-col justify-between">
+                      <h4 className="font-bold text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>{servicio.nombre}</h4>
+                      <div className="flex justify-between items-center mt-2">
+                        <span className="font-black text-xl text-accent" style={{ color: 'var(--accent-color)' }}>
                           ${servicio.precio.toLocaleString()}
                         </span>
-                        <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                          {servicio.duracion_minutos} min
+                        <span className="text-xs font-bold uppercase tracking-wider bg-gray-900 border border-gray-800 px-2 py-1 rounded text-gray-500">
+                          {servicio.duracion_minutos} MIN
                         </span>
                       </div>
                     </div>
                   </div>
-                </div>
-              )
-            })}
-          </div>
-
-            {/* Botones de acción */}
-            <div className="flex gap-2">
-              <button
-                onClick={agregarAlCarrito}
-                disabled={serviciosSeleccionados.length === 0}
-                className="flex-1 btn btn-primary"
-                style={{
-                  opacity: serviciosSeleccionados.length === 0 ? 0.5 : 1,
-                  cursor: serviciosSeleccionados.length === 0 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <i className="fas fa-plus mr-2"></i>
-                Agregar al Carrito {serviciosSeleccionados.length > 0 && `(${serviciosSeleccionados.length})`}
-              </button>
-              
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    const controller = new AbortController()
-                    const timeoutId = setTimeout(() => controller.abort(), 2000)
-                    
-                    const response = await fetch('http://localhost:3001/open-drawer', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      signal: controller.signal
-                    })
-                    clearTimeout(timeoutId)
-                    
-                    if (response.ok) {
-                      alert('✅ Cajón abierto')
-                    } else {
-                      throw new Error('Error al abrir cajón')
-                    }
-                  } catch (e) {
-                    alert('⚠️ No se pudo conectar con la impresora local para abrir el cajón.\nAsegúrate de ejecutar "run.bat" en la computadora de caja.')
-                  }
-                }}
-                className="px-4 py-2 rounded font-medium transition-all"
-                style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  border: '1px solid var(--accent-color)',
-                  color: 'var(--accent-color)'
-                }}
-                title="Abrir cajón de dinero (Requiere servicio local)"
-              >
-                <i className="fas fa-inbox mr-2"></i>
-                Abrir Caja
-              </button>
-
-              {serviciosSeleccionados.length > 0 && (
-                <button
-                  onClick={limpiarSeleccion}
-                  className="btn btn-secondary"
-                >
-                  <i className="fas fa-times mr-2"></i>
-                  Limpiar
-                </button>
-              )}
-            </div>
-        </div>
-
-        {/* Carrito */}
-        {carrito.length > 0 && (
-          <div className="rounded-lg p-4" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-            <h3 className="font-semibold mb-3" style={{ color: 'var(--accent-color)' }}>
-              <i className="fas fa-list mr-2"></i>
-              Servicios:
-            </h3>
-            <div className="space-y-2">
-              {carrito.map((item, index) => (
-                <div key={index} className="flex flex-col sm:flex-row items-center justify-between p-3 rounded gap-3" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                  <div className="flex-1 w-full sm:w-auto">
-                    <div className="font-medium" style={{ color: 'var(--text-primary)' }}>{item.nombre}</div>
-                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                       Cantidad: {item.cantidad}
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
-                    <div className="flex flex-col items-end">
-                      <label className="text-xs mb-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                        Precio Editable:
-                      </label>
-                      <div className="relative">
-                        <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="100"
-                          value={item.precio || ''}
-                          onChange={(e) => actualizarPrecioItem(index, e.target.value)}
-                          className="w-32 px-2 pl-6 py-1 rounded border focus:ring-2 focus:ring-yellow-500 outline-none transition-all font-bold text-right"
-                          style={{ 
-                            backgroundColor: 'var(--bg-primary)', 
-                            color: 'var(--text-primary)',
-                            borderColor: 'var(--border-color)' 
-                          }}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 ml-2">
-                        <span className="font-bold hidden sm:block" style={{ color: 'var(--text-primary)' }}>
-                        = {formatCurrency(item.subtotal)}
-                        </span>
-                        <button
-                        onClick={() => removerDelCarrito(index)}
-                        className="hover:opacity-70 transition-opacity p-2 rounded-full hover:bg-red-50"
-                        style={{ color: '#ef4444' }}
-                        title="Eliminar servicio"
-                        >
-                        <i className="fas fa-trash"></i>
-                        </button>
+                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-accent text-dark rounded-full w-8 h-8 flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)', color: '#1a1a1a' }}>
+                      <i className="fas fa-plus"></i>
                     </div>
                   </div>
                 </div>
               ))}
-
-              {/* Total */}
-              <div className="pt-3 flex items-center justify-between text-lg" style={{ borderTop: '2px solid var(--border-color)' }}>
-                <span className="font-bold" style={{ color: 'var(--text-primary)' }}>TOTAL:</span>
-                <span className="font-bold text-2xl" style={{ color: 'var(--accent-color)' }}>
-                  {formatCurrency(total)}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Método de Pago */}
-        {carrito.length > 0 && (
-          <>
-            <div>
-              <label className="block text-sm font-medium mb-2 form-label">
-                <i className="fas fa-money-bill-wave mr-2"></i>
-                Método de Pago
-              </label>
-              <select
-                value={metodoPago}
-                onChange={(e) => setMetodoPago(e.target.value)}
-                className="form-select"
-              >
-                <option value="efectivo">💵 Efectivo</option>
-                <option value="tarjeta">💳 Tarjeta</option>
-                <option value="transferencia">📱 Transferencia</option>
-                <option value="zelle">💰 Zelle</option>
-                <option value="binance">₿ Binance</option>
-              </select>
             </div>
 
-            {/* Monto Recibido (solo para efectivo) */}
-            {metodoPago === 'efectivo' && (
-              <div>
-                <label className="block text-sm font-medium mb-2 form-label">
-                  <i className="fas fa-dollar-sign mr-2"></i>
-                  Monto Recibido
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={montoRecibido}
-                  onChange={(e) => setMontoRecibido(e.target.value)}
-                  placeholder={`Mínimo: $${total.toFixed(2)}`}
-                  className="form-input"
-                />
-                {cambio > 0 && (
-                  <p className="mt-2 text-sm font-semibold" style={{ color: 'var(--accent-color)' }}>
-                    <i className="fas fa-exchange-alt mr-2"></i>
-                    Cambio: {formatCurrency(cambio)}
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Comisiones */}
-            {barberoId && (
-              <div className="rounded-lg p-4" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', border: '1px solid var(--accent-color)' }}>
-                <h3 className="font-semibold mb-2" style={{ color: 'var(--accent-color)' }}>
-                  <i className="fas fa-chart-pie mr-2"></i>
-                  Comisión ({comisionInfo.porcentaje}%):
-                </h3>
-                <div className="space-y-1 text-sm">
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-primary)', opacity: 0.8 }}>• Barbero:</span>
-                    <span className="font-semibold" style={{ color: 'var(--accent-color)' }}>
-                      {formatCurrency(comisionInfo.comisionBarbero)}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span style={{ color: 'var(--text-primary)', opacity: 0.8 }}>• Casa:</span>
-                    <span className="font-semibold" style={{ color: 'var(--accent-color)' }}>
-                      {formatCurrency(comisionInfo.ingresoCasa)}
-                    </span>
+            {carrito.length > 0 && (
+              <div className="animate-in slide-in-from-bottom-6 mt-6">
+                <div className="bg-gray-900 rounded-3xl p-6 shadow-2xl border-2 border-accent/20" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'rgba(212, 175, 55, 0.2)' }}>
+                  <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-4">
+                      <span className="text-gray-400 font-bold uppercase tracking-widest text-sm">Resumen:</span>
+                      <div className="flex items-center bg-dark/50 px-4 py-2 rounded-full border border-gray-800">
+                        <span className="text-accent font-black mr-2" style={{ color: 'var(--accent-color)' }}>{carrito.reduce((a, b) => a + b.cantidad, 0)}</span>
+                        <span className="text-xs text-gray-400 font-bold">Items</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8">
+                      <div className="text-right">
+                        <p className="text-[10px] text-gray-500 font-black uppercase tracking-tighter">Total Actual</p>
+                        <p className="text-3xl font-black text-accent leading-none" style={{ color: 'var(--accent-color)' }}>{formatCurrency(total)}</p>
+                      </div>
+                      <button
+                        onClick={() => setPaso(3)}
+                        className="btn btn-primary px-10 py-5 text-xl font-black rounded-2xl shadow-xl hover:scale-105 active:scale-95 transition-all"
+                      >
+                        PAGAR AHORA <i className="fas fa-credit-card ml-2"></i>
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
+          </div>
+        )}
 
-            {/* Botón Cobrar */}
-            <button
-              onClick={handleCobrar}
-              disabled={guardando}
-              className="w-full px-6 py-4 text-lg font-bold rounded-lg transition-all"
-              style={{
-                backgroundColor: 'var(--accent-color)',
-                color: 'var(--bg-primary)',
-                cursor: guardando ? 'not-allowed' : 'pointer',
-                opacity: guardando ? 0.6 : 1
-              }}
-              onMouseEnter={(e) => !guardando && (e.currentTarget.style.backgroundColor = '#B8941F')}
-              onMouseLeave={(e) => !guardando && (e.currentTarget.style.backgroundColor = 'var(--accent-color)')}
-            >
-              {guardando ? (
-                <span className="flex items-center justify-center">
-                  <div className="spinner mr-3"></div>
-                  Procesando...
-                </span>
-              ) : (
-                <>
-                  <i className="fas fa-cash-register mr-2"></i>
-                  Cobrar e Imprimir
-                </>
-              )}
-            </button>
-          </>
+        {/* PASO 3: PAGO */}
+        {paso === 3 && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
+                <i className="fas fa-wallet mr-3 text-accent" style={{ color: 'var(--accent-color)' }}></i>
+                Finalizar Venta
+              </h3>
+              <button
+                onClick={() => setPaso(2)}
+                className="px-4 py-2 rounded-xl bg-gray-800 text-gray-300 hover:bg-gray-700 border border-gray-700 transition-colors"
+              >
+                <i className="fas fa-edit mr-2"></i>Editar Servicios
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              {/* Resumen Detallado */}
+              <div className="bg-gray-900 rounded-3xl p-8 border-2" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'var(--border-color)' }}>
+                <h4 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-6">Resumen de Cuenta</h4>
+
+                <div className="space-y-6 mb-8 max-h-[300px] overflow-y-auto pr-4">
+                  {carrito.map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-start group">
+                      <div className="flex items-start gap-4">
+                        <div className="flex flex-col items-center gap-1 mt-1">
+                          <button onClick={() => actualizarCantidad(idx, 1)} className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-accent hover:text-dark transition-colors flex items-center justify-center shadow-sm">
+                            <i className="fas fa-plus text-[10px]"></i>
+                          </button>
+                          <span className="font-black text-lg w-8 text-center">{item.cantidad}</span>
+                          <button onClick={() => actualizarCantidad(idx, -1)} className="w-8 h-8 rounded-lg bg-gray-800 hover:bg-red-500 transition-colors flex items-center justify-center shadow-sm">
+                            <i className="fas fa-minus text-[10px]"></i>
+                          </button>
+                        </div>
+                        <div>
+                          <p className="font-bold text-lg leading-tight">{item.nombre}</p>
+                          <p className="text-xs text-gray-500 mt-1">{formatCurrency(item.precio)} c/u</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                        <span className="font-black text-xl">{formatCurrency(item.subtotal)}</span>
+                        <button onClick={() => removerDelCarrito(idx)} className="text-[10px] font-black text-red-500 mt-2 hover:underline opacity-0 group-hover:opacity-100 transition-opacity uppercase">BORRAR</button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="pt-6 border-t-4 border-dashed border-gray-800">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-gray-500 font-bold italic">Barbero:</span>
+                    <span className="font-bold text-accent" style={{ color: 'var(--accent-color)' }}>
+                      {barberos.find(b => b.id === barberoId)?.nombre} {barberos.find(b => b.id === barberoId)?.apellido}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center mb-6">
+                    <span className="text-gray-500 font-bold italic">Cliente:</span>
+                    <span className="font-bold">{clienteNombre || 'Consumidor Final'}</span>
+                  </div>
+                  <div className="flex justify-between items-center bg-accent/5 p-6 rounded-2xl border border-accent/20">
+                    <span className="text-2xl font-black">TOTAL</span>
+                    <span className="text-5xl font-black text-accent" style={{ color: 'var(--accent-color)' }}>{formatCurrency(total)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Controles de Pago */}
+              <div className="space-y-6 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <label className="text-sm font-black text-gray-500 uppercase tracking-widest block">Método de Pago</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {['efectivo', 'tarjeta', 'transferencia', 'zelle', 'binance'].map(metodo => (
+                      <button
+                        key={metodo}
+                        onClick={() => setMetodoPago(metodo)}
+                        className={`p-4 rounded-2xl border-2 transition-all font-black capitalize flex items-center gap-3 text-lg ${metodoPago === metodo ? 'scale-[1.02] shadow-xl ring-2 ring-accent/50' : 'opacity-60 grayscale hover:grayscale-0'}`}
+                        style={{
+                          borderColor: metodoPago === metodo ? 'var(--accent-color)' : 'var(--border-color)',
+                          color: metodoPago === metodo ? 'var(--accent-color)' : 'var(--text-primary)',
+                          backgroundColor: metodoPago === metodo ? 'rgba(212, 175, 55, 0.1)' : 'var(--bg-primary)'
+                        }}
+                      >
+                        <span className="text-2xl">
+                          {metodo === 'efectivo' && '💵'}
+                          {metodo === 'tarjeta' && '💳'}
+                          {metodo === 'transferencia' && '📱'}
+                          {metodo === 'zelle' && '💰'}
+                          {metodo === 'binance' && '₿'}
+                        </span>
+                        {metodo}
+                      </button>
+                    ))}
+                  </div>
+
+                  {metodoPago === 'efectivo' && (
+                    <div className="space-y-3 animate-in fade-in zoom-in-95 mt-6">
+                      <label className="text-sm font-black text-gray-500 uppercase tracking-widest block">Monto Recibido ($)</label>
+                      <input
+                        type="number"
+                        value={montoRecibido}
+                        onChange={(e) => setMontoRecibido(e.target.value)}
+                        className="form-input h-20 text-4xl font-black text-center rounded-3xl border-2 border-accent/30 focus:border-accent transition-colors"
+                        placeholder="0.00"
+                        autoFocus
+                      />
+                      {parseFloat(montoRecibido) > total && (
+                        <div className="p-6 rounded-3xl bg-green-950/20 border-2 border-green-500/30 flex flex-col items-center">
+                          <span className="text-gray-400 font-bold text-[10px] uppercase mb-1 tracking-widest">Cambio a devolver:</span>
+                          <span className="text-5xl font-black text-green-400 leading-none">
+                            {formatCurrency(parseFloat(montoRecibido) - total)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-8 h-full flex flex-col justify-end">
+                  <button
+                    onClick={handleCobrar}
+                    disabled={guardando}
+                    className="w-full py-8 rounded-3xl text-3xl font-black shadow-2xl transition-all active:scale-95 group relative overflow-hidden"
+                    style={{
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#1a1a1a',
+                      opacity: guardando ? 0.6 : 1,
+                    }}
+                  >
+                    <span className="relative z-10 flex items-center justify-center gap-4">
+                      {guardando ? (
+                        <>
+                          <div className="w-8 h-8 border-4 border-dark/30 border-t-dark rounded-full animate-spin"></div>
+                          PROCESANDO...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-check-circle"></i>
+                          CONFIRMAR COBRO
+                        </>
+                      )}
+                    </span>
+                    <div className="absolute inset-0 bg-white/10 translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  </button>
+                  <p className="text-center text-[10px] text-gray-500 mt-6 font-bold uppercase tracking-widest flex items-center justify-center gap-2">
+                    <i className="fas fa-print text-accent" style={{ color: 'var(--accent-color)' }}></i>
+                    Ticket térmico automático
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
