@@ -26,6 +26,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
   // Wizard state
   const [paso, setPaso] = useState(1)
+  const [mostrarDetalleCarrito, setMostrarDetalleCarrito] = useState(false)
 
   // Form state
   const [clienteNombre, setClienteNombre] = useState('')
@@ -440,14 +441,54 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
             </div>
 
             {carrito.length > 0 && (
-              <div className="animate-in slide-in-from-bottom-6 mt-6">
+              <div className="animate-in slide-in-from-bottom-6 mt-6 relative">
+                {/* Cart Detail Overlay */}
+                {mostrarDetalleCarrito && (
+                  <div className="absolute bottom-full left-0 right-0 mb-4 bg-gray-900 rounded-3xl p-6 shadow-2xl border-2 border-accent/20 animate-in slide-in-from-bottom-4" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'rgba(212, 175, 55, 0.3)' }}>
+                    <div className="flex justify-between items-center mb-4 pb-2 border-b border-gray-800">
+                      <h4 className="text-sm font-black text-gray-400 uppercase tracking-widest">Detalle del Carrito</h4>
+                      <button onClick={() => setMostrarDetalleCarrito(false)} className="text-gray-500 hover:text-white">
+                        <i className="fas fa-times"></i>
+                      </button>
+                    </div>
+                    <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2">
+                      {carrito.map((item, idx) => (
+                        <div key={idx} className="flex justify-between items-center bg-dark/30 p-3 rounded-xl border border-gray-800/50">
+                          <div className="flex flex-col">
+                            <span className="font-bold text-sm leading-tight">{item.nombre}</span>
+                            <span className="text-[10px] text-gray-500 mt-1">{formatCurrency(item.precio)} c/u</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center bg-gray-800 rounded-lg p-1">
+                              <button onClick={(e) => { e.stopPropagation(); actualizarCantidad(idx, -1) }} className="w-6 h-6 rounded flex items-center justify-center hover:bg-red-500/20 text-gray-400 hover:text-red-500">
+                                <i className="fas fa-minus text-[10px]"></i>
+                              </button>
+                              <span className="font-black text-xs w-6 text-center">{item.cantidad}</span>
+                              <button onClick={(e) => { e.stopPropagation(); actualizarCantidad(idx, 1) }} className="w-6 h-6 rounded flex items-center justify-center hover:bg-accent/20 text-gray-400 hover:text-accent">
+                                <i className="fas fa-plus text-[10px]"></i>
+                              </button>
+                            </div>
+                            <button onClick={(e) => { e.stopPropagation(); removerDelCarrito(idx) }} className="text-gray-600 hover:text-red-500 transition-colors">
+                              <i className="fas fa-trash-alt text-xs"></i>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="bg-gray-900 rounded-3xl p-6 shadow-2xl border-2 border-accent/20" style={{ backgroundColor: 'var(--bg-primary)', borderColor: 'rgba(212, 175, 55, 0.2)' }}>
                   <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex items-center gap-4">
-                      <span className="text-gray-400 font-bold uppercase tracking-widest text-sm">Resumen:</span>
-                      <div className="flex items-center bg-dark/50 px-4 py-2 rounded-full border border-gray-800">
+                    <div
+                      className="flex items-center gap-4 cursor-pointer group"
+                      onClick={() => setMostrarDetalleCarrito(!mostrarDetalleCarrito)}
+                    >
+                      <span className="text-gray-400 font-bold uppercase tracking-widest text-sm group-hover:text-accent transition-colors">Resumen:</span>
+                      <div className="flex items-center bg-dark/50 px-4 py-2 rounded-full border border-gray-800 group-hover:border-accent transition-colors">
                         <span className="text-accent font-black mr-2" style={{ color: 'var(--accent-color)' }}>{carrito.reduce((a, b) => a + b.cantidad, 0)}</span>
                         <span className="text-xs text-gray-400 font-bold">Items</span>
+                        <i className={`fas fa-chevron-${mostrarDetalleCarrito ? 'down' : 'up'} ml-2 text-[10px] text-gray-600 group-hover:text-accent`}></i>
                       </div>
                     </div>
                     <div className="flex items-center gap-8">
