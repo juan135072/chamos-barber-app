@@ -846,5 +846,48 @@ export const chamosSupabase = {
 
     if (error) throw error
     return data
+  },
+
+  // Extensiones para POS y Cierre de Caja
+  getCitasHoyPendientes: async () => {
+    const hoy = new Date().toISOString().split('T')[0]
+    const { data, error } = await supabase
+      .from('citas')
+      .select(`
+        *,
+        barberos (nombre, apellido),
+        servicios (nombre, precio, duracion_minutos)
+      `)
+      .eq('fecha', hoy)
+      .eq('estado_pago', 'pendiente')
+      .in('estado', ['confirmada', 'completada'])
+      .order('hora')
+
+    if (error) throw error
+    return data || []
+  },
+
+  getFacturasSinCierre: async (fechaInicio: string, fechaFin: string) => {
+    const { data, error } = await supabase
+      .from('facturas')
+      .select('*')
+      .gte('created_at', `${fechaInicio}T00:00:00`)
+      .lte('created_at', `${fechaFin}T23:59:59`)
+      .is('cierre_caja_id', null)
+      .eq('anulada', false)
+
+    if (error) throw error
+    return data || []
+  },
+
+  vincularFacturasACierre: async (facturaIds: string[], cierreCajaId: string) => {
+    const { data, error } = await supabase
+      .from('facturas')
+      .update({ cierre_caja_id: cierreCajaId })
+      .in('id', facturaIds)
+      .select()
+
+    if (error) throw error
+    return data
   }
 }

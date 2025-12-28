@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase, UsuarioConPermisos, Database } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
+import { chamosSupabase } from '@/lib/supabase-helpers'
+import { Clock, User, Scissors } from 'lucide-react'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -21,6 +23,7 @@ interface ItemCarrito {
 export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) {
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [servicios, setServicios] = useState<Servicio[]>([])
+  const [citasHoy, setCitasHoy] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
   const [guardando, setGuardando] = useState(false)
 
@@ -36,6 +39,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
   const [carrito, setCarrito] = useState<ItemCarrito[]>([])
+  const [citaId, setCitaId] = useState<string | null>(null)
   const [comisionInfo, setComisionInfo] = useState({ porcentaje: 50, comisionBarbero: 0, ingresoCasa: 0 })
 
   useEffect(() => {
@@ -72,6 +76,10 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
 
       setBarberos(barberosData || [])
       setServicios(serviciosData || [])
+
+      // Cargar citas de hoy pendientes
+      const citasData = await chamosSupabase.getCitasHoyPendientes()
+      setCitasHoy(citasData || [])
     } catch (error) {
       console.error('Error cargando datos:', error)
       alert('Error al cargar barberos y servicios')
@@ -151,6 +159,29 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     setCarrito(carrito.filter((_, i) => i !== index))
   }
 
+  const handleSeleccionarCita = (cita: any) => {
+    setBarberoId(cita.barbero_id)
+    setClienteNombre(cita.cliente_nombre || '')
+    setCitaId(cita.id)
+
+    // Si la cita tiene un servicio, agregarlo al carrito
+    if (cita.servicio_id) {
+      const servicio = servicios.find(s => s.id === cita.servicio_id)
+      if (servicio) {
+        setCarrito([{
+          servicio_id: servicio.id,
+          nombre: servicio.nombre,
+          precio: parseFloat(servicio.precio.toString()),
+          cantidad: 1,
+          subtotal: parseFloat(servicio.precio.toString())
+        }])
+      }
+    }
+
+    // Avanzar a servicios pero con la cita linkeada
+    setPaso(2)
+  }
+
   const handleCobrar = async () => {
     // Validaciones
     if (!barberoId) {
@@ -190,6 +221,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
           porcentaje_comision: comisionInfo.porcentaje,
           comision_barbero: comisionInfo.comisionBarbero,
           ingreso_casa: comisionInfo.ingresoCasa,
+          cita_id: citaId,
           created_by: usuario.id
         })
         .select()
@@ -230,8 +262,13 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
       setCarrito([])
       setMetodoPago('efectivo')
       setMontoRecibido('')
+      setCitaId(null)
       setPaso(1)
       onVentaCreada()
+
+      // Recargar citas hoy (por si hay más)
+      const nuevasCitas = await chamosSupabase.getCitasHoyPendientes()
+      setCitasHoy(nuevasCitas || [])
 
     } catch (error) {
       console.error('Error al crear venta:', error)
@@ -327,6 +364,44 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
                 />
               </div>
             </div>
+
+            {/* SECCIÓN DE CITAS PENDIENTES */}
+            {citasHoy.length > 0 && (
+              <div className="mb-8">
+                <h4 className="text-sm font-black text-gray-500 uppercase tracking-widest mb-4 flex items-center">
+                  <Clock className="w-4 h-4 mr-2 text-accent" style={{ color: 'var(--accent-color)' }} />
+                  Citas de Hoy (Pendientes de Cobro)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {citasHoy.map((cita) => (
+                    <div
+                      key={cita.id}
+                      onClick={() => handleSeleccionarCita(cita)}
+                      className="p-4 rounded-2xl cursor-pointer transition-all border-2 border-gray-700 hover:border-accent bg-gray-800/50 group"
+                      style={{ borderStyle: 'dashed' }}
+                    >
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-accent/20 flex items-center justify-center" style={{ backgroundColor: 'rgba(212, 175, 55, 0.2)' }}>
+                            <User className="w-5 h-5 text-accent" style={{ color: 'var(--accent-color)' }} />
+                          </div>
+                          <div>
+                            <p className="font-bold text-gray-200">{cita.cliente_nombre || 'Cliente'}</p>
+                            <p className="text-xs text-gray-500 uppercase font-black">{cita.hora.substring(0, 5)} - {cita.barberos?.nombre}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm font-black text-accent" style={{ color: 'var(--accent-color)' }}>
+                            {cita.servicios?.nombre || 'Servicio'}
+                          </p>
+                          <p className="text-xs text-gray-500">${parseFloat(cita.servicios?.precio || 0).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4 mb-6">
               <label className="block text-sm font-medium form-label">Tipo de Documento</label>
