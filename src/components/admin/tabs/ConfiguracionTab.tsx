@@ -76,128 +76,129 @@ const ConfiguracionTab: React.FC = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
       </div>
     )
   }
 
+  const renderInput = (item: ConfigItem) => (
+    <div key={item.clave}>
+      <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+        <i className={`${item.icon} mr-2`} style={{ color: 'var(--accent-color)' }}></i>
+        {item.label}
+      </label>
+      <input
+        type={item.tipo === 'url' ? 'text' : item.tipo}
+        value={config[item.clave] || ''}
+        onChange={(e) => handleChange(item.clave, e.target.value)}
+        placeholder={item.placeholder}
+        className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
+        style={{
+          backgroundColor: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          border: '1px solid var(--border-color)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        }}
+      />
+    </div>
+  )
+
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
+    <div className="pb-10">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Configuración del Sitio</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Configura la información general del negocio
+          <h2 className="text-2xl sm:text-3xl font-bold" style={{ color: 'var(--accent-color)' }}>Configuración del Sitio</h2>
+          <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+            Gestiona la información global y seguridad de la barbería
           </p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-amber-600 hover:bg-amber-700 disabled:opacity-50"
+          className="inline-flex items-center px-6 py-3 border border-transparent text-sm font-bold rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50"
+          style={{
+            backgroundColor: 'var(--accent-color)',
+            color: 'var(--bg-primary)',
+            boxShadow: '0 4px 15px rgba(212, 175, 55, 0.2)'
+          }}
         >
-          {saving && <i className="fas fa-spinner fa-spin mr-2"></i>}
-          <i className="fas fa-save mr-2"></i>
-          Guardar Cambios
+          {saving ? (
+            <i className="fas fa-spinner fa-spin mr-2"></i>
+          ) : (
+            <i className="fas fa-save mr-2"></i>
+          )}
+          {saving ? 'Guardando...' : 'Guardar Cambios'}
         </button>
       </div>
 
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="space-y-6">
-          {/* Información General */}
-          <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-info-circle text-amber-600 mr-2"></i>
-              Información General
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {configItems.slice(0, 4).map(item => (
-                <div key={item.clave}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <i className={`${item.icon} mr-2 text-gray-400`}></i>
-                    {item.label}
-                  </label>
-                  <input
-                    type={item.tipo}
-                    value={config[item.clave] || ''}
-                    onChange={(e) => handleChange(item.clave, e.target.value)}
-                    placeholder={item.placeholder}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              ))}
+      <div className="space-y-8">
+        {/* Información General */}
+        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-color)' }}>
+              <i className="fas fa-info-circle text-xl"></i>
             </div>
+            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Información General</h3>
           </div>
-
-          {/* Redes Sociales */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-share-alt text-amber-600 mr-2"></i>
-              Redes Sociales y Contacto
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {configItems.slice(4, 8).map(item => (
-                <div key={item.clave}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    <i className={`${item.icon} mr-2 text-gray-400`}></i>
-                    {item.label}
-                  </label>
-                  <input
-                    type={item.tipo}
-                    value={config[item.clave] || ''}
-                    onChange={(e) => handleChange(item.clave, e.target.value)}
-                    placeholder={item.placeholder}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                  />
-                </div>
-              ))}
-            </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {configItems.slice(0, 4).map(renderInput)}
           </div>
-
-          {/* Seguridad */}
-          <div className="border-t pt-6">
-            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-              <i className="fas fa-shield-alt text-amber-600 mr-2"></i>
-              Seguridad del Punto de Venta (POS)
-            </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div key={configItems[8].clave}>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  <i className={`${configItems[8].icon} mr-2 text-gray-400`}></i>
-                  {configItems[8].label}
-                </label>
-                <input
-                  type="password"
-                  value={config[configItems[8].clave] || ''}
-                  onChange={(e) => handleChange(configItems[8].clave, e.target.value)}
-                  placeholder={configItems[8].placeholder}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
-                />
-                <p className="text-xs text-gray-500 mt-1">Esta clave será solicitada para anular o editar ventas ya cobradas.</p>
-              </div>
-            </div>
-          </div>
-
-          {/* Preview de Google Maps */}
-          {config['google_maps_url'] && (
-            <div className="border-t pt-6">
-              <h3 className="text-lg font-medium text-gray-900 mb-4">
-                <i className="fas fa-map-marked-alt text-amber-600 mr-2"></i>
-                Vista Previa de Mapa
-              </h3>
-              <div className="aspect-w-16 aspect-h-9 bg-gray-100 rounded-lg overflow-hidden">
-                <iframe
-                  src={config['google_maps_url'].replace('?q=', '/embed?q=')}
-                  width="100%"
-                  height="300"
-                  style={{ border: 0 }}
-                  allowFullScreen
-                  loading="lazy"
-                  className="rounded-lg"
-                ></iframe>
-              </div>
-            </div>
-          )}
         </div>
+
+        {/* Redes Sociales y Contacto */}
+        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="rounded-2xl p-6 shadow-xl">
+          <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: 'var(--accent-color)' }}>
+              <i className="fas fa-share-alt text-xl"></i>
+            </div>
+            <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Redes Sociales y Contacto</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {configItems.slice(4, 8).map(renderInput)}
+          </div>
+        </div>
+
+        {/* Seguridad del Punto de Venta */}
+        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="rounded-2xl p-6 shadow-xl border-l-4" style={{ borderLeft: '4px solid var(--accent-color)' }}>
+          <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-color)' }}>
+              <i className="fas fa-shield-alt text-xl"></i>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Seguridad del Punto de Venta (POS)</h3>
+              <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Clave maestra para autorizar cambios críticos</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {renderInput(configItems[8])}
+            <div className="flex items-center p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 175, 55, 0.05)', border: '1px dashed var(--accent-color)' }}>
+              <i className="fas fa-lightbulb mr-3" style={{ color: 'var(--accent-color)' }}></i>
+              <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                Esta clave protege las ventas ya cobradas contra ediciones o anulaciones no autorizadas.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Preview de Google Maps */}
+        {config['google_maps_url'] && (
+          <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="rounded-2xl p-6 shadow-xl">
+            <div className="flex items-center mb-6">
+              <i className="fas fa-map-marked-alt mr-3" style={{ color: 'var(--accent-color)' }}></i>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Ubicación en el Mapa</h3>
+            </div>
+            <div className="rounded-xl overflow-hidden shadow-inner" style={{ border: '2px solid var(--border-color)' }}>
+              <iframe
+                src={config['google_maps_url'].includes('/embed') ? config['google_maps_url'] : config['google_maps_url'].replace('?q=', '/embed?q=')}
+                width="100%"
+                height="350"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+              ></iframe>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
