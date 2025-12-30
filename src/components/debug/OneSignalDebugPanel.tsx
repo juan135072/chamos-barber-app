@@ -348,6 +348,24 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
               <h4>Acciones de Prueba</h4>
               <div className="onesignal-debug-actions">
                 <button
+                  onClick={async () => {
+                    const OneSignal = (window as any).OneSignal
+                    if (!OneSignal) return
+                    const barberId = prompt('Introduce el ID de Barbero para vincular manualmente:')
+                    if (barberId) {
+                      await OneSignal.login(barberId)
+                      alert('Intentando vincular: ' + barberId)
+                      refreshStatus()
+                    }
+                  }}
+                  className="onesignal-debug-btn"
+                  style={{ background: '#3b82f6', marginBottom: '8px' }}
+                >
+                  <i className="fas fa-link" style={{ fontSize: '14px', marginRight: '8px' }}></i>
+                  Vincular ID Manualmente
+                </button>
+
+                <button
                   onClick={sendTestNotification}
                   className="onesignal-debug-btn"
                   disabled={permission !== 'granted'}

@@ -85,7 +85,7 @@ const BarberoPanelPage: React.FC = () => {
       setExternalId(barbero.id)
       setTimeout(() => {
         triggerPrompt()
-      }, 3000)
+      }, 5000)
 
     } catch (error) {
       console.error('Error loading data:', error)

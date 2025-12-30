@@ -172,21 +172,37 @@ export default function OneSignalProvider({
 
   // Función para establecer external ID
   const setExternalId = async (id: string) => {
+    if (!id) return
+
     try {
       const OneSignal = (window as any).OneSignal
-      if (OneSignal && OneSignal.login) {
-        // Verificar si el SDK está realmente listo
-        if (OneSignal.User) {
-          await OneSignal.login(id)
-          console.log('🆔 OneSignal External ID establecido:', id)
-        } else {
-          console.warn('⚠️ OneSignal.User no disponible aún, reintentando login en 1.5s...')
-          setTimeout(() => setExternalId(id), 1500)
+
+      // Función recursiva con límite de intentos
+      const attemptLogin = async (attemptsLeft: number) => {
+        if (attemptsLeft <= 0) {
+          console.error('❌ [OneSignal] Se agotaron los reintentos para establecer External ID')
+          return
         }
-      } else {
-        console.warn('⚠️ OneSignal SDK no listo para login, reintentando en 1s...')
-        setTimeout(() => setExternalId(id), 1000)
+
+        if (OneSignal && OneSignal.login && OneSignal.User) {
+          console.log(`🆔 [OneSignal] Intentando vincular ID: ${id} (Intentos restantes: ${attemptsLeft})`)
+          await OneSignal.login(id)
+
+          // Verificar si se aplicó
+          const currentId = OneSignal.User.externalId
+          if (currentId === id) {
+            console.log('✅ [OneSignal] External ID verificado exitosamente:', id)
+          } else {
+            console.warn('⚠️ [OneSignal] Login llamado pero externalId no coincide aún, reintentando...')
+            setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
+          }
+        } else {
+          console.warn(`⚠️ [OneSignal] SDK no listo para login (${attemptsLeft}), reintentando en 2s...`)
+          setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
+        }
       }
+
+      await attemptLogin(5)
     } catch (error) {
       console.error('❌ Error estableciendo External ID en OneSignal:', error)
     }
