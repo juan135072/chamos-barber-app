@@ -8,7 +8,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Bell, BellOff, Send, User, Settings, X } from 'lucide-react'
 
 interface OneSignalDebugPanelProps {
   appId?: string
@@ -175,32 +174,56 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
     }
   }
 
-  // Solo mostrar en desarrollo
-  if (process.env.NODE_ENV !== 'development') {
+  // Mostrar en desarrollo o si el parámetro ?debug=true está presente
+  const [showDebug, setShowDebug] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const urlParams = new URLSearchParams(window.location.search)
+      setShowDebug(process.env.NODE_ENV === 'development' || urlParams.get('debug') === 'true')
+    }
+  }, [])
+
+  if (!showDebug) {
     return null
   }
 
   return (
     <>
-      {/* Botón flotante */}
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="onesignal-debug-toggle"
-        title="OneSignal Debug"
+        style={{
+          bottom: isOpen ? 'auto' : '100px',
+          top: isOpen ? '20px' : 'auto',
+          right: '20px',
+          backgroundColor: '#d4af37',
+          color: '#121212',
+          width: 'auto',
+          padding: '0 15px',
+          borderRadius: '30px',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          zIndex: 99999
+        }}
       >
-        <Bell size={24} />
+        <i className="fas fa-bug"></i>
+        <span>{isOpen ? 'CERRAR DEBUG' : 'DEBUG ONESIGNAL'}</span>
         {status === 'ready' && permission === 'granted' && (
-          <span className="onesignal-debug-badge">✓</span>
+          <span style={{ backgroundColor: '#10b981', borderRadius: '50%', width: '8px', height: '8px' }}></span>
         )}
       </button>
 
       {/* Panel */}
       {isOpen && (
-        <div className="onesignal-debug-panel">
+        <div className="onesignal-debug-panel" style={{ zIndex: 99998, bottom: '20px', left: '20px', right: '20px', width: 'auto' }}>
           <div className="onesignal-debug-header">
-            <h3>🔔 OneSignal Debug</h3>
+            <h3><i className="fas fa-shield-halved"></i> OneSignal Debug</h3>
             <button onClick={() => setIsOpen(false)} className="onesignal-debug-close">
-              <X size={20} />
+              <i className="fas fa-times"></i>
             </button>
           </div>
 
@@ -225,24 +248,24 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
               <div className="onesignal-debug-permission">
                 {permission === 'granted' ? (
                   <>
-                    <Bell size={20} className="text-green-500" />
+                    <i className="fas fa-bell text-green-500"></i>
                     <span className="status-ready">Concedidos</span>
                   </>
                 ) : permission === 'denied' ? (
                   <>
-                    <BellOff size={20} className="text-red-500" />
+                    <i className="fas fa-bell-slash text-red-500"></i>
                     <span className="status-error">Denegados</span>
                   </>
                 ) : (
                   <>
-                    <Bell size={20} className="text-yellow-500" />
+                    <i className="fas fa-bell text-yellow-500"></i>
                     <span className="status-loading">Sin solicitar</span>
                   </>
                 )}
               </div>
               {permission !== 'granted' && (
                 <button onClick={requestPermission} className="onesignal-debug-btn">
-                  <Bell size={16} />
+                  <i className="fas fa-bell" style={{ fontSize: '14px', marginRight: '8px' }}></i>
                   Solicitar Permisos
                 </button>
               )}
@@ -295,11 +318,11 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
                   className="onesignal-debug-btn"
                   disabled={permission !== 'granted'}
                 >
-                  <Send size={16} />
+                  <i className="fas fa-paper-plane" style={{ fontSize: '14px', marginRight: '8px' }}></i>
                   Enviar Notificación de Prueba
                 </button>
                 <button onClick={refreshStatus} className="onesignal-debug-btn">
-                  <Settings size={16} />
+                  <i className="fas fa-sync" style={{ fontSize: '14px', marginRight: '8px' }}></i>
                   Refrescar Estado
                 </button>
               </div>
