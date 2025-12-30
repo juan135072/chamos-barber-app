@@ -245,7 +245,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
         }}
       >
         <i className="fas fa-bug"></i>
-        <span>{isOpen ? 'CERRAR DEBUG' : 'DEBUG ONESIGNAL'}</span>
+        <span>{isOpen ? 'CERRAR DEBUG' : 'DEBUG V2 (TEST)'}</span>
         {status === 'ready' && permission === 'granted' && (
           <span style={{ backgroundColor: '#10b981', borderRadius: '50%', width: '8px', height: '8px' }}></span>
         )}
