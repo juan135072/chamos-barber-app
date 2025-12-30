@@ -1,6 +1,15 @@
 @echo off
-echo Iniciando servicio de impresion Chamos Barber...
-echo Mantener esta ventana abierta para imprimir.
+echo ===================================================
+echo INICIANDO SERVICIO DE IMPRESION - CHAMOS BARBER
+echo ===================================================
 echo.
-node server.js
+
+if exist chamos-printer.exe (
+    echo Usando ejecutable independiente...
+    chamos-printer.exe
+) else (
+    echo Usando Node.js (asegúrate de tenerlo instalado)...
+    node server.js
+)
+
 pause
