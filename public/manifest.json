@@ -4,8 +4,12 @@
   "description": "Sistema de gestión y reservas para Chamos Barber Shop",
   "start_url": "/chamos-acceso",
   "display": "standalone",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "background_color": "#121212",
-  "theme_color": "#D4AF37",
+  "theme_color": "#121212",
   "orientation": "portrait",
   "scope": "/",
   "icons": [

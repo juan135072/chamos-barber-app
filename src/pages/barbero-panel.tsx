@@ -35,10 +35,19 @@ const BarberoPanelPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [isStandalone, setIsStandalone] = useState(false)
 
   const { triggerPrompt, setExternalId } = useOneSignal()
 
   useEffect(() => {
+    // Detectar si está instalado (PWA)
+    if (typeof window !== 'undefined') {
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes('android-app://')
+      setIsStandalone(isPWA)
+    }
+
     if (!session) {
       router.push('/chamos-acceso')
       return
@@ -256,148 +265,159 @@ const BarberoPanelPage: React.FC = () => {
       <Toaster position="top-right" />
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        {/* Header */}
-        <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center space-x-4">
-                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
-                  <i className="fas fa-scissors" style={{ color: 'var(--bg-primary)' }}></i>
+        {/* Header - Solo visible en navegador normal */}
+        {!isStandalone && (
+          <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex justify-between items-center h-16">
+                <div className="flex items-center space-x-4">
+                  <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
+                    <i className="fas fa-scissors" style={{ color: 'var(--bg-primary)' }}></i>
+                  </div>
+                  <div>
+                    <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Barbero</h1>
+                    <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
+                  </div>
                 </div>
-                <div>
-                  <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Barbero</h1>
-                  <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
-                </div>
-              </div>
 
-              <div className="flex items-center space-x-4">
-                <div className="text-right">
-                  <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{profile.nombre} {profile.apellido}</p>
-                  <p className="text-xs" style={{ color: 'var(--accent-color)' }}>barbero</p>
+                <div className="flex items-center space-x-4">
+                  <div className="text-right">
+                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{profile.nombre} {profile.apellido}</p>
+                    <p className="text-xs" style={{ color: 'var(--accent-color)' }}>barbero</p>
+                  </div>
+                  <button
+                    onClick={() => router.push('/barbero/liquidaciones')}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                    style={{
+                      backgroundColor: '#10B981',
+                      color: 'white',
+                      transition: 'var(--transition)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
+                  >
+                    <i className="fas fa-money-bill-wave mr-2"></i>
+                    Mis Liquidaciones
+                  </button>
+                  <button
+                    onClick={handleLogout}
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
+                    style={{
+                      backgroundColor: 'var(--accent-color)',
+                      color: 'var(--bg-primary)',
+                      transition: 'var(--transition)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
+                  >
+                    <i className="fas fa-sign-out-alt mr-2"></i>
+                    Cerrar Sesión
+                  </button>
                 </div>
-                <button
-                  onClick={() => router.push('/barbero/liquidaciones')}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{
-                    backgroundColor: '#10B981',
-                    color: 'white',
-                    transition: 'var(--transition)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
-                >
-                  <i className="fas fa-money-bill-wave mr-2"></i>
-                  Mis Liquidaciones
-                </button>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                  style={{
-                    backgroundColor: 'var(--accent-color)',
-                    color: 'var(--bg-primary)',
-                    transition: 'var(--transition)'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
-                >
-                  <i className="fas fa-sign-out-alt mr-2"></i>
-                  Cerrar Sesión
-                </button>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
 
-          {/* Tabs */}
-          <div style={{
-            display: 'flex',
-            gap: '1rem',
-            marginBottom: '2rem',
-            borderBottom: '2px solid var(--border-color)'
-          }}>
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              style={{
-                padding: '1rem 2rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'dashboard' ? '3px solid var(--accent-color)' : 'none',
-                color: activeTab === 'dashboard' ? 'var(--accent-color)' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <i className="fas fa-home"></i> Resumen
-            </button>
-            <button
-              onClick={() => setActiveTab('perfil')}
-              style={{
-                padding: '1rem 2rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'perfil' ? '3px solid var(--accent-color)' : 'none',
-                color: activeTab === 'perfil' ? 'var(--accent-color)' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <i className="fas fa-user"></i> Mi Perfil
-            </button>
-            <button
-              onClick={() => setActiveTab('citas')}
-              style={{
-                padding: '1rem 2rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'citas' ? '3px solid var(--accent-color)' : 'none',
-                color: activeTab === 'citas' ? 'var(--accent-color)' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <i className="fas fa-calendar-alt"></i> Mis Citas
-            </button>
-            <button
-              onClick={() => setActiveTab('ganancias')}
-              style={{
-                padding: '1rem 2rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'ganancias' ? '3px solid var(--accent-color)' : 'none',
-                color: activeTab === 'ganancias' ? 'var(--accent-color)' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <i className="fas fa-chart-line"></i> Mis Ganancias
-            </button>
-            <button
-              onClick={() => setActiveTab('seguridad')}
-              style={{
-                padding: '1rem 2rem',
-                background: 'none',
-                border: 'none',
-                borderBottom: activeTab === 'seguridad' ? '3px solid var(--accent-color)' : 'none',
-                color: activeTab === 'seguridad' ? 'var(--accent-color)' : 'var(--text-primary)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                fontSize: '1rem',
-                transition: 'all 0.3s'
-              }}
-            >
-              <i className="fas fa-shield-alt"></i> Seguridad
-            </button>
-          </div>
+          {/* Tabs - Solo visibles en navegador normal */}
+          {!isStandalone && (
+            <div style={{
+              display: 'flex',
+              gap: '1rem',
+              marginBottom: '2rem',
+              borderBottom: '2px solid var(--border-color)',
+              overflowX: 'auto',
+              paddingBottom: '5px'
+            }}>
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                style={{
+                  padding: '1rem 2rem',
+                  background: 'none',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  borderBottom: activeTab === 'dashboard' ? '3px solid var(--accent-color)' : 'none',
+                  color: activeTab === 'dashboard' ? 'var(--accent-color)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <i className="fas fa-home"></i> Resumen
+              </button>
+              <button
+                onClick={() => setActiveTab('perfil')}
+                style={{
+                  padding: '1rem 2rem',
+                  background: 'none',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  borderBottom: activeTab === 'perfil' ? '3px solid var(--accent-color)' : 'none',
+                  color: activeTab === 'perfil' ? 'var(--accent-color)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <i className="fas fa-user"></i> Mi Perfil
+              </button>
+              <button
+                onClick={() => setActiveTab('citas')}
+                style={{
+                  padding: '1rem 2rem',
+                  background: 'none',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  borderBottom: activeTab === 'citas' ? '3px solid var(--accent-color)' : 'none',
+                  color: activeTab === 'citas' ? 'var(--accent-color)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <i className="fas fa-calendar-alt"></i> Mis Citas
+              </button>
+              <button
+                onClick={() => setActiveTab('ganancias')}
+                style={{
+                  padding: '1rem 2rem',
+                  background: 'none',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  borderBottom: activeTab === 'ganancias' ? '3px solid var(--accent-color)' : 'none',
+                  color: activeTab === 'ganancias' ? 'var(--accent-color)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <i className="fas fa-chart-line"></i> Mis Ganancias
+              </button>
+              <button
+                onClick={() => setActiveTab('seguridad')}
+                style={{
+                  padding: '1rem 2rem',
+                  background: 'none',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  borderBottom: activeTab === 'seguridad' ? '3px solid var(--accent-color)' : 'none',
+                  color: activeTab === 'seguridad' ? 'var(--accent-color)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <i className="fas fa-shield-alt"></i> Seguridad
+              </button>
+            </div>
+          )}
 
           {/* Content */}
           {activeTab === 'dashboard' && profile && (
@@ -660,6 +680,117 @@ const BarberoPanelPage: React.FC = () => {
           )}
 
         </div>
+
+        {/* Bottom Navigation por Standalone Mode */}
+        {isStandalone && (
+          <nav style={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            backgroundColor: 'var(--bg-secondary)',
+            borderTop: '1px solid var(--border-color)',
+            display: 'flex',
+            justifyContent: 'space-around',
+            paddingBottom: 'env(safe-area-inset-bottom)',
+            zIndex: 1000
+          }}>
+            <button
+              onClick={() => setActiveTab('dashboard')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 0',
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                color: activeTab === 'dashboard' ? 'var(--accent-color)' : 'var(--text-primary)',
+                opacity: activeTab === 'dashboard' ? 1 : 0.6,
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-home" style={{ fontSize: '1.2rem' }}></i>
+              <span style={{ fontSize: '0.75rem' }}>Inicio</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('citas')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 0',
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                color: activeTab === 'citas' ? 'var(--accent-color)' : 'var(--text-primary)',
+                opacity: activeTab === 'citas' ? 1 : 0.6,
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-calendar-alt" style={{ fontSize: '1.2rem' }}></i>
+              <span style={{ fontSize: '0.75rem' }}>Citas</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('ganancias')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 0',
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                color: activeTab === 'ganancias' ? 'var(--accent-color)' : 'var(--text-primary)',
+                opacity: activeTab === 'ganancias' ? 1 : 0.6,
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-chart-line" style={{ fontSize: '1.2rem' }}></i>
+              <span style={{ fontSize: '0.75rem' }}>Dinero</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('perfil')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 0',
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                color: activeTab === 'perfil' ? 'var(--accent-color)' : 'var(--text-primary)',
+                opacity: activeTab === 'perfil' ? 1 : 0.6,
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-user-circle" style={{ fontSize: '1.2rem' }}></i>
+              <span style={{ fontSize: '0.75rem' }}>Perfil</span>
+            </button>
+            <button
+              onClick={() => router.push('/barbero/liquidaciones')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 0',
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                color: 'var(--text-primary)',
+                opacity: 0.6
+              }}
+            >
+              <i className="fas fa-wallet" style={{ fontSize: '1.2rem' }}></i>
+              <span style={{ fontSize: '0.75rem' }}>Pagos</span>
+            </button>
+          </nav>
+        )}
       </div>
     </>
   )
