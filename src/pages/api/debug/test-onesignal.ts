@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { sendNotificationToBarber } from '../../lib/onesignal'
+import { sendNotificationToBarber } from '../../../lib/onesignal'
 import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
