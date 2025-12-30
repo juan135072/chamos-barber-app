@@ -35,3 +35,6 @@ $$;
 -- Dar permisos de ejecución a usuarios autenticados
 GRANT EXECUTE ON FUNCTION public.eliminar_citas_canceladas() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.eliminar_citas_canceladas() TO service_role;
+
+-- Forzar recarga del schema cache para que PostgREST vea la nueva función inmediatamente
+NOTIFY pgrst, 'reload schema';

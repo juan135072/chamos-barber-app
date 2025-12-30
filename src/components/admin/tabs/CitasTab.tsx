@@ -14,8 +14,8 @@ export default function CitasTab() {
   const [filtroEstado, setFiltroEstado] = useState<string>('todas')
   const [filtroFecha, setFiltroFecha] = useState<string>('todas')
   const [searchTerm, setSearchTerm] = useState('')
-
-  console.log('[DEBUG] CitasTab Render:', { loading, citasCount: citas.length, filter: filtroEstado });
+  const [showConfirm, setShowConfirm] = useState(false)
+  const [errorBorrado, setErrorBorrado] = useState<string | null>(null)
 
   useEffect(() => {
     loadCitas()
@@ -81,50 +81,44 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: any) => {
-    window.alert('>>> CLICK EN BOTÓN <<<');
-    console.log('[DEBUG] handleDeleteCancelled ejecutándose');
-
     if (e && e.preventDefault) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    // 1. Validar si hay citas canceladas
-    const canceladas = citas.filter(c => c.estado === 'cancelada');
-
-    if (canceladas.length === 0) {
-      alert('No hay citas canceladas para eliminar.');
+    // Si no está confirmando aún, activamos el modo confirmación
+    if (!showConfirm) {
+      setShowConfirm(true);
       return;
     }
-
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas?\n\nEsto liberará las facturas asociadas.`)) {
-      return;
-    }
-
 
     try {
       setLoading(true);
-      window.alert('¡ORDEN RECIBIDA! Conectando con Supabase...');
-      if (!supabase) throw new Error('Cliente Supabase no inicializado');
+      setErrorBorrado(null);
+      console.log('[Admin] Iniciando RPC eliminar_citas_canceladas...');
 
-      // 3. Llamada al RPC (que ahora maneja referencias a facturas)
+      if (!supabase) throw new Error('Cliente base de datos no disponible');
+
       const { data, error } = await supabase.rpc('eliminar_citas_canceladas');
 
       if (error) {
+        console.error('[Admin] Error en RPC:', error);
         throw error;
       }
 
       if (data && data.success) {
-        // 4. Éxito: Recargar la lista de citas
+        console.log('[Admin] Éxito:', data.message);
         await loadCitas();
-        alert(data.message || 'Citas eliminadas con éxito.');
+        setShowConfirm(false);
+        // Usamos una pequeña notificación manual si es posible, pero evitamos alert()
+        console.log('Borrado completado con éxito');
       } else {
-        alert('Error del servidor: ' + (data?.error || 'No se pudo completar la operación.'));
+        setErrorBorrado(data?.message || 'Error desconocido del servidor');
       }
 
     } catch (err: any) {
-      console.error('Error en borrado:', err);
-      alert('Error al eliminar: ' + (err.message || 'Error de conexión.'));
+      console.error('[Admin] Crash en borrado:', err);
+      setErrorBorrado(err.message || 'Error de conexión');
     } finally {
       setLoading(false);
     }
@@ -181,24 +175,33 @@ export default function CitasTab() {
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Citas</h2>
         <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={(e) => {
-              console.log('Botón pulsado físicamente');
-              handleDeleteCancelled(e);
-            }}
-            className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors animate-pulse"
-            style={{
-              background: 'transparent',
-              cursor: 'pointer',
-              zIndex: 9999,
-              position: 'relative'
-            }}
-            disabled={loading}
-          >
-            <i className="fas fa-trash-alt mr-2"></i>
-            {loading ? 'Borrando...' : `Eliminar Canceladas (${stats.canceladas})`}
-          </button>
+          <div className="relative inline-block">
+            {errorBorrado && (
+              <div className="absolute bottom-full mb-2 right-0 bg-red-500 text-white text-xs p-2 rounded shadow-lg whitespace-nowrap z-50">
+                {errorBorrado}
+                <button onClick={() => setErrorBorrado(null)} className="ml-2 hover:text-black">×</button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={(e) => handleDeleteCancelled(e)}
+              onMouseLeave={() => setShowConfirm(false)}
+              className={`inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium transition-all duration-200 ${showConfirm
+                ? 'bg-red-600 text-white border-red-600 animate-pulse'
+                : 'border border-red-500 text-red-500 hover:bg-red-500 hover:text-white'
+                }`}
+              style={{ background: showConfirm ? 'var(--error-color, #dc2626)' : 'transparent' }}
+              disabled={loading}
+            >
+              <i className={`fas ${loading ? 'fa-spinner fa-spin' : 'fa-trash-alt'} mr-2`}></i>
+              {loading
+                ? 'Procesando...'
+                : showConfirm
+                  ? '¿ESTÁS SEGURO?'
+                  : `Eliminar Canceladas (${stats.canceladas})`
+              }
+            </button>
+          </div>
           <button
             onClick={loadCitas}
             className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium"
