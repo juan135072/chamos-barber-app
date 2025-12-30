@@ -92,24 +92,23 @@ export default function CitasTab() {
 
     try {
       setLoading(true)
-      const idsToDelete = canceladas.map(c => c.id)
+      console.log(`[Admin] Llamando a RPC eliminar_citas_canceladas...`)
 
-      console.log(`[Admin] Eliminando ${idsToDelete.length} citas canceladas...`)
-
-      const { error, count } = await supabase
-        .from('citas')
-        .delete()
-        .in('id', idsToDelete)
+      const { data, error } = await supabase.rpc('eliminar_citas_canceladas')
 
       if (error) throw error
 
-      console.log(`[Admin] Borrado exitoso. Registros afectados:`, count)
+      console.log(`[Admin] Respuesta RPC:`, data)
 
-      await loadCitas()
-      alert(`¡Éxito! Se han eliminado ${canceladas.length} citas canceladas de la base de datos.`)
+      if (data?.success) {
+        await loadCitas()
+        alert(data.message || `¡Éxito! Se han eliminado las citas canceladas.`)
+      } else {
+        throw new Error(data?.error || 'No se pudo completar la operación en el servidor.')
+      }
     } catch (error: any) {
       console.error('Error al eliminar citas:', error)
-      alert(`Error al eliminar: ${error.message || 'Error desconocido'}. Asegúrate de haber ejecutado la nueva migración de base de datos.`)
+      alert(`Error: ${error.message || 'Error desconocido'}. Asegúrate de haber ejecutado la nueva migración del RPC en Supabase.`)
     } finally {
       setLoading(false)
     }
