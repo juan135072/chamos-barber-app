@@ -30,7 +30,7 @@ export default function AdminPage() {
   const session = useSession()
   const supabase = useSupabaseClient<Database>()
   const router = useRouter()
-  
+
   const [adminUser, setAdminUser] = useState<AdminUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
@@ -62,7 +62,7 @@ export default function AdminPage() {
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-  
+
   // Estados para datos
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [servicios, setServicios] = useState<Servicio[]>([])
@@ -79,7 +79,7 @@ export default function AdminPage() {
       router.push('/login')
       return
     }
-    
+
     checkAdminAccess()
   }, [session])
 
@@ -90,14 +90,14 @@ export default function AdminPage() {
       console.log('[Admin] Verificando acceso para email:', session.user.email)
       const adminData = await chamosSupabase.getAdminUser(session.user.email)
       console.log('[Admin] Datos obtenidos:', { email: adminData?.email, rol: adminData?.rol, activo: adminData?.activo })
-      
+
       if (!adminData || adminData.rol !== 'admin') {
         console.error('[Admin] ❌ ACCESO DENEGADO - Rol:', adminData?.rol)
         await supabase.auth.signOut()
         router.push('/login')
         return
       }
-      
+
       console.log('[Admin] ✅ Acceso autorizado - Usuario es admin')
       setAdminUser(adminData)
       loadDashboardData()
@@ -125,7 +125,7 @@ export default function AdminPage() {
       const today = new Date().toISOString().split('T')[0]
       const citasHoy = citasArray.filter((c: Cita) => c.fecha === today).length || 0
       const citasPendientes = citasArray.filter((c: Cita) => c.estado === 'pendiente').length || 0
-      
+
       setStats({
         totalCitas: citasArray.length || 0,
         citasHoy,
@@ -153,6 +153,7 @@ export default function AdminPage() {
     { id: 'categorias', icon: 'fas fa-tags', label: 'Categorías' },
     { id: 'comisiones', icon: 'fas fa-percentage', label: 'Comisiones' },
     { id: 'ganancias', icon: 'fas fa-chart-line', label: 'Ganancias' },
+    { id: 'configuracion', icon: 'fas fa-cog', label: 'Configuración' },
     { id: 'solicitudes', icon: 'fas fa-user-plus', label: 'Solicitudes' },
   ]
 
@@ -160,9 +161,9 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#0A0A0A' }}>
         <div className="text-center">
-          <div 
+          <div
             className="w-12 h-12 mx-auto mb-4 rounded-full animate-spin"
-            style={{ 
+            style={{
               border: '2px solid rgba(212, 175, 55, 0.2)',
               borderTopColor: '#D4AF37'
             }}
@@ -188,9 +189,8 @@ export default function AdminPage() {
       <div className="min-h-screen" style={{ backgroundColor: '#0A0A0A' }}>
         {/* Sidebar */}
         <aside
-          className={`fixed left-0 top-0 h-screen transition-all duration-300 z-30 ${
-            sidebarOpen ? 'sidebar-open' : ''
-          }`}
+          className={`fixed left-0 top-0 h-screen transition-all duration-300 z-30 ${sidebarOpen ? 'sidebar-open' : ''
+            }`}
           style={{
             width: sidebarOpen ? '240px' : '72px',
             backgroundColor: '#111',
@@ -198,7 +198,7 @@ export default function AdminPage() {
           }}
         >
           {/* Logo */}
-          <div 
+          <div
             className="h-16 flex items-center justify-between px-4"
             style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
           >
@@ -229,7 +229,7 @@ export default function AdminPage() {
                   color: activeTab === item.id ? '#D4AF37' : '#666'
                 }}
               >
-                <i 
+                <i
                   className={`${item.icon} ${sidebarOpen ? 'w-5' : 'w-full text-center'}`}
                   style={{ fontSize: '18px' }}
                 />
@@ -241,7 +241,7 @@ export default function AdminPage() {
           </nav>
 
           {/* Bottom Actions */}
-          <div 
+          <div
             className="absolute bottom-0 left-0 right-0"
             style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}
           >
@@ -274,15 +274,15 @@ export default function AdminPage() {
           }}
         >
           {/* Top Bar */}
-          <header 
+          <header
             className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-20"
-            style={{ 
+            style={{
               backgroundColor: '#0A0A0A',
               borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
             }}
           >
             <div>
-              <h1 
+              <h1
                 className="text-lg font-semibold"
                 style={{ color: '#FFF', letterSpacing: '-0.02em' }}
               >
@@ -321,27 +321,27 @@ export default function AdminPage() {
                 {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                   {[
-                    { 
-                      label: 'Total Citas', 
-                      value: stats.totalCitas, 
+                    {
+                      label: 'Total Citas',
+                      value: stats.totalCitas,
                       icon: 'fa-calendar-check',
                       color: '#D4AF37'
                     },
-                    { 
-                      label: 'Citas Hoy', 
-                      value: stats.citasHoy, 
+                    {
+                      label: 'Citas Hoy',
+                      value: stats.citasHoy,
                       icon: 'fa-clock',
                       color: '#3B82F6'
                     },
-                    { 
-                      label: 'Pendientes', 
-                      value: stats.citasPendientes, 
+                    {
+                      label: 'Pendientes',
+                      value: stats.citasPendientes,
                       icon: 'fa-hourglass-half',
                       color: '#F59E0B'
                     },
-                    { 
-                      label: 'Barberos', 
-                      value: barberos.length, 
+                    {
+                      label: 'Barberos',
+                      value: barberos.length,
                       icon: 'fa-users',
                       color: '#10B981'
                     },
@@ -355,9 +355,9 @@ export default function AdminPage() {
                       }}
                     >
                       <div className="flex items-center justify-between mb-4">
-                        <div 
+                        <div
                           className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{ 
+                          style={{
                             backgroundColor: `${stat.color}20`,
                             color: stat.color
                           }}
@@ -383,7 +383,7 @@ export default function AdminPage() {
                     border: '1px solid rgba(255, 255, 255, 0.05)'
                   }}
                 >
-                  <CalendarView 
+                  <CalendarView
                     barberos={barberos}
                     onDateSelect={(date) => {
                       // Opcionalmente abrir el tab de Citas con la fecha seleccionada
@@ -404,6 +404,7 @@ export default function AdminPage() {
             {activeTab === 'categorias' && <CategoriasTab />}
             {activeTab === 'horarios' && <HorariosTab />}
             {activeTab === 'citas' && <CitasTab />}
+            {activeTab === 'configuracion' && <ConfiguracionTab />}
             {activeTab === 'solicitudes' && <SolicitudesTab />}
           </div>
         </main>

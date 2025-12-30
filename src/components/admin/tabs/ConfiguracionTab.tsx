@@ -4,7 +4,7 @@ import toast from 'react-hot-toast'
 
 interface ConfigItem {
   clave: string
-  valor: string | null
+  valor?: string | null
   label: string
   tipo: 'texto' | 'url' | 'email' | 'tel'
   placeholder: string
@@ -17,14 +17,15 @@ const ConfiguracionTab: React.FC = () => {
   const [config, setConfig] = useState<Record<string, string>>({})
 
   const configItems: ConfigItem[] = [
-    { clave: 'sitio_nombre', label: 'Nombre del Negocio', tipo: 'texto', placeholder: 'Chamos Barber Shop', icon: 'fas fa-store', valor: '' },
-    { clave: 'sitio_telefono', label: 'Teléfono', tipo: 'tel', placeholder: '+56 9 1234 5678', icon: 'fas fa-phone', valor: '' },
-    { clave: 'sitio_email', label: 'Email', tipo: 'email', placeholder: 'contacto@chamosbarber.com', icon: 'fas fa-envelope', valor: '' },
-    { clave: 'sitio_direccion', label: 'Dirección', tipo: 'texto', placeholder: 'Av. Principal 123, Santiago', icon: 'fas fa-map-marker-alt', valor: '' },
-    { clave: 'google_maps_url', label: 'Google Maps URL', tipo: 'url', placeholder: 'https://maps.google.com/?q=...', icon: 'fas fa-map', valor: '' },
-    { clave: 'facebook_url', label: 'Facebook URL', tipo: 'url', placeholder: 'https://facebook.com/chamosbarber', icon: 'fab fa-facebook', valor: '' },
-    { clave: 'instagram_url', label: 'Instagram URL', tipo: 'url', placeholder: 'https://instagram.com/chamosbarber', icon: 'fab fa-instagram', valor: '' },
-    { clave: 'whatsapp_numero', label: 'WhatsApp', tipo: 'tel', placeholder: '+56 9 1234 5678', icon: 'fab fa-whatsapp', valor: '' }
+    { clave: 'sitio_nombre', label: 'Nombre del Negocio', tipo: 'texto', placeholder: 'Chamos Barber Shop', icon: 'fas fa-store' },
+    { clave: 'sitio_telefono', label: 'Teléfono', tipo: 'tel', placeholder: '+56 9 1234 5678', icon: 'fas fa-phone' },
+    { clave: 'sitio_email', label: 'Email', tipo: 'email', placeholder: 'contacto@chamosbarber.com', icon: 'fas fa-envelope' },
+    { clave: 'sitio_direccion', label: 'Dirección', tipo: 'texto', placeholder: 'Av. Principal 123, Santiago', icon: 'fas fa-map-marker-alt' },
+    { clave: 'google_maps_url', label: 'Google Maps URL', tipo: 'url', placeholder: 'https://maps.google.com/?q=...', icon: 'fas fa-map' },
+    { clave: 'facebook_url', label: 'Facebook URL', tipo: 'url', placeholder: 'https://facebook.com/chamosbarber', icon: 'fab fa-facebook' },
+    { clave: 'instagram_url', label: 'Instagram URL', tipo: 'url', placeholder: 'https://instagram.com/chamosbarber', icon: 'fab fa-instagram' },
+    { clave: 'whatsapp_numero', label: 'WhatsApp', tipo: 'tel', placeholder: '+56 9 1234 5678', icon: 'fab fa-whatsapp' },
+    { clave: 'pos_clave_seguridad', label: 'Clave de Seguridad POS (Anulaciones/Edición)', tipo: 'texto', placeholder: 'PIN o Contraseña', icon: 'fas fa-key' }
   ]
 
   useEffect(() => {
@@ -36,9 +37,11 @@ const ConfiguracionTab: React.FC = () => {
       setLoading(true)
       const data = await chamosSupabase.getConfiguracion()
       const configMap: Record<string, string> = {}
-      data.forEach((item: any) => {
-        configMap[item.clave] = item.valor || ''
-      })
+      if (Array.isArray(data)) {
+        data.forEach((item: any) => {
+          configMap[item.clave] = item.valor || ''
+        })
+      }
       setConfig(configMap)
     } catch (error) {
       console.error('Error loading config:', error)
@@ -55,7 +58,7 @@ const ConfiguracionTab: React.FC = () => {
   const handleSave = async () => {
     try {
       setSaving(true)
-      
+
       for (const item of configItems) {
         const valor = config[item.clave] || ''
         await chamosSupabase.updateConfiguracion(item.clave, valor)
@@ -132,7 +135,7 @@ const ConfiguracionTab: React.FC = () => {
               Redes Sociales y Contacto
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {configItems.slice(4).map(item => (
+              {configItems.slice(4, 8).map(item => (
                 <div key={item.clave}>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     <i className={`${item.icon} mr-2 text-gray-400`}></i>
@@ -147,6 +150,30 @@ const ConfiguracionTab: React.FC = () => {
                   />
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Seguridad */}
+          <div className="border-t pt-6">
+            <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <i className="fas fa-shield-alt text-amber-600 mr-2"></i>
+              Seguridad del Punto de Venta (POS)
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div key={configItems[8].clave}>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <i className={`${configItems[8].icon} mr-2 text-gray-400`}></i>
+                  {configItems[8].label}
+                </label>
+                <input
+                  type="password"
+                  value={config[configItems[8].clave] || ''}
+                  onChange={(e) => handleChange(configItems[8].clave, e.target.value)}
+                  placeholder={configItems[8].placeholder}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <p className="text-xs text-gray-500 mt-1">Esta clave será solicitada para anular o editar ventas ya cobradas.</p>
+              </div>
             </div>
           </div>
 

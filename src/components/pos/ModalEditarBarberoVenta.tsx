@@ -54,6 +54,7 @@ export default function ModalEditarBarberoVenta({
     const [nuevoBarberoId, setNuevoBarberoId] = useState(venta.barbero_id || venta.barbero?.id || '')
     const [nuevoServicioId, setNuevoServicioId] = useState('')
     const [nuevoMetodoPago, setNuevoMetodoPago] = useState(venta.metodo_pago || 'efectivo')
+    const [claveSeguridad, setClaveSeguridad] = useState('')
     const [procesando, setProcesando] = useState(false)
 
     // Inicializar servicio actual
@@ -115,7 +116,8 @@ export default function ModalEditarBarberoVenta({
                         facturaId: venta.id,
                         nuevoBarberoId: nuevoBarberoId,
                         nuevoServicioId: nuevoServicioId,
-                        nuevoMetodoPago: nuevoMetodoPago
+                        nuevoMetodoPago: nuevoMetodoPago,
+                        claveSeguridad: claveSeguridad
                     }),
                 })
 
@@ -215,6 +217,27 @@ export default function ModalEditarBarberoVenta({
                             </p>
                         )}
                     </div>
+
+                    {/* Clave de Seguridad */}
+                    {!esCita && (
+                        <div className="pt-2 border-t border-gray-100 mt-4">
+                            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--accent-color)' }}>
+                                <i className="fas fa-lock mr-2"></i>Clave de Seguridad requerida:
+                            </label>
+                            <input
+                                type="password"
+                                value={claveSeguridad}
+                                onChange={(e) => setClaveSeguridad(e.target.value)}
+                                placeholder="Ingresar clave para confirmar..."
+                                className="w-full p-3 rounded-lg"
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--accent-color)'
+                                }}
+                            />
+                        </div>
+                    )}
 
                     {/* Selector de Método de Pago (solo para facturas) */}
                     {!esCita && (

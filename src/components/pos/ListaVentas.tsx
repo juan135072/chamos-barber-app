@@ -169,9 +169,12 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   }
 
   const handleAnularFactura = async (facturaId: string) => {
-    if (!confirm('¿Estás seguro de que deseas anular esta venta? Esta acción no se puede deshacer y la cita (si existe) volverá a estar pendiente de cobro.')) {
+    if (!confirm('¿Estás seguro de que deseas anular esta venta? Esta acción no se puede deshacer.')) {
       return
     }
+
+    const clave = prompt('Por seguridad, ingresa la clave de autorización:')
+    if (!clave) return
 
     try {
       const response = await fetch('/api/pos/anular-venta', {
@@ -182,7 +185,8 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         body: JSON.stringify({
           facturaId,
           usuario_email: usuario.email,
-          motivo_anulacion: 'Anulado desde el POS'
+          motivo_anulacion: 'Anulado desde el POS',
+          claveSeguridad: clave
         }),
       })
 

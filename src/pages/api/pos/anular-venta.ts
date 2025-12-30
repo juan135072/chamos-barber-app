@@ -11,13 +11,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: 'Método no permitido' })
     }
 
-    const { facturaId, motivo_anulacion, usuario_email } = req.body
+    const { facturaId, motivo_anulacion, usuario_email, claveSeguridad } = req.body
 
     if (!facturaId) {
         return res.status(400).json({ message: 'Falta el ID de la factura' })
     }
 
     try {
+        // 0. Verificar clave de seguridad
+        const { data: configClave } = await supabase
+            .from('sitio_configuracion')
+            .select('valor')
+            .eq('clave', 'pos_clave_seguridad')
+            .single()
+
+        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
+            return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
+        }
+
         // 1. Obtener la factura para saber si tiene cita asociada
         const { data: factura, error: facturaError } = await supabase
             .from('facturas')
