@@ -25,7 +25,10 @@ export async function sendNotificationToBarber(barberId: string, title: string, 
             },
             body: JSON.stringify({
                 app_id: ONESIGNAL_APP_ID,
-                include_external_user_ids: [barberId],
+                include_aliases: {
+                    external_id: [barberId]
+                },
+                target_channel: "push",
                 headings: { en: title, es: title },
                 contents: { en: message, es: message },
                 // Opcional: Redirigir al panel de citas al hacer clic

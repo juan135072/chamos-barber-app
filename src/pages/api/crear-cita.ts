@@ -328,11 +328,13 @@ export default async function handler(
     // 🔔 Enviar notificación push al barbero
     try {
       const barberoNombre = (barbero as any)?.nombre || 'Barbero'
-      await sendNotificationToBarber(
+      console.log(`🔔 [crear-cita] Intentando notificar a barbero ${citaData.barbero_id} (${barberoNombre})`)
+      const pushResult = await sendNotificationToBarber(
         citaData.barbero_id,
         'Nueva Reserva ✂️',
         `Hola ${barberoNombre}, tienes una nueva reserva de ${citaData.cliente_nombre} para el ${citaData.fecha} a las ${citaData.hora}.`
       )
+      console.log('📊 [crear-cita] Resultado OneSignal:', JSON.stringify(pushResult))
     } catch (pushError) {
       console.error('⚠️ [crear-cita] Error al enviar notificación push:', pushError)
     }
