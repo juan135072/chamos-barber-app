@@ -41,7 +41,7 @@ export async function sendNotificationToBarber(barberId: string, title: string, 
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json; charset=utf-8',
-                'Authorization': `Key ${ONESIGNAL_REST_API_KEY.trim()}`
+                'Authorization': `Basic ${ONESIGNAL_REST_API_KEY.trim()}`
             },
             body: JSON.stringify(payload)
         })
