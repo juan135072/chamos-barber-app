@@ -43,7 +43,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             error: String(error),
             envCheck: {
                 hasKey: !!process.env.ONESIGNAL_REST_API_KEY,
-                keyLength: process.env.ONESIGNAL_REST_API_KEY?.length || 0
+                keyLength: process.env.ONESIGNAL_REST_API_KEY?.length || 0,
+                keyPreview: process.env.ONESIGNAL_REST_API_KEY ? `${process.env.ONESIGNAL_REST_API_KEY.substring(0, 5)}...` : 'undefined'
             }
         })
     }
