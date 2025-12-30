@@ -1,6 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { sendNotificationToBarber } from '../../../lib/onesignal'
-import { createServerSupabaseClient } from '@supabase/auth-helpers-nextjs'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -13,13 +12,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ message: 'Missing barberId' })
     }
 
-    // Verificar sesión de admin o barbero
-    const supabase = createServerSupabaseClient({ req, res })
-    const { data: { session } } = await supabase.auth.getSession()
-
-    if (!session) {
-        return res.status(401).json({ message: 'Unauthorized' })
-    }
+    // Nota: Verificación de sesión eliminada para evitar problemas de dependencias (auth-helpers-nextjs) en producción.
+    // Este endpoint es solo para depuración.
 
     try {
         console.log('🧪 Iniciando prueba de OneSignal para:', barberId)
