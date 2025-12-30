@@ -30,10 +30,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             `Esta es una notificación enviada desde el servidor a las ${new Date().toLocaleTimeString()}`
         )
 
+        const envDiagnostics = {
+            hasKey: !!process.env.ONESIGNAL_REST_API_KEY,
+            keyLength: process.env.ONESIGNAL_REST_API_KEY?.length || 0,
+            keyPreview: process.env.ONESIGNAL_REST_API_KEY ? `${process.env.ONESIGNAL_REST_API_KEY.substring(0, 5)}...` : 'undefined'
+        }
+
         if (result.success) {
-            return res.status(200).json(result)
+            return res.status(200).json({ ...result, envCheck: envDiagnostics })
         } else {
-            return res.status(500).json(result)
+            return res.status(500).json({ ...result, envCheck: envDiagnostics })
         }
 
     } catch (error) {
