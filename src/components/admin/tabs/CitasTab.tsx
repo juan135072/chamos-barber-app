@@ -79,7 +79,6 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: React.MouseEvent) => {
-    window.alert('INICIANDO BORRADO...');
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -87,20 +86,21 @@ export default function CitasTab() {
 
     // 1. Validar si hay citas canceladas
     const canceladas = citas.filter(c => c.estado === 'cancelada');
-    window.alert('Citas canceladas encontradas en memoria: ' + canceladas.length);
 
     if (canceladas.length === 0) {
       alert('No hay citas canceladas para eliminar.');
       return;
     }
 
-    // 2. Confirmación real
-    if (!window.confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas?\n\nEsta acción es irreversible.`)) {
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas?\n\nEsto liberará las facturas asociadas.`)) {
       return;
     }
 
+    window.alert('¡ORDEN RECIBIDA! Procesando en la base de datos... Por favor espera.');
+
     try {
       setLoading(true);
+      if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
       // 3. Llamada al RPC (que ahora maneja referencias a facturas)
       const { data, error } = await supabase.rpc('eliminar_citas_canceladas');
