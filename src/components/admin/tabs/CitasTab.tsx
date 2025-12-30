@@ -177,18 +177,16 @@ export default function CitasTab() {
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Citas</h2>
         <div className="flex gap-2">
-          {stats.canceladas > 0 && (
-            <button
-              type="button"
-              onClick={(e) => handleDeleteCancelled(e)}
-              className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
-              style={{ background: 'transparent' }}
-              disabled={loading}
-            >
-              <i className="fas fa-trash-alt mr-2"></i>
-              Eliminar Canceladas ({stats.canceladas})
-            </button>
-          )}
+          <button
+            type="button"
+            onClick={(e) => handleDeleteCancelled(e)}
+            className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+            style={{ background: 'transparent' }}
+            disabled={loading}
+          >
+            <i className="fas fa-trash-alt mr-2"></i>
+            Eliminar Canceladas ({stats.canceladas})
+          </button>
           <button
             onClick={loadCitas}
             className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium"
