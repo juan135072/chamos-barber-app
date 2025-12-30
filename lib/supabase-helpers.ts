@@ -597,11 +597,13 @@ export const chamosSupabase = {
   updateConfiguracion: async (clave: string, valor: string) => {
     const { data, error } = await supabase
       .from('sitio_configuracion')
-      .update({
+      .upsert({
+        clave,
         valor,
         updated_at: new Date().toISOString()
-      } as any)
-      .eq('clave', clave)
+      } as any, {
+        onConflict: 'clave'
+      })
       .select()
       .single()
 
