@@ -172,10 +172,23 @@ export default function OneSignalProvider({
 
   // Función para establecer external ID
   const setExternalId = async (id: string) => {
-    const OneSignal = (window as any).OneSignal
-    if (OneSignal) {
-      await OneSignal.login(id)
-      console.log('🆔 OneSignal External ID establecido:', id)
+    try {
+      const OneSignal = (window as any).OneSignal
+      if (OneSignal && OneSignal.login) {
+        // Verificar si el SDK está realmente listo
+        if (OneSignal.User) {
+          await OneSignal.login(id)
+          console.log('🆔 OneSignal External ID establecido:', id)
+        } else {
+          console.warn('⚠️ OneSignal.User no disponible aún, reintentando login en 1.5s...')
+          setTimeout(() => setExternalId(id), 1500)
+        }
+      } else {
+        console.warn('⚠️ OneSignal SDK no listo para login, reintentando en 1s...')
+        setTimeout(() => setExternalId(id), 1000)
+      }
+    } catch (error) {
+      console.error('❌ Error estableciendo External ID en OneSignal:', error)
     }
   }
 

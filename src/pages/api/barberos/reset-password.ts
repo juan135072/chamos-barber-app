@@ -36,7 +36,7 @@ export default async function handler(
 
     // PASO 0: Obtener email del admin desde Auth
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(adminId)
-    
+
     if (authError || !authData.user) {
       console.error('❌ [Reset Password] No se pudo obtener usuario de Auth:', authError)
       return res.status(403).json({
@@ -112,13 +112,13 @@ export default async function handler(
     let authUserId: string | null = null
     let page = 1
     const perPage = 1000
-    
+
     while (!authUserId && page <= 10) { // Máximo 10 páginas (10000 usuarios)
       const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
         page,
         perPage
       })
-      
+
       if (listError) {
         console.error('❌ [Reset Password] Error listando usuarios:', listError)
         return res.status(500).json({
@@ -131,20 +131,61 @@ export default async function handler(
         authUserId = foundUser.id
         break
       }
-      
+
       // Si no hay más usuarios, salir
       if (data.users.length < perPage) break
       page++
     }
-    
+
     if (!authUserId) {
-      console.error('❌ [Reset Password] Barbero no tiene cuenta en Auth')
-      return res.status(400).json({
-        error: 'Este barbero no tiene cuenta de autenticación en el sistema'
+      console.log('🔍 [Reset Password] El barbero no tiene cuenta en Auth. Creando una nueva...')
+
+      // PASO 2.7: Generar contraseña inicial segura para la nueva cuenta
+      const initialPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
+
+      const { data: authUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+        email: barbero.email,
+        password: initialPassword,
+        email_confirm: true,
+        user_metadata: {
+          nombre: barbero.nombre,
+          apellido: barbero.apellido,
+          rol: 'barbero'
+        }
       })
+
+      if (createAuthError || !authUser.user) {
+        console.error('❌ [Reset Password] Error creando usuario en Auth:', createAuthError)
+        return res.status(500).json({
+          error: 'No se pudo crear la cuenta de autenticación para el barbero',
+          details: createAuthError?.message
+        })
+      }
+
+      authUserId = authUser.user.id
+      console.log('✅ [Reset Password] Nueva cuenta Auth creada:', authUserId)
+
+      // PASO 2.8: Asegurar que existe en admin_users
+      const { error: adminUserError } = await supabaseAdmin
+        .from('admin_users')
+        .upsert({
+          id: authUserId,
+          email: barbero.email,
+          nombre: `${barbero.nombre} ${barbero.apellido}`,
+          rol: 'barbero',
+          barbero_id: barberoId,
+          activo: true
+        })
+
+      if (adminUserError) {
+        console.error('❌ [Reset Password] Error creando/actualizando admin_user:', adminUserError)
+        // No fallar aquí, ya tenemos el authUserId para el reset
+      } else {
+        console.log('✅ [Reset Password] admin_users actualizado')
+      }
     }
 
-    console.log('✅ [Reset Password] auth_user_id del barbero:', authUserId)
+    console.log('✅ [Reset Password] auth_user_id listo para procesar:', authUserId)
 
     // PASO 3: Generar nueva contraseña segura
     const newPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
@@ -186,7 +227,7 @@ export default async function handler(
     // PASO 6: Registrar el cambio (opcional, para auditoría)
     await supabaseAdmin
       .from('barberos')
-      .update({ 
+      .update({
         updated_at: new Date().toISOString()
       })
       .eq('id', barberoId)
