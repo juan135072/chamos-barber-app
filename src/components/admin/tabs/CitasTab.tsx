@@ -79,44 +79,47 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: React.MouseEvent) => {
-    window.alert('PASO 1: Inicio');
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
+    // 1. Validar si hay citas canceladas
     const canceladas = citas.filter(c => c.estado === 'cancelada');
-    window.alert('PASO 2: Encontradas ' + canceladas.length);
 
     if (canceladas.length === 0) {
-      alert('No hay citas canceladas.');
+      alert('No hay citas canceladas para eliminar.');
       return;
     }
 
-    if (!window.confirm('PASO 3: ¿Borrar?')) return;
-    window.alert('PASO 4: Iniciando RPC');
+    // 2. Confirmación real
+    if (!window.confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas?\n\nEsta acción es irreversible.`)) {
+      return;
+    }
 
     try {
-      window.alert('PASO 5: Llamando a RPC...');
+      setLoading(true);
+
+      // 3. Llamada al RPC (que ahora maneja referencias a facturas)
       const { data, error } = await supabase.rpc('eliminar_citas_canceladas');
 
       if (error) {
-        alert('PASO ERROR DB: ' + error.message);
-        return;
+        throw error;
       }
 
-      window.alert('PASO 6: Respuesta recibida: ' + JSON.stringify(data));
-
       if (data && data.success) {
-        alert('PASO 7: ÉXITO! Refrescando...');
+        // 4. Éxito: Recargar la lista de citas
         await loadCitas();
-        window.alert('PASO 8: Lista Refrescada');
+        alert(data.message || 'Citas eliminadas con éxito.');
       } else {
-        alert('PASO ERROR SERVIDOR: ' + JSON.stringify(data));
+        alert('Error del servidor: ' + (data?.error || 'No se pudo completar la operación.'));
       }
 
     } catch (err: any) {
-      alert('PASO CRASH: ' + err.message);
+      console.error('Error en borrado:', err);
+      alert('Error al eliminar: ' + (err.message || 'Error de conexión.'));
+    } finally {
+      setLoading(false);
     }
   }
 
