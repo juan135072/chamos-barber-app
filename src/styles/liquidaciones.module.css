@@ -217,6 +217,38 @@
   font-weight: 600;
 }
 
+.tableTh {
+  padding: 1rem 1.5rem;
+  text-align: left;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.tableHeaderRow {
+  background-color: var(--bg-primary);
+}
+
+.tableBody {
+  background-color: var(--bg-secondary);
+}
+
+.tableRow {
+  border-bottom: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.tableRow:hover {
+  background-color: rgba(212, 175, 55, 0.05);
+}
+
+.tableRow td {
+  padding: 1rem 1.5rem;
+}
+
 /* === BADGES DE ESTADO === */
 .badge {
   display: inline-flex;
@@ -445,6 +477,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -455,6 +488,7 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -465,6 +499,7 @@
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

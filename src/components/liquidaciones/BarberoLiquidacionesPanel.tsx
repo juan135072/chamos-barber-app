@@ -40,10 +40,19 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
   const [liquidaciones, setLiquidaciones] = useState<Liquidacion[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isStandalone, setIsStandalone] = useState(false)
 
   // Cargar datos
   useEffect(() => {
     cargarDatos()
+
+    // Detectar modo PWA
+    const isStandaloneMode =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      (window.navigator as any).standalone ||
+      document.referrer.includes('android-app://');
+
+    setIsStandalone(isStandaloneMode);
   }, [barberoId])
 
   const cargarDatos = async () => {
@@ -85,27 +94,38 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '1rem',
+        marginTop: isStandalone ? '1.5rem' : '0'
+      }}>
         <div>
-          <h1 className={styles.headerTitle}>
+          <h1 className={styles.headerTitle} style={{
+            fontSize: isStandalone ? '2.25rem' : '2rem'
+          }}>
             Mis Liquidaciones
           </h1>
-          <p className={styles.headerSubtitle}>
+          <p className={styles.headerSubtitle} style={{ fontSize: '1.1rem', fontWeight: 500 }}>
             {barbero.nombre} {barbero.apellido}
           </p>
         </div>
-        <button
-          onClick={cargarDatos}
-          className={`${styles.btn} ${styles.btnSecondary}`}
-        >
-          <RefreshCw className="w-4 h-4" />
-          Actualizar
-        </button>
+        {!isStandalone && (
+          <button
+            onClick={cargarDatos}
+            className={`${styles.btn} ${styles.btnSecondary}`}
+          >
+            <RefreshCw className="w-4 h-4" />
+            Actualizar
+          </button>
+        )}
       </div>
 
       {/* Resumen de Comisiones */}
       <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
+        <div className={`${styles.statCard} premium-glow`}>
           <div className={styles.statCardHeader}>
             <div>
               <p className={styles.statLabel}>Total Ventas</p>
@@ -118,7 +138,7 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
           </p>
         </div>
 
-        <div className={`${styles.statCard} ${styles.pending}`}>
+        <div className={`${styles.statCard} ${styles.pending} premium-glow`}>
           <div className={styles.statCardHeader}>
             <div>
               <p className={styles.statLabel}>Comisiones Pendientes</p>
@@ -129,7 +149,7 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
           <p className={styles.statFooter}>Por liquidar</p>
         </div>
 
-        <div className={`${styles.statCard} ${styles.success}`}>
+        <div className={`${styles.statCard} ${styles.success} premium-glow`}>
           <div className={styles.statCardHeader}>
             <div>
               <p className={styles.statLabel} style={{ color: '#86efac' }}>Comisiones Pagadas</p>
@@ -140,7 +160,7 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
           <p className={styles.statFooter} style={{ color: '#86efac' }}>Total recibido</p>
         </div>
 
-        <div className={styles.statCard}>
+        <div className={`${styles.statCard} premium-glow`}>
           <div className={styles.statCardHeader}>
             <div>
               <p className={styles.statLabel}>Mi Comisión</p>
@@ -185,67 +205,51 @@ export default function BarberoLiquidacionesPanel({ barberoId }: Props) {
       )}
 
       {/* Historial de Liquidaciones */}
-      <div className="bg-secondary border border-gray-200 rounded-lg overflow-hidden">
-        <div className="p-6 border-b border-gray-200">
-          <h2 className="text-xl font-bold text-primary">
+      <div className={`${styles.tableContainer} premium-glow`}>
+        <div className={styles.tableHeader}>
+          <h2 className={styles.tableTitle}>
             Historial de Liquidaciones
           </h2>
-          <p className="text-sm text-secondary mt-1">
+          <p className={styles.tableSubtitle}>
             Visualiza todas tus liquidaciones y pagos
           </p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-gray-50">
+            <thead className={styles.tableHeaderRow}>
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Número
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Período
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Ventas
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Monto Vendido
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Comisión
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Fecha Pago
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-muted uppercase tracking-wider">
-                  Acción
-                </th>
+                <th className={styles.tableTh}>Número</th>
+                <th className={styles.tableTh}>Período</th>
+                <th className={styles.tableTh}>Ventas</th>
+                <th className={styles.tableTh}>Monto Vendido</th>
+                <th className={styles.tableTh}>Comisión</th>
+                <th className={styles.tableTh}>Estado</th>
+                <th className={styles.tableTh}>Fecha Pago</th>
+                <th className={styles.tableTh}>Acción</th>
               </tr>
             </thead>
-            <tbody className="bg-secondary divide-y divide-gray-200">
+            <tbody className={styles.tableBody}>
               {liquidaciones.map((liquidacion) => (
-                <tr key={liquidacion.id}>
+                <tr key={liquidacion.id} className={styles.tableRow}>
                   <td>
-                    <span className={`${styles.fontMono} ${styles.textBold}`}>
-                      {liquidacion.numero_liquidacion}
+                    <span className={`${styles.fontMono} ${styles.textBold} ${styles.textAccent}`}>
+                      #{liquidacion.numero_liquidacion}
                     </span>
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <Calendar className="w-4 h-4" style={{ color: 'var(--accent-color)', opacity: 0.6 }} />
                       <div>
-                        <p>{formatFecha(liquidacion.fecha_inicio)}</p>
-                        <p className={styles.textMuted} style={{ fontSize: '0.813rem' }}>
+                        <p style={{ fontSize: '0.9rem' }}>{formatFecha(liquidacion.fecha_inicio)}</p>
+                        <p className={styles.textMuted} style={{ fontSize: '0.75rem' }}>
                           al {formatFecha(liquidacion.fecha_fin)}
                         </p>
                       </div>
                     </div>
                   </td>
                   <td className={styles.textBold}>{liquidacion.cantidad_servicios}</td>
-                  <td className={styles.textBold}>{formatCLP(liquidacion.total_ventas)}</td>
+                  <td className={styles.textBold} style={{ whiteSpace: 'nowrap' }}>{formatCLP(liquidacion.total_ventas)}</td>
                   <td>
                     <div>
                       <p className={styles.textSuccess} style={{ fontWeight: 700 }}>
