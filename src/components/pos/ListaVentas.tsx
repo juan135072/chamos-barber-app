@@ -184,7 +184,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         },
         body: JSON.stringify({
           facturaId,
-          usuario_email: usuario.email,
+          usuario_id: usuario.id,
           motivo_anulacion: 'Anulado desde el POS',
           claveSeguridad: clave
         }),

@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: 'Método no permitido' })
     }
 
-    const { facturaId, motivo_anulacion, usuario_email, claveSeguridad } = req.body
+    const { facturaId, motivo_anulacion, usuario_id, claveSeguridad } = req.body
 
     if (!facturaId) {
         return res.status(400).json({ message: 'Falta el ID de la factura' })
@@ -45,13 +45,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 2. Anular la factura
+        // Validamos que usuario_id sea un UUID válido o null
+        const esUUIDValido = usuario_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(usuario_id)
+
         const { error: updateFacturaError } = await supabase
             .from('facturas')
             .update({
                 anulada: true,
                 fecha_anulacion: new Date().toISOString(),
                 motivo_anulacion: motivo_anulacion || 'Anulación por el cajero',
-                anulada_por: usuario_email || 'Sistema',
+                anulada_por: esUUIDValido ? usuario_id : null,
                 updated_at: new Date().toISOString()
             })
             .eq('id', facturaId)
