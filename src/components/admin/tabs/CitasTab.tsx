@@ -96,10 +96,10 @@ export default function CitasTab() {
       return;
     }
 
-    window.alert('¡ORDEN RECIBIDA! Procesando en la base de datos... Por favor espera.');
 
     try {
       setLoading(true);
+      window.alert('¡ORDEN RECIBIDA! Conectando con Supabase...');
       if (!supabase) throw new Error('Cliente Supabase no inicializado');
 
       // 3. Llamada al RPC (que ahora maneja referencias a facturas)
@@ -179,12 +179,12 @@ export default function CitasTab() {
           <button
             type="button"
             onClick={(e) => handleDeleteCancelled(e)}
-            className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+            className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium border border-orange-500 text-orange-500 hover:bg-orange-500 hover:text-white transition-colors animate-pulse"
             style={{ background: 'transparent' }}
             disabled={loading}
           >
             <i className="fas fa-trash-alt mr-2"></i>
-            Eliminar Canceladas ({stats.canceladas})
+            {loading ? 'Borrando...' : `Eliminar Canceladas (${stats.canceladas})`}
           </button>
           <button
             onClick={loadCitas}
