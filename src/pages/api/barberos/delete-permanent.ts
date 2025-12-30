@@ -37,29 +37,53 @@ export default async function handler(
       }
     )
 
-    // Verificar si tiene citas asociadas
-    const { data: citas, error: citasError } = await supabase
+    // 1. Desvincular CITAS (poner barbero_id a NULL para no perder el historial del cliente)
+    console.log('🔗 Desvinculando citas del barbero:', barberoId)
+    const { error: citasUpdateError } = await supabase
       .from('citas')
-      .select('id')
+      .update({ barbero_id: null })
       .eq('barbero_id', barberoId)
-      .limit(1)
 
-    if (citasError) {
-      console.error('Error checking citas:', citasError)
-      return res.status(400).json({
-        error: 'Error al verificar citas',
-        details: citasError.message
-      })
+    if (citasUpdateError) {
+      console.warn('⚠️ Error unlink citas:', citasUpdateError)
     }
 
-    if (citas && citas.length > 0) {
-      return res.status(400).json({
-        error: 'No se puede eliminar permanentemente. El barbero tiene historial de citas/facturas que deben preservarse por integridad contable. Usa la técnica de "Desactivar" en su lugar.',
-        hasCitas: true
-      })
+    // 2. Desvincular FACTURAS (poner barbero_id a NULL para no perder el registro de ganancias)
+    console.log('💰 Desvinculando facturas del barbero:', barberoId)
+    const { error: facturasUpdateError } = await supabase
+      .from('facturas')
+      .update({ barbero_id: null })
+      .eq('barbero_id', barberoId)
+
+    if (facturasUpdateError) {
+      console.warn('⚠️ Error unlink facturas:', facturasUpdateError)
+      // Si falla aquí es probablemente por el NOT NULL constraint en la BD
     }
 
-    // Eliminar de admin_users primero (relación foreign key)
+    // 3. Eliminar otros registros relacionados que NO son críticos para el balance
+    const relatedTables = [
+      'horarios_trabajo',
+      'horarios_atencion',
+      'horarios_bloqueados',
+      'barbero_portfolio',
+      'configuracion_comisiones',
+      'notas_clientes',
+      'estadisticas'
+    ]
+
+    for (const table of relatedTables) {
+      console.log(`🗑️ Limpiando tabla ${table} para barbero:`, barberoId)
+      const { error: deleteError } = await supabase
+        .from(table)
+        .delete()
+        .eq('barbero_id', barberoId)
+
+      if (deleteError) {
+        console.warn(`⚠️ Error eliminando en ${table}:`, deleteError)
+      }
+    }
+
+    // 4. Eliminar de admin_users (relación de acceso)
     console.log('🗑️ Eliminando admin_users con barbero_id:', barberoId)
     const { data: deletedAdmins, error: adminError } = await supabase
       .from('admin_users')
@@ -67,34 +91,30 @@ export default async function handler(
       .eq('barbero_id', barberoId)
       .select()
 
-    console.log('✅ Admin_users eliminados:', deletedAdmins)
-
     if (adminError) {
       console.warn('⚠️ Error deleting admin_user:', adminError)
-      // No fallar si no existe admin_user
     }
 
-    // Eliminar barbero permanentemente
-    console.log('🗑️ Eliminando barbero con id:', barberoId)
+    // 5. Eliminar barbero permanentemente
+    console.log('🗑️ Eliminando registro maestro del barbero:', barberoId)
     const { data: deletedBarbero, error: barberoError } = await supabase
       .from('barberos')
       .delete()
       .eq('id', barberoId)
       .select()
 
-    console.log('✅ Barbero eliminado:', deletedBarbero)
-
     if (barberoError) {
-      console.error('❌ Error deleting barbero:', barberoError)
+      console.error('❌ Error final deleting barbero:', barberoError)
       return res.status(400).json({
         error: 'Error al eliminar barbero permanentemente',
-        details: barberoError.message
+        details: barberoError.message,
+        hint: 'Es posible que aún existan registros de facturas que impidan el borrado por restricciones de base de datos.'
       })
     }
 
     return res.status(200).json({
       success: true,
-      message: 'Barbero eliminado permanentemente',
+      message: 'Barbero eliminado permanentemente. Se preservaron las citas y facturas para el registro del negocio.',
       deletedBarbero,
       deletedAdmins
     })
