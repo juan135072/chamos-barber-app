@@ -7,11 +7,13 @@ import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import type { Database } from '../../lib/database.types'
+import { useOneSignal } from '../components/providers/OneSignalProvider'
 
 function Login() {
   const session = useSession()
   const supabase = useSupabaseClient<Database>()
   const router = useRouter()
+  const { setExternalId } = useOneSignal()
 
   useEffect(() => {
     // Si hay sesión y el usuario es admin, redirigir al admin panel
@@ -50,6 +52,10 @@ function Login() {
           console.log('➡️ Redirigiendo a /admin')
           router.push('/admin')
         } else if (adminUser.rol === 'barbero') {
+          console.log('🔔 [Login] Vinculando OneSignal para barbero:', adminUser.barbero_id)
+          if (adminUser.barbero_id) {
+            setExternalId(adminUser.barbero_id)
+          }
           console.log('➡️ Redirigiendo a /barbero-panel')
           router.push('/barbero-panel')
         } else {
