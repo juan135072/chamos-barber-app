@@ -159,7 +159,7 @@ const ConfiguracionTab: React.FC = () => {
         </div>
 
         {/* Seguridad del Punto de Venta */}
-        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="rounded-2xl p-6 shadow-xl border-l-4" style={{ borderLeft: '4px solid var(--accent-color)' }}>
+        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--accent-color)' }} className="rounded-2xl p-6 shadow-xl border-l-4">
           <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
             <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-color)' }}>
               <i className="fas fa-shield-alt text-xl"></i>
