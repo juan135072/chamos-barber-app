@@ -49,7 +49,7 @@ export default function CitasTab() {
         .eq('id', citaId)
 
       if (error) throw error
-      
+
       // Recargar citas
       await loadCitas()
       alert('Estado actualizado correctamente')
@@ -69,12 +69,40 @@ export default function CitasTab() {
         .eq('id', citaId)
 
       if (error) throw error
-      
+
       await loadCitas()
       alert('Cita eliminada correctamente')
     } catch (error) {
       console.error('Error deleting cita:', error)
       alert('Error al eliminar la cita')
+    }
+  }
+
+  const handleDeleteCancelled = async () => {
+    const canceladas = citas.filter(c => c.estado === 'cancelada')
+    if (canceladas.length === 0) {
+      alert('No hay citas canceladas para eliminar')
+      return
+    }
+
+    if (!confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas? Esta acción no se puede deshacer.`)) return
+
+    try {
+      setLoading(true)
+      const { error } = await supabase
+        .from('citas')
+        .delete()
+        .eq('estado', 'cancelada')
+
+      if (error) throw error
+
+      await loadCitas()
+      alert('Citas canceladas eliminadas correctamente')
+    } catch (error) {
+      console.error('Error deleting cancelled citas:', error)
+      alert('Error al eliminar las citas canceladas')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -94,13 +122,13 @@ export default function CitasTab() {
       const searchLower = searchTerm.toLowerCase()
       const nombreCliente = cita.cliente_nombre?.toLowerCase() || ''
       const emailCliente = cita.cliente_email?.toLowerCase() || ''
-      const nombreBarbero = cita.barberos 
+      const nombreBarbero = cita.barberos
         ? `${cita.barberos.nombre} ${cita.barberos.apellido}`.toLowerCase()
         : ''
-      
-      return nombreCliente.includes(searchLower) || 
-             emailCliente.includes(searchLower) ||
-             nombreBarbero.includes(searchLower)
+
+      return nombreCliente.includes(searchLower) ||
+        emailCliente.includes(searchLower) ||
+        nombreBarbero.includes(searchLower)
     }
 
     return true
@@ -127,18 +155,30 @@ export default function CitasTab() {
     <div>
       <div className="mb-6 flex justify-between items-center">
         <h2 className="text-2xl font-bold" style={{ color: 'var(--accent-color)' }}>Gestión de Citas</h2>
-        <button
-          onClick={loadCitas}
-          className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium"
-          style={{ 
-            backgroundColor: 'var(--accent-color)', 
-            color: 'var(--bg-primary)',
-            border: 'none'
-          }}
-        >
-          <i className="fas fa-sync-alt mr-2"></i>
-          Actualizar
-        </button>
+        <div className="flex gap-2">
+          {stats.canceladas > 0 && (
+            <button
+              onClick={handleDeleteCancelled}
+              className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium border border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition-colors"
+              style={{ background: 'transparent' }}
+            >
+              <i className="fas fa-trash-alt mr-2"></i>
+              Eliminar Canceladas ({stats.canceladas})
+            </button>
+          )}
+          <button
+            onClick={loadCitas}
+            className="inline-flex items-center px-4 py-2 rounded-md shadow-sm text-sm font-medium"
+            style={{
+              backgroundColor: 'var(--accent-color)',
+              color: 'var(--bg-primary)',
+              border: 'none'
+            }}
+          >
+            <i className="fas fa-sync-alt mr-2"></i>
+            Actualizar
+          </button>
+        </div>
       </div>
 
       {/* Estadísticas */}
@@ -231,95 +271,94 @@ export default function CitasTab() {
 
       {/* Tabla de Citas */}
       <div style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }} className="shadow rounded-lg overflow-x-auto">
-          <table className="min-w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
-            <thead style={{ background: 'var(--bg-tertiary)' }}>
+        <table className="min-w-full" style={{ borderCollapse: 'separate', borderSpacing: 0 }}>
+          <thead style={{ background: 'var(--bg-tertiary)' }}>
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                Cliente
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                Barbero
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                Servicio
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                Fecha y Hora
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                Estado
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody style={{ background: 'var(--bg-secondary)' }}>
+            {citasFiltradas.length === 0 ? (
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  Cliente
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  Barbero
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  Servicio
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  Fecha y Hora
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  Estado
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  Acciones
-                </th>
+                <td colSpan={6} className="px-6 py-8 text-center" style={{ color: 'var(--text-primary)', opacity: 0.7, borderTop: '1px solid var(--border-color)' }}>
+                  No se encontraron citas
+                </td>
               </tr>
-            </thead>
-            <tbody style={{ background: 'var(--bg-secondary)' }}>
-              {citasFiltradas.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-6 py-8 text-center" style={{ color: 'var(--text-primary)', opacity: 0.7, borderTop: '1px solid var(--border-color)' }}>
-                    No se encontraron citas
+            ) : (
+              citasFiltradas.map((cita) => (
+                <tr key={cita.id} style={{ borderTop: '1px solid var(--border-color)' }}>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
+                      {cita.cliente_nombre}
+                    </div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.cliente_email}</div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.cliente_telefono}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
+                    {cita.barberos
+                      ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
+                      : 'N/A'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
+                      {cita.servicios?.nombre || 'N/A'}
+                    </div>
+                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                      ${cita.servicios?.precio || 0}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
+                    <div>{new Date(cita.fecha).toLocaleDateString('es-ES')}</div>
+                    <div style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.hora}</div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <select
+                      value={cita.estado}
+                      onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
+                      className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
+                        cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
+                          cita.estado === 'completada' ? 'bg-blue-100 text-blue-800' :
+                            cita.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
+                              'bg-gray-100 text-gray-800'
+                        }`}
+                    >
+                      <option value="pendiente">Pendiente</option>
+                      <option value="confirmada">Confirmada</option>
+                      <option value="completada">Completada</option>
+                      <option value="cancelada">Cancelada</option>
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <button
+                      onClick={() => handleDeleteCita(cita.id)}
+                      className="text-red-600 hover:text-red-900 ml-4"
+                      title="Eliminar cita"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                citasFiltradas.map((cita) => (
-                  <tr key={cita.id} style={{ borderTop: '1px solid var(--border-color)' }}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>
-                        {cita.cliente_nombre}
-                      </div>
-                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.cliente_email}</div>
-                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.cliente_telefono}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {cita.barberos 
-                        ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
-                        : 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                        {cita.servicios?.nombre || 'N/A'}
-                      </div>
-                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                        ${cita.servicios?.precio || 0}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
-                      <div>{new Date(cita.fecha).toLocaleDateString('es-ES')}</div>
-                      <div style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.hora}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={cita.estado}
-                        onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
-                        className={`text-xs font-semibold px-2 py-1 rounded-full border-0 ${
-                          cita.estado === 'confirmada' ? 'bg-green-100 text-green-800' :
-                          cita.estado === 'pendiente' ? 'bg-yellow-100 text-yellow-800' :
-                          cita.estado === 'completada' ? 'bg-blue-100 text-blue-800' :
-                          cita.estado === 'cancelada' ? 'bg-red-100 text-red-800' :
-                          'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        <option value="pendiente">Pendiente</option>
-                        <option value="confirmada">Confirmada</option>
-                        <option value="completada">Completada</option>
-                        <option value="cancelada">Cancelada</option>
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <button
-                        onClick={() => handleDeleteCita(cita.id)}
-                        className="text-red-600 hover:text-red-900 ml-4"
-                        title="Eliminar cita"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
 
       {/* Resumen */}
