@@ -79,56 +79,51 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: React.MouseEvent) => {
+    // ALERT INMEDIATA
+    window.alert('1. Botón pulsado correctamente');
+
     if (e) {
-      e.preventDefault()
-      e.stopPropagation()
+      e.preventDefault();
+      e.stopPropagation();
     }
 
-    // ALERT DE DEBUG PARA EL USUARIO
-    console.log('¡Click detectado!')
-
-    const canceladas = citas.filter(c => c.estado === 'cancelada')
+    const canceladas = citas.filter(c => c.estado === 'cancelada');
 
     if (canceladas.length === 0) {
-      alert('No hay citas canceladas para eliminar')
-      return
+      window.alert('2. No hay citas canceladas en la lista actual');
+      return;
     }
 
-    const confirmacion = window.confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas? Esta acción no se puede deshacer y los registros se borrarán permanentemente de la base de datos.`)
+    const confirmacion = window.confirm(`3. ¿Eliminar ${canceladas.length} citas?`);
 
-    if (!confirmacion) return
+    if (!confirmacion) return;
 
     try {
-      setLoading(true)
-      console.log('🚀 [Admin] Iniciando borrado masivo vía RPC...')
-      // Un alert para confirmar que entramos aquí
-      // window.alert('DEBUG: Llamando a la base de datos...')
+      setLoading(true);
+      window.alert('4. Llamando a Supabase RPC...');
 
-      const { data, error } = await supabase.rpc('eliminar_citas_canceladas')
+      const { data, error } = await supabase.rpc('eliminar_citas_canceladas');
 
       if (error) {
-        console.error('❌ [Admin] Error RPC:', error)
-        alert('Error de base de datos: ' + error.message)
-        throw error
+        window.alert('ERROR RPC: ' + error.message);
+        throw error;
       }
-
-      console.log('✅ [Admin] Resultado RPC:', data)
 
       if (data?.success) {
-        console.log('🔄 [Admin] Recargando lista de citas...')
-        await loadCitas()
-        alert(data.message || `¡Éxito! Se han eliminado las citas canceladas.`)
+        window.alert('5. Borrado exitoso en el servidor. Recargando lista...');
+        await loadCitas();
+        alert('¡LISTO! Citas eliminadas y panel actualizado.');
       } else {
-        alert('El servidor respondió pero no hubo éxito: ' + (data?.error || 'Sin error específico'))
-        throw new Error(data?.error || 'No se recibió respuesta exitosa del servidor.')
+        window.alert('SERVIDOR ERROR: ' + (data?.error || 'Desocnocido'));
+        throw new Error(data?.error || 'No se recibió respuesta exitosa.');
       }
     } catch (error: any) {
-      console.error('💥 [Admin] Error crítico en handleDeleteCancelled:', error)
-      alert(`Error crítico: ${error.message || 'Error desconocido'}`)
+      window.alert('FALLO CRITICO: ' + error.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
+
 
   // Filtrar citas
   const citasFiltradas = citas.filter(cita => {
