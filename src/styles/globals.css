@@ -1115,4 +1115,68 @@ input[type="date"]:focus {
     box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
 }
 
-/* === FIN MEJORAS UX CALENDARIO === */$pwaStyles
+/* === FIN MEJORAS UX CALENDARIO === */
+
+/* === PWA STANDALONE MODE (NATIVE APP FEEL) === */
+@media (display-mode: standalone), (display-mode: fullscreen) {
+    body {
+        /* Previene el efecto "bounce" o "pull-to-refresh" del navegador */
+        overscroll-behavior-y: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        
+        /* Ajuste para Notch y áreas seguras */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Ocultar barra de navegación del sitio público en modo App */
+    /* (Se asume que la App es para gestión interna) */
+    .navbar {
+        display: none !important;
+    }
+
+    /* Ajustar headers internos para que no choquen con el Notch */
+    header {
+        padding-top: max(1rem, env(safe-area-inset-top)) !important;
+    }
+
+    /* Botones más grandes y fáciles de tocar */
+    .btn {
+        padding: 18px 30px;
+        min-height: 54px;
+    }
+
+    /* Scrollbars invisibles o minimalistas */
+    ::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+}
+
+/* Soporte para iPhone con Notch */
+@supports (padding: env(safe-area-inset-top)) {
+    .safe-padding-top {
+        padding-top: env(safe-area-inset-top);
+    }
+    .safe-padding-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* Glow Effect para elementos premium en el Panel de Barbero */
+.premium-glow {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+/* Animación pwa-fade-in */
+@keyframes pwa-fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pwa-content-enter {
+    animation: pwa-fade-in 0.4s ease-out;
+}
+
