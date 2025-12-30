@@ -46,15 +46,15 @@ export default async function handler(
 
     if (citasError) {
       console.error('Error checking citas:', citasError)
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Error al verificar citas',
-        details: citasError.message 
+        details: citasError.message
       })
     }
 
     if (citas && citas.length > 0) {
-      return res.status(400).json({ 
-        error: 'No se puede eliminar permanentemente. El barbero tiene citas asociadas.',
+      return res.status(400).json({
+        error: 'No se puede eliminar permanentemente. El barbero tiene historial de citas/facturas que deben preservarse por integridad contable. Usa la técnica de "Desactivar" en su lugar.',
         hasCitas: true
       })
     }
@@ -68,7 +68,7 @@ export default async function handler(
       .select()
 
     console.log('✅ Admin_users eliminados:', deletedAdmins)
-    
+
     if (adminError) {
       console.warn('⚠️ Error deleting admin_user:', adminError)
       // No fallar si no existe admin_user
@@ -86,13 +86,13 @@ export default async function handler(
 
     if (barberoError) {
       console.error('❌ Error deleting barbero:', barberoError)
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Error al eliminar barbero permanentemente',
-        details: barberoError.message 
+        details: barberoError.message
       })
     }
 
-    return res.status(200).json({ 
+    return res.status(200).json({
       success: true,
       message: 'Barbero eliminado permanentemente',
       deletedBarbero,
@@ -101,9 +101,9 @@ export default async function handler(
 
   } catch (error: any) {
     console.error('Error en delete-permanent:', error)
-    return res.status(500).json({ 
+    return res.status(500).json({
       error: 'Error interno del servidor',
-      details: error.message 
+      details: error.message
     })
   }
 }
