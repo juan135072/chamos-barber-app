@@ -79,6 +79,8 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async () => {
+    // ALERT DE DEBUG PARA EL USUARIO
+    window.alert('¡Click detectado! Iniciando proceso...')
     const canceladas = citas.filter(c => c.estado === 'cancelada')
 
     if (canceladas.length === 0) {
@@ -93,29 +95,30 @@ export default function CitasTab() {
     try {
       setLoading(true)
       console.log('🚀 [Admin] Iniciando borrado masivo vía RPC...')
+      // Un alert para confirmar que entramos aquí
+      // window.alert('DEBUG: Llamando a la base de datos...')
 
       const { data, error } = await supabase.rpc('eliminar_citas_canceladas')
 
       if (error) {
         console.error('❌ [Admin] Error RPC:', error)
+        alert('Error de base de datos: ' + error.message)
         throw error
       }
 
       console.log('✅ [Admin] Resultado RPC:', data)
 
       if (data?.success) {
-        // Forzar recarga de la lista
         console.log('🔄 [Admin] Recargando lista de citas...')
         await loadCitas()
         alert(data.message || `¡Éxito! Se han eliminado las citas canceladas.`)
       } else {
+        alert('El servidor respondió pero no hubo éxito: ' + (data?.error || 'Sin error específico'))
         throw new Error(data?.error || 'No se recibió respuesta exitosa del servidor.')
       }
     } catch (error: any) {
       console.error('💥 [Admin] Error crítico en handleDeleteCancelled:', error)
-      alert(`Error al eliminar: ${error.message || 'Error desconocido'}. 
-      
-Si ya ejecutaste el SQL en Supabase y el error persiste, intenta refrescar la página con CTRL+F5.`)
+      alert(`Error crítico: ${error.message || 'Error desconocido'}`)
     } finally {
       setLoading(false)
     }
