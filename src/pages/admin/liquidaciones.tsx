@@ -30,7 +30,7 @@ export default function AdminLiquidacionesPage() {
       } = await supabase.auth.getSession()
 
       if (sessionError || !session) {
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
@@ -42,14 +42,14 @@ export default function AdminLiquidacionesPage() {
         .single()
 
       if (adminError || !adminUser || (adminUser as any).rol !== 'admin') {
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
       setIsAdmin(true)
     } catch (error) {
       console.error('Error verificando autenticación:', error)
-      router.push('/login')
+      router.push('/chamos-acceso')
     } finally {
       setLoading(false)
     }
@@ -102,7 +102,7 @@ export default function AdminLiquidacionesPage() {
               <button
                 onClick={async () => {
                   await supabase.auth.signOut()
-                  router.push('/login')
+                  router.push('/chamos-acceso')
                 }}
                 className="px-4 py-2 rounded-lg transition-colors"
                 style={{ backgroundColor: '#dc2626', color: 'white' }}
@@ -123,3 +123,4 @@ export default function AdminLiquidacionesPage() {
     </div>
   )
 }
+

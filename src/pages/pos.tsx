@@ -17,7 +17,7 @@ export default function POSPage() {
     if (cargando) return
 
     if (!usuario) {
-      router.push('/login')
+      router.push('/chamos-acceso')
       return
     }
 
@@ -30,7 +30,7 @@ export default function POSPage() {
 
   const handleCerrarSesion = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/chamos-acceso')
   }
 
   const handleVolverAdmin = () => {
@@ -173,3 +173,4 @@ export default function POSPage() {
     </>
   )
 }
+

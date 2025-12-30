@@ -26,7 +26,7 @@ function Login() {
     try {
       console.log('🔍 Verificando acceso para:', session.user.email)
       console.log('🆔 User ID:', session.user.id)
-      
+
       const { data: adminUser, error } = await supabase
         .from('admin_users')
         .select('*')
@@ -83,25 +83,24 @@ function Login() {
   return (
     <>
       <Head>
-        <title>Admin Login - Chamos Barber</title>
+        <title>Acceso - Chamos Barber</title>
         <meta name="description" content="Panel de administración Chamos Barber" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      
+
       <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header */}
         <div className="w-full" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
-            <Link href="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" style={{ color: 'var(--text-primary)' }}>
-              <i className="fas fa-arrow-left text-lg"></i>
-              <span className="font-medium">Volver al sitio</span>
-            </Link>
-            
+            <div className="flex items-center space-x-2">
+              {/* Enlace de retorno eliminado por seguridad */}
+            </div>
+
             <div className="flex items-center space-x-3">
-              <img 
-                src="/chamos-logo.png" 
-                alt="Chamos Barber Shop Logo" 
+              <img
+                src="/chamos-logo.png"
+                alt="Chamos Barber Shop Logo"
                 className="h-12 w-auto"
                 style={{ objectFit: 'contain' }}
               />
@@ -117,79 +116,79 @@ function Login() {
         <div className="flex-1 flex items-center justify-center p-4 py-8">
           <div className="w-full max-w-md auth-card-enter">
             <div className="rounded-2xl shadow-2xl p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
-                <div className="text-center mb-8">
-                  <div className="flex items-center justify-center mx-auto mb-4 login-logo-container">
-                    <img 
-                      src="/chamos-logo.png" 
-                      alt="Chamos Barber Shop Logo" 
-                      className="h-20 w-auto"
-                      style={{ objectFit: 'contain' }}
-                    />
-                  </div>
-                  <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>Iniciar Sesión</h2>
-                  <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Accede al panel de administración</p>
+              <div className="text-center mb-8">
+                <div className="flex items-center justify-center mx-auto mb-4 login-logo-container">
+                  <img
+                    src="/chamos-logo.png"
+                    alt="Chamos Barber Shop Logo"
+                    className="h-20 w-auto"
+                    style={{ objectFit: 'contain' }}
+                  />
                 </div>
+                <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>Iniciar Sesión</h2>
+                <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Accede al panel de administración</p>
+              </div>
 
-                <Auth
-                  supabaseClient={supabase}
-                  appearance={{
-                    theme: ThemeSupa,
-                    variables: {
-                      default: {
-                        colors: {
-                          brand: '#d97706',
-                          brandAccent: '#b45309',
-                        },
+              <Auth
+                supabaseClient={supabase}
+                appearance={{
+                  theme: ThemeSupa,
+                  variables: {
+                    default: {
+                      colors: {
+                        brand: '#d97706',
+                        brandAccent: '#b45309',
                       },
                     },
-                    className: {
-                      container: 'auth-container',
-                      button: 'auth-button',
-                      input: 'auth-input',
+                  },
+                  className: {
+                    container: 'auth-container',
+                    button: 'auth-button',
+                    input: 'auth-input',
+                  },
+                }}
+                localization={{
+                  variables: {
+                    sign_in: {
+                      email_label: 'Correo electrónico',
+                      password_label: 'Contraseña',
+                      email_input_placeholder: 'Tu correo electrónico',
+                      password_input_placeholder: 'Tu contraseña',
+                      button_label: 'Iniciar sesión',
+                      loading_button_label: 'Iniciando sesión...',
+                      social_provider_text: 'Iniciar sesión con {{provider}}',
+                      link_text: '¿Ya tienes una cuenta? Inicia sesión',
                     },
-                  }}
-                  localization={{
-                    variables: {
-                      sign_in: {
-                        email_label: 'Correo electrónico',
-                        password_label: 'Contraseña',
-                        email_input_placeholder: 'Tu correo electrónico',
-                        password_input_placeholder: 'Tu contraseña',
-                        button_label: 'Iniciar sesión',
-                        loading_button_label: 'Iniciando sesión...',
-                        social_provider_text: 'Iniciar sesión con {{provider}}',
-                        link_text: '¿Ya tienes una cuenta? Inicia sesión',
-                      },
-                    },
-                  }}
-                  providers={[]}
-                  redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/admin` : '/admin'}
-                  onlyThirdPartyProviders={false}
-                  magicLink={false}
-                  showLinks={false}
-                />
+                  },
+                }}
+                providers={[]}
+                redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/admin` : '/admin'}
+                onlyThirdPartyProviders={false}
+                magicLink={false}
+                showLinks={false}
+              />
 
-                <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
-                  <div className="text-center mb-4">
-                    <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                      ¿No tienes cuenta?{' '}
-                      <Link 
-                        href="/registro-barbero" 
-                        className="font-medium hover:underline transition-all"
-                        style={{ color: 'var(--accent-color)' }}
-                      >
-                        Regístrate como barbero
-                      </Link>
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-center text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                    <i className="fas fa-shield-alt mr-2"></i>
-                    <span>Conexión segura y encriptada</span>
-                  </div>
+              <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+                <div className="text-center mb-4">
+                  <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                    ¿No tienes cuenta?{' '}
+                    <Link
+                      href="/registro-barbero"
+                      className="font-medium hover:underline transition-all"
+                      style={{ color: 'var(--accent-color)' }}
+                    >
+                      Regístrate como barbero
+                    </Link>
+                  </p>
+                </div>
+                <div className="flex items-center justify-center text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                  <i className="fas fa-shield-alt mr-2"></i>
+                  <span>Conexión segura y encriptada</span>
                 </div>
               </div>
             </div>
           </div>
+        </div>
 
         {/* Footer */}
         <div className="w-full py-4" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>

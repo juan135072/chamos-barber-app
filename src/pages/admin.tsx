@@ -79,7 +79,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     if (!session?.user) {
-      router.push('/login')
+      router.push('/chamos-acceso')
       return
     }
 
@@ -97,7 +97,7 @@ export default function AdminPage() {
       if (!adminData || adminData.rol !== 'admin') {
         console.error('[Admin] ❌ ACCESO DENEGADO - Rol:', adminData?.rol)
         await supabase.auth.signOut()
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
@@ -116,7 +116,7 @@ export default function AdminPage() {
     } catch (error) {
       console.error('[Admin] Error checking admin access:', error)
       await supabase.auth.signOut()
-      router.push('/login')
+      router.push('/chamos-acceso')
     } finally {
       setLoading(false)
     }
@@ -151,7 +151,7 @@ export default function AdminPage() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/chamos-acceso')
   }
 
   const menuItems = [
@@ -441,3 +441,4 @@ export default function AdminPage() {
     </>
   )
 }
+

@@ -40,7 +40,7 @@ const BarberoPanelPage: React.FC = () => {
 
   useEffect(() => {
     if (!session) {
-      router.push('/login')
+      router.push('/chamos-acceso')
       return
     }
     loadBarberoData()
@@ -59,7 +59,7 @@ const BarberoPanelPage: React.FC = () => {
 
       if (adminError || !adminUser || adminUser.rol !== 'barbero') {
         toast.error('No tienes permisos para acceder a este panel')
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
@@ -203,7 +203,7 @@ const BarberoPanelPage: React.FC = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
+    router.push('/chamos-acceso')
   }
 
   if (loading) {
@@ -238,7 +238,7 @@ const BarberoPanelPage: React.FC = () => {
             gap: '2rem'
           }}>
             <h2 style={{ color: 'var(--text-primary)' }}>No se pudo cargar tu perfil</h2>
-            <button onClick={() => router.push('/login')} className="btn btn-primary">
+            <button onClick={() => router.push('/chamos-acceso')} className="btn btn-primary">
               Volver al Login
             </button>
           </div>
@@ -666,3 +666,4 @@ const BarberoPanelPage: React.FC = () => {
 }
 
 export default BarberoPanelPage
+

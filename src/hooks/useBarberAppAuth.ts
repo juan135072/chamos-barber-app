@@ -21,7 +21,7 @@ export function useBarberAppAuth() {
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT') {
         setSession(null)
-        router.push('/login')
+        router.push('/chamos-acceso')
       } else if (event === 'SIGNED_IN' && session) {
         checkAuth()
       }
@@ -101,7 +101,7 @@ export function useBarberAppAuth() {
       
       // Redirigir al login si hay error
       setTimeout(() => {
-        router.push('/login')
+        router.push('/chamos-acceso')
       }, 2000)
     } finally {
       setLoading(false)
@@ -112,7 +112,7 @@ export function useBarberAppAuth() {
     try {
       await supabase.auth.signOut()
       setSession(null)
-      router.push('/login')
+      router.push('/chamos-acceso')
     } catch (err: any) {
       console.error('Error al cerrar sesión:', err)
       setError('Error al cerrar sesión')
@@ -130,3 +130,4 @@ export function useBarberAppAuth() {
     barberoId: session?.barberoId || null
   }
 }
+

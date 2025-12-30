@@ -855,7 +855,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                 <strong>Importante:</strong> Guarda estas credenciales o envíaselas al barbero. Podrá iniciar sesión en:
               </p>
               <p className="text-sm mt-2 font-mono" style={{ color: 'var(--accent-color)' }}>
-                https://chamosbarber.com/login
+                https://chamosbarber.com/chamos-acceso
               </p>
             </div>
 
@@ -880,3 +880,4 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
 }
 
 export default BarberoModal
+

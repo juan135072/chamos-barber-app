@@ -20,7 +20,7 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     if (confirm('¿Estás seguro de que quieres cerrar sesión?')) {
       await signOut()
-      router.push('/login')
+      router.push('/chamos-acceso')
     }
   }
 
@@ -44,7 +44,7 @@ export default function ProfilePage() {
           <h2 style={{ color: '#ef4444', marginBottom: '1rem' }}>Acceso Denegado</h2>
           <p style={{ marginBottom: '2rem', opacity: 0.8 }}>{authError || 'No tienes permisos para acceder'}</p>
           <button
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/chamos-acceso')}
             style={{
               padding: '1rem 2rem',
               background: '#D4AF37',
@@ -454,3 +454,4 @@ export default function ProfilePage() {
     </>
   )
 }
+

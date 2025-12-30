@@ -413,7 +413,7 @@ export default function RegistroBarbero() {
           <div className="mt-8 text-center text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
             <p>
               ¿Ya tienes una cuenta?{' '}
-              <a href="/login" className="font-medium transition-colors" style={{ color: 'var(--accent-color)' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
+              <a href="/chamos-acceso" className="font-medium transition-colors" style={{ color: 'var(--accent-color)' }} onMouseEnter={(e) => e.currentTarget.style.opacity = '0.8'} onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}>
                 Inicia sesión aquí
               </a>
             </p>
@@ -423,3 +423,4 @@ export default function RegistroBarbero() {
     </>
   )
 }
+

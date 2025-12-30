@@ -31,7 +31,7 @@ export default function BarberoLiquidacionesPage() {
       } = await supabase.auth.getSession()
 
       if (sessionError || !session) {
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
@@ -44,7 +44,7 @@ export default function BarberoLiquidacionesPage() {
 
       if (adminError || !adminUser || !(adminUser as any).barbero_id) {
         // No es un barbero, redirigir
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
@@ -56,7 +56,7 @@ export default function BarberoLiquidacionesPage() {
         .single()
 
       if (barberoError || !barbero) {
-        router.push('/login')
+        router.push('/chamos-acceso')
         return
       }
 
@@ -64,7 +64,7 @@ export default function BarberoLiquidacionesPage() {
       setBarberoNombre(`${(barbero as any).nombre} ${(barbero as any).apellido}`)
     } catch (error) {
       console.error('Error verificando autenticación:', error)
-      router.push('/login')
+      router.push('/chamos-acceso')
     } finally {
       setLoading(false)
     }
@@ -111,7 +111,7 @@ export default function BarberoLiquidacionesPage() {
               <button
                 onClick={async () => {
                   await supabase.auth.signOut()
-                  router.push('/login')
+                  router.push('/chamos-acceso')
                 }}
                 className="px-4 py-2 rounded-lg transition-colors"
                 style={{ backgroundColor: '#dc2626', color: 'white' }}
@@ -132,3 +132,4 @@ export default function BarberoLiquidacionesPage() {
     </div>
   )
 }
+

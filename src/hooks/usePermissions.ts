@@ -71,7 +71,7 @@ export function usePermissions() {
    */
   const redirigirPorRol = () => {
     if (!usuario) {
-      router.push('/login');
+      router.push('/chamos-acceso');
       return;
     }
 
@@ -86,7 +86,7 @@ export function usePermissions() {
     if (cargando) return;
 
     if (!usuario) {
-      router.push('/login');
+      router.push('/chamos-acceso');
       return;
     }
 
@@ -135,3 +135,4 @@ export function useProtectedRoute(rutaRequerida: string) {
 
   return { cargando };
 }
+
