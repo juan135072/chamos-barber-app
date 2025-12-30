@@ -79,6 +79,7 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: React.MouseEvent) => {
+    window.alert('INICIANDO BORRADO...');
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -86,6 +87,7 @@ export default function CitasTab() {
 
     // 1. Validar si hay citas canceladas
     const canceladas = citas.filter(c => c.estado === 'cancelada');
+    window.alert('Citas canceladas encontradas en memoria: ' + canceladas.length);
 
     if (canceladas.length === 0) {
       alert('No hay citas canceladas para eliminar.');
