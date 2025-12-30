@@ -145,9 +145,13 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
 
       const nuevoCierre = await chamosSupabase.crearCierreCaja(cierreData)
 
+      if (!nuevoCierre) {
+        throw new Error('No se pudo crear el registro de cierre de caja')
+      }
+
       // VINCULAR FACTURAS AL CIERRE
       if (facturasIdsPeriodo.length > 0) {
-        await chamosSupabase.vincularFacturasACierre(facturasIdsPeriodo, nuevoCierre.id)
+        await chamosSupabase.vincularFacturasACierre(facturasIdsPeriodo, (nuevoCierre as any).id)
       }
 
       alert('Caja cerrada exitosamente. Las ventas han sido archivadas para este periodo.')

@@ -37,7 +37,8 @@
         "./src/styles/*"
       ],
       "@/lib/*": [
-        "./src/lib/*"
+        "./src/lib/*",
+        "./lib/*"
       ],
       "@/types/*": [
         "./src/types/*"
