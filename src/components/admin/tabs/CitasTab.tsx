@@ -79,50 +79,44 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: React.MouseEvent) => {
+    window.alert('PASO 1: Inicio');
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
-    // 1. Obtener citas canceladas actuales
     const canceladas = citas.filter(c => c.estado === 'cancelada');
+    window.alert('PASO 2: Encontradas ' + canceladas.length);
 
     if (canceladas.length === 0) {
-      alert('No hay citas canceladas para eliminar.');
+      alert('No hay citas canceladas.');
       return;
     }
 
-    // 2. Confirmación
-    if (!window.confirm(`¿Eliminar las ${canceladas.length} citas canceladas?`)) return;
+    if (!window.confirm('PASO 3: ¿Borrar?')) return;
+    window.alert('PASO 4: Iniciando RPC');
 
     try {
-      // 3. Verificar cliente
-      if (!supabase) {
-        alert('Error: El cliente de base de datos no está disponible.');
-        return;
-      }
-
-      alert('Llamando a la base de datos... Por favor espera.');
-
-      // 4. Llamada al RPC
+      window.alert('PASO 5: Llamando a RPC...');
       const { data, error } = await supabase.rpc('eliminar_citas_canceladas');
 
       if (error) {
-        alert('Error de Supabase: ' + error.message);
+        alert('PASO ERROR DB: ' + error.message);
         return;
       }
 
-      // 5. Procesar resultado
+      window.alert('PASO 6: Respuesta recibida: ' + JSON.stringify(data));
+
       if (data && data.success) {
-        alert(data.message || 'Citas eliminadas con éxito.');
-        // Recargar datos
+        alert('PASO 7: ÉXITO! Refrescando...');
         await loadCitas();
+        window.alert('PASO 8: Lista Refrescada');
       } else {
-        alert('El servidor no devolvió éxito: ' + JSON.stringify(data));
+        alert('PASO ERROR SERVIDOR: ' + JSON.stringify(data));
       }
 
     } catch (err: any) {
-      alert('Error inesperado: ' + err.message);
+      alert('PASO CRASH: ' + err.message);
     }
   }
 
