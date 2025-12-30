@@ -17,6 +17,7 @@ import ComisionesTab from '../components/admin/tabs/ComisionesTab'
 import GananciasTab from '../components/admin/tabs/GananciasTab'
 import CalendarView from '../components/admin/dashboard/CalendarView'
 import WalkInClientsPanel from '../components/walkin/WalkInClientsPanel'
+import { useOneSignal } from '../components/providers/OneSignalProvider'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -35,6 +36,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+
+  const { triggerPrompt, setExternalId } = useOneSignal()
 
   // Cerrar sidebar en móvil al cambiar de tab
   const handleTabChange = (tabId: string) => {
@@ -98,8 +101,17 @@ export default function AdminPage() {
         return
       }
 
-      console.log('[Admin] ✅ Acceso autorizado - Usuario es admin')
+      console.log('[Admin] ✅ ACCESO CONCEDIDO')
       setAdminUser(adminData)
+      setLoading(false)
+
+      // 🔔 OneSignal: Vincular ID y mostrar prompt
+      setExternalId(adminData.id)
+      setTimeout(() => {
+        triggerPrompt()
+      }, 3000)
+
+      // Si el acceso es correcto, cargar el resto de datos
       loadDashboardData()
     } catch (error) {
       console.error('[Admin] Error checking admin access:', error)

@@ -8,8 +8,26 @@
 
 'use client'
 
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState, createContext, useContext } from 'react'
 import { Bell, BellOff, X } from 'lucide-react'
+
+interface OneSignalContextType {
+  initialized: boolean
+  permissionStatus: 'default' | 'granted' | 'denied'
+  showPrompt: boolean
+  triggerPrompt: () => void
+  setExternalId: (id: string) => Promise<void>
+}
+
+const OneSignalContext = createContext<OneSignalContextType | undefined>(undefined)
+
+export const useOneSignal = () => {
+  const context = useContext(OneSignalContext)
+  if (context === undefined) {
+    throw new Error('useOneSignal must be used within a OneSignalProvider')
+  }
+  return context
+}
 
 interface OneSignalProviderProps {
   children: React.ReactNode
@@ -34,15 +52,10 @@ export default function OneSignalProvider({
     const finalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || appId
 
     console.log('🔔 Inicializando OneSignal...')
-    console.log('📱 App ID:', finalAppId)
 
     // Función para inicializar OneSignal
     const initOneSignal = async () => {
       try {
-        console.log('🔔 [OneSignal] Iniciando configuración...')
-        console.log('🔔 [OneSignal] App ID:', finalAppId)
-        console.log('🔔 [OneSignal] AutoPrompt:', autoPrompt)
-
         // Función que configura OneSignal una vez que el SDK está disponible
         const configureOneSignal = () => {
           const OneSignal = (window as any).OneSignal
@@ -79,10 +92,9 @@ export default function OneSignalProvider({
             console.log('✅ [OneSignal] Inicializado correctamente')
             setInitialized(true)
 
-            // Verificar estado de permisos actual (propiedad, no promesa)
+            // Verificar estado de permisos actual
             const permission = OneSignal.Notifications.permission
             const permStatus = permission ? 'granted' : 'default'
-            console.log('🔔 [OneSignal] Estado de permisos:', permStatus)
             setPermissionStatus(permStatus as 'default' | 'granted' | 'denied')
 
             // Escuchar cambios de permisos
@@ -94,7 +106,7 @@ export default function OneSignalProvider({
               }
             })
 
-            // Verificar si el usuario ya está suscrito
+            // Log de suscripción (seguro)
             try {
               if (OneSignal.User && OneSignal.User.PushSubscription) {
                 console.log('📬 Usuario suscrito:', OneSignal.User.PushSubscription.optedIn)
@@ -107,25 +119,21 @@ export default function OneSignalProvider({
             if (autoPrompt && permStatus === 'default') {
               setTimeout(() => {
                 console.log('🔔 Mostrando prompt de notificaciones...')
-                // Mostrar el prompt personalizado que requiere interacción del usuario
                 setShowPrompt(true)
-              }, 2000) // Esperar 2 segundos antes de mostrar
+              }, 2000)
             }
           })
         }
 
-        // Esperar a que OneSignal esté disponible (cargado desde _document.tsx)
+        // Esperar a que OneSignal esté disponible
         const waitForOneSignal = () => {
           if ((window as any).OneSignal) {
-            console.log('✅ [OneSignal] SDK detectado y disponible')
             configureOneSignal()
           } else {
-            console.log('⏳ [OneSignal] Esperando a que el SDK esté disponible...')
             setTimeout(waitForOneSignal, 100)
           }
         }
 
-        // Iniciar la espera
         waitForOneSignal()
       } catch (error) {
         console.error('❌ Error inicializando OneSignal:', error)
@@ -138,26 +146,12 @@ export default function OneSignalProvider({
   // Función para solicitar permisos
   const requestPermission = async () => {
     try {
-      console.log('🔔 Solicitando permisos de notificación...')
-
       const OneSignal = (window as any).OneSignal
-      if (!OneSignal) {
-        console.error('❌ OneSignal no está disponible')
-        return
-      }
+      if (!OneSignal) return
 
-      // Solicitar permisos
       const permission = await OneSignal.Notifications.requestPermission()
-      console.log('✅ Permiso de notificación:', permission ? 'concedido' : 'denegado')
-
       setPermissionStatus(permission ? 'granted' : 'denied')
       setShowPrompt(false)
-
-      if (permission) {
-        // Obtener subscription ID
-        const subscriptionId = await OneSignal.User.PushSubscription.id
-        console.log('📬 Subscription ID:', subscriptionId)
-      }
     } catch (error) {
       console.error('❌ Error solicitando permisos:', error)
     }
@@ -169,8 +163,30 @@ export default function OneSignalProvider({
     console.log('⏭️ Prompt de notificaciones cerrado')
   }
 
+  // Función para disparar el prompt manualmente
+  const triggerPrompt = () => {
+    if (permissionStatus === 'default') {
+      setShowPrompt(true)
+    }
+  }
+
+  // Función para establecer external ID
+  const setExternalId = async (id: string) => {
+    const OneSignal = (window as any).OneSignal
+    if (OneSignal) {
+      await OneSignal.login(id)
+      console.log('🆔 OneSignal External ID establecido:', id)
+    }
+  }
+
   return (
-    <>
+    <OneSignalContext.Provider value={{
+      initialized,
+      permissionStatus,
+      showPrompt,
+      triggerPrompt,
+      setExternalId
+    }}>
       {children}
 
       {/* Prompt personalizado de notificaciones */}
@@ -221,33 +237,20 @@ export default function OneSignalProvider({
         <div className="onesignal-dev-indicator">
           <div className="onesignal-dev-status">
             {permissionStatus === 'granted' ? (
-              <>
-                <Bell size={16} className="text-green-500" />
-                <span className="text-green-500">Notificaciones Activas</span>
-              </>
+              <span className="text-green-500 flex items-center gap-1"><Bell size={16} /> Activas</span>
             ) : permissionStatus === 'denied' ? (
-              <>
-                <BellOff size={16} className="text-red-500" />
-                <span className="text-red-500">Notificaciones Bloqueadas</span>
-              </>
+              <span className="text-red-500 flex items-center gap-1"><BellOff size={16} /> Bloqueadas</span>
             ) : (
-              <>
-                <Bell size={16} className="text-yellow-500" />
-                <span className="text-yellow-500">Sin Permisos</span>
-              </>
+              <span className="text-yellow-500 flex items-center gap-1"><Bell size={16} /> Sin Permisos</span>
             )}
           </div>
         </div>
       )}
 
       <style jsx>{`
-        /* Overlay del prompt */
         .onesignal-prompt-overlay {
           position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
+          top: 0; left: 0; right: 0; bottom: 0;
           background: rgba(0, 0, 0, 0.7);
           backdrop-filter: blur(4px);
           display: flex;
@@ -258,7 +261,6 @@ export default function OneSignalProvider({
           animation: fadeIn 0.3s ease-out;
         }
 
-        /* Prompt card */
         .onesignal-prompt {
           position: relative;
           background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
@@ -267,66 +269,49 @@ export default function OneSignalProvider({
           padding: 2rem;
           max-width: 440px;
           width: 100%;
-          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(212, 175, 55, 0.2);
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
           animation: slideUp 0.4s ease-out;
         }
 
-        /* Botón de cerrar */
         .onesignal-prompt-close {
           position: absolute;
-          top: 1rem;
-          right: 1rem;
+          top: 1rem; right: 1rem;
           background: rgba(255, 255, 255, 0.1);
           border: 1px solid rgba(255, 255, 255, 0.2);
           border-radius: 8px;
           padding: 0.5rem;
           cursor: pointer;
-          color: rgba(255, 255, 255, 0.8);
-          transition: all 0.3s ease;
-        }
-
-        .onesignal-prompt-close:hover {
-          background: rgba(255, 255, 255, 0.2);
           color: white;
         }
 
-        /* Icono del prompt */
         .onesignal-prompt-icon {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 80px;
-          height: 80px;
+          width: 80px; height: 80px;
           margin: 0 auto 1.5rem;
-          background: linear-gradient(135deg, var(--accent-color, #D4AF37) 0%, #F4D03F 100%);
+          background: var(--accent-color, #D4AF37);
           border-radius: 50%;
-          box-shadow: 0 8px 24px rgba(212, 175, 55, 0.4);
-          animation: pulse 2s infinite;
         }
 
-        .onesignal-prompt-icon :global(svg) {
-          color: #121212;
-        }
+        .onesignal-prompt-icon :global(svg) { color: #121212; }
 
-        /* Título */
         .onesignal-prompt-title {
           font-size: 1.5rem;
           font-weight: 700;
           color: var(--accent-color, #D4AF37);
           text-align: center;
-          margin: 0 0 1rem 0;
+          margin-bottom: 1rem;
         }
 
-        /* Mensaje */
         .onesignal-prompt-message {
           font-size: 0.938rem;
           line-height: 1.6;
           color: rgba(255, 255, 255, 0.8);
           text-align: center;
-          margin: 0 0 2rem 0;
+          margin-bottom: 2rem;
         }
 
-        /* Botones */
         .onesignal-prompt-actions {
           display: flex;
           flex-direction: column;
@@ -338,117 +323,37 @@ export default function OneSignalProvider({
           align-items: center;
           justify-content: center;
           gap: 0.5rem;
-          padding: 1rem 1.5rem;
+          padding: 1rem;
           border-radius: 12px;
-          font-size: 1rem;
           font-weight: 700;
           cursor: pointer;
-          transition: all 0.3s ease;
           border: none;
         }
 
         .onesignal-btn-primary {
-          background: linear-gradient(135deg, var(--accent-color, #D4AF37) 0%, #F4D03F 100%);
+          background: var(--accent-color, #D4AF37);
           color: #121212;
-          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4);
-        }
-
-        .onesignal-btn-primary:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 6px 16px rgba(212, 175, 55, 0.5);
         }
 
         .onesignal-btn-secondary {
           background: rgba(255, 255, 255, 0.1);
-          color: rgba(255, 255, 255, 0.8);
+          color: white;
           border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .onesignal-btn-secondary:hover {
-          background: rgba(255, 255, 255, 0.15);
-          color: white;
-        }
-
-        .onesignal-btn:active {
-          transform: scale(0.98);
-        }
-
-        /* Indicador de desarrollo */
         .onesignal-dev-indicator {
           position: fixed;
-          bottom: 1rem;
-          right: 1rem;
+          bottom: 1rem; right: 1rem;
           z-index: 9999;
-        }
-
-        .onesignal-dev-status {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.75rem 1rem;
-          background: rgba(0, 0, 0, 0.9);
-          border: 1px solid rgba(255, 255, 255, 0.2);
+          background: rgba(0, 0, 0, 0.8);
+          padding: 0.5rem 1rem;
           border-radius: 8px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          font-size: 0.75rem;
         }
 
-        /* Animaciones */
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
-        }
-
-        /* Responsive */
-        @media (max-width: 480px) {
-          .onesignal-prompt {
-            padding: 1.5rem;
-          }
-
-          .onesignal-prompt-title {
-            font-size: 1.25rem;
-          }
-
-          .onesignal-prompt-message {
-            font-size: 0.875rem;
-          }
-
-          .onesignal-prompt-icon {
-            width: 64px;
-            height: 64px;
-          }
-
-          .onesignal-prompt-icon :global(svg) {
-            width: 32px;
-            height: 32px;
-          }
-        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
-    </>
+    </OneSignalContext.Provider>
   )
 }

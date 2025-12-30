@@ -8,6 +8,7 @@ import GananciasSection from '../components/barbero/GananciasSection'
 import ChangePasswordSection from '../components/barbero/ChangePasswordSection'
 import DashboardSection from '../components/barbero/DashboardSection'
 import { chamosSupabase } from '../../lib/supabase-helpers'
+import { useOneSignal } from '../components/providers/OneSignalProvider'
 
 interface BarberoProfile {
   id: string
@@ -34,6 +35,8 @@ const BarberoPanelPage: React.FC = () => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+
+  const { triggerPrompt, setExternalId } = useOneSignal()
 
   useEffect(() => {
     if (!session) {
@@ -77,6 +80,12 @@ const BarberoPanelPage: React.FC = () => {
       })
 
       setProfile(barbero)
+
+      // 🔔 OneSignal: Vincular ID y mostrar prompt
+      setExternalId(barbero.id)
+      setTimeout(() => {
+        triggerPrompt()
+      }, 3000)
 
     } catch (error) {
       console.error('Error loading data:', error)

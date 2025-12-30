@@ -2,7 +2,7 @@
   "name": "Chamos Barber Shop",
   "short_name": "Chamos Barber",
   "description": "Sistema de gestión y reservas para Chamos Barber Shop",
-  "start_url": "/",
+  "start_url": "/login",
   "display": "standalone",
   "background_color": "#121212",
   "theme_color": "#D4AF37",
@@ -32,7 +32,11 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "lifestyle", "productivity"],
+  "categories": [
+    "business",
+    "lifestyle",
+    "productivity"
+  ],
   "lang": "es",
   "dir": "ltr",
   "prefer_related_applications": false,

@@ -2,6 +2,7 @@ import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
 import type { Database } from '../../../lib/database.types'
 import { RESERVATION_LIMITS, validateReservationLimits } from '../../../lib/reservations-config'
+import { sendNotificationToBarber } from '../../lib/onesignal'
 
 // Build Version: 2025-12-11-v6 - Security improvements (rate limiting ready, inline implementation)
 
@@ -323,6 +324,18 @@ export default async function handler(
     // ÉXITO
     // @ts-ignore - nuevaCita is guaranteed to exist here if no insertError
     console.log('✅ [crear-cita] Appointment created successfully:', nuevaCita.id)
+
+    // 🔔 Enviar notificación push al barbero
+    try {
+      const barberoNombre = (barbero as any)?.nombre || 'Barbero'
+      await sendNotificationToBarber(
+        citaData.barbero_id,
+        'Nueva Reserva ✂️',
+        `Hola ${barberoNombre}, tienes una nueva reserva de ${citaData.cliente_nombre} para el ${citaData.fecha} a las ${citaData.hora}.`
+      )
+    } catch (pushError) {
+      console.error('⚠️ [crear-cita] Error al enviar notificación push:', pushError)
+    }
 
     // Security logging está implementado en src/lib/security/logger.ts
     // Para activarlo, descomentar:
