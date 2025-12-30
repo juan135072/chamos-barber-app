@@ -79,48 +79,50 @@ export default function CitasTab() {
   }
 
   const handleDeleteCancelled = async (e?: React.MouseEvent) => {
-    // ALERT INMEDIATA
-    window.alert('1. Botón pulsado correctamente');
-
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
 
+    // 1. Obtener citas canceladas actuales
     const canceladas = citas.filter(c => c.estado === 'cancelada');
 
     if (canceladas.length === 0) {
-      window.alert('2. No hay citas canceladas en la lista actual');
+      alert('No hay citas canceladas para eliminar.');
       return;
     }
 
-    const confirmacion = window.confirm(`3. ¿Eliminar ${canceladas.length} citas?`);
-
-    if (!confirmacion) return;
+    // 2. Confirmación
+    if (!window.confirm(`¿Eliminar las ${canceladas.length} citas canceladas?`)) return;
 
     try {
-      setLoading(true);
-      window.alert('4. Llamando a Supabase RPC...');
+      // 3. Verificar cliente
+      if (!supabase) {
+        alert('Error: El cliente de base de datos no está disponible.');
+        return;
+      }
 
+      alert('Llamando a la base de datos... Por favor espera.');
+
+      // 4. Llamada al RPC
       const { data, error } = await supabase.rpc('eliminar_citas_canceladas');
 
       if (error) {
-        window.alert('ERROR RPC: ' + error.message);
-        throw error;
+        alert('Error de Supabase: ' + error.message);
+        return;
       }
 
-      if (data?.success) {
-        window.alert('5. Borrado exitoso en el servidor. Recargando lista...');
+      // 5. Procesar resultado
+      if (data && data.success) {
+        alert(data.message || 'Citas eliminadas con éxito.');
+        // Recargar datos
         await loadCitas();
-        alert('¡LISTO! Citas eliminadas y panel actualizado.');
       } else {
-        window.alert('SERVIDOR ERROR: ' + (data?.error || 'Desocnocido'));
-        throw new Error(data?.error || 'No se recibió respuesta exitosa.');
+        alert('El servidor no devolvió éxito: ' + JSON.stringify(data));
       }
-    } catch (error: any) {
-      window.alert('FALLO CRITICO: ' + error.message);
-    } finally {
-      setLoading(false);
+
+    } catch (err: any) {
+      alert('Error inesperado: ' + err.message);
     }
   }
 
