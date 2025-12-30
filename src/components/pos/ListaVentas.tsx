@@ -168,6 +168,38 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
     }
   }
 
+  const handleAnularFactura = async (facturaId: string) => {
+    if (!confirm('¿Estás seguro de que deseas anular esta venta? Esta acción no se puede deshacer y la cita (si existe) volverá a estar pendiente de cobro.')) {
+      return
+    }
+
+    try {
+      const response = await fetch('/api/pos/anular-venta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          facturaId,
+          usuario_email: usuario.email,
+          motivo_anulacion: 'Anulado desde el POS'
+        }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok && result.success) {
+        alert('✅ Venta anulada exitosamente')
+        cargarDatos()
+      } else {
+        throw new Error(result.message || 'Error al anular venta')
+      }
+    } catch (error: any) {
+      console.error('Error anulando venta:', error)
+      alert('❌ ' + error.message)
+    }
+  }
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('es-VE', {
       style: 'currency',
@@ -437,18 +469,32 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                         <span className="capitalize">{venta.metodo_pago}</span>
                       </div>
                       {(usuario.rol === 'admin' || usuario.rol === 'cajero') && (
-                        <button
-                          onClick={() => setVentaAEditar(venta)}
-                          className="mt-3 px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-2"
-                          style={{
-                            color: 'var(--accent-color)',
-                            borderColor: 'var(--accent-color)',
-                            backgroundColor: 'transparent'
-                          }}
-                        >
-                          <i className="fas fa-edit"></i>
-                          <span>Editar Cobro</span>
-                        </button>
+                        <div className="mt-3 flex space-x-2 justify-end">
+                          <button
+                            onClick={() => setVentaAEditar(venta)}
+                            className="px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-2"
+                            style={{
+                              color: 'var(--accent-color)',
+                              borderColor: 'var(--accent-color)',
+                              backgroundColor: 'transparent'
+                            }}
+                          >
+                            <i className="fas fa-edit"></i>
+                            <span>Editar</span>
+                          </button>
+                          <button
+                            onClick={() => handleAnularFactura(venta.id)}
+                            className="px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-2"
+                            style={{
+                              color: '#ff4d4d',
+                              borderColor: '#ff4d4d',
+                              backgroundColor: 'transparent'
+                            }}
+                          >
+                            <i className="fas fa-trash-alt"></i>
+                            <span>Anular</span>
+                          </button>
+                        </div>
                       )}
                     </div>
                   </div>

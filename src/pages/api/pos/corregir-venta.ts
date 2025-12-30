@@ -11,7 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: 'Método no permitido' })
     }
 
-    const { facturaId, nuevoBarberoId, nuevoServicioId } = req.body
+    const { facturaId, nuevoBarberoId, nuevoServicioId, nuevoMetodoPago } = req.body
 
     if (!facturaId) {
         return res.status(400).json({ message: 'Falta el ID de la factura' })
@@ -89,6 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 total: total,
                 subtotal: total,
                 items: items,
+                metodo_pago: nuevoMetodoPago || factura.metodo_pago,
                 updated_at: new Date().toISOString()
             })
             .eq('id', facturaId)

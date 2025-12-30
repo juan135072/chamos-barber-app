@@ -31,6 +31,7 @@ interface Venta {
         nombre: string
     }
     items?: any[]
+    metodo_pago?: string
 }
 
 interface ModalEditarBarberoVentaProps {
@@ -52,6 +53,7 @@ export default function ModalEditarBarberoVenta({
 }: ModalEditarBarberoVentaProps) {
     const [nuevoBarberoId, setNuevoBarberoId] = useState(venta.barbero_id || venta.barbero?.id || '')
     const [nuevoServicioId, setNuevoServicioId] = useState('')
+    const [nuevoMetodoPago, setNuevoMetodoPago] = useState(venta.metodo_pago || 'efectivo')
     const [procesando, setProcesando] = useState(false)
 
     // Inicializar servicio actual
@@ -112,7 +114,8 @@ export default function ModalEditarBarberoVenta({
                     body: JSON.stringify({
                         facturaId: venta.id,
                         nuevoBarberoId: nuevoBarberoId,
-                        nuevoServicioId: nuevoServicioId
+                        nuevoServicioId: nuevoServicioId,
+                        nuevoMetodoPago: nuevoMetodoPago
                     }),
                 })
 
@@ -212,6 +215,32 @@ export default function ModalEditarBarberoVenta({
                             </p>
                         )}
                     </div>
+
+                    {/* Selector de Método de Pago (solo para facturas) */}
+                    {!esCita && (
+                        <div>
+                            <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+                                <i className="fas fa-wallet mr-2"></i>Método de Pago:
+                            </label>
+                            <select
+                                value={nuevoMetodoPago}
+                                onChange={(e) => setNuevoMetodoPago(e.target.value)}
+                                className="w-full p-3 rounded-lg capitalize"
+                                style={{
+                                    backgroundColor: 'var(--bg-primary)',
+                                    color: 'var(--text-primary)',
+                                    border: '1px solid var(--border-color)'
+                                }}
+                            >
+                                <option value="efectivo">💵 Efectivo</option>
+                                <option value="tarjeta">💳 Tarjeta / Punto</option>
+                                <option value="pago_movil">📱 Pago Móvil</option>
+                                <option value="zelle">💰 Zelle</option>
+                                <option value="binance">₿ Binance</option>
+                                <option value="transferencia">🏦 Transferencia</option>
+                            </select>
+                        </div>
+                    )}
 
                     <div className="flex gap-3 pt-4">
                         <button
