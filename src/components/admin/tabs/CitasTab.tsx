@@ -80,27 +80,36 @@ export default function CitasTab() {
 
   const handleDeleteCancelled = async () => {
     const canceladas = citas.filter(c => c.estado === 'cancelada')
+
     if (canceladas.length === 0) {
       alert('No hay citas canceladas para eliminar')
       return
     }
 
-    if (!confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas? Esta acción no se puede deshacer.`)) return
+    const confirmacion = window.confirm(`¿Estás seguro de que quieres eliminar las ${canceladas.length} citas canceladas? Esta acción no se puede deshacer y los registros se borrarán permanentemente de la base de datos.`)
+
+    if (!confirmacion) return
 
     try {
       setLoading(true)
-      const { error } = await supabase
+      const idsToDelete = canceladas.map(c => c.id)
+
+      console.log(`[Admin] Eliminando ${idsToDelete.length} citas canceladas...`)
+
+      const { error, count } = await supabase
         .from('citas')
         .delete()
-        .eq('estado', 'cancelada')
+        .in('id', idsToDelete)
 
       if (error) throw error
 
+      console.log(`[Admin] Borrado exitoso. Registros afectados:`, count)
+
       await loadCitas()
-      alert('Citas canceladas eliminadas correctamente')
-    } catch (error) {
-      console.error('Error deleting cancelled citas:', error)
-      alert('Error al eliminar las citas canceladas')
+      alert(`¡Éxito! Se han eliminado ${canceladas.length} citas canceladas de la base de datos.`)
+    } catch (error: any) {
+      console.error('Error al eliminar citas:', error)
+      alert(`Error al eliminar: ${error.message || 'Error desconocido'}. Asegúrate de haber ejecutado la nueva migración de base de datos.`)
     } finally {
       setLoading(false)
     }
