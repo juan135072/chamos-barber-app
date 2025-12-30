@@ -132,6 +132,40 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
     }
   }
 
+  // Enviar notificación de prueba desde el SERVIDOR
+  const sendServerTestNotification = async () => {
+    if (!externalUserId) {
+      alert('⚠️ No se ha detectado un External User ID. No se puede enviar la prueba dirigida.')
+      return
+    }
+
+    const confirmSend = confirm(`¿Enviar prueba desde el SERVIDOR a ${externalUserId}?`)
+    if (!confirmSend) return
+
+    try {
+      const response = await fetch('/api/debug/test-onesignal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ barberId: externalUserId }),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        console.log('✅ Server Test Success:', result)
+        alert('✅ ¡ÉXITO! El servidor envió la notificación.\n\nStatus: ' + response.status + '\nDatos: ' + JSON.stringify(result.data))
+      } else {
+        console.error('❌ Server Test Failed:', result)
+        alert('❌ ERROR AL ENVIAR DESDE SERVIDOR\n\nEl servidor falló al contactar a OneSignal.\n\nError: ' + result.error + '\n\nChequeo de Env Var: ' + JSON.stringify(result.envCheck))
+      }
+    } catch (error) {
+      console.error('❌ Network Error:', error)
+      alert('❌ Error de red al contactar con /api/debug/test-onesignal')
+    }
+  }
+
   // Refrescar estado
   const refreshStatus = async () => {
     const OneSignal = (window as any).OneSignal
@@ -319,7 +353,16 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
                   disabled={permission !== 'granted'}
                 >
                   <i className="fas fa-paper-plane" style={{ fontSize: '14px', marginRight: '8px' }}></i>
-                  Enviar Notificación de Prueba
+                  Enviar Notificación de Prueba (Local)
+                </button>
+                <button
+                  onClick={sendServerTestNotification}
+                  className="onesignal-debug-btn"
+                  style={{ background: '#7c3aed', marginTop: '8px' }}
+                  disabled={permission !== 'granted' || !externalUserId}
+                >
+                  <i className="fas fa-server" style={{ fontSize: '14px', marginRight: '8px' }}></i>
+                  Probar Envío desde SERVIDOR
                 </button>
                 <button onClick={refreshStatus} className="onesignal-debug-btn">
                   <i className="fas fa-sync" style={{ fontSize: '14px', marginRight: '8px' }}></i>
@@ -351,8 +394,9 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
               </div>
             </div>
           </div>
-        </div>
-      )}
+        </div >
+      )
+      }
 
       <style jsx>{`
         /* Botón flotante */
