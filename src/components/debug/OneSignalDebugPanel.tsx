@@ -39,15 +39,36 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
         setPermission(perm)
 
         // Obtener subscription ID
-        const subId = await OneSignal.User.PushSubscription.id
+        let subId = null
+        try {
+          if (OneSignal.User && OneSignal.User.PushSubscription) {
+            subId = OneSignal.User.PushSubscription.id
+          }
+        } catch (e) {
+          console.warn('OneSignal PushSubscription not ready')
+        }
         setSubscriptionId(subId)
 
         // Obtener external user ID
-        const extId = await OneSignal.User.externalId
+        let extId = null
+        try {
+          if (OneSignal.User) {
+            extId = OneSignal.User.externalId
+          }
+        } catch (e) {
+          console.warn('OneSignal externalId not ready')
+        }
         setExternalUserId(extId)
 
         // Obtener tags
-        const userTags = await OneSignal.User.getTags()
+        let userTags = {}
+        try {
+          if (OneSignal.User) {
+            userTags = await OneSignal.User.getTags()
+          }
+        } catch (e) {
+          console.warn('OneSignal getTags not ready')
+        }
         setTags(userTags || {})
 
         // Escuchar cambios
@@ -117,17 +138,41 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
     const OneSignal = (window as any).OneSignal
     if (!OneSignal) return
 
-    const perm = await OneSignal.Notifications.permission
-    setPermission(perm)
+    // Obtener permisos
+    try {
+      const perm = await OneSignal.Notifications.permission
+      setPermission(perm)
+    } catch (e) {
+      console.warn('OneSignal permission check failed')
+    }
 
-    const subId = await OneSignal.User.PushSubscription.id
-    setSubscriptionId(subId)
+    // Obtener subscription
+    try {
+      if (OneSignal.User && OneSignal.User.PushSubscription) {
+        setSubscriptionId(OneSignal.User.PushSubscription.id)
+      }
+    } catch (e) {
+      console.warn('OneSignal PushSubscription not ready')
+    }
 
-    const extId = await OneSignal.User.externalId
-    setExternalUserId(extId)
+    // Obtener external id
+    try {
+      if (OneSignal.User) {
+        setExternalUserId(OneSignal.User.externalId)
+      }
+    } catch (e) {
+      console.warn('OneSignal externalId not ready')
+    }
 
-    const userTags = await OneSignal.User.getTags()
-    setTags(userTags || {})
+    // Obtener tags
+    try {
+      if (OneSignal.User) {
+        const userTags = await OneSignal.User.getTags()
+        setTags(userTags || {})
+      }
+    } catch (e) {
+      console.warn('OneSignal getTags not ready')
+    }
   }
 
   // Solo mostrar en desarrollo
@@ -245,7 +290,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
             <div className="onesignal-debug-section">
               <h4>Acciones de Prueba</h4>
               <div className="onesignal-debug-actions">
-                <button 
+                <button
                   onClick={sendTestNotification}
                   className="onesignal-debug-btn"
                   disabled={permission !== 'granted'}
@@ -264,7 +309,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
             <div className="onesignal-debug-section">
               <h4>Enlaces Útiles</h4>
               <div className="onesignal-debug-links">
-                <a 
+                <a
                   href={`https://app.onesignal.com/apps/${appId}`}
                   target="_blank"
                   rel="noopener noreferrer"
@@ -272,7 +317,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
                 >
                   📊 Dashboard de OneSignal
                 </a>
-                <a 
+                <a
                   href={`https://app.onesignal.com/apps/${appId}/notifications/new`}
                   target="_blank"
                   rel="noopener noreferrer"

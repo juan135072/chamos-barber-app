@@ -17,10 +17,10 @@ interface OneSignalProviderProps {
   autoPrompt?: boolean
 }
 
-export default function OneSignalProvider({ 
-  children, 
+export default function OneSignalProvider({
+  children,
   appId = '63aa14ec-de8c-46b3-8949-e9fd221f8d70',
-  autoPrompt = true 
+  autoPrompt = true
 }: OneSignalProviderProps) {
   const [initialized, setInitialized] = useState(false)
   const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default')
@@ -42,27 +42,27 @@ export default function OneSignalProvider({
         console.log('🔔 [OneSignal] Iniciando configuración...')
         console.log('🔔 [OneSignal] App ID:', finalAppId)
         console.log('🔔 [OneSignal] AutoPrompt:', autoPrompt)
-        
+
         // Función que configura OneSignal una vez que el SDK está disponible
         const configureOneSignal = () => {
           const OneSignal = (window as any).OneSignal
-          
+
           if (!OneSignal) {
             console.error('❌ [OneSignal] SDK no disponible después de cargar')
             return
           }
 
           console.log('🔔 [OneSignal] Iniciando OneSignal.init()...')
-          
+
           OneSignal.init({
             appId: finalAppId,
             allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
-            
+
             // Configuración de notificaciones
             notifyButton: {
               enable: false // Usaremos nuestro propio botón
             },
-            
+
             // Configuración de prompts
             promptOptions: {
               slidedown: {
@@ -95,7 +95,13 @@ export default function OneSignalProvider({
             })
 
             // Verificar si el usuario ya está suscrito
-            console.log('📬 Usuario suscrito:', OneSignal.User.PushSubscription.optedIn)
+            try {
+              if (OneSignal.User && OneSignal.User.PushSubscription) {
+                console.log('📬 Usuario suscrito:', OneSignal.User.PushSubscription.optedIn)
+              }
+            } catch (e) {
+              console.warn('OneSignal PushSubscription state not ready for log')
+            }
 
             // Si autoPrompt está habilitado y no hay permisos, mostrar prompt personalizado
             if (autoPrompt && permStatus === 'default') {
@@ -118,7 +124,7 @@ export default function OneSignalProvider({
             setTimeout(waitForOneSignal, 100)
           }
         }
-        
+
         // Iniciar la espera
         waitForOneSignal()
       } catch (error) {
@@ -133,7 +139,7 @@ export default function OneSignalProvider({
   const requestPermission = async () => {
     try {
       console.log('🔔 Solicitando permisos de notificación...')
-      
+
       const OneSignal = (window as any).OneSignal
       if (!OneSignal) {
         console.error('❌ OneSignal no está disponible')
@@ -143,7 +149,7 @@ export default function OneSignalProvider({
       // Solicitar permisos
       const permission = await OneSignal.Notifications.requestPermission()
       console.log('✅ Permiso de notificación:', permission ? 'concedido' : 'denegado')
-      
+
       setPermissionStatus(permission ? 'granted' : 'denied')
       setShowPrompt(false)
 
@@ -171,7 +177,7 @@ export default function OneSignalProvider({
       {showPrompt && permissionStatus === 'default' && (
         <div className="onesignal-prompt-overlay">
           <div className="onesignal-prompt">
-            <button 
+            <button
               className="onesignal-prompt-close"
               onClick={dismissPrompt}
               aria-label="Cerrar"
@@ -192,14 +198,14 @@ export default function OneSignalProvider({
             </p>
 
             <div className="onesignal-prompt-actions">
-              <button 
+              <button
                 className="onesignal-btn onesignal-btn-primary"
                 onClick={requestPermission}
               >
                 <Bell size={20} />
                 Permitir Notificaciones
               </button>
-              <button 
+              <button
                 className="onesignal-btn onesignal-btn-secondary"
                 onClick={dismissPrompt}
               >
