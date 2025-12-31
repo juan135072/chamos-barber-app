@@ -127,6 +127,7 @@ app.post('/print', (req, res) => {
                 .style('b')
                 .size(1, 1)
                 .text('CHAMOS BARBER')
+                .size(0, 0)
                 .text('Barberia Profesional')
                 .text('--------------------------------')
                 .style('n')
@@ -136,10 +137,16 @@ app.post('/print', (req, res) => {
                 .align('lt')
                 .text(`Fecha: ${new Date(factura.created_at).toLocaleString('es-CL')}`)
                 .text(`Cliente: ${factura.cliente_nombre}`)
+            if (factura.barbero) {
+                printer.text(`Barbero: ${factura.barbero.nombre} ${factura.barbero.apellido}`);
+            }
+            printer
                 .text('--------------------------------')
                 .align('ct')
+                .style('b')
                 .text(factura.tipo_documento === 'factura' ? 'FACTURA' : 'BOLETA')
-                .text(`NRO: ${factura.numero_factura}`)
+                .text(factura.numero_factura)
+                .style('n')
                 .align('lt')
                 .text('--------------------------------')
                 .text('CANT  DESCRIPCION       PRECIO')
@@ -148,9 +155,9 @@ app.post('/print', (req, res) => {
             // Items
             if (factura.items && Array.isArray(factura.items)) {
                 factura.items.forEach(item => {
-                    const nombre = (item.nombre || item.servicio || '').substring(0, 15).padEnd(15);
-                    const precio = `$${item.subtotal || item.precio || 0}`.padStart(10);
-                    printer.text(`${item.cantidad || 1}x    ${nombre} ${precio}`);
+                    const nombre = (item.nombre || item.servicio || '').substring(0, 16).padEnd(16);
+                    const precio = `$${(item.subtotal || item.precio || 0).toLocaleString('es-CL')}`.padStart(10);
+                    printer.text(`${(item.cantidad || 1).toString().padEnd(3)}x  ${nombre} ${precio}`);
                 });
             }
 
@@ -158,18 +165,20 @@ app.post('/print', (req, res) => {
                 .text('--------------------------------')
                 .align('rt')
                 .size(1, 1)
+                .style('b')
                 .text(`TOTAL: $${(factura.total || 0).toLocaleString('es-CL')}`)
                 .size(0, 0)
-                .text(`Pago: ${factura.metodo_pago}`)
+                .style('n')
+                .text(`Metodo de pago: ${factura.metodo_pago}`)
                 .feed(1)
                 .align('ct')
-                .text('GRACIAS POR SU PREFERENCIA!')
+                .text('¡GRACIAS POR TU PREFERENCIA!')
+                .text('Esperamos verte pronto')
                 .text('@chamosbarber')
                 .feed(2)
                 .cut()
                 .cashdraw(2)
                 .close();
-
             res.json({ success: true });
         });
     } catch (e) {
