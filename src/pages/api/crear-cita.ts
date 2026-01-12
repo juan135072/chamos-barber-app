@@ -269,7 +269,6 @@ export default async function handler(
     }
 
     // 7. Verificar que no sea una hora pasada (Diferencia horaria Chile)
-    const ahoraChile = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Santiago" }))
     const fechaHoraReserva = new Date(`${citaData.fecha}T${citaData.hora}:00`)
 
     if (fechaHoraReserva <= ahoraChile) {
