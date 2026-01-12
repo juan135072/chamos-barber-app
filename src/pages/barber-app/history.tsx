@@ -137,10 +137,10 @@ export default function HistoryPage() {
   // Mostrar error de autenticación
   if (authError || !session || !barbero) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
         padding: '2rem'
@@ -172,6 +172,7 @@ export default function HistoryPage() {
       <Head>
         <title>Historial - Barber App</title>
         <meta name="description" content="Historial de citas y estadísticas" />
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
 
       <BarberAppLayout barbero={barbero} currentPage="history">

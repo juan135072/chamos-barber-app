@@ -195,6 +195,7 @@ export default function AdminPage() {
       <Head>
         <title>Admin - Chamos Barber</title>
         <meta name="description" content="Panel de administración Chamos Barber" />
+        <meta name="robots" content="noindex, nofollow" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 

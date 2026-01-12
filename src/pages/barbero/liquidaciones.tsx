@@ -11,6 +11,7 @@ import { useRouter } from 'next/router'
 import BarberoLiquidacionesPanel from '@/components/liquidaciones/BarberoLiquidacionesPanel'
 import { supabase } from '@/lib/supabase'
 import Logo from '@/components/shared/Logo'
+import Head from 'next/head'
 
 export default function BarberoLiquidacionesPage() {
   const router = useRouter()
@@ -96,55 +97,60 @@ export default function BarberoLiquidacionesPage() {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-      {/* Header con navegación - Ocultar en standalone para evitar duplicados */}
-      {!isStandalone && (
-        <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <Logo size="sm" withText={false} />
-                <button
-                  onClick={() => router.push('/barbero-panel')}
-                  className="font-medium transition-colors"
-                  style={{ color: 'var(--accent-color)' }}
-                  onMouseEnter={(e) => e.currentTarget.style.color = '#B8941F'}
-                  onMouseLeave={(e) => e.currentTarget.style.color = 'var(--accent-color)'}
-                >
-                  ← Volver al Panel
-                </button>
-                <span style={{ color: 'var(--border-color)' }}>|</span>
-                <h1 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
-                  Mis Liquidaciones
-                </h1>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                  Hola, <strong style={{ color: 'var(--accent-color)' }}>{barberoNombre}</strong>
-                </span>
-                <button
-                  onClick={async () => {
-                    await supabase.auth.signOut()
-                    router.push('/chamos-acceso')
-                  }}
-                  className="px-4 py-2 rounded-lg transition-colors"
-                  style={{ backgroundColor: '#dc2626', color: 'white' }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                >
-                  Cerrar Sesión
-                </button>
+    <>
+      <Head>
+        <title>Mis Liquidaciones - Chamos Barber</title>
+        <meta name="robots" content="noindex, nofollow" />
+      </Head>
+      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        {/* Header con navegación - Ocultar en standalone para evitar duplicados */}
+        {!isStandalone && (
+          <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', boxShadow: 'var(--shadow)' }}>
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <div className="flex items-center justify-between h-16">
+                <div className="flex items-center gap-4">
+                  <Logo size="sm" withText={false} />
+                  <button
+                    onClick={() => router.push('/barbero-panel')}
+                    className="font-medium transition-colors"
+                    style={{ color: 'var(--accent-color)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = '#B8941F'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--accent-color)'}
+                  >
+                    ← Volver al Panel
+                  </button>
+                  <span style={{ color: 'var(--border-color)' }}>|</span>
+                  <h1 className="text-xl font-bold" style={{ color: 'var(--accent-color)' }}>
+                    Mis Liquidaciones
+                  </h1>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                    Hola, <strong style={{ color: 'var(--accent-color)' }}>{barberoNombre}</strong>
+                  </span>
+                  <button
+                    onClick={async () => {
+                      await supabase.auth.signOut()
+                      router.push('/chamos-acceso')
+                    }}
+                    className="px-4 py-2 rounded-lg transition-colors"
+                    style={{ backgroundColor: '#dc2626', color: 'white' }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#b91c1c'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
+                  >
+                    Cerrar Sesión
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        </header>
-      )}
+          </header>
+        )}
 
-      {/* Contenido */}
-      <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isStandalone ? 'pt-safe pb-24' : 'py-8'}`}>
-        <BarberoLiquidacionesPanel barberoId={barberoId} />
-      </main>
-    </div>
+        {/* Contenido */}
+        <main className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isStandalone ? 'pt-safe pb-24' : 'py-8'}`}>
+          <BarberoLiquidacionesPanel barberoId={barberoId} />
+        </main>
+      </div>
+    </>
   )
 }
-

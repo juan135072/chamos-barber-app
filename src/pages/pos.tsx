@@ -62,6 +62,7 @@ export default function POSPage() {
       <Head>
         <title>Punto de Venta - Chamos Barber</title>
         <meta name="description" content="Sistema de punto de venta para Chamos Barber" />
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
 
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -81,11 +82,11 @@ export default function POSPage() {
                 {/* Fecha y hora */}
                 <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                   <i className="fas fa-calendar-alt mr-2"></i>
-                  {new Date().toLocaleDateString('es-ES', { 
-                    weekday: 'long', 
-                    year: 'numeric', 
-                    month: 'long', 
-                    day: 'numeric' 
+                  {new Date().toLocaleDateString('es-ES', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
                   })}
                 </div>
 
@@ -105,8 +106,8 @@ export default function POSPage() {
                   <button
                     onClick={handleVolverAdmin}
                     className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
-                    style={{ 
-                      color: 'var(--text-primary)', 
+                    style={{
+                      color: 'var(--text-primary)',
                       backgroundColor: 'var(--bg-primary)',
                       border: '1px solid var(--border-color)'
                     }}
@@ -127,7 +128,7 @@ export default function POSPage() {
                 <button
                   onClick={handleCerrarSesion}
                   className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
-                  style={{ 
+                  style={{
                     color: 'var(--bg-primary)',
                     backgroundColor: 'var(--accent-color)'
                   }}
@@ -148,13 +149,13 @@ export default function POSPage() {
             {/* Área principal (70%) */}
             <div className="lg:col-span-2 space-y-6">
               {/* Formulario de cobro */}
-              <CobrarForm 
-                usuario={usuario} 
+              <CobrarForm
+                usuario={usuario}
                 onVentaCreada={handleVentaCreada}
               />
 
               {/* Lista de ventas */}
-              <ListaVentas 
+              <ListaVentas
                 usuario={usuario}
                 recargar={recargarVentas}
               />
@@ -162,7 +163,7 @@ export default function POSPage() {
 
             {/* Sidebar (30%) */}
             <div className="lg:col-span-1">
-              <ResumenDia 
+              <ResumenDia
                 usuario={usuario}
                 recargar={recargarVentas}
               />

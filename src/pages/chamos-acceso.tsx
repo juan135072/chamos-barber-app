@@ -91,6 +91,7 @@ function Login() {
       <Head>
         <title>Acceso - Chamos Barber</title>
         <meta name="description" content="Panel de administración Chamos Barber" />
+        <meta name="robots" content="noindex, nofollow" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>

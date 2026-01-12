@@ -32,10 +32,10 @@ export default function ProfilePage() {
   // Mostrar error de autenticación
   if (authError || !session || !barbero) {
     return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%)',
         padding: '2rem'
@@ -67,6 +67,7 @@ export default function ProfilePage() {
       <Head>
         <title>Perfil - Barber App</title>
         <meta name="description" content="Perfil del barbero" />
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
 
       <BarberAppLayout barbero={barbero} currentPage="profile">
@@ -115,8 +116,8 @@ export default function ProfilePage() {
               </button>
             </div>
             <p className="disponibilidad-help">
-              {disponibilidad 
-                ? 'Los clientes pueden agendar citas contigo' 
+              {disponibilidad
+                ? 'Los clientes pueden agendar citas contigo'
                 : 'No recibirás nuevas citas hasta que te pongas disponible'}
             </p>
           </div>

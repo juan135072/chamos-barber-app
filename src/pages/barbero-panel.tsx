@@ -261,6 +261,7 @@ const BarberoPanelPage: React.FC = () => {
       <Head>
         <title>{`Panel de ${profile.nombre} - Chamos Barber`}</title>
         <meta name="description" content="Panel de control para barberos" />
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
       <Toaster position="top-right" />
 

@@ -1,0 +1,19 @@
+User-agent: *
+Disallow: /admin
+Disallow: /admin/
+Disallow: /barbero-panel
+Disallow: /barber-app
+Disallow: /barber-app/
+Disallow: /pos
+Disallow: /chamos-acceso
+Disallow: /registro-barbero
+Disallow: /api/
+
+# Allow crawling of public barber profiles
+Allow: /barbero/
+Allow: /equipo
+Allow: /consultar
+Allow: /reservar
+Allow: /
+
+Sitemap: https://chamosbarber.cl/sitemap.xml

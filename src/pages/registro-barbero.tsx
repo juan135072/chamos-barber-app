@@ -156,6 +156,7 @@ export default function RegistroBarbero() {
     <>
       <Head>
         <title>Registro de Barbero - Chamos Barber</title>
+        <meta name="robots" content="noindex, nofollow" />
       </Head>
 
       <div className="min-h-screen py-12 px-4 sm:px-6 lg:px-8" style={{ backgroundColor: 'var(--bg-primary)' }}>
@@ -303,7 +304,7 @@ export default function RegistroBarbero() {
                 <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
                   Foto de Perfil (opcional)
                 </label>
-                
+
                 {/* Preview de imagen */}
                 {imagePreview && (
                   <div className="mb-3 flex items-center gap-4">
@@ -325,9 +326,9 @@ export default function RegistroBarbero() {
                 )}
 
                 {/* Input de archivo con drag & drop */}
-                <div 
+                <div
                   className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-md transition-colors"
-                  style={{ 
+                  style={{
                     borderColor: 'var(--border-color)',
                     backgroundColor: 'rgba(212, 175, 55, 0.03)'
                   }}
@@ -340,7 +341,7 @@ export default function RegistroBarbero() {
                       <label
                         htmlFor="file-upload"
                         className="relative cursor-pointer rounded-md font-medium"
-                        style={{ 
+                        style={{
                           color: 'var(--accent-color)',
                           backgroundColor: 'transparent',
                           transition: 'var(--transition)'
@@ -380,7 +381,7 @@ export default function RegistroBarbero() {
                   type="button"
                   onClick={() => router.push('/')}
                   className="flex-1 px-6 py-3 rounded-lg transition"
-                  style={{ 
+                  style={{
                     border: '1px solid var(--border-color)',
                     color: 'var(--text-primary)',
                     backgroundColor: 'var(--bg-primary)'
