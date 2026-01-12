@@ -100,12 +100,16 @@ export default async function handler(
 
     console.log('🔍 [Reset Password] Query admin_users (barbero) result:', { barberoAdminUser, barberoAdminError })
 
+    // Nota: Se permite que el flujo continúe incluso si no tiene cuenta previa,
+    // para que sea creada automáticamente en el PASO 2.6
+    /* 
     if (barberoAdminError || !barberoAdminUser) {
       console.error('❌ [Reset Password] Barbero no tiene cuenta de usuario en admin_users')
       return res.status(400).json({
         error: 'Este barbero no tiene cuenta de usuario en el sistema. Debe ser aprobado primero.'
       })
     }
+    */
 
     // PASO 2.6: Buscar auth_user_id del barbero en Supabase Auth por email
     // Usamos listUsers con filtro por página para buscar por email
