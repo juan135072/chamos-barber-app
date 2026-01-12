@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
+import { getChileHoy } from '@/lib/date-utils'
 import ModalCobrarCita from './ModalCobrarCita'
 import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
 
@@ -63,7 +64,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   const cargarDatos = async () => {
     try {
       setCargando(true)
-      const hoy = new Date().toISOString().split('T')[0]
+      const hoy = getChileHoy()
 
       // Cargar ventas del día
       const { data: ventasData, error: ventasError } = await (supabase as any)

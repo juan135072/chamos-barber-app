@@ -3,6 +3,7 @@ import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { getBarberosResumen, BarberoResumen, formatCLP } from '@/lib/supabase-liquidaciones'
 import { Users, DollarSign, Calculator, Clock } from 'lucide-react'
+import { getChileHoy } from '@/lib/date-utils'
 
 interface ResumenDiaProps {
   usuario: UsuarioConPermisos
@@ -43,8 +44,8 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
 
   // Estados para el rango de fechas
   const [tipoRango, setTipoRango] = useState<'diario' | 'semanal' | 'personalizado'>('diario')
-  const [fechaInicio, setFechaInicio] = useState(new Date().toISOString().split('T')[0])
-  const [fechaFin, setFechaFin] = useState(new Date().toISOString().split('T')[0])
+  const [fechaInicio, setFechaInicio] = useState(getChileHoy())
+  const [fechaFin, setFechaFin] = useState(getChileHoy())
 
   useEffect(() => {
     cargarResumen()
@@ -172,12 +173,12 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
     const lunes = new Date(hoy.setDate(diff))
 
     setFechaInicio(lunes.toISOString().split('T')[0])
-    setFechaFin(new Date().toISOString().split('T')[0])
+    setFechaFin(getChileHoy())
     setTipoRango('semanal')
   }
 
   const setRangoDiario = () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     setFechaInicio(hoy)
     setFechaFin(hoy)
     setTipoRango('diario')

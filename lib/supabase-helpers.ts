@@ -852,7 +852,15 @@ export const chamosSupabase = {
 
   // Extensiones para POS y Cierre de Caja
   getCitasHoyPendientes: async () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = new Intl.DateTimeFormat('es-CL', {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date()).filter(p => p.type !== 'literal').reduce((acc, p) => ({ ...acc, [p.type]: p.value }), {} as any);
+
+    const hoyStr = `${hoy.year}-${hoy.month}-${hoy.day}`;
+
     const { data, error } = await supabase
       .from('citas')
       .select(`
@@ -860,7 +868,7 @@ export const chamosSupabase = {
         barberos (nombre, apellido),
         servicios (nombre, precio, duracion_minutos)
       `)
-      .eq('fecha', hoy)
+      .eq('fecha', hoyStr)
       .eq('estado_pago', 'pendiente')
       .in('estado', ['confirmada', 'completada'])
       .order('hora')

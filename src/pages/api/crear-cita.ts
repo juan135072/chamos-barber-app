@@ -87,8 +87,16 @@ export default async function handler(
     // Esto permite a clientes frecuentes seguir reservando después de completar sus citas
     console.log('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
 
-    const fechaActual = new Date().toISOString().split('T')[0] // YYYY-MM-DD formato
-    const horaActual = new Date().toTimeString().split(' ')[0].substring(0, 5) // HH:MM formato
+    // Obtener fecha y hora actual en Santiago de Chile
+    const ahoraChileStr = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const ahoraChile = new Date(ahoraChileStr);
+
+    const fechaActual = ahoraChile.getFullYear() + '-' +
+      String(ahoraChile.getMonth() + 1).padStart(2, '0') + '-' +
+      String(ahoraChile.getDate()).padStart(2, '0');
+
+    const horaActual = String(ahoraChile.getHours()).padStart(2, '0') + ':' +
+      String(ahoraChile.getMinutes()).padStart(2, '0');
 
     const { data: citasActivasFuturas, error: errorActivas } = await supabase
       .from('citas')
