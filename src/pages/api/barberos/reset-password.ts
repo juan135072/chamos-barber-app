@@ -111,34 +111,52 @@ export default async function handler(
     }
     */
 
-    // PASO 2.6: Buscar auth_user_id del barbero en Supabase Auth por email
-    // Usamos listUsers con filtro por página para buscar por email
+    // PASO 2.6: Determinar el authUserId del barbero
     let authUserId: string | null = null
-    let page = 1
-    const perPage = 1000
+    const barberEmailNormalized = barbero.email.trim().toLowerCase()
 
-    while (!authUserId && page <= 10) { // Máximo 10 páginas (10000 usuarios)
-      const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-        page,
-        perPage
-      })
+    // A. Intentar obtenerlo desde admin_users (más rápido y directo)
+    const { data: adminEntry } = await supabaseAdmin
+      .from('admin_users')
+      .select('id')
+      .eq('barbero_id', barberoId)
+      .single()
 
-      if (listError) {
-        console.error('❌ [Reset Password] Error listando usuarios:', listError)
-        return res.status(500).json({
-          error: 'Error buscando usuario en sistema de autenticación'
+    if (adminEntry) {
+      authUserId = adminEntry.id
+      console.log('🔍 [Reset Password] authUserId encontrado en admin_users:', authUserId)
+    }
+
+    // B. Si no está en admin_users, buscar en Supabase Auth por email
+    if (!authUserId) {
+      console.log('🔍 [Reset Password] No encontrado en admin_users, buscando en Auth por email:', barberEmailNormalized)
+      let page = 1
+      const perPage = 1000
+
+      while (!authUserId && page <= 20) { // Aumentamos a 20 páginas (20000 usuarios)
+        const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+          page,
+          perPage
         })
-      }
 
-      const foundUser = data.users.find((u: any) => u.email === barbero.email)
-      if (foundUser) {
-        authUserId = foundUser.id
-        break
-      }
+        if (listError) {
+          console.error('❌ [Reset Password] Error listando usuarios:', listError)
+          break
+        }
 
-      // Si no hay más usuarios, salir
-      if (data.users.length < perPage) break
-      page++
+        const foundUser = data.users.find((u: any) =>
+          u.email?.trim().toLowerCase() === barberEmailNormalized
+        )
+
+        if (foundUser) {
+          authUserId = foundUser.id
+          console.log('✅ [Reset Password] Usuario encontrado en Auth:', authUserId)
+          break
+        }
+
+        if (data.users.length < perPage) break
+        page++
+      }
     }
 
     if (!authUserId) {
@@ -160,6 +178,15 @@ export default async function handler(
 
       if (createAuthError || !authUser.user) {
         console.error('❌ [Reset Password] Error creando usuario en Auth:', createAuthError)
+
+        // Manejo especial si el error es porque ya existe (redundancia de seguridad)
+        if (createAuthError?.message?.includes('already registered') || createAuthError?.status === 422) {
+          return res.status(422).json({
+            error: 'El correo electrónico ya está registrado en el sistema. Intenta buscarlo manualmente o contacta a soporte.',
+            details: createAuthError.message
+          })
+        }
+
         return res.status(500).json({
           error: 'No se pudo crear la cuenta de autenticación para el barbero',
           details: createAuthError?.message
