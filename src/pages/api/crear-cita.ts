@@ -88,15 +88,15 @@ export default async function handler(
     console.log('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
 
     // Obtener fecha y hora actual en Santiago de Chile
-    const ahoraChileStr = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
-    const ahoraChile = new Date(ahoraChileStr);
+    const currentChileTimeStr = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
+    const currentChileTime = new Date(currentChileTimeStr);
 
-    const fechaActual = ahoraChile.getFullYear() + '-' +
-      String(ahoraChile.getMonth() + 1).padStart(2, '0') + '-' +
-      String(ahoraChile.getDate()).padStart(2, '0');
+    const fechaActual = currentChileTime.getFullYear() + '-' +
+      String(currentChileTime.getMonth() + 1).padStart(2, '0') + '-' +
+      String(currentChileTime.getDate()).padStart(2, '0');
 
-    const horaActual = String(ahoraChile.getHours()).padStart(2, '0') + ':' +
-      String(ahoraChile.getMinutes()).padStart(2, '0');
+    const horaActual = String(currentChileTime.getHours()).padStart(2, '0') + ':' +
+      String(currentChileTime.getMinutes()).padStart(2, '0');
 
     const { data: citasActivasFuturas, error: errorActivas } = await supabase
       .from('citas')
@@ -271,7 +271,7 @@ export default async function handler(
     // 7. Verificar que no sea una hora pasada (Diferencia horaria Chile)
     const fechaHoraReserva = new Date(`${citaData.fecha}T${citaData.hora}:00`)
 
-    if (fechaHoraReserva <= ahoraChile) {
+    if (fechaHoraReserva <= currentChileTime) {
       return res.status(400).json({
         error: '⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.',
         code: 'FECHA_PASADA'
