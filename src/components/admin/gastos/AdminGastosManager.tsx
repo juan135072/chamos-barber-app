@@ -38,7 +38,7 @@ export default function AdminGastosManager() {
     }, [filterDate])
 
     const loadCategorias = async () => {
-        const { data } = await supabase
+        const { data } = await (supabase as any)
             .from('gastos_categorias')
             .select('id, nombre')
             .eq('activo', true)
@@ -57,7 +57,7 @@ export default function AdminGastosManager() {
             const startOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString()
             const endOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString()
 
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from('gastos')
                 .select(`
           *,
@@ -86,7 +86,7 @@ export default function AdminGastosManager() {
         }
 
         try {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from('gastos')
                 .insert([{
                     descripcion,
@@ -113,7 +113,7 @@ export default function AdminGastosManager() {
         if (!confirm('¿Seguro que deseas eliminar este registro?')) return
 
         try {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from('gastos')
                 .delete()
                 .eq('id', id)

@@ -97,8 +97,9 @@ export default function GananciasTab() {
           existing.numero_servicios += 1
           existing.comision_barbero += factura.comision_barbero
           existing.ingreso_casa += factura.ingreso_casa
-          existing.porcentaje_promedio =
-            (existing.comision_barbero / existing.total_ventas) * 100
+          // Usar el porcentaje almacenado en la factura directamente
+          // Si hay varias facturas, el último valor reflejará la configuración actual/más reciente
+          existing.porcentaje_promedio = factura.porcentaje_comision
         }
       })
 
@@ -377,7 +378,7 @@ export default function GananciasTab() {
                     <td className="text-center">
                       {ganancia.numero_servicios > 0 ? (
                         <span className="badge badge-primary">
-                          {ganancia.porcentaje_promedio.toFixed(1)}%
+                          {Math.round(ganancia.porcentaje_promedio)}%
                         </span>
                       ) : (
                         <span className="text-muted">-</span>

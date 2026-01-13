@@ -25,7 +25,7 @@ export default function CategoriasManager() {
     const loadCategorias = async () => {
         try {
             setLoading(true)
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from('gastos_categorias')
                 .select('*')
                 .order('nombre')
@@ -46,7 +46,7 @@ export default function CategoriasManager() {
 
         try {
             if (isEditing) {
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                     .from('gastos_categorias')
                     .update({ nombre, tipo })
                     .eq('id', isEditing)
@@ -54,7 +54,7 @@ export default function CategoriasManager() {
                 if (error) throw error
                 toast.success('Categoría actualizada')
             } else {
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                     .from('gastos_categorias')
                     .insert([{ nombre, tipo, activo: true }])
 
@@ -74,7 +74,7 @@ export default function CategoriasManager() {
 
     const toggleActivo = async (id: string, current: boolean) => {
         try {
-            const { error } = await supabase
+            const { error } = await (supabase as any)
                 .from('gastos_categorias')
                 .update({ activo: !current })
                 .eq('id', id)

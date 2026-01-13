@@ -15,7 +15,7 @@ export default function AdminGastosReports() {
     const fetchReportData = async () => {
         setLoading(true)
         try {
-            const { data, error } = await supabase
+            const { data, error } = await (supabase as any)
                 .from('gastos')
                 .select(`
           *,
