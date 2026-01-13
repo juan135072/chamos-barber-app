@@ -25,7 +25,7 @@ export default function GastosPage() {
             return
         }
 
-        const { data } = await supabase
+        const { data } = await (supabase as any)
             .from('admin_users')
             .select('rol')
             .eq('id', session.user.id)
