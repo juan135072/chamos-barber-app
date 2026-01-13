@@ -93,13 +93,23 @@ export default function GananciasTab() {
       facturas?.forEach((factura: Factura) => {
         const existing = gananciasMap.get(factura.barbero_id)
         if (existing) {
-          existing.total_ventas += factura.total
+          // Usar la suma de distribuciones para el total de ventas del reporte
+          // Esto evita discrepancias si existen descuentos que solo afectan el 'total' de la factura
+          const totalVenta = Number(factura.comision_barbero) + Number(factura.ingreso_casa)
+
+          existing.total_ventas += totalVenta
           existing.numero_servicios += 1
-          existing.comision_barbero += factura.comision_barbero
-          existing.ingreso_casa += factura.ingreso_casa
-          // Usar el porcentaje almacenado en la factura directamente
-          // Si hay varias facturas, el último valor reflejará la configuración actual/más reciente
-          existing.porcentaje_promedio = factura.porcentaje_comision
+          existing.comision_barbero += Number(factura.comision_barbero)
+          existing.ingreso_casa += Number(factura.ingreso_casa)
+
+          // El porcentaje promedio se calculará al final basado en los totales
+        }
+      })
+
+      // Calcular porcentajes promedio al final
+      gananciasMap.forEach((g) => {
+        if (g.total_ventas > 0) {
+          g.porcentaje_promedio = (g.comision_barbero / g.total_ventas) * 100
         }
       })
 
@@ -378,7 +388,7 @@ export default function GananciasTab() {
                     <td className="text-center">
                       {ganancia.numero_servicios > 0 ? (
                         <span className="badge badge-primary">
-                          {Math.round(ganancia.porcentaje_promedio)}%
+                          {ganancia.porcentaje_promedio.toFixed(1)}%
                         </span>
                       ) : (
                         <span className="text-muted">-</span>
