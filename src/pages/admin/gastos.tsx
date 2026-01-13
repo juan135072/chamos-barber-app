@@ -7,12 +7,13 @@ import Logo from '@/components/shared/Logo'
 import AdminGastosManager from '@/components/admin/gastos/AdminGastosManager'
 import CategoriasManager from '@/components/admin/gastos/CategoriasManager'
 import AdminGastosReports from '@/components/admin/gastos/AdminGastosReports'
+import AdminCostoOperativo from '@/components/admin/gastos/AdminCostoOperativo'
 
 export default function GastosPage() {
     const router = useRouter()
     const session = useSession()
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<'movimientos' | 'categorias' | 'reportes'>('movimientos')
+    const [activeTab, setActiveTab] = useState<'movimientos' | 'categorias' | 'reportes' | 'analisis'>('movimientos')
 
     useEffect(() => {
         checkAdminAccess()
@@ -109,6 +110,16 @@ export default function GastosPage() {
                                 <div className="absolute bottom-[-5px] left-0 right-0 h-0.5 bg-[#D4AF37]"></div>
                             )}
                         </button>
+                        <button
+                            onClick={() => setActiveTab('analisis')}
+                            className={`px-4 py-2 font-medium transition-colors relative whitespace-nowrap ${activeTab === 'analisis' ? 'text-[#D4AF37]' : 'text-gray-500 hover:text-gray-300'
+                                }`}
+                        >
+                            Análisis de Costos
+                            {activeTab === 'analisis' && (
+                                <div className="absolute bottom-[-5px] left-0 right-0 h-0.5 bg-[#D4AF37]"></div>
+                            )}
+                        </button>
                     </div>
 
                     {/* Content */}
@@ -116,6 +127,7 @@ export default function GastosPage() {
                         {activeTab === 'movimientos' && <AdminGastosManager />}
                         {activeTab === 'categorias' && <CategoriasManager />}
                         {activeTab === 'reportes' && <AdminGastosReports />}
+                        {activeTab === 'analisis' && <AdminCostoOperativo />}
                     </div>
                 </main>
             </div>
