@@ -274,6 +274,14 @@ export default function AdminPage() {
               <i className={`fas fa-money-bill-wave ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
               {sidebarOpen && <span className="ml-3 text-sm font-medium">Liquidaciones</span>}
             </button>
+            <button
+              onClick={() => router.push('/admin/gastos')}
+              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
+              style={{ color: '#F59E0B' }}
+            >
+              <i className={`fas fa-file-invoice-dollar ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+              {sidebarOpen && <span className="ml-3 text-sm font-medium">Gastos</span>}
+            </button>
           </div>
         </aside>
 
