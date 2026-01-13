@@ -99,10 +99,14 @@ export default function GananciasTab() {
 
           existing.total_ventas += totalVenta
           existing.numero_servicios += 1
-          existing.comision_barbero += Number(factura.comision_barbero)
-          existing.ingreso_casa += Number(factura.ingreso_casa)
 
-          // El porcentaje promedio se calculará al final basado en los totales
+          // Calcular la comisión basada en el porcentaje real de la factura
+          // y el total distribuido, para asegurar que 550k * 70% = 385k
+          const pct = Number(factura.porcentaje_comision) || 0
+          const comisionCalculada = (totalVenta * pct) / 100
+
+          existing.comision_barbero += comisionCalculada
+          existing.ingreso_casa += (totalVenta - comisionCalculada)
         }
       })
 
