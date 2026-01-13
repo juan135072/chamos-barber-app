@@ -92,6 +92,8 @@ export default function GananciasTab() {
       // Sumar las ventas de cada barbero
       facturas?.forEach((factura: Factura) => {
         const existing = gananciasMap.get(factura.barbero_id)
+        const barberoInfo = barberos?.find((b: Barbero) => b.id === factura.barbero_id)
+
         if (existing) {
           // Usar la suma de distribuciones para el total de ventas del reporte
           // Esto evita discrepancias si existen descuentos que solo afectan el 'total' de la factura
@@ -100,10 +102,12 @@ export default function GananciasTab() {
           existing.total_ventas += totalVenta
           existing.numero_servicios += 1
 
-          // Calcular la comisión basada en el porcentaje real de la factura
-          // y el total distribuido, para asegurar que 550k * 70% = 385k
-          const pct = Number(factura.porcentaje_comision) || 0
-          const comisionCalculada = (totalVenta * pct) / 100
+          // Priorizar el porcentaje configurado actualmente en el barbero para el reporte
+          // o usar el de la factura si no se encuentra el barbero (raro)
+          const pct = barberoInfo?.porcentaje_comision || Number(factura.porcentaje_comision) || 0
+
+          // Recalcular la comisión basándonos en el porcentaje para que el Reporte sea matemático
+          const comisionCalculada = Math.round((totalVenta * pct) / 100)
 
           existing.comision_barbero += comisionCalculada
           existing.ingreso_casa += (totalVenta - comisionCalculada)
@@ -425,7 +429,7 @@ export default function GananciasTab() {
                   <td className="text-center">
                     <strong>
                       {totales.total_ventas > 0
-                        ? `${((totales.total_comisiones / totales.total_ventas) * 100).toFixed(1)}%`
+                        ? `${Math.round((totales.total_comisiones / totales.total_ventas) * 100)}%`
                         : '-'}
                     </strong>
                   </td>
