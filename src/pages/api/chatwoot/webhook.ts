@@ -39,7 +39,7 @@ export default async function handler(
             event: payload.event,
             messageType: payload.message_type,
             content: payload.content?.substring(0, 50) + '...',
-            conversationId: payload.conversation?.id
+            conversationId: payload.conversation?.id,
         })
 
         // Filtrar mensajes que NO debemos procesar
@@ -73,14 +73,35 @@ export default async function handler(
 
         console.log('🤖 [AI] Generating response for:', userMessage)
 
+        // Crear el prompt combinado
+        const fullPrompt = `${BARBER_CONTEXT}
+
+Usuario (${userName}): ${userMessage}
+
+ChamoBot:`
+
         const { text: aiResponse } = await generateText({
             model: aiModel,
-            system: BARBER_CONTEXT,
-            prompt: `Usuario (${userName}): ${userMessage}`,
+            prompt: fullPrompt,
             temperature: 0.7,
         })
 
         console.log('💬 [AI] Generated response:', aiResponse)
+
+        // Verificar que la respuesta no esté vacía
+        if (!aiResponse || aiResponse.trim() === '') {
+            console.error('⚠️ [AI] Empty response from Gemini, using fallback')
+            await sendMessageToChatwoot(
+                payload.conversation.id,
+                '¡Hola! Soy ChamoBot 💈 ¿En qué puedo ayudarte hoy?',
+                'outgoing'
+            )
+            return res.status(200).json({
+                status: 'success',
+                messagesSent: 1,
+                fallback: true,
+            })
+        }
 
         // Detectar si se debe transferir a agente humano
         const shouldTransfer = aiResponse.includes('TRANSFER_AGENT')
@@ -89,8 +110,8 @@ export default async function handler(
         const messages = aiResponse
             .replace('TRANSFER_AGENT', '') // Remover la flag antes de enviar
             .split('|||')
-            .map(msg => msg.trim())
-            .filter(msg => msg.length > 0)
+            .map((msg) => msg.trim())
+            .filter((msg) => msg.length > 0)
 
         // Enviar mensajes a Chatwoot con pausa entre ellos
         const conversationId = payload.conversation.id
@@ -100,7 +121,7 @@ export default async function handler(
 
             // Pausa de 800ms entre mensajes para simular escritura
             if (i > 0) {
-                await new Promise(resolve => setTimeout(resolve, 800))
+                await new Promise((resolve) => setTimeout(resolve, 800))
             }
 
             await sendMessageToChatwoot(conversationId, message, 'outgoing')
@@ -111,21 +132,37 @@ export default async function handler(
         if (shouldTransfer) {
             // TODO: Implementar lógica de transferencia a agente humano
             // Por ahora solo lo logueamos
-            console.log('🚨 [Transfer] Customer requested human agent for conversation:', conversationId)
+            console.log(
+                '🚨 [Transfer] Customer requested human agent for conversation:',
+                conversationId
+            )
         }
 
         return res.status(200).json({
             status: 'success',
             messagesSent: messages.length,
-            transferred: shouldTransfer
+            transferred: shouldTransfer,
         })
-
     } catch (error) {
         console.error('❌ [Chatwoot Webhook] Error:', error)
 
+        // En caso de error, enviar mensaje genérico al usuario
+        try {
+            const payload = req.body as ChatwootWebhookPayload
+            if (payload?.conversation?.id) {
+                await sendMessageToChatwoot(
+                    payload.conversation.id,
+                    'Disculpa, tuve un problema técnico. Un momento que te comunico con el equipo 🙏',
+                    'outgoing'
+                )
+            }
+        } catch (fallbackError) {
+            console.error('❌ [Chatwoot] Failed to send error message:', fallbackError)
+        }
+
         return res.status(500).json({
             error: 'Internal server error',
-            message: error instanceof Error ? error.message : 'Unknown error'
+            message: error instanceof Error ? error.message : 'Unknown error',
         })
     }
 }
