@@ -10,11 +10,22 @@ import { CitaCardProps } from '../../../types/barber-app'
 export default function CitaCard({ cita, onCheckIn, onCompletar, onCancelar, loading }: CitaCardProps) {
   const [showActions, setShowActions] = useState(false)
 
-  const formatHora = (fecha: string) => {
-    return new Date(fecha).toLocaleTimeString('es-CL', {
-      hour: '2-digit',
-      minute: '2-digit'
-    })
+  const formatHora = (fechaHora?: string) => {
+    // Si no hay fecha_hora, usar la hora de la cita como fallback
+    if (!fechaHora) return cita.hora || '--:--'
+
+    try {
+      const date = new Date(fechaHora)
+      // Verificar si la fecha es válida
+      if (isNaN(date.getTime())) return cita.hora || '--:--'
+
+      return date.toLocaleTimeString('es-CL', {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    } catch (e) {
+      return cita.hora || '--:--'
+    }
   }
 
   const formatCurrency = (amount: number) => {

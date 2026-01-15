@@ -109,15 +109,23 @@ export default function HistoryPage() {
   })
 
   // Formatear fecha
-  const formatFecha = (fecha: string) => {
-    const date = new Date(fecha)
-    return new Intl.DateTimeFormat('es-CL', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }).format(date)
+  const formatFecha = (fechaHora?: string) => {
+    if (!fechaHora) return 'Fecha no disp.'
+
+    try {
+      const date = new Date(fechaHora)
+      if (isNaN(date.getTime())) return 'Fecha inválida'
+
+      return new Intl.DateTimeFormat('es-CL', {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(date)
+    } catch (e) {
+      return 'Error de fecha'
+    }
   }
 
   // Formatear dinero
