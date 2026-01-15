@@ -102,10 +102,13 @@ const ReservarPage: React.FC = () => {
               servicioAlternativo.duracion_minutos
             )
 
-            if (dataAlternativa && Array.isArray(dataAlternativa) && dataAlternativa.length > 0 && dataAlternativa.some((s) => s.disponible)) {
+            // Fix: Cast to appropriate type to avoid "never" inference issue
+            const slotsAlternativos = (dataAlternativa || []) as { hora: string; disponible: boolean; motivo?: string }[];
+
+            if (slotsAlternativos.length > 0 && slotsAlternativos.some((s) => s.disponible)) {
               setSugerenciaParcial({
                 servicio: servicioAlternativo,
-                horarios: dataAlternativa
+                horarios: slotsAlternativos
               })
             }
           }
