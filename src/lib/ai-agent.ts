@@ -1,5 +1,4 @@
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export const BARBER_CONTEXT = `
 # IDENTIDAD Y TONO DE VOZ
@@ -59,17 +58,26 @@ Usa la información de arriba para responder al usuario. Si no sabes algo, di: "
 
 export async function generateChatResponse(message: string) {
   try {
-    const { text } = await generateText({
-      model: google('gemini-1.5-flash'),
-      prompt: `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`,
-      temperature: 0.7,
-    });
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) {
+      throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
+    }
 
-    console.log(`[BOT-DEBUG] Respuesta generada por AI: "${text}"`);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    console.log(`[BOT-DEBUG] (SDK) Respuesta generada: "${text}"`);
     return text;
   } catch (error) {
     console.error('Error generating AI response:', error);
     return "Hola mi pana 🙏 ||| Estamos con unos detalles técnicos, pero puedes agendar directo aquí: https://chamosbarber.com/agendar";
   }
 }
+
 
