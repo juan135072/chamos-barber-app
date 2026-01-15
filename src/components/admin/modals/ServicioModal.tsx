@@ -164,11 +164,11 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
       } else {
         // Actualizar con la imagen si se creó temporalmente
         // Usamos el ID temporal que guardamos o buscamos por nombre como respaldo
-        let finalId = servicio?.id || tempCreatedId
+        let finalId: string | undefined = tempCreatedId
 
         if (!finalId) {
           const servicios = await chamosSupabase.getServicios(false)
-          const found = (servicios as Servicio[]).find(s => s.nombre === data.nombre)
+          const found = (servicios as any[]).find((s: any) => s.nombre === data.nombre)
           finalId = found?.id
         }
 
