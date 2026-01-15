@@ -72,6 +72,7 @@ export default async function handler(
         const userName = payload.sender?.name || 'Cliente'
 
         console.log('🤖 [AI] Generating response for:', userMessage)
+        console.log('🤖 [AI] Context length:', BARBER_CONTEXT.length)
 
         // Crear el prompt combinado
         const fullPrompt = `${BARBER_CONTEXT}
@@ -80,6 +81,8 @@ Usuario (${userName}): ${userMessage}
 
 ChamoBot:`
 
+        console.log('📝 [AI] Full prompt length:', fullPrompt.length)
+
         const { text: aiResponse } = await generateText({
             model: aiModel,
             prompt: fullPrompt,
@@ -87,6 +90,7 @@ ChamoBot:`
         })
 
         console.log('💬 [AI] Generated response:', aiResponse)
+        console.log('💬 [AI] Response length:', aiResponse?.length || 0)
 
         // Verificar que la respuesta no esté vacía
         if (!aiResponse || aiResponse.trim() === '') {
