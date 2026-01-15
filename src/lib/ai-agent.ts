@@ -64,20 +64,27 @@ export async function generateChatResponse(message: string) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-    const prompt = `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`;
+    // Intentar con flash 1.5
+    let model;
+    try {
+      model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const prompt = `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (flashError: any) {
+      console.error('[BOT-DEBUG] Falló gemini-1.5-flash, usando fallback a gemini-pro:', flashError.message);
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
-
-    console.log(`[BOT-DEBUG] (SDK) Respuesta generada: "${text}"`);
-    return text;
+      // Fallback a gemini-pro si flash da 404
+      model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+      const prompt = `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`;
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    }
   } catch (error) {
     console.error('Error generating AI response:', error);
     return "Hola mi pana 🙏 ||| Estamos con unos detalles técnicos, pero puedes agendar directo aquí: https://chamosbarber.com/agendar";
   }
 }
-
-
