@@ -14,64 +14,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
         }
 
+        // Probaremos con v1 explícitamente si el SDK lo permite, 
+        // o simplemente probando diferentes modelos.
         const genAI = new GoogleGenerativeAI(apiKey);
 
         let testResponse = "None";
-        let modelUsed = 'gemini-1.5-flash';
-        let status = 'connected';
+        let modelUsed = "";
+        let results: any = {};
 
-        // Intentar con la versión por defecto (v1beta habitualmente)
-        try {
-            const model = genAI.getGenerativeModel({ model: modelUsed });
-            const result = await model.generateContent('Di "OK Flash"');
-            testResponse = (await result.response).text();
-        } catch (err: any) {
-            console.error(`[TEST-GEMINI] Falló v1beta con ${modelUsed}:`, err.message);
+        const modelsToTry = [
+            'gemini-1.5-flash',
+            'gemini-1.5-flash-latest',
+            'gemini-1.5-pro',
+            'gemini-pro'
+        ];
 
-            // Intentar forzando la versión v1 si está disponible en el SDK
+        for (const modelName of modelsToTry) {
             try {
-                // En algunas versiones del SDK se puede especificar la versión en la configuración
-                // pero si falla, intentamos con gemini-pro que es más antiguo y estable
-                modelUsed = 'gemini-pro';
-                const modelFallback = genAI.getGenerativeModel({ model: modelUsed });
-                const resultFallback = await modelFallback.generateContent('Di "OK Pro"');
-                testResponse = (await resultFallback.response).text();
-                status = 'connected-fallback';
-            } catch (err2: any) {
-                // Si falla gemini-pro, intentamos el nombre alternativo gemini-1.0-pro
-                try {
-                    modelUsed = 'gemini-1.0-pro';
-                    const modelAlt = genAI.getGenerativeModel({ model: modelUsed });
-                    const resultAlt = await modelAlt.generateContent('Di "OK 1.0 Pro"');
-                    testResponse = (await resultAlt.response).text();
-                    status = 'connected-alt';
-                } catch (err3: any) {
-                    return res.status(500).json({
-                        success: false,
-                        status: 'error',
-                        error: `Fallaron todos los modelos conocidos.`,
-                        details: {
-                            flash: err.message,
-                            pro: err2.message,
-                            pro10: err3.message
-                        },
-                        apiKeyPrefix,
-                        apiKeyLength: apiKey.length,
-                        tip: "Verifica que la API de 'Generative Language API' esté habilitada en Google Cloud Console para este proyecto."
-                    });
+                const model = genAI.getGenerativeModel({ model: modelName });
+                const result = await model.generateContent('Di "OK"');
+                const text = (await result.response).text();
+                results[modelName] = { success: true, response: text };
+                if (!modelUsed) {
+                    modelUsed = modelName;
+                    testResponse = text;
                 }
+            } catch (err: any) {
+                results[modelName] = { success: false, error: err.message };
             }
         }
 
-        return res.status(200).json({
-            success: true,
-            status: status,
+        const success = !!modelUsed;
+
+        return res.status(success ? 200 : 500).json({
+            success,
+            status: success ? 'connected' : 'error',
             testResponse,
             modelUsed,
-            router: 'pages',
-            sdk: 'official-google',
+            results,
             apiKeyPrefix,
-            apiKeyLength: apiKey.length
+            apiKeyLength: apiKey.length,
+            note: "Si todos fallan con 404, revisa si hay restricciones de país o si la clave de API es realmente de AI Studio."
         });
     } catch (error: any) {
         console.error('[TEST-GEMINI] Error fatal:', error);
