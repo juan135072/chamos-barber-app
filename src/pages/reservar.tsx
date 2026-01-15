@@ -81,10 +81,12 @@ const ReservarPage: React.FC = () => {
         duracionSolicitada
       )
 
-      if (data && Array.isArray(data) && data.some((s: any) => s.disponible)) {
-        setAvailableSlots(data)
+      const slots = (Array.isArray(data) ? data : []) as { hora: string, disponible: boolean, motivo?: string }[]
+
+      if (slots.length > 0 && slots.some((s) => s.disponible)) {
+        setAvailableSlots(slots)
       } else {
-        setAvailableSlots(data || [])
+        setAvailableSlots(slots)
 
         // LÓGICA DE SUGERENCIA PARCIAL
         // Si no hay cupo total y hay múltiples servicios, intentar buscar cupo para uno solo
