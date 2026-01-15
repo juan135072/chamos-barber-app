@@ -16,7 +16,7 @@ export async function sendMessageToChatwoot(
     // For WhatsApp via Chatwoot, sending multiple messages sequentially is better.
     const parts = content.split('|||').map(p => p.trim()).filter(Boolean);
 
-    const results = [];
+    const results: any[] = [];
     for (const part of parts) {
         try {
             const response = await fetch(
