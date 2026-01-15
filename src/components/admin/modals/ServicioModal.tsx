@@ -102,6 +102,8 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
 
       let imagenUrl = data.imagen_url || null
 
+      let tempCreatedId: string | undefined = undefined
+
       // Si hay un archivo seleccionado, subirlo primero
       if (selectedFile) {
         try {
@@ -109,10 +111,10 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
           toast.loading('Subiendo imagen...', { id: 'upload' })
 
           // Crear servicio temporalmente si es nuevo para obtener ID
-          let servicioId = servicio?.id
+          let sIdToUpload = servicio?.id
 
-          if (!servicioId) {
-            // Crear primero sin imagen
+          if (!sIdToUpload) {
+            // Crear primero sin imagen para obtener el ID necesario para el path de storage
             const tempServicioData: any = {
               nombre: data.nombre,
               descripcion: data.descripcion || null,
@@ -124,11 +126,12 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
               activo: data.activo
             }
             const newServicio = await chamosSupabase.createServicio(tempServicioData)
-            servicioId = newServicio.id
+            sIdToUpload = newServicio.id
+            tempCreatedId = newServicio.id
           }
 
           // Subir imagen
-          const { publicUrl } = await chamosSupabase.uploadServicioFoto(selectedFile, servicioId)
+          const { publicUrl } = await chamosSupabase.uploadServicioFoto(selectedFile, sIdToUpload)
           imagenUrl = publicUrl
           toast.success('Imagen subida exitosamente', { id: 'upload' })
         } catch (error: any) {
@@ -160,9 +163,17 @@ const ServicioModal: React.FC<ServicioModalProps> = ({ isOpen, onClose, onSucces
         toast.success('Servicio creado exitosamente')
       } else {
         // Actualizar con la imagen si se creó temporalmente
-        const servicioId = servicio?.id || (await chamosSupabase.getServicios(false)).find(s => s.nombre === data.nombre)?.id
-        if (servicioId) {
-          await chamosSupabase.updateServicio(servicioId, servicioData)
+        // Usamos el ID temporal que guardamos o buscamos por nombre como respaldo
+        let finalId = servicio?.id || tempCreatedId
+
+        if (!finalId) {
+          const servicios = await chamosSupabase.getServicios(false)
+          const found = (servicios as Servicio[]).find(s => s.nombre === data.nombre)
+          finalId = found?.id
+        }
+
+        if (finalId) {
+          await chamosSupabase.updateServicio(finalId, servicioData)
         }
         toast.success('Servicio creado exitosamente')
       }
