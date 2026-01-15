@@ -43,7 +43,7 @@ RECUERDA: La palabra clave TRANSFER_AGENT debe ir sola o al final para que tu ba
 async function generateChatResponse(message) {
     try {
         const { text } = await generateText({
-            model: google('gemini-1.5-flash'),
+            model: google('gemini-flash-latest'),
             system: SYSTEM_INSTRUCTION,
             prompt: message,
         });
