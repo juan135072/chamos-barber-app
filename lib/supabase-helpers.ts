@@ -327,7 +327,7 @@ export const chamosSupabase = {
   },
 
   // Horarios disponibles
-  getHorariosDisponibles: async (barbero_id: string, fecha: string, duracion_minutos: number = 30) => {
+  getHorariosDisponibles: async (barbero_id: string, fecha: string, duracion_minutos: number = 30): Promise<{ hora: string, disponible: boolean, motivo?: string }[] | null> => {
     try {
       const { data, error } = await supabase
         .rpc('get_horarios_disponibles', {
@@ -341,7 +341,7 @@ export const chamosSupabase = {
         throw error
       }
 
-      return data || []
+      return (data as { hora: string, disponible: boolean, motivo?: string }[] | null) || []
     } catch (error) {
       console.error('Error calling get_horarios_disponibles:', error)
       // Si la función no existe aún, retornar null para usar horarios por defecto
