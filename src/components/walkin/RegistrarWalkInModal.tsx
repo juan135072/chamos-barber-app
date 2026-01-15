@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react'
 import { X, UserPlus, Phone, Mail, User, FileText, Calendar, Clock, Scissors } from 'lucide-react'
-import { createWalkInClient, type CreateWalkInClientParams } from '@/lib/supabase-walkin'
+import { createWalkInClient, type CreateWalkInClientParams, type WalkInClient } from '@/lib/supabase-walkin'
 import { supabase } from '@/lib/supabase'
 import { chamosSupabase } from '../../../lib/supabase-helpers'
 import toast from 'react-hot-toast'
@@ -34,7 +34,7 @@ export default function RegistrarWalkInModal({
     email: '',
     notas: ''
   })
-  
+
   // Estados para reserva manual
   const [barberos, setBarberos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
@@ -68,7 +68,7 @@ export default function RegistrarWalkInModal({
   }
 
   const toggleServicio = (id: string) => {
-    setSelectedServicios(prev => 
+    setSelectedServicios(prev =>
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
     )
   }
@@ -85,80 +85,80 @@ export default function RegistrarWalkInModal({
 
     // Validación reserva
     if (activeTab === 'reserva') {
-        if (!selectedBarbero) {
-            setError('Debes seleccionar un barbero')
-            return
-        }
-        if (selectedServicios.length === 0) {
-            setError('Debes seleccionar al menos un servicio')
-            return
-        }
-        if (!fechaReserva || !horaReserva) {
-            setError('Fecha y hora son obligatorias')
-            return
-        }
+      if (!selectedBarbero) {
+        setError('Debes seleccionar un barbero')
+        return
+      }
+      if (selectedServicios.length === 0) {
+        setError('Debes seleccionar al menos un servicio')
+        return
+      }
+      if (!fechaReserva || !horaReserva) {
+        setError('Fecha y hora son obligatorias')
+        return
+      }
     }
 
     try {
       setLoading(true)
-      
+
       // 1. Crear o buscar cliente walk-in (o usar existente si ya hay lógica de búsqueda)
       // Por simplicidad, usamos la función existente que valida duplicados
-      let clienteWalkIn = null;
+      let clienteWalkIn: WalkInClient | null = null;
       try {
-          clienteWalkIn = await createWalkInClient({
-            ...formData,
-            telefono: formData.telefono.replace(/\D/g, '')
-          })
+        clienteWalkIn = await createWalkInClient({
+          ...formData,
+          telefono: formData.telefono.replace(/\D/g, '')
+        })
       } catch (err: any) {
-          // Si ya existe, intentamos buscarlo (fallback simple)
-          if (err.message?.includes('Ya existe')) {
-             // Aquí idealmente buscaríamos el ID, pero por ahora asumimos éxito parcial
-             // En un sistema real, deberíamos obtener el ID del cliente existente.
-             // Para este MVP de reserva manual, insertaremos la cita con los datos de texto directamente
-             console.log('Cliente ya existe, procediendo con reserva...')
-          } else {
-              throw err
-          }
+        // Si ya existe, intentamos buscarlo (fallback simple)
+        if (err.message?.includes('Ya existe')) {
+          // Aquí idealmente buscaríamos el ID, pero por ahora asumimos éxito parcial
+          // En un sistema real, deberíamos obtener el ID del cliente existente.
+          // Para este MVP de reserva manual, insertaremos la cita con los datos de texto directamente
+          console.log('Cliente ya existe, procediendo con reserva...')
+        } else {
+          throw err
+        }
       }
 
       // 2. Si es reserva manual, crear la cita en la tabla 'citas'
       if (activeTab === 'reserva') {
-          // Preparamos las notas incluyendo los servicios extra si hay más de uno
-          let notasFinales = `[WALK-IN] ${formData.notas || ''}`;
-          if (selectedServicios.length > 0) {
-             // Buscar nombres de servicios para agregarlos a las notas
-             const serviciosNombres = selectedServicios.map(id => {
-                 const s = servicios.find(srv => srv.id === id);
-                 return s ? s.nombre : id;
-             }).join(', ');
-             notasFinales += ` - Servicios: ${serviciosNombres}`;
-          }
+        // Preparamos las notas incluyendo los servicios extra si hay más de uno
+        let notasFinales = `[WALK-IN] ${formData.notas || ''}`;
+        if (selectedServicios.length > 0) {
+          // Buscar nombres de servicios para agregarlos a las notas
+          const serviciosNombres = selectedServicios.map(id => {
+            const s = servicios.find(srv => srv.id === id);
+            return s ? s.nombre : id;
+          }).join(', ');
+          notasFinales += ` - Servicios: ${serviciosNombres}`;
+        }
 
-          const citaPayload = {
-              barbero_id: selectedBarbero,
-              servicio_id: selectedServicios[0] || null, // Principal (campo obligatorio o FK)
-              // servicios_ids: selectedServicios, // REMOVIDO: No existe en la definición de tipos de la BD actual
-              fecha: fechaReserva,
-              hora: horaReserva,
-              cliente_nombre: formData.nombre,
-              cliente_telefono: formData.telefono,
-              cliente_email: formData.email || null,
-              notas: notasFinales,
-              estado: 'confirmada', // Confirmada directamente
-              // origen: 'walk-in' // REMOVIDO: No existe en la definición de tipos, se maneja vía notas o lógica de negocio
-          }
+        const citaPayload = {
+          barbero_id: selectedBarbero,
+          servicio_id: selectedServicios[0] || null, // Principal (campo obligatorio o FK)
+          // servicios_ids: selectedServicios, // REMOVIDO: No existe en la definición de tipos de la BD actual
+          fecha: fechaReserva,
+          hora: horaReserva,
+          cliente_nombre: formData.nombre,
+          cliente_telefono: formData.telefono,
+          cliente_email: formData.email || null,
+          notas: notasFinales,
+          estado: 'confirmada', // Confirmada directamente
+          // origen: 'walk-in' // REMOVIDO: No existe en la definición de tipos, se maneja vía notas o lógica de negocio
+        }
 
-          // Insertar cita usando supabase directo
-          const { error: citaError } = await supabase
-              .from('citas')
-              .insert([citaPayload] as any)
-          
-          if (citaError) throw citaError
-          
-          toast.success('Reserva manual creada exitosamente')
+        // Insertar cita usando supabase directo
+        const { error: citaError } = await supabase
+          .from('citas')
+          .insert([citaPayload] as any)
+
+        if (citaError) throw citaError
+
+        toast.success('Reserva manual creada exitosamente')
       } else {
-          toast.success('Cliente registrado correctamente')
+        toast.success('Cliente registrado correctamente')
       }
 
       // Limpiar y cerrar
@@ -212,9 +212,9 @@ export default function RegistrarWalkInModal({
               style={{ backgroundColor: 'var(--accent-color)' + '20' }}
             >
               {activeTab === 'reserva' ? (
-                  <Calendar className="w-6 h-6" style={{ color: 'var(--accent-color)' }} />
+                <Calendar className="w-6 h-6" style={{ color: 'var(--accent-color)' }} />
               ) : (
-                  <UserPlus className="w-6 h-6" style={{ color: 'var(--accent-color)' }} />
+                <UserPlus className="w-6 h-6" style={{ color: 'var(--accent-color)' }} />
               )}
             </div>
             <div>
@@ -244,230 +244,228 @@ export default function RegistrarWalkInModal({
 
         {/* Tabs Switch */}
         <div className="flex border-b border-[var(--border-color)]">
-            <button
-                type="button"
-                onClick={() => setActiveTab('reserva')}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'reserva' ? 'text-[var(--accent-color)] border-b-2 border-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-            >
-                <div className="flex items-center justify-center gap-2">
-                    <Calendar className="w-4 h-4" />
-                    Reserva Manual (Completa)
-                </div>
-            </button>
-            <button
-                type="button"
-                onClick={() => setActiveTab('registro')}
-                className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'registro' ? 'text-[var(--accent-color)] border-b-2 border-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
-            >
-                <div className="flex items-center justify-center gap-2">
-                    <UserPlus className="w-4 h-4" />
-                    Solo Registro (Rápido)
-                </div>
-            </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('reserva')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'reserva' ? 'text-[var(--accent-color)] border-b-2 border-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Calendar className="w-4 h-4" />
+              Reserva Manual (Completa)
+            </div>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab('registro')}
+            className={`flex-1 py-3 text-sm font-medium transition-colors ${activeTab === 'registro' ? 'text-[var(--accent-color)] border-b-2 border-[var(--accent-color)]' : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <UserPlus className="w-4 h-4" />
+              Solo Registro (Rápido)
+            </div>
+          </button>
         </div>
 
         {/* Body - Scrollable */}
         <div className="overflow-y-auto p-6 flex-1">
-            <form id="walkin-form" onSubmit={handleSubmit} className="space-y-6">
+          <form id="walkin-form" onSubmit={handleSubmit} className="space-y-6">
             {/* Error Message */}
             {error && (
-                <div
+              <div
                 className="p-3 rounded-lg border"
                 style={{
-                    backgroundColor: '#ef444420',
-                    borderColor: '#ef4444',
-                    color: '#ef4444'
+                  backgroundColor: '#ef444420',
+                  borderColor: '#ef4444',
+                  color: '#ef4444'
                 }}
-                >
+              >
                 <p className="text-sm">{error}</p>
-                </div>
+              </div>
             )}
 
             {/* Grid Layout for Desktop */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                
-                {/* Columna Izquierda: Datos Cliente */}
-                <div className="space-y-4">
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--accent-color)] mb-2 border-b border-[var(--border-color)] pb-1">
-                        Datos del Cliente
-                    </h3>
-                    
-                    {/* Nombre */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                        <User className="inline w-3 h-3 mr-1" /> Nombre Completo *
-                        </label>
-                        <input
-                        type="text"
-                        value={formData.nombre}
-                        onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
-                        placeholder="Ej: Juan Pérez"
-                        className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                        disabled={loading}
-                        required
-                        />
-                    </div>
 
-                    {/* Teléfono */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                        <Phone className="inline w-3 h-3 mr-1" /> Teléfono *
-                        </label>
-                        <input
-                        type="tel"
-                        value={formData.telefono}
-                        onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                        placeholder="+569..."
-                        className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                        disabled={loading}
-                        required
-                        />
-                    </div>
+              {/* Columna Izquierda: Datos Cliente */}
+              <div className="space-y-4">
+                <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--accent-color)] mb-2 border-b border-[var(--border-color)] pb-1">
+                  Datos del Cliente
+                </h3>
 
-                    {/* Email */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                        <Mail className="inline w-3 h-3 mr-1" /> Email
-                        </label>
-                        <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="opcional@email.com"
-                        className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                        disabled={loading}
-                        />
-                    </div>
-
-                    {/* Notas */}
-                    <div>
-                        <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                        <FileText className="inline w-3 h-3 mr-1" /> Notas
-                        </label>
-                        <textarea
-                        value={formData.notas}
-                        onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
-                        placeholder="Detalles adicionales..."
-                        rows={3}
-                        className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                        disabled={loading}
-                        />
-                    </div>
+                {/* Nombre */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                    <User className="inline w-3 h-3 mr-1" /> Nombre Completo *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.nombre}
+                    onChange={(e) => setFormData({ ...formData, nombre: e.target.value })}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                    disabled={loading}
+                    required
+                  />
                 </div>
 
-                {/* Columna Derecha: Datos Reserva (Solo si activeTab === 'reserva') */}
-                {activeTab === 'reserva' && (
-                    <div className="space-y-4">
-                        <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--accent-color)] mb-2 border-b border-[var(--border-color)] pb-1">
-                            Detalles de Reserva
-                        </h3>
+                {/* Teléfono */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                    <Phone className="inline w-3 h-3 mr-1" /> Teléfono *
+                  </label>
+                  <input
+                    type="tel"
+                    value={formData.telefono}
+                    onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                    placeholder="+569..."
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                    disabled={loading}
+                    required
+                  />
+                </div>
 
-                        {/* Fecha y Hora */}
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                                    <Calendar className="inline w-3 h-3 mr-1" /> Fecha
-                                </label>
-                                <input
-                                    type="date"
-                                    value={fechaReserva}
-                                    onChange={(e) => setFechaReserva(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                                    <Clock className="inline w-3 h-3 mr-1" /> Hora
-                                </label>
-                                <input
-                                    type="time"
-                                    value={horaReserva}
-                                    onChange={(e) => setHoraReserva(e.target.value)}
-                                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                                    disabled={loading}
-                                />
-                            </div>
-                        </div>
+                {/* Email */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                    <Mail className="inline w-3 h-3 mr-1" /> Email
+                  </label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="opcional@email.com"
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                    disabled={loading}
+                  />
+                </div>
 
-                        {/* Barbero */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                                <User className="inline w-3 h-3 mr-1" /> Barbero
-                            </label>
-                            <select
-                                value={selectedBarbero}
-                                onChange={(e) => setSelectedBarbero(e.target.value)}
-                                className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
-                                disabled={loading}
-                            >
-                                <option value="">Seleccionar Barbero...</option>
-                                {barberos.map(b => (
-                                    <option key={b.id} value={b.id}>{b.nombre} {b.apellido}</option>
-                                ))}
-                            </select>
-                        </div>
+                {/* Notas */}
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                    <FileText className="inline w-3 h-3 mr-1" /> Notas
+                  </label>
+                  <textarea
+                    value={formData.notas}
+                    onChange={(e) => setFormData({ ...formData, notas: e.target.value })}
+                    placeholder="Detalles adicionales..."
+                    rows={3}
+                    className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
 
-                        {/* Servicios (Multi-select visual) */}
-                        <div>
-                            <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
-                                <Scissors className="inline w-3 h-3 mr-1" /> Servicios
-                            </label>
-                            <div className="max-h-40 overflow-y-auto border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] p-2 space-y-1">
-                                {servicios.map(s => (
-                                    <div 
-                                        key={s.id}
-                                        onClick={() => toggleServicio(s.id)}
-                                        className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-colors ${
-                                            selectedServicios.includes(s.id) 
-                                            ? 'bg-[var(--accent-color)] text-[var(--bg-primary)]' 
-                                            : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
-                                        }`}
-                                    >
-                                        <div className={`w-4 h-4 rounded border flex items-center justify-center ${
-                                            selectedServicios.includes(s.id) ? 'border-white bg-white/20' : 'border-[var(--text-secondary)]'
-                                        }`}>
-                                            {selectedServicios.includes(s.id) && <div className="w-2 h-2 bg-white rounded-full" />}
-                                        </div>
-                                        <span>{s.nombre} - ${s.precio}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
+              {/* Columna Derecha: Datos Reserva (Solo si activeTab === 'reserva') */}
+              {activeTab === 'reserva' && (
+                <div className="space-y-4">
+                  <h3 className="text-sm font-semibold uppercase tracking-wider text-[var(--accent-color)] mb-2 border-b border-[var(--border-color)] pb-1">
+                    Detalles de Reserva
+                  </h3>
+
+                  {/* Fecha y Hora */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                        <Calendar className="inline w-3 h-3 mr-1" /> Fecha
+                      </label>
+                      <input
+                        type="date"
+                        value={fechaReserva}
+                        onChange={(e) => setFechaReserva(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                        disabled={loading}
+                      />
                     </div>
-                )}
+                    <div>
+                      <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                        <Clock className="inline w-3 h-3 mr-1" /> Hora
+                      </label>
+                      <input
+                        type="time"
+                        value={horaReserva}
+                        onChange={(e) => setHoraReserva(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                        disabled={loading}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Barbero */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                      <User className="inline w-3 h-3 mr-1" /> Barbero
+                    </label>
+                    <select
+                      value={selectedBarbero}
+                      onChange={(e) => setSelectedBarbero(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-1 focus:ring-[var(--accent-color)] bg-[var(--bg-primary)] border-[var(--border-color)] text-[var(--text-primary)]"
+                      disabled={loading}
+                    >
+                      <option value="">Seleccionar Barbero...</option>
+                      {barberos.map(b => (
+                        <option key={b.id} value={b.id}>{b.nombre} {b.apellido}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Servicios (Multi-select visual) */}
+                  <div>
+                    <label className="block text-sm font-medium mb-1 text-[var(--text-primary)]">
+                      <Scissors className="inline w-3 h-3 mr-1" /> Servicios
+                    </label>
+                    <div className="max-h-40 overflow-y-auto border border-[var(--border-color)] rounded-lg bg-[var(--bg-primary)] p-2 space-y-1">
+                      {servicios.map(s => (
+                        <div
+                          key={s.id}
+                          onClick={() => toggleServicio(s.id)}
+                          className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-colors ${selectedServicios.includes(s.id)
+                              ? 'bg-[var(--accent-color)] text-[var(--bg-primary)]'
+                              : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                            }`}
+                        >
+                          <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedServicios.includes(s.id) ? 'border-white bg-white/20' : 'border-[var(--text-secondary)]'
+                            }`}>
+                            {selectedServicios.includes(s.id) && <div className="w-2 h-2 bg-white rounded-full" />}
+                          </div>
+                          <span>{s.nombre} - ${s.precio}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-            </form>
+          </form>
         </div>
 
         {/* Footer Buttons */}
         <div className="p-6 border-t border-[var(--border-color)] flex gap-3 shrink-0">
-            <button
-                type="button"
-                onClick={handleClose}
-                disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg border transition-opacity hover:opacity-70 text-[var(--text-primary)] border-[var(--border-color)] bg-[var(--bg-primary)]"
-            >
-                Cancelar
-            </button>
-            <button
-                type="submit"
-                form="walkin-form"
-                disabled={loading}
-                className="flex-1 px-4 py-2 rounded-lg font-medium transition-opacity hover:opacity-90 flex items-center justify-center gap-2 bg-[var(--accent-color)] text-[var(--bg-primary)]"
-            >
-                {loading ? (
-                <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
-                    Procesando...
-                </>
-                ) : (
-                <>
-                    {activeTab === 'reserva' ? <Calendar className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-                    {activeTab === 'reserva' ? 'Confirmar Reserva' : 'Registrar Cliente'}
-                </>
-                )}
-            </button>
+          <button
+            type="button"
+            onClick={handleClose}
+            disabled={loading}
+            className="flex-1 px-4 py-2 rounded-lg border transition-opacity hover:opacity-70 text-[var(--text-primary)] border-[var(--border-color)] bg-[var(--bg-primary)]"
+          >
+            Cancelar
+          </button>
+          <button
+            type="submit"
+            form="walkin-form"
+            disabled={loading}
+            className="flex-1 px-4 py-2 rounded-lg font-medium transition-opacity hover:opacity-90 flex items-center justify-center gap-2 bg-[var(--accent-color)] text-[var(--bg-primary)]"
+          >
+            {loading ? (
+              <>
+                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                Procesando...
+              </>
+            ) : (
+              <>
+                {activeTab === 'reserva' ? <Calendar className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                {activeTab === 'reserva' ? 'Confirmar Reserva' : 'Registrar Cliente'}
+              </>
+            )}
+          </button>
         </div>
       </div>
     </div>
