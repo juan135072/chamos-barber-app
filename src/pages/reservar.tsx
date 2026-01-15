@@ -75,7 +75,7 @@ const ReservarPage: React.FC = () => {
         duracion: duracionSolicitada
       })
 
-      const data = await chamosSupabase.getHorariosDisponibles(
+      const data: { hora: string, disponible: boolean, motivo?: string }[] | null = await chamosSupabase.getHorariosDisponibles(
         formData.barbero_id,
         formData.fecha,
         duracionSolicitada
