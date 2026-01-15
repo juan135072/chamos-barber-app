@@ -119,7 +119,7 @@ export default function AgendaVisual({
           const state = getSlotState(hora)
 
           let className = "relative p-3 rounded-lg border text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[80px]"
-          let content = null
+          let content: React.ReactNode = null
           let onClick = () => onSlotClick(hora)
 
           if (state.type === 'libre') {
