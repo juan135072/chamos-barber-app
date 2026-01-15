@@ -20,28 +20,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let modelUsed = 'gemini-1.5-flash';
         let status = 'connected';
 
+        // Intentar con la versión por defecto (v1beta habitualmente)
         try {
             const model = genAI.getGenerativeModel({ model: modelUsed });
             const result = await model.generateContent('Di "OK Flash"');
             testResponse = (await result.response).text();
         } catch (err: any) {
-            console.error(`[TEST-GEMINI] Falló con ${modelUsed}:`, err.message);
+            console.error(`[TEST-GEMINI] Falló v1beta con ${modelUsed}:`, err.message);
 
-            // Fallback a gemini-pro
+            // Intentar forzando la versión v1 si está disponible en el SDK
             try {
+                // En algunas versiones del SDK se puede especificar la versión en la configuración
+                // pero si falla, intentamos con gemini-pro que es más antiguo y estable
                 modelUsed = 'gemini-pro';
                 const modelFallback = genAI.getGenerativeModel({ model: modelUsed });
                 const resultFallback = await modelFallback.generateContent('Di "OK Pro"');
                 testResponse = (await resultFallback.response).text();
                 status = 'connected-fallback';
             } catch (err2: any) {
-                return res.status(500).json({
-                    success: false,
-                    status: 'error',
-                    error: `Ambos modelos fallaron. Flash: ${err.message}. Pro: ${err2.message}`,
-                    apiKeyPrefix,
-                    apiKeyLength: apiKey.length
-                });
+                // Si falla gemini-pro, intentamos el nombre alternativo gemini-1.0-pro
+                try {
+                    modelUsed = 'gemini-1.0-pro';
+                    const modelAlt = genAI.getGenerativeModel({ model: modelUsed });
+                    const resultAlt = await modelAlt.generateContent('Di "OK 1.0 Pro"');
+                    testResponse = (await resultAlt.response).text();
+                    status = 'connected-alt';
+                } catch (err3: any) {
+                    return res.status(500).json({
+                        success: false,
+                        status: 'error',
+                        error: `Fallaron todos los modelos conocidos.`,
+                        details: {
+                            flash: err.message,
+                            pro: err2.message,
+                            pro10: err3.message
+                        },
+                        apiKeyPrefix,
+                        apiKeyLength: apiKey.length,
+                        tip: "Verifica que la API de 'Generative Language API' esté habilitada en Google Cloud Console para este proyecto."
+                    });
+                }
             }
         }
 
