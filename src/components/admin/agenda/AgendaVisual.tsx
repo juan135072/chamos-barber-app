@@ -25,19 +25,19 @@ export default function AgendaVisual({
   onCitaClick,
   onBloqueoClick
 }: AgendaVisualProps) {
-  
+
   // Generar slots de 30 minutos
   const generarSlots = () => {
-    const slots = []
+    const slots: string[] = []
     const [startHour, startMinute] = horaInicio.split(':').map(Number)
     const [endHour, endMinute] = horaFin.split(':').map(Number)
-    
+
     let current = new Date()
     current.setHours(startHour, startMinute, 0, 0)
-    
+
     const end = new Date()
     end.setHours(endHour, endMinute, 0, 0)
-    
+
     while (current < end) {
       const timeString = current.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })
       slots.push(timeString)
@@ -55,15 +55,15 @@ export default function AgendaVisual({
       const inicio = c.hora.substring(0, 5)
       // Duración por defecto 30 si no hay servicio
       const duracion = c.servicios?.duracion_minutos || 30
-      
+
       // Convertir a minutos para comparar rangos
       const [hSlot, mSlot] = hora.split(':').map(Number)
       const minSlot = hSlot * 60 + mSlot
-      
+
       const [hCita, mCita] = inicio.split(':').map(Number)
       const minCitaInicio = hCita * 60 + mCita
       const minCitaFin = minCitaInicio + duracion
-      
+
       return minSlot >= minCitaInicio && minSlot < minCitaFin
     })
 
@@ -74,19 +74,19 @@ export default function AgendaVisual({
       // Extraer hora de fechas ISO
       const inicio = new Date(b.fecha_hora_inicio).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })
       const fin = new Date(b.fecha_hora_fin).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })
-      
+
       // Lógica simplificada: si coincide la hora de inicio o está dentro
       // Para una implementación robusta se deberían comparar timestamps completos
       // Aquí asumimos que los bloqueos y slots son del mismo día
       const [hSlot, mSlot] = hora.split(':').map(Number)
       const minSlot = hSlot * 60 + mSlot
-      
+
       const [hInicio, mInicio] = inicio.split(':').map(Number)
       const minInicio = hInicio * 60 + mInicio
-      
+
       const [hFin, mFin] = fin.split(':').map(Number)
       const minFin = hFin * 60 + mFin
-      
+
       return minSlot >= minInicio && minSlot < minFin
     })
 
@@ -117,7 +117,7 @@ export default function AgendaVisual({
       <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-3">
         {slots.map(hora => {
           const state = getSlotState(hora)
-          
+
           let className = "relative p-3 rounded-lg border text-center transition-all cursor-pointer flex flex-col items-center justify-center min-h-[80px]"
           let content = null
           let onClick = () => onSlotClick(hora)
