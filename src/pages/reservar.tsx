@@ -81,7 +81,7 @@ const ReservarPage: React.FC = () => {
         duracionSolicitada
       )
 
-      if (data && data.some((s: any) => s.disponible)) {
+      if (data && Array.isArray(data) && data.some((s: any) => s.disponible)) {
         setAvailableSlots(data)
       } else {
         setAvailableSlots(data || [])
