@@ -1,7 +1,32 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { generateText } from 'ai'
-import { aiModel, BARBER_CONTEXT } from '@/lib/ai-config'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import { sendMessageToChatwoot } from '@/lib/chatwoot'
+
+const BARBER_CONTEXT = `Eres ChamoBot, asistente digital de Chamos Barber. Tu estilo es amigable, pana y directo.
+
+REGLAS CLAVE:
+- Respuestas CORTAS (máximo 2-3 líneas)
+- Usa 1-2 emojis: 💈, ✂️, 😎, 🔥
+- Habla natural, no robotizado
+- Link de reserva: https://chamosbarber.com/agendar
+- Link de servicios: https://chamosbarber.com/servicios
+
+PRECIOS:
+- Corte clásico: $10.000 (incluye lavado y peinado)
+
+EJEMPLOS:
+Usuario: "Hola"
+Tú: "¡Hola! ¿Qué tal? 💈 ¿Buscas corte o consultar precios?"
+
+Usuario: "Cuánto cuesta un corte"
+Tú: "El corte te sale en $10.000. Te incluye lavado y peinado 😎 ||| ¿Te animas? Reserva aquí: https://chamosbarber.com/agendar"
+
+Usuario: "Quiero una cita"
+Tú: "Dale, el sistema es automático para que nadie te quite el cupo 🔒 ||| Asegúralo aquí: https://chamosbarber.com/agendar"
+
+Si piden hablar con humano, di: "Entiendo, ya aviso al equipo 🙏" y agrega la palabra TRANSFER_AGENT al final.
+
+Usa ||| para separar mensajes diferentes.`
 
 type ChatwootMessage = {
     content: string
@@ -43,51 +68,53 @@ export default async function handler(
         })
 
         // Filtrar mensajes que NO debemos procesar
-        // 1. Solo procesar event "message_created"
         if (payload.event !== 'message_created') {
             console.log('⏭️ [Chatwoot Webhook] Skipping: Event is not message_created')
             return res.status(200).json({ status: 'ignored', reason: 'not_message_created' })
         }
 
-        // 2. Solo procesar mensajes entrantes (incoming)
         if (payload.message_type !== 'incoming') {
             console.log('⏭️ [Chatwoot Webhook] Skipping: Message is outgoing (bot or agent)')
             return res.status(200).json({ status: 'ignored', reason: 'outgoing_message' })
         }
 
-        // 3. Ignorar mensajes del bot mismo
         if (payload.sender?.type === 'user') {
             console.log('⏭️ [Chatwoot Webhook] Skipping: Message from agent/bot')
             return res.status(200).json({ status: 'ignored', reason: 'agent_message' })
         }
 
-        // 4. Verificar que hay contenido
         if (!payload.content || payload.content.trim() === '') {
             console.log('⏭️ [Chatwoot Webhook] Skipping: Empty message')
             return res.status(200).json({ status: 'ignored', reason: 'empty_content' })
         }
 
-        // Generar respuesta con Gemini
+        // Generar respuesta con Gemini usando SDK oficial
         const userMessage = payload.content
         const userName = payload.sender?.name || 'Cliente'
 
         console.log('🤖 [AI] Generating response for:', userMessage)
-        console.log('🤖 [AI] Context length:', BARBER_CONTEXT.length)
 
-        // Crear el prompt combinado
+        // Inicializar Google Generative AI
+        const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY
+        if (!apiKey) {
+            throw new Error('GOOGLE_GENERATIVE_AI_API_KEY not configured')
+        }
+
+        const genAI = new GoogleGenerativeAI(apiKey)
+        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
+
+        // Crear el prompt
         const fullPrompt = `${BARBER_CONTEXT}
 
 Usuario (${userName}): ${userMessage}
 
 ChamoBot:`
 
-        console.log('📝 [AI] Full prompt length:', fullPrompt.length)
+        console.log('📝 [AI] Sending prompt to Gemini...')
 
-        const { text: aiResponse } = await generateText({
-            model: aiModel,
-            prompt: fullPrompt,
-            temperature: 0.7,
-        })
+        const result = await model.generateContent(fullPrompt)
+        const response = await result.response
+        const aiResponse = response.text()
 
         console.log('💬 [AI] Generated response:', aiResponse)
         console.log('💬 [AI] Response length:', aiResponse?.length || 0)
@@ -134,8 +161,6 @@ ChamoBot:`
 
         // Si se debe transferir, marcar conversación para agente humano
         if (shouldTransfer) {
-            // TODO: Implementar lógica de transferencia a agente humano
-            // Por ahora solo lo logueamos
             console.log(
                 '🚨 [Transfer] Customer requested human agent for conversation:',
                 conversationId
@@ -149,6 +174,7 @@ ChamoBot:`
         })
     } catch (error) {
         console.error('❌ [Chatwoot Webhook] Error:', error)
+        console.error('❌ [Error Details]:', JSON.stringify(error, null, 2))
 
         // En caso de error, enviar mensaje genérico al usuario
         try {
