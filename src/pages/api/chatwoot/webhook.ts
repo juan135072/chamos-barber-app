@@ -9,7 +9,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         const body = req.body;
-        console.log('[BOT-DEBUG] (Pages) Recibido webhook de Chatwoot:', JSON.stringify(body, null, 2));
+        console.log('[BOT-DEBUG] (Pages) Recibido webhook de Chatwoot:', JSON.stringify({
+            event: body.event,
+            account_id: body.account?.id,
+            conversation_id: body.conversation?.id,
+            sender_type: body.sender?.type,
+            message_type: body.message_type
+        }, null, 2));
+
+        // Logs de diagnóstico de ENV (solo presencia)
+        console.log('[BOT-DEBUG] Diagnóstico Chatwoot ENV:', {
+            has_url: !!process.env.CHATWOOT_URL,
+            has_token: !!process.env.CHATWOOT_ACCESS_TOKEN,
+            url_preview: process.env.CHATWOOT_URL?.substring(0, 20)
+        });
 
         // Solo procesar mensajes creados
         if (body.event !== 'message_created') {
@@ -61,7 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
 
-            await sendMessageToChatwoot(conversation.id, message, 'outgoing');
+            await sendMessageToChatwoot(conversation.id, message, 'outgoing', body.account?.id);
             console.log(`[BOT-DEBUG] Burbuja ${i + 1}/${messages.length} enviada`);
         }
 

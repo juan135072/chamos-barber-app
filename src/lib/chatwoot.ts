@@ -6,11 +6,13 @@ const CHATWOOT_ACCESS_TOKEN = process.env.CHATWOOT_ACCESS_TOKEN
  * @param conversationId - The conversation ID
  * @param content - The message content
  * @param messageType - 'outgoing' for bot messages, 'incoming' for user messages
+ * @param accountIdOverride - Optional account ID extracted from webhook
  */
 export async function sendMessageToChatwoot(
     conversationId: number,
     content: string,
-    messageType: 'outgoing' | 'incoming' = 'outgoing'
+    messageType: 'outgoing' | 'incoming' = 'outgoing',
+    accountIdOverride?: number
 ) {
     if (!CHATWOOT_URL || !CHATWOOT_ACCESS_TOKEN) {
         console.warn('⚠️ CHATWOOT_URL or CHATWOOT_ACCESS_TOKEN not configured')
@@ -18,9 +20,8 @@ export async function sendMessageToChatwoot(
     }
 
     try {
-        // Chatwoot API expects account_id in the URL
-        // We'll use account_id = 1 as default (most self-hosted instances have one account)
-        const accountId = 1
+        // Use override if provided, otherwise environment variable, otherwise default to 1
+        const accountId = accountIdOverride || Number(process.env.CHATWOOT_ACCOUNT_ID) || 1
 
         const response = await fetch(
             `${CHATWOOT_URL}/api/v1/accounts/${accountId}/conversations/${conversationId}/messages`,
@@ -52,4 +53,3 @@ export async function sendMessageToChatwoot(
         throw error
     }
 }
-
