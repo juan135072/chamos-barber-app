@@ -47,6 +47,7 @@ export async function generateChatResponse(message: string) {
       prompt: message,
     });
 
+    console.log(`[BOT-DEBUG] Respuesta generada por AI: "${text}"`);
     return text;
   } catch (error) {
     console.error('Error generating AI response:', error);

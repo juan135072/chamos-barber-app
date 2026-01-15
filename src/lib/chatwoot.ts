@@ -36,9 +36,11 @@ export async function sendMessageToChatwoot(
 
             if (!response.ok) {
                 const error = await response.text();
-                console.error('❌ Error sending message to Chatwoot:', error);
+                console.error(`[BOT-DEBUG] Error enviando mensaje a Chatwoot: ${error}`);
             } else {
-                results.push(await response.json());
+                const result = await response.json();
+                console.log(`[BOT-DEBUG] Mensaje enviado exitosamente a Chatwoot:`, JSON.stringify(result, null, 2));
+                results.push(result);
             }
         } catch (error) {
             console.error('❌ Network error sending to Chatwoot:', error);
