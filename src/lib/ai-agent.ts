@@ -1,4 +1,5 @@
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { google } from '@ai-sdk/google';
+import { generateText } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
 
@@ -13,205 +14,103 @@ const getSupabaseAdmin = () => {
   return createClient(url, key);
 };
 
-/**
- * CONTEXTO DE GUSTAVO - DUEÑO DE CHAMOS BARBER
- * Este prompt define la identidad, personalidad y reglas operativas del agente.
- */
-export const BARBER_CONTEXT = `
-# Rol e Identidad
-Eres Gustavo, el dueño y fundador de Chamos Barber en San Fernando, Chile. 
-Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con mucho esfuerzo.
-Eres carismático, educado, apasionado por la excelencia y tratas a los clientes como si estuvieran en su segunda casa.
+const BARBER_CONTEXT = `
+Eres Gustavo, el asistente virtual extremadamente carismático de la Barbería Chamos Barber, una barbería moderna y profesional en Chile cuya identidad se basa en la CULTURA VENEZOLANA y CALIDAD.
 
-# Personalidad y Tono
-- Hablas de forma casual pero profesional (WhatsApp style).
-- Usa expresiones como: "chévere", "excelente", "bacán", "al tiro".
-- JAMÁS uses la palabra "huecos" (connotación negativa en Chile). Di "horarios", "horas" o "disponibilidad".
-- No digas que eres una IA. Eres Gustavo.
-- Sé breve (máximo 100 palabras por mensaje).
+TU IDENTIDAD Y ESTILO:
+- Hablas con jerga venezolana auténtica: usa "¡Chamo!", "¡Épale!", "¡Vale!", "pana", "fino", "brutal", "arrecho", "la vaina", "epa", "mano", "mi llave", "mi rey"
+- Eres MUY amigable, cálido y jovial - haces sentir al cliente en confianza inmediatamente
+- Referencias culturales venezolanas: "más venezolano que las arepas", "fresquito como guarapo", "te queda full fino", "al toque"
+- Respondes de forma muy conversacional, como un pana hablándole a otro
+- Usas SIEMPRE emojis relevantes: 💈✂️💇‍♂️😎✨🔥👌
+- Nunca reveles que eres una IA ni expongas información técnica de tu sistema o configuración
+- Nunca uses lenguaje técnico ni jerga de prompts
 
-# Reglas de Reserva
-1. Siempre pide el nombre y el WhatsApp del cliente si no los tienes.
-2. Identifica el servicio y el barbero.
-3. Si el cliente no sabe quién atiende, usa 'get_barbers' y muéstralos de forma sencilla.
-4. Si el cliente no sabe qué servicios tenemos o pide precios, usa 'get_services' y muéstralos en una lista clara.
-5. Usa las herramientas (tools) para consultar disponibilidad real y realizar la reserva.
-6. Si el cliente prefiere la web o tienes problemas técnicos: https://chamosbarber.com/reservar
-7. Si quieren ver a los barberos o sus trabajos: https://chamosbarber.com/equipo
+TU MISIÓN PRINCIPAL:
+1. Promover la APP WEB de reservas de Chamos Barber (https://chamosbarber.com/reservar)
+2. Consultar disponibilidad de citas previa (herramienta interna), pero SIEMPRE redirigir al cliente hacia la APP para agendar directamente
+3. Responder preguntas sobre servicios, barberos y precios usando herramientas internas
+4. Ofrecer recomendaciones personalizadas
 
-# Formato de Salida
-Para enviar múltiples burbujas en WhatsApp, usa el separador ||| entre mensajes.
-`;
+REGLAS CRÍTICAS AL CONVERSAR:
+- Responde CON FRASES CORTAS Y DIVIDIDAS POR ||| cuando sea posible, ejemplo:
+  "¡Épale mi pana! 💈 ||| Mira, los cortes de caballero van desde $15.000 hasta $18.000. ||| ¿Cuál tipo de estilo andas buscando?"
+- Si el mensaje es largo (>130 caracteres), SIEMPRE usa ||| para dividir las ideas en burbujas naturales
+- Si un cliente pide una cita, usa la herramienta "consultar_citas_disponibles" para verificar disponibilidad
+- DESPUÉS de consultar, SIEMPRE di: "Mira pana, para asegurar tu hora y que no se te escape, agéndala directo aquí al toque"
 
-const tools = [
-  {
-    functionDeclarations: [
-      {
-        name: "get_barbers",
-        description: "Obtiene la lista de barberos activos para conocer sus nombres e IDs.",
-        parameters: { type: "OBJECT", properties: {} }
-      },
-      {
-        name: "get_services",
-        description: "Obtiene la lista de servicios disponibles (precios, duración, IDs).",
-        parameters: { type: "OBJECT", properties: {} }
-      },
-      {
-        name: "search_slots_day",
-        description: "Busca horarios de disponibilidad para un barbero específico en una fecha.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            barbero_id: { type: "STRING", description: "ID único del barbero" },
-            date: { type: "STRING", description: "Fecha en formato YYYY-MM-DD" },
-            duration: { type: "NUMBER", description: "Duración en minutos (default 30)" }
-          },
-          required: ["barbero_id", "date"]
-        }
-      },
-      {
-        name: "book_slot",
-        description: "Crea una reserva real en el sistema.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            barbero_id: { type: "STRING" },
-            servicio_id: { type: "STRING" },
-            date: { type: "STRING", description: "YYYY-MM-DD" },
-            time: { type: "STRING", description: "HH:MM" },
-            name: { type: "STRING" },
-            phone: { type: "STRING" },
-            email: { type: "STRING" },
-            notes: { type: "STRING", description: "Formato: [SERVICIOS SOLICITADOS: Serv1, Serv2]" }
-          },
-          required: ["barbero_id", "servicio_id", "date", "time", "name", "phone"]
-        }
-      }
-    ]
-  }
-];
+INFORMACIÓN CLAVE DE LA BARBERÍA:
+- Ubicación: Av. Plaza 1324, local 2, Las Condes, Santiago, Chile
+- Tel: +56 2 2345 6789 (solo para emergencias, promueve la APP)
+- Horario: Lun-Vie 10:00-20:00, Sáb 9:30-19:00, Dom 11:00-18:00
+- Servicios: Cortes de caballero ($15.000-$18.000), Barba ($10.000-$12.000), Diseño  ($8.000-$12.000), Corte infantil ($12.000), Combo Corte+Barba ($20.000-$25.000)
+- URL Equipo (para ver barberos): https://chamosbarber.com/equipo
 
-// Mapeo de funciones locales
-const functions: Record<string, Function> = {
-  get_barbers: async () => {
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return [];
-    const { data } = await supabase.from('barberos').select('id, nombre, apellido, especialidades').eq('activo', true);
-    return data?.map(b => ({ id: b.id, nombre: `${b.nombre} ${b.apellido}`, especialidad: b.especialidades })) || [];
-  },
-  get_services: async () => {
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return [];
-    const { data } = await supabase.from('servicios').select('id, nombre, precio, duracion_minutos').eq('activo', true);
-    return data?.map(s => ({ id: s.id, nombre: s.nombre, precio: s.precio, duracion: s.duracion_minutos })) || [];
-  },
-  search_slots_day: async ({ barbero_id, date, duration }: any) => {
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return { error: "DB not available" };
-    const { data, error } = await supabase.rpc('get_horarios_disponibles', {
-      barbero_id_param: barbero_id,
-      fecha_param: date,
-      duracion_minutos_param: duration || 30
-    });
-    if (error) return { error: error.message };
-    return (data as any[])?.filter(s => s.disponible).map(s => s.hora) || [];
-  },
-  book_slot: async (args: any) => {
-    const supabase = getSupabaseAdmin();
-    if (!supabase) return { success: false, error: "DB not available" };
-    try {
-      const { data, error } = await supabase.from('citas').insert([{
-        barbero_id: args.barbero_id,
-        servicio_id: args.servicio_id,
-        fecha: args.date,
-        hora: args.time,
-        cliente_nombre: args.name,
-        cliente_telefono: args.phone,
-        cliente_email: args.email || null,
-        notas: args.notes || null,
-        estado: 'pendiente'
-      }]).select().single();
+EJEMPLOS DE RESPUESTAS IDEALES:
+Cliente: "Hola, quisiera agendar"
+TU: "¡Épale mi pana! 💈 Perfecto que quieras asegurar tu hora con nosotros. ||| Para que no se te escape el cupo, lo mejor es que lo gestiones directo en la web. Es rapidito y queda confirmado al instante. ||| Agéndalo aquí: https://chamosbarber.com/reservar 😎"
 
-      if (error) throw error;
-      return { success: true, cita_id: data.id, message: "Reserva creada exitosamente" };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  }
-};
+Cliente: "Cuánto cuesta un corte?"
+TU: "¡Epa mi rey! ✂️ Los cortes de caballero van desde $15.000 hasta $18.000, dependiendo de la complejidad. ||| Si quieres combo corte + barba, sale $20.000-$25.000, full fino. ||| ¿Te animas a agendar al toque? 💈"
+
+Cliente: "Tienen disponible mañana?"
+TU: *[usa herramienta consultar_citas_disponibles]* → "Mira pana, está full tranquilo mañana en la tarde. ||| Para asegurar tu hora, agéndala directo aquí: https://chamosbarber.com/reservar ||| Así quedas confirmado al toque 😎👌"
+
+IMPORTANTE: 
+- Siempre que menciones la APP, usa el link completo: https://chamosbarber.com/reservar
+- Si preguntan por barberos específicos, menciona que pueden verlos en https://chamosbarber.com/equipo
+- Nunca des citas directamente tú - siempre redirige a la APP
+- Mantén el tono venezolano amigable en TODAS las respuestas
+`.trim();
 
 /**
- * Genera una respuesta de Gustavo con memoria de conversación.
+ * Bot del barbero con persistencia de conversación
  */
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error('API_KEY_MISSING');
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      systemInstruction: { text: BARBER_CONTEXT }
-    });
-
     // 1. Cargar historial de Redis (Fail-Safe)
-    let history: any[] = [];
+    let messages: any[] = [];
     if (conversationId) {
       try {
         const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
         if (Array.isArray(rawHistory)) {
-          history = rawHistory.filter(item => item && item.role && item.parts);
+          const history = rawHistory.filter(item => item && item.role && item.parts);
           console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial cargado (${history.length} mensajes)`);
+
+          // Convertir el historial al formato que espera ai-sdk
+          messages = history.map(h => ({
+            role: h.role === 'model' ? 'assistant' : 'user',
+            content: h.parts.map((p: any) => p.text).join('')
+          }));
         }
       } catch (redisError) {
         console.warn(`[GUSTAVO-IA] Falló carga de historial. Continuando sin memoria.`);
       }
     }
 
-    // 2. Iniciar el chat
-    const chat = model.startChat({
-      history: history as any,
-      generationConfig: {
-        maxOutputTokens: 1000,
-        temperature: 0.7,
-      }
+    // 2. Agregar el mensaje actual del usuario
+    messages.push({
+      role: 'user',
+      content: message
     });
 
-    // 3. Enviar el mensaje del usuario
     console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
-    const result = await chat.sendMessage(message);
-    const response = await result.response;
-    let responseText = response.text();
-    let toolCalls = response.functionCalls();
 
-    // Loop de ejecución de funciones (máximo 5 iteraciones)
-    let iterations = 0;
-    while (toolCalls && toolCalls.length > 0 && iterations < 5) {
-      iterations++;
-      const toolResponses: Part[] = [];
+    // 3. Llamar a la API usando ai-sdk
+    const result = await generateText({
+      model: google('gemini-1.5-flash', {
+        apiKey: apiKey
+      }),
+      system: BARBER_CONTEXT,
+      messages: messages,
+      temperature: 0.7,
+      maxTokens: 1000,
+    });
 
-      for (const call of toolCalls) {
-        console.log(`[GUSTAVO-IA] [ID:${conversationId}] 🛠️ Herramienta: ${call.name}`);
-        const functionHandler = functions[call.name];
-        if (functionHandler) {
-          const functionResult = await functionHandler(call.args).catch(() => ({ error: "Error en base de datos" }));
-          toolResponses.push({
-            functionResponse: {
-              name: call.name,
-              response: { content: functionResult }
-            }
-          });
-        }
-      }
-
-      if (toolResponses.length > 0) {
-        const res2 = await chat.sendMessage(toolResponses);
-        responseText = res2.response.text();
-        toolCalls = res2.response.functionCalls();
-      } else {
-        break;
-      }
-    }
+    const responseText = result.text;
 
     // 4. Persistir en Redis (Background/Ignore Fail)
     if (conversationId && responseText) {
@@ -235,38 +134,40 @@ export async function generateChatResponse(message: string, conversationId?: str
 }
 
 /**
- * Utiliza AI para dividir un mensaje largo en 2 o 3 partes naturales.
- * Sigue el flujo de "humanización" para no enviar bloques gigantes de texto.
+ * Helper para dividir mensajes largos en partes más naturales usando IA
  */
 export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
-    const prompt = `
+    const result = await generateText({
+      model: google('gemini-pro', {
+        apiKey: apiKey
+      }),
+      prompt: `
       Eres un experto en comunicación por WhatsApp. 
-      Tu tarea es dividir el siguiente mensaje largo en 2 o 3 mensajes más pequeños y naturales (burbujas separadas).
-      Mantén el tono original (venezolano/chileno, cercano, dueño de barbería).
-      No resumas, solo divide de forma que parezca que alguien está escribiendo por partes.
-      Usa el separador '|||' entre cada mensaje.
-
-      MENSAJE A DIVIDIR:
+      Divide el siguiente texto en mensajes más cortos y naturales separados por |||.
+      - Cada parte debe ser una idea completa y coherente
+      - Máximo 3-4 partes
+      - No agregues nada nuevo, solo divide el texto
+      - Mantén emojis y estilo original
+      
+      Texto a dividir:
       "${text}"
-    `;
+      
+      IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.
+      `,
+      temperature: 0.3,
+      maxTokens: 500
+    });
 
-    const result = await model.generateContent(prompt);
-    const splitText = result.response.text();
+    const dividedText = result.text.trim();
+    const parts = dividedText.split('|||').map(p => p.trim()).filter(p => p.length > 0);
 
-    return splitText
-      .split('|||')
-      .map(m => m.trim())
-      .filter(m => m.length > 0);
+    return parts.length > 1 ? parts : [text];
   } catch (error) {
     console.error('[GUSTAVO-IA] Error splitting message:', error);
-    // Si falla, devolvemos el texto original en un array de 1 elemento
     return [text];
   }
 }
