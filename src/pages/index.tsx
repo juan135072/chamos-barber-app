@@ -164,6 +164,27 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
               maxWidth: '900px',
               margin: '0 auto'
             }}>
+              {/* Mapa de Google Maps */}
+              <div style={{
+                width: '100%',
+                height: '400px',
+                borderRadius: 'var(--border-radius)',
+                overflow: 'hidden',
+                border: '1px solid var(--border-color)',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                marginBottom: '1.5rem'
+              }}>
+                <iframe
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Rancagua+759,San+Fernando,Chile&language=es&zoom=16`}
+                ></iframe>
+              </div>
+
               <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
                   <i className="fas fa-map-marker-alt" style={{ color: 'var(--accent-color)', marginRight: '0.5rem' }}></i>
