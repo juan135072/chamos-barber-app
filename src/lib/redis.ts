@@ -2,7 +2,21 @@ import Redis from 'ioredis';
 
 const redisUrl = process.env.REDIS_URL;
 
-const redis = redisUrl ? new Redis(redisUrl) : null;
+const redis = redisUrl ? new Redis(redisUrl, {
+    maxRetriesPerRequest: 1,
+    connectTimeout: 5000,
+    retryStrategy(times) {
+        const delay = Math.min(times * 50, 2000);
+        if (times > 3) return null; // Dejar de reintentar rápido para no bloquear
+        return delay;
+    }
+}) : null;
+
+if (redis) {
+    redis.on('error', (err) => {
+        console.error('[REDIS] Connection Error:', err.message);
+    });
+}
 
 if (!redis && process.env.NODE_ENV === 'production') {
     console.warn('[REDIS] REDIS_URL is missing in production. Buffer memory will not be available.');

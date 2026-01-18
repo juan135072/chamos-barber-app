@@ -138,32 +138,32 @@ export async function generateChatResponse(message: string, conversationId?: str
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: 'gemini-1.5-flash',
-      tools: tools as any
+      tools: tools as any,
+      systemInstruction: { text: BARBER_CONTEXT }
     });
 
     // 1. Cargar historial de Redis si existe el conversationId
     let history: any[] = [];
     if (conversationId) {
-      history = await ChatMemory.getHistory(conversationId);
+      try {
+        history = await ChatMemory.getHistory(conversationId);
+        console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial recuperado: ${history.length} mensajes`);
+      } catch (e) {
+        console.error(`[GUSTAVO-IA] Error recuperando historial de Redis:`, e);
+      }
     }
 
-    // 2. Si no hay historial, inyectar el contexto inicial
-    if (history.length === 0) {
-      history = [
-        { role: 'user', parts: [{ text: BARBER_CONTEXT }] },
-        { role: 'model', parts: [{ text: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ¿En qué puedo ayudarte hoy, chamo?" }] }
-      ];
-    }
-
-    // 3. Iniciar el chat con el historial recuperado
+    // 2. Iniciar el chat con el historial (vacío si es la primera vez)
     const chat = model.startChat({
       history: history as any,
       generationConfig: {
         maxOutputTokens: 500,
+        temperature: 0.7,
       }
     });
 
-    // 4. Enviar el mensaje del usuario
+    // 3. Enviar el mensaje del usuario
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando mensaje: "${message}"`);
     const result = await chat.sendMessage(message);
     let responseText = result.response.text();
     let toolCalls = result.response.functionCalls();
@@ -173,7 +173,7 @@ export async function generateChatResponse(message: string, conversationId?: str
       const toolResponses: Part[] = [];
 
       for (const call of toolCalls) {
-        console.log(`[GUSTAVO-IA] [ID:${conversationId}] Ejecutando: ${call.name}`, call.args);
+        console.log(`[GUSTAVO-IA] [ID:${conversationId}] 🛠️ Ejecutando: ${call.name}`, call.args);
         const functionHandler = functions[call.name];
 
         if (functionHandler) {
@@ -192,17 +192,23 @@ export async function generateChatResponse(message: string, conversationId?: str
       toolCalls = result2.response.functionCalls();
     }
 
-    // 5. Persistir el nuevo par de mensajes en Redis si hay conversationId
-    if (conversationId) {
+    // 4. Persistir el nuevo par de mensajes en Redis si hay conversationId
+    if (conversationId && responseText) {
       await ChatMemory.addMessage(conversationId, 'user', message);
       await ChatMemory.addMessage(conversationId, 'model', responseText);
     }
 
     return responseText;
 
-  } catch (error) {
-    console.error(`[GUSTAVO-IA] [ID:${conversationId}] Error:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un tropiezo técnico. ||| Si gustas, puedes agendar directo aquí: https://chamosbarber.com/reservar y te aseguro el puesto al tiro.";
+  } catch (error: any) {
+    console.error(`[GUSTAVO-IA] [ID:${conversationId}] CRITICAL ERROR:`, error);
+
+    // Si el error es por seguridad o bloqueo, dar una respuesta amable
+    if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+      return "Oye chamo, disculpa, pero no puedo responder a eso. ¿Hablamos de tu próximo corte de pelo mejor? 😉";
+    }
+
+    return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un tropiezo técnico en el sistema. ||| Si gustas, puedes agendar directo aquí y te aseguro el puesto al tiro: https://chamosbarber.com/reservar";
   }
 }
 
