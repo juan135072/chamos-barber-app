@@ -133,7 +133,10 @@ const functions: Record<string, Function> = {
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
+    if (!apiKey) {
+      console.error('[GUSTAVO-IA] CRITICAL: GOOGLE_GENERATIVE_AI_API_KEY is missing');
+      throw new Error('API_KEY_MISSING');
+    }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -153,11 +156,11 @@ export async function generateChatResponse(message: string, conversationId?: str
       }
     }
 
-    // 2. Iniciar el chat con el historial (vacío si es la primera vez)
+    // 2. Iniciar el chat
     const chat = model.startChat({
       history: history as any,
       generationConfig: {
-        maxOutputTokens: 500,
+        maxOutputTokens: 1000,
         temperature: 0.7,
       }
     });
@@ -201,14 +204,18 @@ export async function generateChatResponse(message: string, conversationId?: str
     return responseText;
 
   } catch (error: any) {
-    console.error(`[GUSTAVO-IA] [ID:${conversationId}] CRITICAL ERROR:`, error);
+    console.error(`[GUSTAVO-IA] [ID:${conversationId}] ERROR DETALLADO:`, error);
 
-    // Si el error es por seguridad o bloqueo, dar una respuesta amable
-    if (error.message?.includes('safety') || error.message?.includes('blocked')) {
-      return "Oye chamo, disculpa, pero no puedo responder a eso. ¿Hablamos de tu próximo corte de pelo mejor? 😉";
+    // Fallbacks inteligentes según el error
+    if (error.message?.includes('API_KEY_MISSING')) {
+      return "Hola, soy Gustavo. 🙏 ||| Tengo un pequeño problema de conexión con mi cerebro artificial. ||| Porfa, avísale al técnico o agenda directo aquí: https://chamosbarber.com/reservar";
     }
 
-    return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un tropiezo técnico en el sistema. ||| Si gustas, puedes agendar directo aquí y te aseguro el puesto al tiro: https://chamosbarber.com/reservar";
+    if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+      return "Chamo, disculpa, pero no puedo hablar de eso. 🙏 ||| Mejor cuéntame, ¿qué tal si te arreglamos esa barba hoy? 😉";
+    }
+
+    return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un pequeño tropiezo técnico en el sistema. ||| Si gustas, puedes agendar directo aquí y te aseguro el puesto al tiro: https://chamosbarber.com/reservar";
   }
 }
 

@@ -57,8 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await ChatMemory.appendToBuffer(conversationId, content);
         await ChatMemory.setLastEventId(conversationId, eventId);
 
-        // 2. Esperar 7 segundos de "silencio"
-        await new Promise(resolve => setTimeout(resolve, 7000));
+        // 2. Esperar 5 segundos de "silencio"
+        await new Promise(resolve => setTimeout(resolve, 5000));
 
         // 3. Verificar si seguimos siendo el último mensaje
         const lastEventId = await ChatMemory.getLastEventId(conversationId);
