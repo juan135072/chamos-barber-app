@@ -47,15 +47,22 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
     }
 
     const observer = new IntersectionObserver(revealCallback, {
-      threshold: 0.15,
-      rootMargin: '0px 0px -50px 0px'
+      threshold: 0.05, // Menos estricto para dispositivos pequeños
+      rootMargin: '0px 0px -20px 0px'
     })
 
     const revealElements = document.querySelectorAll('.reveal')
-    revealElements.forEach(el => observer.observe(el))
+    revealElements.forEach(el => {
+      // Si ya está en pantalla al cargar (después del preloader), activarlo
+      const rect = el.getBoundingClientRect()
+      if (rect.top < window.innerHeight && rect.bottom > 0) {
+        el.classList.add('active')
+      }
+      observer.observe(el)
+    })
 
     return () => observer.disconnect()
-  }, [servicios])
+  }, [servicios, showPreloader]) // Re-ejecutar cuando desaparece el preloader
 
   const handlePreloaderComplete = () => {
     setShowPreloader(false)
