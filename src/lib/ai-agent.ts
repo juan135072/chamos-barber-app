@@ -2,11 +2,16 @@ import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
 
-// Cliente administrativo para bypass de RLS en el servidor
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+// Helper para inicializar Supabase de forma segura
+const getSupabaseAdmin = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error('[GUSTAVO-IA] CRITICAL: Supabase credentials missing');
+    return null;
+  }
+  return createClient(url, key);
+};
 
 /**
  * CONTEXTO DE GUSTAVO - DUEÑO DE CHAMOS BARBER
@@ -86,18 +91,24 @@ const tools = [
   }
 ];
 
-// Mapeo de funciones locales usando el cliente ADMIN
+// Mapeo de funciones locales
 const functions: Record<string, Function> = {
   get_barbers: async () => {
-    const { data } = await supabaseAdmin.from('barberos').select('id, nombre, apellido, especialidades').eq('activo', true);
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return [];
+    const { data } = await supabase.from('barberos').select('id, nombre, apellido, especialidades').eq('activo', true);
     return data?.map(b => ({ id: b.id, nombre: `${b.nombre} ${b.apellido}`, especialidad: b.especialidades })) || [];
   },
   get_services: async () => {
-    const { data } = await supabaseAdmin.from('servicios').select('id, nombre, precio, duracion_minutos').eq('activo', true);
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return [];
+    const { data } = await supabase.from('servicios').select('id, nombre, precio, duracion_minutos').eq('activo', true);
     return data?.map(s => ({ id: s.id, nombre: s.nombre, precio: s.precio, duracion: s.duracion_minutos })) || [];
   },
   search_slots_day: async ({ barbero_id, date, duration }: any) => {
-    const { data, error } = await supabaseAdmin.rpc('get_horarios_disponibles', {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return { error: "DB not available" };
+    const { data, error } = await supabase.rpc('get_horarios_disponibles', {
       barbero_id_param: barbero_id,
       fecha_param: date,
       duracion_minutos_param: duration || 30
@@ -106,8 +117,10 @@ const functions: Record<string, Function> = {
     return (data as any[])?.filter(s => s.disponible).map(s => s.hora) || [];
   },
   book_slot: async (args: any) => {
+    const supabase = getSupabaseAdmin();
+    if (!supabase) return { success: false, error: "DB not available" };
     try {
-      const { data, error } = await supabaseAdmin.from('citas').insert([{
+      const { data, error } = await supabase.from('citas').insert([{
         barbero_id: args.barbero_id,
         servicio_id: args.servicio_id,
         fecha: args.date,
@@ -133,10 +146,7 @@ const functions: Record<string, Function> = {
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-      console.error('[GUSTAVO-IA] CRITICAL: GOOGLE_GENERATIVE_AI_API_KEY is missing');
-      throw new Error('API_KEY_MISSING');
-    }
+    if (!apiKey) throw new Error('API_KEY_MISSING');
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
@@ -145,14 +155,17 @@ export async function generateChatResponse(message: string, conversationId?: str
       systemInstruction: { text: BARBER_CONTEXT }
     });
 
-    // 1. Cargar historial de Redis si existe el conversationId
+    // 1. Cargar historial de Redis (Fail-Safe)
     let history: any[] = [];
     if (conversationId) {
       try {
-        history = await ChatMemory.getHistory(conversationId);
-        console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial recuperado: ${history.length} mensajes`);
-      } catch (e) {
-        console.error(`[GUSTAVO-IA] Error recuperando historial de Redis:`, e);
+        const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
+        if (Array.isArray(rawHistory)) {
+          history = rawHistory.filter(item => item && item.role && item.parts);
+          console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial cargado (${history.length} mensajes)`);
+        }
+      } catch (redisError) {
+        console.warn(`[GUSTAVO-IA] Falló carga de historial. Continuando sin memoria.`);
       }
     }
 
@@ -166,21 +179,23 @@ export async function generateChatResponse(message: string, conversationId?: str
     });
 
     // 3. Enviar el mensaje del usuario
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando mensaje: "${message}"`);
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
     const result = await chat.sendMessage(message);
-    let responseText = result.response.text();
-    let toolCalls = result.response.functionCalls();
+    const response = await result.response;
+    let responseText = response.text();
+    let toolCalls = response.functionCalls();
 
-    // Loop de ejecución de funciones
-    while (toolCalls && toolCalls.length > 0) {
+    // Loop de ejecución de funciones (máximo 5 iteraciones)
+    let iterations = 0;
+    while (toolCalls && toolCalls.length > 0 && iterations < 5) {
+      iterations++;
       const toolResponses: Part[] = [];
 
       for (const call of toolCalls) {
-        console.log(`[GUSTAVO-IA] [ID:${conversationId}] 🛠️ Ejecutando: ${call.name}`, call.args);
+        console.log(`[GUSTAVO-IA] [ID:${conversationId}] 🛠️ Herramienta: ${call.name}`);
         const functionHandler = functions[call.name];
-
         if (functionHandler) {
-          const functionResult = await functionHandler(call.args);
+          const functionResult = await functionHandler(call.args).catch(() => ({ error: "Error en base de datos" }));
           toolResponses.push({
             functionResponse: {
               name: call.name,
@@ -190,15 +205,19 @@ export async function generateChatResponse(message: string, conversationId?: str
         }
       }
 
-      const result2 = await chat.sendMessage(toolResponses);
-      responseText = result2.response.text();
-      toolCalls = result2.response.functionCalls();
+      if (toolResponses.length > 0) {
+        const res2 = await chat.sendMessage(toolResponses);
+        responseText = res2.response.text();
+        toolCalls = res2.response.functionCalls();
+      } else {
+        break;
+      }
     }
 
-    // 4. Persistir el nuevo par de mensajes en Redis si hay conversationId
+    // 4. Persistir en Redis (Background/Ignore Fail)
     if (conversationId && responseText) {
-      await ChatMemory.addMessage(conversationId, 'user', message);
-      await ChatMemory.addMessage(conversationId, 'model', responseText);
+      ChatMemory.addMessage(conversationId, 'user', message).catch(() => { });
+      ChatMemory.addMessage(conversationId, 'model', responseText).catch(() => { });
     }
 
     return responseText;
@@ -206,16 +225,13 @@ export async function generateChatResponse(message: string, conversationId?: str
   } catch (error: any) {
     console.error(`[GUSTAVO-IA] [ID:${conversationId}] ERROR DETALLADO:`, error);
 
-    // Fallbacks inteligentes según el error
-    if (error.message?.includes('API_KEY_MISSING')) {
-      return "Hola, soy Gustavo. 🙏 ||| Tengo un pequeño problema de conexión con mi cerebro artificial. ||| Porfa, avísale al técnico o agenda directo aquí: https://chamosbarber.com/reservar";
-    }
-
+    // Si es un fallo de seguridad o bloqueo
     if (error.message?.includes('safety') || error.message?.includes('blocked')) {
-      return "Chamo, disculpa, pero no puedo hablar de eso. 🙏 ||| Mejor cuéntame, ¿qué tal si te arreglamos esa barba hoy? 😉";
+      return "Chamo, disculpa, no puedo procesar ese comentario. 🙏 ||| ¿Te ayudo con algo de la barbería?";
     }
 
-    return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un pequeño tropiezo técnico en el sistema. ||| Si gustas, puedes agendar directo aquí y te aseguro el puesto al tiro: https://chamosbarber.com/reservar";
+    // Mensaje de fallback limpio pero humano
+    return "Hola, te habla Gustavo. 🙏 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla.";
   }
 }
 
