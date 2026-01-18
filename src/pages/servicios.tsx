@@ -4,6 +4,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../components/Layout'
 import { chamosSupabase } from '../../lib/supabase-helpers'
+import { getServiceImage } from '../lib/service-utils'
 
 interface Service {
     id: string
@@ -13,6 +14,7 @@ interface Service {
     duracion_minutos: number
     categoria: string
     activo: boolean
+    imagen_url?: string | null
 }
 
 interface ServiciosPageProps {
@@ -46,7 +48,7 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
                                 <div key={servicio.id} className="service-card" style={{ display: 'flex', flexDirection: 'column' }}>
                                     <div className="service-image-container" style={{ width: '100%', height: '220px', overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
                                         <img
-                                            src={getServiceImage(servicio.categoria, servicio.nombre)}
+                                            src={servicio.imagen_url || getServiceImage(servicio.categoria, servicio.nombre)}
                                             alt={servicio.nombre}
                                             style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
                                         />
@@ -143,18 +145,6 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
     )
 }
 
-function getServiceImage(category?: string, name?: string) {
-    const cat = category?.toLowerCase() || ''
-    const nom = name?.toLowerCase() || ''
-
-    if (cat.includes('corte') || nom.includes('corte')) return '/images/servicios/corte_cabello_premium_1768743529185.png'
-    if (cat.includes('barba') || nom.includes('barba')) return '/images/servicios/cuidado_barba_premium_1768743545741.png'
-    if (cat.includes('facial') || cat.includes('tratamiento') || nom.includes('facial')) return '/images/servicios/tratamiento_facial_barberia_1768743560774.png'
-    if (cat.includes('combo') || cat.includes('premium') || nom.includes('premium')) return '/images/servicios/combo_premium_chamos_1768743575347.png'
-
-    // Fallback a corte si no se identifica
-    return '/images/servicios/corte_cabello_premium_1768743529185.png'
-}
 
 export const getServerSideProps: GetServerSideProps = async () => {
     try {

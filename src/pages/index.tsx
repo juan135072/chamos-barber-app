@@ -1,10 +1,26 @@
 import React, { useState, useEffect } from 'react'
+import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../components/Layout'
 import Preloader from '../components/Preloader'
+import { chamosSupabase } from '../../lib/supabase-helpers'
+import { getServiceImage } from '../lib/service-utils'
 
-const HomePage: React.FC = () => {
+interface Service {
+  id: string
+  nombre: string
+  descripcion: string | null
+  precio: number
+  categoria: string
+  imagen_url?: string | null
+}
+
+interface HomePageProps {
+  servicios: Service[]
+}
+
+const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
   const [showPreloader, setShowPreloader] = useState(true)
   const [isFirstVisit, setIsFirstVisit] = useState(true)
 
@@ -64,33 +80,54 @@ const HomePage: React.FC = () => {
             </Link>
           </div>
           <div className="services-grid">
-            <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ height: '200px', overflow: 'hidden' }}>
-                <img src="/images/servicios/corte_cabello_premium_1768743529185.png" alt="Corte" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <div style={{ padding: '2rem' }}>
-                <h3>Corte de Cabello</h3>
-                <p>Cortes clásicos y modernos adaptados a tu estilo personal.</p>
-              </div>
-            </div>
-            <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ height: '200px', overflow: 'hidden' }}>
-                <img src="/images/servicios/cuidado_barba_premium_1768743545741.png" alt="Barba" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <div style={{ padding: '2rem' }}>
-                <h3>Barba y Afeitado</h3>
-                <p>Perfilado de barba y afeitado tradicional con toalla caliente.</p>
-              </div>
-            </div>
-            <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
-              <div style={{ height: '200px', overflow: 'hidden' }}>
-                <img src="/images/servicios/tratamiento_facial_barberia_1768743560774.png" alt="Tratamiento" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <div style={{ padding: '2rem' }}>
-                <h3>Tratamientos</h3>
-                <p>Limpieza facial y masajes capilares para una experiencia completa.</p>
-              </div>
-            </div>
+            {servicios.length > 0 ? (
+              servicios.map((servicio) => (
+                <div key={servicio.id} className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{ height: '200px', overflow: 'hidden' }}>
+                    <img
+                      src={servicio.imagen_url || getServiceImage(servicio.categoria, servicio.nombre)}
+                      alt={servicio.nombre}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </div>
+                  <div style={{ padding: '2rem' }}>
+                    <h3>{servicio.nombre}</h3>
+                    <p>{servicio.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              // Fallback estático si por alguna razón no hay servicios en la DB
+              <>
+                <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{ height: '200px', overflow: 'hidden' }}>
+                    <img src={getServiceImage('cortes')} alt="Corte" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div style={{ padding: '2rem' }}>
+                    <h3>Corte de Cabello</h3>
+                    <p>Cortes clásicos y modernos adaptados a tu estilo personal.</p>
+                  </div>
+                </div>
+                <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{ height: '200px', overflow: 'hidden' }}>
+                    <img src={getServiceImage('barbas')} alt="Barba" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div style={{ padding: '2rem' }}>
+                    <h3>Barba y Afeitado</h3>
+                    <p>Perfilado de barba y afeitado tradicional con toalla caliente.</p>
+                  </div>
+                </div>
+                <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                  <div style={{ height: '200px', overflow: 'hidden' }}>
+                    <img src={getServiceImage('tratamientos')} alt="Tratamiento" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                  <div style={{ padding: '2rem' }}>
+                    <h3>Tratamientos</h3>
+                    <p>Limpieza facial y masajes capilares para una experiencia completa.</p>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -235,6 +272,27 @@ const HomePage: React.FC = () => {
       </section>
     </Layout>
   )
+}
+
+export const getServerSideProps: GetServerSideProps = async () => {
+  try {
+    const servicios = await chamosSupabase.getServicios(true)
+    // Limitar a 3 para la home
+    const featured = (servicios || []).slice(0, 3)
+
+    return {
+      props: {
+        servicios: JSON.parse(JSON.stringify(featured))
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching services for home:', error)
+    return {
+      props: {
+        servicios: []
+      }
+    }
+  }
 }
 
 export default HomePage

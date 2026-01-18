@@ -62,23 +62,23 @@ const ServiciosTab: React.FC = () => {
     }
   }
 
-  const filteredServicios = filterCategoria === 'all' 
-    ? servicios 
+  const filteredServicios = filterCategoria === 'all'
+    ? servicios
     : servicios.filter(s => {
-        if (!s.categoria) return false
-        const servicioCategoria = s.categoria.toLowerCase().trim()
-        const filtroCategoria = filterCategoria.toLowerCase().trim()
-        
-        // Intenta match exacto primero
-        if (servicioCategoria === filtroCategoria) return true
-        
-        // Intenta match sin considerar singular/plural
-        // "barba" vs "barbas", "tratamiento" vs "tratamientos"
-        const singularServicio = servicioCategoria.replace(/s$/, '')
-        const singularFiltro = filtroCategoria.replace(/s$/, '')
-        
-        return singularServicio === singularFiltro
-      })
+      if (!s.categoria) return false
+      const servicioCategoria = s.categoria.toLowerCase().trim()
+      const filtroCategoria = filterCategoria.toLowerCase().trim()
+
+      // Intenta match exacto primero
+      if (servicioCategoria === filtroCategoria) return true
+
+      // Intenta match sin considerar singular/plural
+      // "barba" vs "barbas", "tratamiento" vs "tratamientos"
+      const singularServicio = servicioCategoria.replace(/s$/, '')
+      const singularFiltro = filtroCategoria.replace(/s$/, '')
+
+      return singularServicio === singularFiltro
+    })
 
   const handleCreate = () => {
     setSelectedServicio(null)
@@ -229,10 +229,16 @@ const ServiciosTab: React.FC = () => {
                 <tr key={servicio.id} style={{ borderTop: '1px solid var(--border-color)' }}>
                   <td className="px-6 py-4">
                     <div className="flex items-center">
+                      <div className="flex-shrink-0 h-10 w-10 mr-3">
+                        <img
+                          className="h-10 w-10 rounded-md object-cover border border-gray-700"
+                          src={servicio.imagen_url || "/images/servicios/corte_cabello_premium_1768743529185.png"}
+                          alt=""
+                        />
+                      </div>
                       <div>
                         <div className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{servicio.nombre}</div>
                         <div className="text-sm line-clamp-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{servicio.descripcion}</div>
-                        {/* Popular badge removed - column doesn't exist in DB */}
                       </div>
                     </div>
                   </td>
@@ -250,9 +256,8 @@ const ServiciosTab: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleToggleActive(servicio)}
-                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                        servicio.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}
+                      className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${servicio.activo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}
                     >
                       {servicio.activo ? 'Activo' : 'Inactivo'}
                     </button>
