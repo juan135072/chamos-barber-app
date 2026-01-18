@@ -87,7 +87,7 @@ export async function generateChatResponse(message: string, conversationId?: str
       }
     }
 
-    // 2. Preparar el contexto del sistema y mensajes
+    // 2. Preparar el mensaje con el contexto inyectado (Pattern: Golden Thread)
     const now = new Date().toLocaleString('es-CL', {
       timeZone: 'America/Santiago',
       weekday: 'long',
@@ -98,18 +98,17 @@ export async function generateChatResponse(message: string, conversationId?: str
       minute: '2-digit'
     });
 
-    const systemInstruction = {
-      parts: [{ text: `${BARBER_CONTEXT}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).` }]
-    };
+    // Inyectamos el contexto en el mensaje actual del usuario para que nunca lo olvide
+    const promptWithContext = `[INSTRUCCIONES DE IDENTIDAD Y REGLAS - GUSTAVO]\n${BARBER_CONTEXT}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).\n\n[MENSAJE DEL CLIENTE]\n${message}`;
 
     contents.push({
       role: 'user',
-      parts: [{ text: message }]
+      parts: [{ text: promptWithContext }]
     });
 
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con system_instruction: "${message.substring(0, 50)}..."`);
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con Inyección de Contexto: "${message.substring(0, 50)}..."`);
 
-    // 3. Llamar directamente a Google Gemini API v1 usando fetch con system_instruction
+    // 3. Llamar directamente a Google Gemini API v1 usando fetch (Formato compatible)
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -118,7 +117,6 @@ export async function generateChatResponse(message: string, conversationId?: str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        system_instruction: systemInstruction,
         contents,
         generationConfig: {
           temperature: 0.7,
