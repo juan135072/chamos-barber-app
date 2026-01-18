@@ -150,7 +150,7 @@ export async function generateChatResponse(message: string, conversationId?: str
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash-latest',
+      model: 'gemini-1.5-pro',
       tools: tools as any,
       systemInstruction: { text: BARBER_CONTEXT }
     });
@@ -245,7 +245,7 @@ export async function splitLongMessage(text: string): Promise<string[]> {
     if (!apiKey) return [text];
 
     const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' });
 
     const prompt = `
       Eres un experto en comunicación por WhatsApp. 
