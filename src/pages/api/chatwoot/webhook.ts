@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { generateChatResponse, splitLongMessage } from '@/lib/ai-agent';
+import { generateChatResponse } from '@/lib/ai-agent';
 import { sendMessageToChatwoot } from '@/lib/chatwoot';
 import { ChatMemory } from '@/lib/redis';
 
@@ -97,32 +97,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         let messages: string[] = [];
         let delayBetweenBubbles = 2000; // Por defecto 2s para que parezca humano
 
-        const isLongMessage = aiResponse.length > 130;
-        const shouldSplit = isLongMessage && Math.random() < 0.40;
-
-        try {
-            if (shouldSplit) {
-                console.log(`[BOT-DEBUG] Mensaje largo detected (>130). Aplicando fragmentación (40% chance hit).`);
-                const splitResults = await splitLongMessage(aiResponse);
-
-                // Si splitLongMessage devolvió un solo bloque con |||, lo dividimos manualmente
-                messages = splitResults.flatMap(m => m.split('|||'))
-                    .map(msg => msg.trim())
-                    .filter(msg => msg.length > 0);
-
-                delayBetweenBubbles = 5000; // 5 segundos según el diagrama para mensajes fragmentados
-            } else {
-                // Comportamiento normal: dividir por ||| si la IA ya lo hizo
-                messages = aiResponse
-                    .replace('TRANSFER_AGENT', '') // Limpiar flags
-                    .split('|||')
-                    .map(msg => msg.trim())
-                    .filter(msg => msg.length > 0);
-            }
-        } catch (splitError) {
-            console.error('[BOT-DEBUG] Error en lógica de fragmentación:', splitError);
-            messages = aiResponse.split('|||').map(m => m.trim()).filter(m => m.length > 0);
-        }
+        // Comportamiento simple: dividir por ||| si la IA ya lo hizo
+        messages = aiResponse
+            .replace('TRANSFER_AGENT', '') // Limpiar flags
+            .split('|||')
+            .map(msg => msg.trim())
+            .filter(msg => msg.length > 0);
 
         // Detectar si se debe transferir a agente humano (en el texto original)
         const shouldTransfer = aiResponse.includes('TRANSFER_AGENT');

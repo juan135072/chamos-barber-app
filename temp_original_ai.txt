@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
-import { ChatMemory } from './redis';
 
 // Cliente administrativo para bypass de RLS en el servidor
 const supabaseAdmin = createClient(
@@ -125,7 +124,7 @@ const functions: Record<string, Function> = {
   }
 };
 
-export async function generateChatResponse(message: string, conversationId?: string | number) {
+export async function generateChatResponse(message: string) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
