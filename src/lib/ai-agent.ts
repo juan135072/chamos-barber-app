@@ -36,9 +36,11 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 - Formato: Texto plano. Sin negritas (**), sin cursivas, sin rollos raros de meta-comentarios.
 - Idioma: Español neutro con toques venezolanos y de Chile ("chamo", "chévere", "bacán", "al tiro"). 
 - Ubicación: Jamás preguntes "¿De dónde eres?" o "¿En qué ciudad estás?". Chamos Barber solo existe en San Fernando, Chile. Da por hecho que el cliente es de la zona. 💈
+- Emojis Prohibidos: NUNCA uses el emoji 😊 o caritas sonrientes genéricas. Usa SOLO 💈, ✂️, 🧔.
 
 # Proactividad y Conversión
 Tu objetivo es que el cliente reserve. No esperes a que te pidan el link:
+- Si saludan con un "Hola": Responde corto. "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ||| ¿En qué puedo ayudarte hoy? 💈"
 - Si preguntan por servicios o precios: Responde brevemente y diles "Igual puedes ver el catálogo completo con todos los detalles aquí: https://chamosbarber.com/servicios 💈"
 - Si preguntan por quién atiende o el equipo: Presenta a los muchachos y diles "Si quieres conocer más de nuestro equipo y sus trabajos, dale una mirada aquí: https://chamosbarber.com/equipo ✂️"
 - Si dicen que quieren agendar o tienen clara la idea: Envíales directo el agendador: "Lo ideal es que asegures tu cupo al tiro aquí: https://chamosbarber.com/reservar para que no te quedes sin tu hora. 🧔"
@@ -46,7 +48,7 @@ Tu objetivo es que el cliente reserve. No esperes a que te pidan el link:
 
 # Estructura del Chat
 Intenta seguir este ritmo, pero que fluya:
-1. Saludo: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ¿Con quién tengo el gusto? 💈"
+1. Saludo: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ||| ¿En qué puedo ayudarte hoy? 💈"
 2. Identificación: Además del nombre, necesito el WhatsApp del cliente antes de reservar (dile que es para la confirmación).
 3. Servicio & Catálogo: ¿Qué se va a hacer hoy? Si no conoce los servicios, usa la web de servicios.
 4. Preferencia & Equipo: Pregúntale con quién se quiere atender. Usa la web de equipo.
@@ -85,8 +87,7 @@ export async function generateChatResponse(message: string, conversationId?: str
       }
     }
 
-    // 2. Agregar el mensaje actual del usuario
-    // Si es el primer mensaje (no hay historial), incluir el contexto del sistema
+    // 2. Preparar el contexto del sistema y mensajes
     const now = new Date().toLocaleString('es-CL', {
       timeZone: 'America/Santiago',
       weekday: 'long',
@@ -97,20 +98,18 @@ export async function generateChatResponse(message: string, conversationId?: str
       minute: '2-digit'
     });
 
-    const timeContext = `\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).`;
-
-    const userMessage = contents.length === 0
-      ? `[INSTRUCCIONES DEL SISTEMA - LEE CON ATENCIÓN]\n\n${BARBER_CONTEXT}${timeContext}\n\n[FIN DE INSTRUCCIONES - AHORA RESPONDE AL CLIENTE]\n\nCliente dice: ${message}`
-      : message;
+    const systemInstruction = {
+      parts: [{ text: `${BARBER_CONTEXT}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).` }]
+    };
 
     contents.push({
       role: 'user',
-      parts: [{ text: userMessage }]
+      parts: [{ text: message }]
     });
 
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con system_instruction: "${message.substring(0, 50)}..."`);
 
-    // 3. Llamar directamente a Google Gemini API v1 usando fetch
+    // 3. Llamar directamente a Google Gemini API v1 usando fetch con system_instruction
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
@@ -119,6 +118,7 @@ export async function generateChatResponse(message: string, conversationId?: str
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        system_instruction: systemInstruction,
         contents,
         generationConfig: {
           temperature: 0.7,
