@@ -105,7 +105,6 @@ export async function generateChatResponse(message: string, conversationId?: str
       system: BARBER_CONTEXT,
       messages: messages,
       temperature: 0.7,
-      maxTokens: 1000,
       apiKey: apiKey,
     });
 
@@ -156,7 +155,6 @@ export async function splitLongMessage(text: string): Promise<string[]> {
       IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.
       `,
       temperature: 0.3,
-      maxTokens: 500,
       apiKey: apiKey
     });
 
