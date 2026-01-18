@@ -36,6 +36,27 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
     }
   }, [])
 
+  useEffect(() => {
+    // Sistema de Reveal on Scroll (Intersection Observer)
+    const revealCallback = (entries: IntersectionObserverEntry[]) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('active')
+        }
+      })
+    }
+
+    const observer = new IntersectionObserver(revealCallback, {
+      threshold: 0.15,
+      rootMargin: '0px 0px -50px 0px'
+    })
+
+    const revealElements = document.querySelectorAll('.reveal')
+    revealElements.forEach(el => observer.observe(el))
+
+    return () => observer.disconnect()
+  }, [servicios])
+
   const handlePreloaderComplete = () => {
     setShowPreloader(false)
   }
@@ -53,11 +74,12 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
     >
       {/* Hero Section */}
       <section className="hero">
+        <div className="hero-bg-anim"></div>
         <div className="hero-overlay"></div>
         <div className="hero-content">
-          <h1 className="hero-title">Bienvenido a Chamos Barber</h1>
-          <p className="hero-subtitle">Tu barbería de confianza en San Fernando, Chile</p>
-          <div className="hero-buttons">
+          <h1 className="hero-title" style={{ animationDelay: '0.2s' }}>Bienvenido a Chamos Barber</h1>
+          <p className="hero-subtitle" style={{ animationDelay: '0.4s' }}>Tu barbería de confianza en San Fernando, Chile</p>
+          <div className="hero-buttons" style={{ animationDelay: '0.6s' }}>
             <Link href="/equipo" className="btn btn-primary">
               <i className="fas fa-users"></i>
               Conoce Nuestro Equipo
@@ -73,7 +95,7 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
       {/* Servicios Destacados */}
       <section className="services">
         <div className="container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+          <div className="reveal reveal-up" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
             <h2 className="section-title" style={{ margin: 0 }}>Nuestros Servicios</h2>
             <Link href="/servicios" className="btn btn-secondary">
               Ver Todos <i className="fas fa-arrow-right" style={{ marginLeft: '10px' }}></i>
@@ -81,8 +103,12 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
           </div>
           <div className="services-grid">
             {servicios.length > 0 ? (
-              servicios.map((servicio) => (
-                <div key={servicio.id} className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+              servicios.map((servicio, index) => (
+                <div
+                  key={servicio.id}
+                  className={`service-card reveal reveal-up reveal-delay-${index + 1}`}
+                  style={{ padding: 0, overflow: 'hidden' }}
+                >
                   <div style={{ height: '200px', overflow: 'hidden' }}>
                     <img
                       src={servicio.imagen_url || getServiceImage(servicio.categoria, servicio.nombre)}
@@ -97,9 +123,9 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
                 </div>
               ))
             ) : (
-              // Fallback estático si por alguna razón no hay servicios en la DB
+              // Fallback estático
               <>
-                <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div className="service-card reveal reveal-up reveal-delay-1" style={{ padding: 0, overflow: 'hidden' }}>
                   <div style={{ height: '200px', overflow: 'hidden' }}>
                     <img src={getServiceImage('cortes')} alt="Corte" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
@@ -108,7 +134,7 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
                     <p>Cortes clásicos y modernos adaptados a tu estilo personal.</p>
                   </div>
                 </div>
-                <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div className="service-card reveal reveal-up reveal-delay-2" style={{ padding: 0, overflow: 'hidden' }}>
                   <div style={{ height: '200px', overflow: 'hidden' }}>
                     <img src={getServiceImage('barbas')} alt="Barba" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
@@ -117,7 +143,7 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
                     <p>Perfilado de barba y afeitado tradicional con toalla caliente.</p>
                   </div>
                 </div>
-                <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+                <div className="service-card reveal reveal-up reveal-delay-3" style={{ padding: 0, overflow: 'hidden' }}>
                   <div style={{ height: '200px', overflow: 'hidden' }}>
                     <img src={getServiceImage('tratamientos')} alt="Tratamiento" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   </div>
@@ -135,25 +161,25 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
       {/* Horarios y Ubicación */}
       <section className="schedule">
         <div className="container">
-          <h2 className="section-title">Horarios de Atención</h2>
+          <h2 className="section-title reveal reveal-up">Horarios de Atención</h2>
           <div className="schedule-grid">
-            <div className="schedule-item">
+            <div className="schedule-item reveal reveal-left">
               <span className="day">Lunes - Viernes</span>
               <span className="time">10:00 - 20:30</span>
             </div>
-            <div className="schedule-item">
+            <div className="schedule-item reveal reveal-up">
               <span className="day">Sábado</span>
               <span className="time">10:00 - 21:00</span>
             </div>
-            <div className="schedule-item">
+            <div className="schedule-item reveal reveal-right">
               <span className="day">Domingo</span>
               <span className="time">Cerrado</span>
             </div>
           </div>
 
           <div style={{ marginTop: '3rem' }}>
-            <h2 className="section-title" style={{ textAlign: 'center' }}>Ubicación</h2>
-            <div style={{
+            <h2 className="section-title reveal reveal-up" style={{ textAlign: 'center' }}>Ubicación</h2>
+            <div className="reveal reveal-scale" style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',

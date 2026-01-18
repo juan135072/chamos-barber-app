@@ -1180,3 +1180,161 @@ input[type="date"]:focus {
     animation: pwa-fade-in 0.4s ease-out;
 }
 
+
+/* === ANIMACIONES Y EFECTOS DINÁMICOS === */
+
+/* Keyframes */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slowZoom {
+    from {
+        transform: scale(1);
+    }
+    to {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+/* Clases de Reveal (Intersection Observer) */
+.reveal {
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+    will-change: opacity, transform;
+}
+
+.reveal-up {
+    transform: translateY(40px);
+}
+
+.reveal-left {
+    transform: translateX(-40px);
+}
+
+.reveal-right {
+    transform: translateX(40px);
+}
+
+.reveal-scale {
+    transform: scale(0.95);
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+}
+
+/* Retrasos progresivos (Staggered Children) */
+.reveal-delay-1 { transition-delay: 0.1s; }
+.reveal-delay-2 { transition-delay: 0.2s; }
+.reveal-delay-3 { transition-delay: 0.3s; }
+.reveal-delay-4 { transition-delay: 0.4s; }
+.reveal-delay-5 { transition-delay: 0.5s; }
+
+/* Mejoras en Componentes */
+.hero {
+    overflow: hidden;
+}
+
+.hero-bg-anim {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(18, 18, 18, 0.6), rgba(18, 18, 18, 0.8)),
+                url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3') center/cover;
+    animation: slowZoom 20s infinite alternate ease-in-out;
+    z-index: 1;
+}
+
+.hero-content {
+    animation: fadeInUp 1s ease-out forwards;
+}
+
+.service-card {
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(
+        to right,
+        transparent,
+        rgba(212, 175, 55, 0.1),
+        transparent
+    );
+    transform: skewX(-25deg);
+    transition: 0.5s;
+}
+
+.service-card:hover::after {
+    left: 150%;
+}
+
+.service-card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.service-card img {
+    transition: transform 0.6s ease;
+}
+
+.service-card:hover img {
+    transform: scale(1.1);
+}
+
+/* Efecto Glassmorphism para Horarios */
+.schedule-item {
+    background: rgba(26, 26, 26, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.schedule-item:hover {
+    background: rgba(212, 175, 55, 0.05);
+    border-color: var(--accent-color);
+    transform: scale(1.02);
+}
+
+/* Smooth Scroll Utility */
+.smooth-reveal {
+    animation: fadeInUp 0.8s ease-out forwards;
+}

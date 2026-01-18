@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
@@ -22,6 +22,26 @@ interface ServiciosPageProps {
 }
 
 const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
+    useEffect(() => {
+        const revealCallback = (entries: IntersectionObserverEntry[]) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active')
+                }
+            });
+        };
+
+        const observer = new IntersectionObserver(revealCallback, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        });
+
+        const revealElements = document.querySelectorAll('.reveal');
+        revealElements.forEach(el => observer.observe(el));
+
+        return () => observer.disconnect();
+    }, [servicios]);
+
     return (
         <Layout
             title="Nuestros Servicios - Chamos Barber"
@@ -29,8 +49,8 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
         >
             <header className="page-header">
                 <div className="container" style={{ position: 'relative', zIndex: 2 }}>
-                    <h1 className="page-title">Cortes y Estilo Premium</h1>
-                    <p className="page-subtitle">Personalizamos tu look con las mejores técnicas del mercado.</p>
+                    <h1 className="page-title reveal reveal-up">Cortes y Estilo Premium</h1>
+                    <p className="page-subtitle reveal reveal-up reveal-delay-1">Personalizamos tu look con las mejores técnicas del mercado.</p>
                 </div>
             </header>
 
@@ -44,13 +64,17 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
                         </div>
                     ) : (
                         <div className="services-grid">
-                            {servicios.map((servicio) => (
-                                <div key={servicio.id} className="service-card" style={{ display: 'flex', flexDirection: 'column' }}>
+                            {servicios.map((servicio, index) => (
+                                <div
+                                    key={servicio.id}
+                                    className={`service-card reveal reveal-up reveal-delay-${(index % 4) + 1}`}
+                                    style={{ display: 'flex', flexDirection: 'column' }}
+                                >
                                     <div className="service-image-container" style={{ width: '100%', height: '220px', overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
                                         <img
                                             src={servicio.imagen_url || getServiceImage(servicio.categoria, servicio.nombre)}
                                             alt={servicio.nombre}
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                                         />
                                     </div>
                                     <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
@@ -97,7 +121,7 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
                 textAlign: 'center',
                 borderTop: '1px solid var(--border-color)'
             }}>
-                <div className="container">
+                <div className="container reveal reveal-up">
                     <h2 className="section-title">¿Listo para un cambio de look?</h2>
                     <p style={{ fontSize: '1.1rem', marginBottom: '2.5rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto 2.5rem' }}>
                         Nuestro equipo de artistas está listo para transformar tu imagen. ¡No dejes para mañana el estilo que puedes lucir hoy!
@@ -115,24 +139,19 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
           background: linear-gradient(rgba(18, 18, 18, 0.85), rgba(18, 18, 18, 0.85)),
                       url('https://images.unsplash.com/photo-1503951914875-452162b0f3f1?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80') center/cover;
           padding: 10rem 0 6rem;
-        }
-        
-        .service-card {
-           background-color: var(--bg-secondary);
-           border-radius: 8px;
-           overflow: hidden;
-           transition: transform 0.3s ease, box-shadow 0.3s ease;
-           border: 1px solid var(--border-color);
+          overflow: hidden;
         }
 
-        .service-card:hover {
-          transform: translateY(-8px);
-          box-shadow: 0 12px 30px rgba(0,0,0,0.4);
-          border-color: var(--accent-color);
-        }
-
-        .service-card:hover img {
-          transform: scale(1.1);
+        .page-header::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          background: inherit;
+          z-index: 1;
+          animation: slowZoom 20s infinite alternate ease-in-out;
         }
         
         @media (max-width: 768px) {
