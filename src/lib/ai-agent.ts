@@ -205,3 +205,40 @@ export async function generateChatResponse(message: string, conversationId?: str
     return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un tropiezo técnico. ||| Si gustas, puedes agendar directo aquí: https://chamosbarber.com/reservar y te aseguro el puesto al tiro.";
   }
 }
+
+/**
+ * Utiliza AI para dividir un mensaje largo en 2 o 3 partes naturales.
+ * Sigue el flujo de "humanización" para no enviar bloques gigantes de texto.
+ */
+export async function splitLongMessage(text: string): Promise<string[]> {
+  try {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) return [text];
+
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+
+    const prompt = `
+      Eres un experto en comunicación por WhatsApp. 
+      Tu tarea es dividir el siguiente mensaje largo en 2 o 3 mensajes más pequeños y naturales (burbujas separadas).
+      Mantén el tono original (venezolano/chileno, cercano, dueño de barbería).
+      No resumas, solo divide de forma que parezca que alguien está escribiendo por partes.
+      Usa el separador '|||' entre cada mensaje.
+
+      MENSAJE A DIVIDIR:
+      "${text}"
+    `;
+
+    const result = await model.generateContent(prompt);
+    const splitText = result.response.text();
+
+    return splitText
+      .split('|||')
+      .map(m => m.trim())
+      .filter(m => m.length > 0);
+  } catch (error) {
+    console.error('[GUSTAVO-IA] Error splitting message:', error);
+    // Si falla, devolvemos el texto original en un array de 1 elemento
+    return [text];
+  }
+}
