@@ -67,15 +67,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json({ status: 'debounced' });
         }
 
-        // 4. Si llegamos aquí, han pasado 7s sin mensajes nuevos. Consolidamos.
-        const buffer = await ChatMemory.getBuffer(conversationId);
-        const consolidatedMessage = buffer.join('\n');
-        await ChatMemory.clearBuffer(conversationId);
-
-        console.log(`[BOT-DEBUG] Procesando todos los mensajes consolidados:`, consolidatedMessage);
+        // 4. Si llegamos aquí, han pasado unos segundos sin mensajes nuevos. Consolidamos.
+        let consolidatedMessage = content; // Fallback al mensaje actual
+        try {
+            const buffer = await ChatMemory.getBuffer(conversationId);
+            if (buffer && buffer.length > 0) {
+                consolidatedMessage = buffer.join('\n');
+                console.log(`[BOT-DEBUG] Mensajes consolidados (${buffer.length}):`, consolidatedMessage);
+            }
+            await ChatMemory.clearBuffer(conversationId);
+        } catch (bufferError) {
+            console.error('[BOT-DEBUG] Error al consolidar buffer (usando fallback):', bufferError);
+        }
 
         // Generar respuesta con AI
-        const aiResponse = await generateChatResponse(consolidatedMessage, conversationId);
+        let aiResponse = '';
+        try {
+            aiResponse = await generateChatResponse(consolidatedMessage, conversationId);
+        } catch (aiError) {
+            console.error('[BOT-DEBUG] Error crítico en generateChatResponse:', aiError);
+            aiResponse = "Hola, te habla Gustavo. 🙏 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla.";
+        }
 
         if (!aiResponse) {
             return res.status(200).json({ status: 'no_ai_response' });
@@ -136,7 +148,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         return res.status(200).json({
             status: 'success',
-            messagesProcessed: buffer.length,
             transferred: shouldTransfer
         });
     } catch (error) {

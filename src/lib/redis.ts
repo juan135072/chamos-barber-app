@@ -68,20 +68,33 @@ export const ChatMemory = {
      */
     appendToBuffer: async (conversationId: string | number, text: string) => {
         if (!redis) return;
-        const key = `chat_buffer:${conversationId}`;
-        await redis.rpush(key, text);
-        await redis.expire(key, 60); // 1 minuto de vida por si acaso
+        try {
+            const key = `chat_buffer:${conversationId}`;
+            await redis.rpush(key, text);
+            await redis.expire(key, 60); // 1 minuto de vida por si acaso
+        } catch (error) {
+            console.error('[REDIS] Error appending to buffer:', error);
+        }
     },
 
     getBuffer: async (conversationId: string | number) => {
         if (!redis) return [];
-        const key = `chat_buffer:${conversationId}`;
-        return await redis.lrange(key, 0, -1);
+        try {
+            const key = `chat_buffer:${conversationId}`;
+            return await redis.lrange(key, 0, -1);
+        } catch (error) {
+            console.error('[REDIS] Error getting buffer:', error);
+            return [];
+        }
     },
 
     clearBuffer: async (conversationId: string | number) => {
         if (!redis) return;
-        await redis.del(`chat_buffer:${conversationId}`);
+        try {
+            await redis.del(`chat_buffer:${conversationId}`);
+        } catch (error) {
+            console.error('[REDIS] Error clearing buffer:', error);
+        }
     },
 
     /**
@@ -89,12 +102,21 @@ export const ChatMemory = {
      */
     setLastEventId: async (conversationId: string | number, eventId: string) => {
         if (!redis) return;
-        await redis.set(`last_event:${conversationId}`, eventId, 'EX', 60);
+        try {
+            await redis.set(`last_event:${conversationId}`, eventId, 'EX', 60);
+        } catch (error) {
+            console.error('[REDIS] Error setting last event ID:', error);
+        }
     },
 
     getLastEventId: async (conversationId: string | number) => {
         if (!redis) return null;
-        return await redis.get(`last_event:${conversationId}`);
+        try {
+            return await redis.get(`last_event:${conversationId}`);
+        } catch (error) {
+            console.error('[REDIS] Error getting last event ID:', error);
+            return null;
+        }
     }
 };
 
