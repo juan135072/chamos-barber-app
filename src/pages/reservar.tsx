@@ -1,11 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import Layout from '../components/Layout'
-import { chamosSupabase } from '../../lib/supabase-helpers'
-import type { Database } from '../../lib/database.types'
-import { formatPhoneInput, normalizePhone, isValidChileanPhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
-
-// Build Version: 2025-11-06-v3 - Improved error handling for API calls
+import { getChileHoy, getChileAhora } from '../lib/date-utils'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -165,11 +158,11 @@ const ReservarPage: React.FC = () => {
     if (!startTime) return ''
     const { duracionServicios } = calcularTotales()
     const [hours, minutes] = startTime.split(':').map(Number)
-    const date = new Date()
+    const date = getChileAhora()
     date.setHours(hours)
     date.setMinutes(minutes + (duracionServicios || 30))
     // Formato HH:mm
-    return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false }).substring(0, 5)
+    return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Santiago' }).substring(0, 5)
   }
 
   const handleSubmit = async () => {
@@ -247,11 +240,7 @@ const ReservarPage: React.FC = () => {
   }
 
   const getMinDate = () => {
-    const today = new Date()
-    const year = today.getFullYear()
-    const month = String(today.getMonth() + 1).padStart(2, '0')
-    const day = String(today.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
+    return getChileHoy()
   }
 
   const getMaxDate = () => {

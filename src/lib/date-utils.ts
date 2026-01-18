@@ -4,35 +4,35 @@
  */
 
 /**
+ * Obtiene un objeto Date que representa el momento exacto en Santiago de Chile.
+ */
+export const getChileAhora = (): Date => {
+    // Obtenemos el string formateado para Chile
+    const santiagoStr = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
+    return new Date(santiagoStr);
+};
+
+/**
  * Obtiene la fecha actual en formato YYYY-MM-DD ajustada a la hora de Chile.
- * Útil para filtrar en la base de datos y determinar "hoy".
  */
 export const getChileHoy = (): string => {
-    const ahora = new Date();
-    const format = new Intl.DateTimeFormat('es-CL', {
-        timeZone: 'America/Santiago',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-    });
-
-    const [
-        { value: day }, ,
-        { value: month }, ,
-        { value: year }
-    ] = format.formatToParts(ahora);
-
+    const ahora = getChileAhora();
+    const year = ahora.getFullYear();
+    const month = String(ahora.getMonth() + 1).padStart(2, '0');
+    const day = String(ahora.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
 };
 
 /**
  * Obtiene un objeto Date ajustado a la medianoche de Chile (inicio del día).
- * Útil para comparaciones gte/lte.
  */
 export const getChileInicioDia = (fechaStr?: string): Date => {
     const fecha = fechaStr || getChileHoy();
-    // Forzamos la interpretación como fecha local de Chile a las 00:00:00
-    return new Date(`${fecha}T00:00:00-03:00`); // Nota: El offset puede variar entre -03 y -04
+    // Interpretamos el string YYYY-MM-DD como medianoche en Chile
+    // Usamos el formato local de Chile para evitar desfases de offset manuales
+    const d = new Date(`${fecha}T00:00:00`);
+    const santiagoStr = d.toLocaleString("en-US", { timeZone: "America/Santiago" });
+    return new Date(santiagoStr);
 };
 
 /**

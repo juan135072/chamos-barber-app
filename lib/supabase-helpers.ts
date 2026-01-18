@@ -280,8 +280,11 @@ export const chamosSupabase = {
     }
 
     // VALIDACIÓN 2: Verificar que no sea una hora pasada
-    const fechaHora = new Date(`${cita.fecha}T${cita.hora}`)
-    const ahora = new Date()
+    const { getChileAhora } = await import('./date-utils')
+    const ahora = getChileAhora()
+    const [hReserva, mReserva] = cita.hora.split(':').map(Number)
+    const fechaHora = new Date(`${cita.fecha}T00:00:00`)
+    fechaHora.setHours(hReserva, mReserva, 0, 0)
 
     if (fechaHora <= ahora) {
       throw new Error('⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.')

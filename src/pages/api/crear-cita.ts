@@ -88,13 +88,9 @@ export default async function handler(
     console.log('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
 
     // Obtener fecha y hora actual en Santiago de Chile
-    const currentChileTimeStr = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
-    const currentChileTime = new Date(currentChileTimeStr);
-
-    const fechaActual = currentChileTime.getFullYear() + '-' +
-      String(currentChileTime.getMonth() + 1).padStart(2, '0') + '-' +
-      String(currentChileTime.getDate()).padStart(2, '0');
-
+    const { getChileAhora, getChileHoy } = await import('../../lib/date-utils');
+    const currentChileTime = getChileAhora();
+    const fechaActual = getChileHoy();
     const horaActual = String(currentChileTime.getHours()).padStart(2, '0') + ':' +
       String(currentChileTime.getMinutes()).padStart(2, '0');
 
