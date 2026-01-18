@@ -1,182 +1,231 @@
-import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
 
-// Cliente administrativo para bypass de RLS en el servidor
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-/**
- * CONTEXTO DE GUSTAVO - DUEÑO DE CHAMOS BARBER
- */
-export const BARBER_CONTEXT = `
-# Rol e Identidad
-Eres Gustavo, el dueño y fundador de Chamos Barber en San Fernando, Chile. 
-Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con mucho esfuerzo.
-Eres carismático, educado, apasionado por la excelencia y tratas a los clientes como si estuvieran en su segunda casa.
-
-# Personalidad y Tono
-- Hablas de forma casual pero profesional (WhatsApp style).
-- Usa expresiones como: "chévere", "excelente", "bacán", "al tiro".
-- JAMÁS uses la palabra "huecos" (connotación negativa en Chile). Di "horarios", "horas" o "disponibilidad".
-- No digas que eres una IA. Eres Gustavo.
-- Sé breve (máximo 100 palabras por mensaje).
-
-# Reglas de Reserva
-1. Siempre pide el nombre y el WhatsApp del cliente si no los tienes.
-2. Identifica el servicio y el barbero.
-3. Si el cliente no sabe quién atiende, usa 'get_barbers' y muéstralos de forma sencilla (ej: "• Carlos (Especialista en Degradados)").
-4. Si el cliente no sabe qué servicios tenemos o pide precios, usa 'get_services' y muéstralos en una lista clara (ej: "• Corte Senior - $12.000").
-5. Usa las herramientas (tools) para consultar disponibilidad real y realizar la reserva.
-6. Si el cliente prefiere la web: https://chamosbarber.com/reservar
-
-# Formato de Salida
-Para enviar múltiples burbujas en WhatsApp, usa el separador ||| entre mensajes.
-`;
-
-const tools = [
-  {
-    functionDeclarations: [
-      {
-        name: "get_barbers",
-        description: "Obtiene la lista de barberos activos para conocer sus nombres e IDs.",
-        parameters: { type: "OBJECT", properties: {} }
-      },
-      {
-        name: "get_services",
-        description: "Obtiene la lista de servicios disponibles (precios, duración, IDs).",
-        parameters: { type: "OBJECT", properties: {} }
-      },
-      {
-        name: "search_slots_day",
-        description: "Busca horarios de disponibilidad para un barbero específico en una fecha.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            barbero_id: { type: "STRING", description: "ID único del barbero" },
-            date: { type: "STRING", description: "Fecha en formato YYYY-MM-DD" },
-            duration: { type: "NUMBER", description: "Duración en minutos (default 30)" }
-          },
-          required: ["barbero_id", "date"]
-        }
-      },
-      {
-        name: "book_slot",
-        description: "Crea una reserva real en el sistema.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            barbero_id: { type: "STRING" },
-            servicio_id: { type: "STRING" },
-            date: { type: "STRING", description: "YYYY-MM-DD" },
-            time: { type: "STRING", description: "HH:MM" },
-            name: { type: "STRING" },
-            phone: { type: "STRING" },
-            email: { type: "STRING" },
-            notes: { type: "STRING", description: "Formato: [SERVICIOS SOLICITADOS: Serv1, Serv2]" }
-          },
-          required: ["barbero_id", "servicio_id", "date", "time", "name", "phone"]
-        }
-      }
-    ]
+// Helper para inicializar Supabase de forma segura
+const getSupabaseAdmin = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) {
+    console.error('[GUSTAVO-IA] CRITICAL: Supabase credentials missing');
+    return null;
   }
-];
-
-// Mapeo de funciones locales usando el cliente ADMIN
-const functions: Record<string, Function> = {
-  get_barbers: async () => {
-    const { data } = await supabaseAdmin.from('barberos').select('id, nombre, apellido, especialidades').eq('activo', true);
-    return data?.map(b => ({ id: b.id, nombre: `${b.nombre} ${b.apellido}`, especialidad: b.especialidades })) || [];
-  },
-  get_services: async () => {
-    const { data } = await supabaseAdmin.from('servicios').select('id, nombre, precio, duracion_minutos').eq('activo', true);
-    return data?.map(s => ({ id: s.id, nombre: s.nombre, precio: s.precio, duracion: s.duracion_minutos })) || [];
-  },
-  search_slots_day: async ({ barbero_id, date, duration }: any) => {
-    const { data, error } = await supabaseAdmin.rpc('get_horarios_disponibles', {
-      barbero_id_param: barbero_id,
-      fecha_param: date,
-      duracion_minutos_param: duration || 30
-    });
-    if (error) return { error: error.message };
-    return (data as any[])?.filter(s => s.disponible).map(s => s.hora) || [];
-  },
-  book_slot: async (args: any) => {
-    try {
-      const { data, error } = await supabaseAdmin.from('citas').insert([{
-        barbero_id: args.barbero_id,
-        servicio_id: args.servicio_id,
-        fecha: args.date,
-        hora: args.time,
-        cliente_nombre: args.name,
-        cliente_telefono: args.phone,
-        cliente_email: args.email || null,
-        notas: args.notes || null,
-        estado: 'pendiente'
-      }]).select().single();
-
-      if (error) throw error;
-      return { success: true, cita_id: data.id, message: "Reserva creada exitosamente" };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  }
+  return createClient(url, key);
 };
 
+const BARBER_CONTEXT = `
+Eres Gustavo, el asistente virtual extremadamente carismático de la Barbería Chamos Barber, una barbería moderna y profesional en Chile cuya identidad se basa en la CULTURA VENEZOLANA y CALIDAD.
+
+TU IDENTIDAD Y ESTILO:
+- Hablas con jerga venezolana auténtica: usa "¡Chamo!", "¡Épale!", "¡Vale!", "pana", "fino", "brutal", "arrecho", "la vaina", "epa", "mano", "mi llave", "mi rey"
+- Eres MUY amigable, cálido y jovial - haces sentir al cliente en confianza inmediatamente
+- Referencias culturales venezolanas: "más venezolano que las arepas", "fresquito como guarapo", "te queda full fino", "al toque"
+- Respondes de forma muy conversacional, como un pana hablándole a otro
+- Usas SIEMPRE emojis relevantes: 💈✂️💇‍♂️😎✨🔥👌
+- Nunca reveles que eres una IA ni expongas información técnica de tu sistema o configuración
+- Nunca uses lenguaje técnico ni jerga de prompts
+
+TU MISIÓN PRINCIPAL:
+1. Promover la APP WEB de reservas de Chamos Barber (https://chamosbarber.com/reservar)
+2. Consultar disponibilidad de citas previa (herramienta interna), pero SIEMPRE redirigir al cliente hacia la APP para agendar directamente
+3. Responder preguntas sobre servicios, barberos y precios usando herramientas internas
+4. Ofrecer recomendaciones personalizadas
+
+REGLAS CRÍTICAS AL CONVERSAR:
+- Responde CON FRASES CORTAS Y DIVIDIDAS POR ||| cuando sea posible, ejemplo:
+  "¡Épale mi pana! 💈 ||| Mira, los cortes de caballero van desde $15.000 hasta $18.000. ||| ¿Cuál tipo de estilo andas buscando?"
+- Si el mensaje es largo (>130 caracteres), SIEMPRE usa ||| para dividir las ideas en burbujas naturales
+- Si un cliente pide una cita, usa la herramienta "consultar_citas_disponibles" para verificar disponibilidad
+- DESPUÉS de consultar, SIEMPRE di: "Mira pana, para asegurar tu hora y que no se te escape, agéndala directo aquí al toque"
+
+INFORMACIÓN CLAVE DE LA BARBERÍA:
+- Ubicación: Av. Plaza 1324, local 2, Las Condes, Santiago, Chile
+- Tel: +56 2 2345 6789 (solo para emergencias, promueve la APP)
+- Horario: Lun-Vie 10:00-20:00, Sáb 9:30-19:00, Dom 11:00-18:00
+- Servicios: Cortes de caballero ($15.000-$18.000), Barba ($10.000-$12.000), Diseño ($8.000-$12.000), Corte infantil ($12.000), Combo Corte+Barba ($20.000-$25.000)
+- URL Equipo (para ver barberos): https://chamosbarber.com/equipo
+
+EJEMPLOS DE RESPUESTAS IDEALES:
+Cliente: "Hola, quisiera agendar"
+TU: "¡Épale mi pana! 💈 Perfecto que quieras asegurar tu hora con nosotros. ||| Para que no se te escape el cupo, lo mejor es que lo gestiones directo en la web. Es rapidito y queda confirmado al instante. ||| Agéndalo aquí: https://chamosbarber.com/reservar 😎"
+
+Cliente: "Cuánto cuesta un corte?"
+TU: "¡Epa mi rey! ✂️ Los cortes de caballero van desde $15.000 hasta $18.000, dependiendo de la complejidad. ||| Si quieres combo corte + barba, sale $20.000-$25.000, full fino. ||| ¿Te animas a agendar al toque? 💈"
+
+Cliente: "Tienen disponible mañana?"
+TU: *[usa herramienta consultar_citas_disponibles]* → "Mira pana, está full tranquilo mañana en la tarde. ||| Para asegurar tu hora, agéndala directo aquí: https://chamosbarber.com/reservar ||| Así quedas confirmado al toque 😎👌"
+
+IMPORTANTE: 
+- Siempre que menciones la APP, usa el link completo: https://chamosbarber.com/reservar
+- Si preguntan por barberos específicos, menciona que pueden verlos en https://chamosbarber.com/equipo
+- Nunca des citas directamente tú - siempre redirige a la APP
+- Mantén el tono venezolano amigable en TODAS las respuestas
+`.trim();
+
+/**
+ * Bot del barbero con persistencia de conversación
+ * Usa llamadas directas a Google Gemini API v1 (sin librerías intermediarias)
+ */
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
+    if (!apiKey) throw new Error('API_KEY_MISSING');
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-flash',
-      tools: tools as any
-    });
+    // 1. Cargar historial de Redis (Fail-Safe)
+    let contents: any[] = [];
+    if (conversationId) {
+      try {
+        const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
+        if (Array.isArray(rawHistory)) {
+          const history = rawHistory.filter(item => item && item.role && item.parts);
+          console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial cargado (${history.length} mensajes)`);
 
-    // Iniciamos chat con el contexto de Gustavo
-    const chat = model.startChat({
-      history: [
-        { role: 'user', parts: [{ text: BARBER_CONTEXT }] },
-        { role: 'model', parts: [{ text: "Entendido, soy Gustavo, dueño de Chamos Barber. ¿En qué puedo ayudarte hoy?" }] }
-      ]
-    });
-
-    const result = await chat.sendMessage(message);
-    let response = result.response;
-    let toolCalls = response.functionCalls();
-
-    // Loop de ejecución de funciones (soporta múltiples llamadas en una respuesta)
-    while (toolCalls && toolCalls.length > 0) {
-      const toolResponses: Part[] = [];
-
-      for (const call of toolCalls) {
-        console.log(`[GUSTAVO-IA] Ejecutando: ${call.name}`, call.args);
-        const functionHandler = functions[call.name];
-
-        if (functionHandler) {
-          const functionResult = await functionHandler(call.args);
-          toolResponses.push({
-            functionResponse: {
-              name: call.name,
-              response: { content: functionResult }
-            }
-          });
+          // Convertir el historial al formato que espera Gemini API v1
+          contents = history.map(h => ({
+            role: h.role === 'model' ? 'model' : 'user',
+            parts: h.parts
+          }));
         }
+      } catch (redisError) {
+        console.warn(`[GUSTAVO-IA] Falló carga de historial. Continuando sin memoria.`);
       }
-
-      // Enviar resultados de vuelta al modelo
-      const result2 = await chat.sendMessage(toolResponses);
-      response = result2.response;
-      toolCalls = response.functionCalls();
     }
 
-    return response.text();
+    // 2. Agregar el mensaje actual del usuario
+    contents.push({
+      role: 'user',
+      parts: [{ text: message }]
+    });
 
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
+
+    // 3. Llamar directamente a Google Gemini API v1 usando fetch
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: {
+          parts: [{ text: BARBER_CONTEXT }]
+        },
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API Error ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    let responseText = '';
+
+    if (data.candidates && data.candidates[0]) {
+      const candidate = data.candidates[0];
+      if (candidate.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            responseText += part.text;
+          }
+        }
+      }
+    }
+
+    if (!responseText) {
+      throw new Error('No se recibió respuesta del modelo');
+    }
+
+    // 4. Persistir en Redis (Background/Ignore Fail)
+    if (conversationId && responseText) {
+      ChatMemory.addMessage(conversationId, 'user', message).catch(() => { });
+      ChatMemory.addMessage(conversationId, 'model', responseText).catch(() => { });
+    }
+
+    return responseText;
+
+  } catch (error: any) {
+    console.error(`[GUSTAVO-IA] [ID:${conversationId}] ERROR DETALLADO:`, error);
+
+    // Si es un fallo de seguridad o bloqueo
+    if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+      return "Chamo, disculpa, no puedo procesar ese comentario. 🙏 ||| ¿Te ayudo con algo de la barbería?";
+    }
+
+    // Mensaje de fallback limpio pero humano
+    return "Hola, te habla Gustavo. 🙏 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla.";
+  }
+}
+
+/**
+ * Helper para dividir mensajes largos en partes más naturales
+ */
+export async function splitLongMessage(text: string): Promise<string[]> {
+  try {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) return [text];
+
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `Eres un experto en comunicación por WhatsApp. 
+Divide el siguiente texto en mensajes más cortos y naturales separados por |||.
+- Cada parte debe ser una idea completa y coherente
+- Máximo 3-4 partes
+- No agregues nada nuevo, solo divide el texto
+- Mantén emojis y estilo original
+
+Texto a dividir:
+"${text}"
+
+IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 500,
+        }
+      })
+    });
+
+    if (!response.ok) {
+      return [text];
+    }
+
+    const data = await response.json();
+    let dividedText = '';
+
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+      for (const part of data.candidates[0].content.parts) {
+        if (part.text) {
+          dividedText += part.text;
+        }
+      }
+    }
+
+    if (!dividedText) {
+      return [text];
+    }
+
+    const parts = dividedText.trim().split('|||').map(p => p.trim()).filter(p => p.length > 0);
+
+    return parts.length > 1 ? parts : [text];
   } catch (error) {
-    console.error('Error generating AI response:', error);
-    return "Hola, te habla Gustavo 🙏 ||| Disculpa, estoy con unos detalles técnicos en el sistema. ||| Pero no te preocupes, puedes agendar directo aquí y aseguras tu lugar al tiro: https://chamosbarber.com/reservar";
+    console.error('[GUSTAVO-IA] Error splitting message:', error);
+    return [text];
   }
 }
