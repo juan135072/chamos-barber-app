@@ -64,33 +64,32 @@ const HomePage: React.FC = () => {
             </Link>
           </div>
           <div className="services-grid">
-            <div className="service-card">
-              <div className="service-icon">
-                <i className="fas fa-cut"></i>
+            <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ height: '200px', overflow: 'hidden' }}>
+                <img src="/images/servicios/corte_cabello_premium_1768743529185.png" alt="Corte" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <h3>Cortes Clásicos</h3>
-              <p>Cortes tradicionales ejecutados con precisión y estilo.</p>
+              <div style={{ padding: '2rem' }}>
+                <h3>Corte de Cabello</h3>
+                <p>Cortes clásicos y modernos adaptados a tu estilo personal.</p>
+              </div>
             </div>
-            <div className="service-card">
-              <div className="service-icon">
-                <i className="fas fa-crown"></i>
+            <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ height: '200px', overflow: 'hidden' }}>
+                <img src="/images/servicios/cuidado_barba_premium_1768743545741.png" alt="Barba" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <h3>Afeitado Premium</h3>
-              <p>Experiencia de afeitado con navaja y productos de alta calidad.</p>
+              <div style={{ padding: '2rem' }}>
+                <h3>Barba y Afeitado</h3>
+                <p>Perfilado de barba y afeitado tradicional con toalla caliente.</p>
+              </div>
             </div>
-            <div className="service-card">
-              <div className="service-icon">
-                <i className="fas fa-user-tie"></i>
+            <div className="service-card" style={{ padding: 0, overflow: 'hidden' }}>
+              <div style={{ height: '200px', overflow: 'hidden' }}>
+                <img src="/images/servicios/tratamiento_facial_barberia_1768743560774.png" alt="Tratamiento" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <h3>Estilo Moderno</h3>
-              <p>Cortes contemporáneos siguiendo las últimas tendencias.</p>
-            </div>
-            <div className="service-card">
-              <div className="service-icon">
-                <i className="fas fa-spa"></i>
+              <div style={{ padding: '2rem' }}>
+                <h3>Tratamientos</h3>
+                <p>Limpieza facial y masajes capilares para una experiencia completa.</p>
               </div>
-              <h3>Tratamientos</h3>
-              <p>Cuidados especiales para barba y cuidado facial.</p>
             </div>
           </div>
         </div>

@@ -44,38 +44,44 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
                         <div className="services-grid">
                             {servicios.map((servicio) => (
                                 <div key={servicio.id} className="service-card" style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <div className="service-icon">
-                                        <i className={getServiceIcon(servicio.categoria, servicio.nombre)}></i>
+                                    <div className="service-image-container" style={{ width: '100%', height: '220px', overflow: 'hidden', borderRadius: '8px 8px 0 0' }}>
+                                        <img
+                                            src={getServiceImage(servicio.categoria, servicio.nombre)}
+                                            alt={servicio.nombre}
+                                            style={{ width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                                        />
                                     </div>
-                                    <h3>{servicio.nombre}</h3>
-                                    <p style={{ marginBottom: '1.5rem', opacity: 0.8, fontSize: '0.95rem', flexGrow: 1 }}>
-                                        {servicio.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}
-                                    </p>
+                                    <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', flexGrow: 1 }}>
+                                        <h3 style={{ fontSize: '1.4rem', marginBottom: '0.8rem', color: 'var(--accent-color)' }}>{servicio.nombre}</h3>
+                                        <p style={{ marginBottom: '1.5rem', opacity: 0.8, fontSize: '0.9rem', flexGrow: 1, lineHeight: '1.5' }}>
+                                            {servicio.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}
+                                        </p>
 
-                                    <div style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        padding: '1rem 0',
-                                        borderTop: '1px solid var(--border-color)',
-                                        marginTop: 'auto'
-                                    }}>
-                                        <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--accent-color)' }}>
-                                            ${servicio.precio.toLocaleString('es-CL')}
-                                        </span>
-                                        <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>
-                                            <i className="far fa-clock" style={{ marginRight: '5px' }}></i>
-                                            {servicio.duracion_minutos} min
-                                        </span>
+                                        <div style={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'center',
+                                            padding: '1rem 0',
+                                            borderTop: '1px solid rgba(255,255,255,0.1)',
+                                            marginTop: 'auto'
+                                        }}>
+                                            <span style={{ fontSize: '1.25rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                                                ${servicio.precio.toLocaleString('es-CL')}
+                                            </span>
+                                            <span style={{ fontSize: '0.85rem', opacity: 0.7 }}>
+                                                <i className="far fa-clock" style={{ marginRight: '5px', color: 'var(--accent-color)' }}></i>
+                                                {servicio.duracion_minutos} min
+                                            </span>
+                                        </div>
+
+                                        <Link
+                                            href={`/reservar?servicio=${servicio.id}`}
+                                            className="btn btn-primary"
+                                            style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
+                                        >
+                                            Reservar Ahora
+                                        </Link>
                                     </div>
-
-                                    <Link
-                                        href={`/reservar?servicio=${servicio.id}`}
-                                        className="btn btn-primary"
-                                        style={{ width: '100%', marginTop: '1rem', justifyContent: 'center' }}
-                                    >
-                                        Reservar Ahora
-                                    </Link>
                                 </div>
                             ))}
                         </div>
@@ -111,7 +117,20 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
         
         .service-card {
            background-color: var(--bg-secondary);
-           height: 100%;
+           border-radius: 8px;
+           overflow: hidden;
+           transition: transform 0.3s ease, box-shadow 0.3s ease;
+           border: 1px solid var(--border-color);
+        }
+
+        .service-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.4);
+          border-color: var(--accent-color);
+        }
+
+        .service-card:hover img {
+          transform: scale(1.1);
         }
         
         @media (max-width: 768px) {
@@ -124,18 +143,17 @@ const ServiciosPage: React.FC<ServiciosPageProps> = ({ servicios }) => {
     )
 }
 
-function getServiceIcon(category?: string, name?: string) {
+function getServiceImage(category?: string, name?: string) {
     const cat = category?.toLowerCase() || ''
     const nom = name?.toLowerCase() || ''
 
-    if (cat.includes('corte') || nom.includes('corte')) return 'fas fa-cut'
-    if (cat.includes('barba') || nom.includes('barba')) return 'fas fa-user-tie'
-    if (cat.includes('facial') || cat.includes('tratamiento') || nom.includes('facial')) return 'fas fa-spa'
-    if (cat.includes('combo') || cat.includes('premium') || nom.includes('premium')) return 'fas fa-crown'
-    if (nom.includes('cejas') || nom.includes('perfilado')) return 'fas fa-eye'
-    if (nom.includes('niño') || nom.includes('infantil')) return 'fas fa-child'
+    if (cat.includes('corte') || nom.includes('corte')) return '/images/servicios/corte_cabello_premium_1768743529185.png'
+    if (cat.includes('barba') || nom.includes('barba')) return '/images/servicios/cuidado_barba_premium_1768743545741.png'
+    if (cat.includes('facial') || cat.includes('tratamiento') || nom.includes('facial')) return '/images/servicios/tratamiento_facial_barberia_1768743560774.png'
+    if (cat.includes('combo') || cat.includes('premium') || nom.includes('premium')) return '/images/servicios/combo_premium_chamos_1768743575347.png'
 
-    return 'fas fa-scissors'
+    // Fallback a corte si no se identifica
+    return '/images/servicios/corte_cabello_premium_1768743529185.png'
 }
 
 export const getServerSideProps: GetServerSideProps = async () => {
