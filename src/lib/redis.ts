@@ -47,6 +47,40 @@ export const ChatMemory = {
         } catch (error) {
             console.error('[REDIS] Error adding message:', error);
         }
+    },
+
+    /**
+     * BUFFER TEMPORAL (Para agrupación de mensajes / Debounce)
+     */
+    appendToBuffer: async (conversationId: string | number, text: string) => {
+        if (!redis) return;
+        const key = `chat_buffer:${conversationId}`;
+        await redis.rpush(key, text);
+        await redis.expire(key, 60); // 1 minuto de vida por si acaso
+    },
+
+    getBuffer: async (conversationId: string | number) => {
+        if (!redis) return [];
+        const key = `chat_buffer:${conversationId}`;
+        return await redis.lrange(key, 0, -1);
+    },
+
+    clearBuffer: async (conversationId: string | number) => {
+        if (!redis) return;
+        await redis.del(`chat_buffer:${conversationId}`);
+    },
+
+    /**
+     * Seguimiento del ID del último evento para saber si hubo mensajes nuevos durante la espera.
+     */
+    setLastEventId: async (conversationId: string | number, eventId: string) => {
+        if (!redis) return;
+        await redis.set(`last_event:${conversationId}`, eventId, 'EX', 60);
+    },
+
+    getLastEventId: async (conversationId: string | number) => {
+        if (!redis) return null;
+        return await redis.get(`last_event:${conversationId}`);
     }
 };
 

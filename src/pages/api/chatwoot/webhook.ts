@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
 import { generateChatResponse } from '@/lib/ai-agent';
 import { sendMessageToChatwoot } from '@/lib/chatwoot';
+import { ChatMemory } from '@/lib/redis';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -46,10 +47,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json({ status: 'empty_content' });
         }
 
-        console.log(`[BOT-DEBUG] Procesando mensaje: "${content}" en conversación ${conversation.id}`);
+        console.log(`[BOT-DEBUG] Mensaje recibido: "${content}" en conv:${conversation.id}. Iniciando espera de 7s...`);
+
+        // --- LÓGICA DE AGRUPACIÓN (DEBOUNCE) ---
+        const eventId = Math.random().toString(36).substring(7);
+        const conversationId = conversation.id;
+
+        // 1. Guardar mensaje en el buffer y marcar este evento como el último
+        await ChatMemory.appendToBuffer(conversationId, content);
+        await ChatMemory.setLastEventId(conversationId, eventId);
+
+        // 2. Esperar 7 segundos de "silencio"
+        await new Promise(resolve => setTimeout(resolve, 7000));
+
+        // 3. Verificar si seguimos siendo el último mensaje
+        const lastEventId = await ChatMemory.getLastEventId(conversationId);
+        if (lastEventId !== eventId) {
+            console.log(`[BOT-DEBUG] Conv:${conversationId} - Otro mensaje llegó. Cancelando este hilo.`);
+            return res.status(200).json({ status: 'debounced' });
+        }
+
+        // 4. Si llegamos aquí, han pasado 7s sin mensajes nuevos. Consolidamos.
+        const buffer = await ChatMemory.getBuffer(conversationId);
+        const consolidatedMessage = buffer.join('\n');
+        await ChatMemory.clearBuffer(conversationId);
+
+        console.log(`[BOT-DEBUG] Procesando todos los mensajes consolidados:`, consolidatedMessage);
 
         // Generar respuesta con AI
-        const aiResponse = await generateChatResponse(content, conversation.id);
+        const aiResponse = await generateChatResponse(consolidatedMessage, conversationId);
 
         if (!aiResponse) {
             return res.status(200).json({ status: 'no_ai_response' });
@@ -74,13 +100,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
 
-            await sendMessageToChatwoot(conversation.id, message, 'outgoing', body.account?.id);
+            await sendMessageToChatwoot(conversationId, message, 'outgoing', body.account?.id);
             console.log(`[BOT-DEBUG] Burbuja ${i + 1}/${messages.length} enviada`);
         }
 
         return res.status(200).json({
             status: 'success',
-            bubblesSent: messages.length,
+            messagesProcessed: buffer.length,
             transferred: shouldTransfer
         });
     } catch (error) {
