@@ -56,7 +56,7 @@ const nextConfig = {
           // Prevenir clickjacking
           {
             key: 'X-Frame-Options',
-            value: 'DENY',
+            value: 'SAMEORIGIN',
           },
           // Prevenir MIME type sniffing
           {
@@ -88,7 +88,7 @@ const nextConfig = {
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com data:",
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com https://onesignal.com https://*.onesignal.com http://localhost:3001",
-              "frame-src 'none'",
+              "frame-src 'self' https://www.google.com https://*.google.com https://*.google-analytics.com",
               "object-src 'none'",
               "base-uri 'self'",
               "form-action 'self'",
