@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             aiResponse = await generateChatResponse(consolidatedMessage, conversationId);
         } catch (aiError) {
             console.error('[BOT-DEBUG] Error crítico en generateChatResponse:', aiError);
-            aiResponse = "Hola, te habla Gustavo. 🙏 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla.";
+            aiResponse = "Hola, te habla Gustavo. 💈 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla. 💈";
         }
 
         if (!aiResponse) {
@@ -95,14 +95,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // --- LÓGICA DE HUMANIZACIÓN DE SALIDA (FRAGMENTACIÓN) ---
         let messages: string[] = [];
-        let delayBetweenBubbles = 2000; // Por defecto 2s para que parezca humano
+        let delayBetweenBubbles = 2000; // Por defecto 2s
 
-        // Comportamiento simple: dividir por ||| si la IA ya lo hizo
-        messages = aiResponse
-            .replace('TRANSFER_AGENT', '') // Limpiar flags
-            .split('|||')
-            .map(msg => msg.trim())
-            .filter(msg => msg.length > 0);
+        const shouldHumanizeLongMessage = aiResponse.length > 130 && Math.random() < 0.4;
+
+        if (shouldHumanizeLongMessage) {
+            console.log(`[BOT-DEBUG] Aplicando flujo de humanización (40% roll hit) para mensaje de ${aiResponse.length} caracteres.`);
+            const humanizedParts = await import('@/lib/ai-agent').then(m => m.splitLongMessage(aiResponse));
+            if (humanizedParts.length > 1) {
+                messages = humanizedParts;
+                delayBetweenBubbles = 5000; // 5 segundos como dice el diagrama
+            } else {
+                messages = [aiResponse];
+            }
+        } else {
+            // Comportamiento normal: dividir por ||| si la IA ya lo hizo o es corto
+            messages = aiResponse
+                .replace('TRANSFER_AGENT', '') // Limpiar flags
+                .split('|||')
+                .map(msg => msg.trim())
+                .filter(msg => msg.length > 0);
+        }
 
         // Detectar si se debe transferir a agente humano (en el texto original)
         const shouldTransfer = aiResponse.includes('TRANSFER_AGENT');
