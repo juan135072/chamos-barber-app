@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log(`[BOT-DEBUG] Procesando mensaje: "${content}" en conversación ${conversation.id}`);
 
         // Generar respuesta con AI
-        const aiResponse = await generateChatResponse(content);
+        const aiResponse = await generateChatResponse(content, conversation.id);
 
         if (!aiResponse) {
             return res.status(200).json({ status: 'no_ai_response' });

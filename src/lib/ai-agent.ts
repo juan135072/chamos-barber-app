@@ -1,5 +1,6 @@
 import { GoogleGenerativeAI, Part } from '@google/generative-ai';
 import { createClient } from '@supabase/supabase-js';
+import { ChatMemory } from './redis';
 
 // Cliente administrativo para bypass de RLS en el servidor
 const supabaseAdmin = createClient(
@@ -9,6 +10,7 @@ const supabaseAdmin = createClient(
 
 /**
  * CONTEXTO DE GUSTAVO - DUEÑO DE CHAMOS BARBER
+ * Este prompt define la identidad, personalidad y reglas operativas del agente.
  */
 export const BARBER_CONTEXT = `
 # Rol e Identidad
@@ -26,10 +28,11 @@ Eres carismático, educado, apasionado por la excelencia y tratas a los clientes
 # Reglas de Reserva
 1. Siempre pide el nombre y el WhatsApp del cliente si no los tienes.
 2. Identifica el servicio y el barbero.
-3. Si el cliente no sabe quién atiende, usa 'get_barbers' y muéstralos de forma sencilla (ej: "• Carlos (Especialista en Degradados)").
-4. Si el cliente no sabe qué servicios tenemos o pide precios, usa 'get_services' y muéstralos en una lista clara (ej: "• Corte Senior - $12.000").
+3. Si el cliente no sabe quién atiende, usa 'get_barbers' y muéstralos de forma sencilla.
+4. Si el cliente no sabe qué servicios tenemos o pide precios, usa 'get_services' y muéstralos en una lista clara.
 5. Usa las herramientas (tools) para consultar disponibilidad real y realizar la reserva.
-6. Si el cliente prefiere la web: https://chamosbarber.com/reservar
+6. Si el cliente prefiere la web o tienes problemas técnicos: https://chamosbarber.com/reservar
+7. Si quieren ver a los barberos o sus trabajos: https://chamosbarber.com/equipo
 
 # Formato de Salida
 Para enviar múltiples burbujas en WhatsApp, usa el separador ||| entre mensajes.
@@ -124,7 +127,10 @@ const functions: Record<string, Function> = {
   }
 };
 
-export async function generateChatResponse(message: string) {
+/**
+ * Genera una respuesta de Gustavo con memoria de conversación.
+ */
+export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
@@ -135,24 +141,39 @@ export async function generateChatResponse(message: string) {
       tools: tools as any
     });
 
-    // Iniciamos chat con el contexto de Gustavo
-    const chat = model.startChat({
-      history: [
+    // 1. Cargar historial de Redis si existe el conversationId
+    let history: any[] = [];
+    if (conversationId) {
+      history = await ChatMemory.getHistory(conversationId);
+    }
+
+    // 2. Si no hay historial, inyectar el contexto inicial
+    if (history.length === 0) {
+      history = [
         { role: 'user', parts: [{ text: BARBER_CONTEXT }] },
-        { role: 'model', parts: [{ text: "Entendido, soy Gustavo, dueño de Chamos Barber. ¿En qué puedo ayudarte hoy?" }] }
-      ]
+        { role: 'model', parts: [{ text: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ¿En qué puedo ayudarte hoy, chamo?" }] }
+      ];
+    }
+
+    // 3. Iniciar el chat con el historial recuperado
+    const chat = model.startChat({
+      history: history as any,
+      generationConfig: {
+        maxOutputTokens: 500,
+      }
     });
 
+    // 4. Enviar el mensaje del usuario
     const result = await chat.sendMessage(message);
-    let response = result.response;
-    let toolCalls = response.functionCalls();
+    let responseText = result.response.text();
+    let toolCalls = result.response.functionCalls();
 
-    // Loop de ejecución de funciones (soporta múltiples llamadas en una respuesta)
+    // Loop de ejecución de funciones
     while (toolCalls && toolCalls.length > 0) {
       const toolResponses: Part[] = [];
 
       for (const call of toolCalls) {
-        console.log(`[GUSTAVO-IA] Ejecutando: ${call.name}`, call.args);
+        console.log(`[GUSTAVO-IA] [ID:${conversationId}] Ejecutando: ${call.name}`, call.args);
         const functionHandler = functions[call.name];
 
         if (functionHandler) {
@@ -166,16 +187,21 @@ export async function generateChatResponse(message: string) {
         }
       }
 
-      // Enviar resultados de vuelta al modelo
       const result2 = await chat.sendMessage(toolResponses);
-      response = result2.response;
-      toolCalls = response.functionCalls();
+      responseText = result2.response.text();
+      toolCalls = result2.response.functionCalls();
     }
 
-    return response.text();
+    // 5. Persistir el nuevo par de mensajes en Redis si hay conversationId
+    if (conversationId) {
+      await ChatMemory.addMessage(conversationId, 'user', message);
+      await ChatMemory.addMessage(conversationId, 'model', responseText);
+    }
+
+    return responseText;
 
   } catch (error) {
-    console.error('Error generating AI response:', error);
-    return "Hola, te habla Gustavo 🙏 ||| Disculpa, estoy con unos detalles técnicos en el sistema. ||| Pero no te preocupes, puedes agendar directo aquí y aseguras tu lugar al tiro: https://chamosbarber.com/reservar";
+    console.error(`[GUSTAVO-IA] [ID:${conversationId}] Error:`, error);
+    return "Hola, te habla Gustavo. 🙏 ||| Disculpa, tuve un tropiezo técnico. ||| Si gustas, puedes agendar directo aquí: https://chamosbarber.com/reservar y te aseguro el puesto al tiro.";
   }
 }
