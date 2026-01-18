@@ -1,5 +1,3 @@
-import { google } from '@ai-sdk/google';
-import { generateText } from 'ai';
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
 
@@ -43,7 +41,7 @@ INFORMACIÓN CLAVE DE LA BARBERÍA:
 - Ubicación: Av. Plaza 1324, local 2, Las Condes, Santiago, Chile
 - Tel: +56 2 2345 6789 (solo para emergencias, promueve la APP)
 - Horario: Lun-Vie 10:00-20:00, Sáb 9:30-19:00, Dom 11:00-18:00
-- Servicios: Cortes de caballero ($15.000-$18.000), Barba ($10.000-$12.000), Diseño  ($8.000-$12.000), Corte infantil ($12.000), Combo Corte+Barba ($20.000-$25.000)
+- Servicios: Cortes de caballero ($15.000-$18.000), Barba ($10.000-$12.000), Diseño ($8.000-$12.000), Corte infantil ($12.000), Combo Corte+Barba ($20.000-$25.000)
 - URL Equipo (para ver barberos): https://chamosbarber.com/equipo
 
 EJEMPLOS DE RESPUESTAS IDEALES:
@@ -65,6 +63,7 @@ IMPORTANTE:
 
 /**
  * Bot del barbero con persistencia de conversación
+ * Usa llamadas directas a Google Gemini API v1 (sin librerías intermediarias)
  */
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
@@ -72,7 +71,7 @@ export async function generateChatResponse(message: string, conversationId?: str
     if (!apiKey) throw new Error('API_KEY_MISSING');
 
     // 1. Cargar historial de Redis (Fail-Safe)
-    let messages: any[] = [];
+    let contents: any[] = [];
     if (conversationId) {
       try {
         const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
@@ -80,10 +79,10 @@ export async function generateChatResponse(message: string, conversationId?: str
           const history = rawHistory.filter(item => item && item.role && item.parts);
           console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial cargado (${history.length} mensajes)`);
 
-          // Convertir el historial al formato que espera ai-sdk
-          messages = history.map(h => ({
-            role: h.role === 'model' ? 'assistant' : 'user',
-            content: h.parts.map((p: any) => p.text).join('')
+          // Convertir el historial al formato que espera Gemini API v1
+          contents = history.map(h => ({
+            role: h.role === 'model' ? 'model' : 'user',
+            parts: h.parts
           }));
         }
       } catch (redisError) {
@@ -92,22 +91,56 @@ export async function generateChatResponse(message: string, conversationId?: str
     }
 
     // 2. Agregar el mensaje actual del usuario
-    messages.push({
+    contents.push({
       role: 'user',
-      content: message
+      parts: [{ text: message }]
     });
 
     console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
 
-    // 3. Llamar a la API usando ai-sdk
-    const result = await generateText({
-      model: google('gemini-1.5-flash'),
-      system: BARBER_CONTEXT,
-      messages: messages,
-      temperature: 0.7,
+    // 3. Llamar directamente a Google Gemini API v1 usando fetch
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents,
+        systemInstruction: {
+          parts: [{ text: BARBER_CONTEXT }]
+        },
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
+        }
+      })
     });
 
-    const responseText = result.text;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API Error ${response.status}: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    let responseText = '';
+
+    if (data.candidates && data.candidates[0]) {
+      const candidate = data.candidates[0];
+      if (candidate.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            responseText += part.text;
+          }
+        }
+      }
+    }
+
+    if (!responseText) {
+      throw new Error('No se recibió respuesta del modelo');
+    }
 
     // 4. Persistir en Redis (Background/Ignore Fail)
     if (conversationId && responseText) {
@@ -131,33 +164,64 @@ export async function generateChatResponse(message: string, conversationId?: str
 }
 
 /**
- * Helper para dividir mensajes largos en partes más naturales usando IA
+ * Helper para dividir mensajes largos en partes más naturales
  */
 export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
 
-    const result = await generateText({
-      model: google('gemini-pro'),
-      prompt: `
-      Eres un experto en comunicación por WhatsApp. 
-      Divide el siguiente texto en mensajes más cortos y naturales separados por |||.
-      - Cada parte debe ser una idea completa y coherente
-      - Máximo 3-4 partes
-      - No agregues nada nuevo, solo divide el texto
-      - Mantén emojis y estilo original
-      
-      Texto a dividir:
-      "${text}"
-      
-      IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.
-      `,
-      temperature: 0.3,
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `Eres un experto en comunicación por WhatsApp. 
+Divide el siguiente texto en mensajes más cortos y naturales separados por |||.
+- Cada parte debe ser una idea completa y coherente
+- Máximo 3-4 partes
+- No agregues nada nuevo, solo divide el texto
+- Mantén emojis y estilo original
+
+Texto a dividir:
+"${text}"
+
+IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 500,
+        }
+      })
     });
 
-    const dividedText = result.text.trim();
-    const parts = dividedText.split('|||').map(p => p.trim()).filter(p => p.length > 0);
+    if (!response.ok) {
+      return [text];
+    }
+
+    const data = await response.json();
+    let dividedText = '';
+
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+      for (const part of data.candidates[0].content.parts) {
+        if (part.text) {
+          dividedText += part.text;
+        }
+      }
+    }
+
+    if (!dividedText) {
+      return [text];
+    }
+
+    const parts = dividedText.trim().split('|||').map(p => p.trim()).filter(p => p.length > 0);
 
     return parts.length > 1 ? parts : [text];
   } catch (error) {
