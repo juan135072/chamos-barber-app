@@ -150,8 +150,7 @@ export async function generateChatResponse(message: string, conversationId?: str
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: 'gemini-pro',
-      tools: tools as any,
+      model: 'gemini-1.5-flash',
       systemInstruction: { text: BARBER_CONTEXT }
     });
 
