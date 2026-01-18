@@ -36,12 +36,23 @@ export const getChileInicioDia = (fechaStr?: string): Date => {
 };
 
 /**
- * Formatea una fecha ISO o Date a string legible para Chile.
+ * Formatea una fecha ISO o Date a string legible para Chile (ej: Lunes 18 de Enero).
+ * Evita el bug de desfase de un día al procesar strings YYYY-MM-DD.
  */
 export const formatFechaChile = (date: string | Date): string => {
-    const d = typeof date === 'string' ? new Date(date) : date;
+    let d: Date;
+
+    if (typeof date === 'string' && date.includes('-') && !date.includes('T')) {
+        // Es un string YYYY-MM-DD. Le agregamos T12:00:00 para evitar que 
+        // el offset de Chile (UTC-3) lo mueva al día anterior.
+        d = new Date(`${date}T12:00:00`);
+    } else {
+        d = typeof date === 'string' ? new Date(date) : date;
+    }
+
     return d.toLocaleDateString('es-CL', {
         timeZone: 'America/Santiago',
+        weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'

@@ -35,7 +35,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
       days.push(date)
     }
     setWeekDays(days)
-    
+
     // Seleccionar el día actual por defecto
     const today = new Date()
     const todayInWeek = days.find(d => d.toDateString() === today.toDateString())
@@ -55,7 +55,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
   const loadCitas = async () => {
     setLoading(true)
     try {
-      const dateStr = selectedDay.toISOString().split('T')[0]
+      // Usar fecha local para evitar el problema de UTC a las 9pm Chile
+      const year = selectedDay.getFullYear()
+      const month = String(selectedDay.getMonth() + 1).padStart(2, '0')
+      const day = String(selectedDay.getDate()).padStart(2, '0')
+      const dateStr = `${year}-${month}-${day}`
 
       const { data, error } = await supabase
         .from('citas')
@@ -207,26 +211,26 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
             onClick={() => setSelectedDay(day)}
             className="flex-shrink-0 px-4 py-3 rounded-lg transition-all"
             style={{
-              backgroundColor: isSelectedDay(day) 
-                ? '#D4AF37' 
+              backgroundColor: isSelectedDay(day)
+                ? '#D4AF37'
                 : isToday(day)
-                ? 'rgba(212, 175, 55, 0.1)'
-                : 'rgba(255, 255, 255, 0.05)',
-              border: isSelectedDay(day) 
-                ? '1px solid #D4AF37' 
+                  ? 'rgba(212, 175, 55, 0.1)'
+                  : 'rgba(255, 255, 255, 0.05)',
+              border: isSelectedDay(day)
+                ? '1px solid #D4AF37'
                 : '1px solid rgba(255, 255, 255, 0.05)',
               minWidth: '80px'
             }}
           >
             <div className="flex flex-col items-center gap-1">
-              <span 
-                className="text-xs font-medium uppercase tracking-wider" 
+              <span
+                className="text-xs font-medium uppercase tracking-wider"
                 style={{ color: isSelectedDay(day) ? '#121212' : '#666' }}
               >
                 {getDayName(day)}
               </span>
-              <span 
-                className="text-lg font-bold" 
+              <span
+                className="text-lg font-bold"
                 style={{ color: isSelectedDay(day) ? '#121212' : isToday(day) ? '#D4AF37' : '#888' }}
               >
                 {getDayNumber(day)}
@@ -241,9 +245,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
         <table className="w-full" style={{ minWidth: '800px' }}>
           <thead className="sticky top-0 z-20">
             <tr>
-              <th 
+              <th
                 className="text-left p-4 sticky left-0 z-30"
-                style={{ 
+                style={{
                   backgroundColor: '#0A0A0A',
                   minWidth: '100px',
                   borderBottom: '2px solid rgba(212, 175, 55, 0.3)',
@@ -256,7 +260,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                 <th
                   key={barbero.id}
                   className="p-4 text-center"
-                  style={{ 
+                  style={{
                     backgroundColor: '#0A0A0A',
                     borderBottom: '2px solid rgba(212, 175, 55, 0.3)',
                     borderRight: idx < barberos.length - 1 ? '2px solid rgba(255, 255, 255, 0.1)' : 'none',
@@ -290,9 +294,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
           <tbody>
             {timeSlots.map((timeSlot, rowIdx) => (
               <tr key={timeSlot} className="hover:bg-white hover:bg-opacity-[0.015] transition-all group">
-                <td 
+                <td
                   className="p-4 sticky left-0 z-10"
-                  style={{ 
+                  style={{
                     backgroundColor: '#0A0A0A',
                     borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                     borderRight: '2px solid rgba(255, 255, 255, 0.1)'
@@ -310,7 +314,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                     <td
                       key={barbero.id}
                       className="p-3 align-top"
-                      style={{ 
+                      style={{
                         backgroundColor: colIdx % 2 === 0 ? 'rgba(212, 175, 55, 0.02)' : 'transparent',
                         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
                         borderRight: colIdx < barberos.length - 1 ? '2px solid rgba(255, 255, 255, 0.1)' : 'none'
@@ -337,9 +341,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                                 color: '#FFF'
                               }}
                             >
-                              {cita.estado === 'confirmada' ? '✓' : 
-                               cita.estado === 'pendiente' ? '⋯' :
-                               cita.estado === 'cancelada' ? '×' : '✓'}
+                              {cita.estado === 'confirmada' ? '✓' :
+                                cita.estado === 'pendiente' ? '⋯' :
+                                  cita.estado === 'cancelada' ? '×' : '✓'}
                             </span>
                           </div>
                           <p className="truncate font-semibold mb-1" style={{ color: '#FFF' }}>

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../lib/database.types'
+import { formatFechaChile } from '../../../lib/date-utils'
 import NotasClienteModal from './NotasClienteModal'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
@@ -39,7 +40,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
   const loadCitas = async () => {
     try {
       setLoading(true)
-      
+
       // Solo cargar citas de ESTE barbero
       const { data, error } = await supabase
         .from('citas')
@@ -52,7 +53,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
         .order('hora', { ascending: false })
 
       if (error) throw error
-      
+
       console.log('Citas del barbero cargadas:', data?.length)
       setCitas(data || [])
     } catch (error) {
@@ -103,14 +104,14 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
   const handleUpdateEstado = async (citaId: string, nuevoEstado: string) => {
     try {
-      const { error} = await supabase
+      const { error } = await supabase
         .from('citas')
         .update({ estado: nuevoEstado })
         .eq('id', citaId)
         .eq('barbero_id', barberoId) // Verificar que sea su cita
 
       if (error) throw error
-      
+
       await loadCitas()
       alert('Estado actualizado correctamente')
     } catch (error) {
@@ -130,7 +131,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
         .eq('barbero_id', barberoId) // Verificar que sea su cita
 
       if (error) throw error
-      
+
       await loadCitas()
       alert('Cita eliminada correctamente')
     } catch (error) {
@@ -156,10 +157,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       const nombreCliente = cita.cliente_nombre?.toLowerCase() || ''
       const emailCliente = cita.cliente_email?.toLowerCase() || ''
       const telefonoCliente = cita.cliente_telefono?.toLowerCase() || ''
-      
-      return nombreCliente.includes(searchLower) || 
-             emailCliente.includes(searchLower) ||
-             telefonoCliente.includes(searchLower)
+
+      return nombreCliente.includes(searchLower) ||
+        emailCliente.includes(searchLower) ||
+        telefonoCliente.includes(searchLower)
     }
 
     return true
@@ -210,18 +211,18 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
       {/* Estadísticas */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '16px', 
-          borderRadius: '8px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px',
+          borderRadius: '8px',
           border: '1px solid var(--border-color)'
         }}>
           <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7 }}>Total</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.total}</div>
         </div>
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '16px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px',
           borderRadius: '8px',
           border: '1px solid rgba(59, 130, 246, 0.3)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)'
@@ -229,9 +230,9 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           <div style={{ fontSize: '14px', color: '#60A5FA' }}>Hoy</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#93C5FD' }}>{stats.hoy}</div>
         </div>
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '16px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px',
           borderRadius: '8px',
           border: '1px solid rgba(234, 179, 8, 0.3)',
           backgroundColor: 'rgba(234, 179, 8, 0.1)'
@@ -239,9 +240,9 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           <div style={{ fontSize: '14px', color: '#FACC15' }}>Pendientes</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FDE047' }}>{stats.pendientes}</div>
         </div>
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '16px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px',
           borderRadius: '8px',
           border: '1px solid rgba(34, 197, 94, 0.3)',
           backgroundColor: 'rgba(34, 197, 94, 0.1)'
@@ -249,9 +250,9 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           <div style={{ fontSize: '14px', color: '#4ADE80' }}>Confirmadas</div>
           <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#86EFAC' }}>{stats.confirmadas}</div>
         </div>
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '16px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '16px',
           borderRadius: '8px',
           border: '1px solid rgba(59, 130, 246, 0.3)',
           backgroundColor: 'rgba(59, 130, 246, 0.1)'
@@ -262,21 +263,21 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       </div>
 
       {/* Filtros */}
-      <div style={{ 
-        background: 'var(--bg-secondary)', 
-        padding: '16px', 
-        borderRadius: '8px', 
-        marginBottom: '24px', 
+      <div style={{
+        background: 'var(--bg-secondary)',
+        padding: '16px',
+        borderRadius: '8px',
+        marginBottom: '24px',
         border: '1px solid var(--border-color)',
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
         gap: '16px'
       }}>
         <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: '14px', 
-            fontWeight: '500', 
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
             marginBottom: '8px',
             color: 'var(--text-primary)',
             opacity: 0.9
@@ -288,10 +289,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
             placeholder="Nombre, email o teléfono..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              border: '1px solid var(--border-color)', 
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border-color)',
               borderRadius: '6px',
               backgroundColor: 'var(--bg-primary)',
               color: 'var(--text-primary)'
@@ -299,10 +300,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           />
         </div>
         <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: '14px', 
-            fontWeight: '500', 
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
             marginBottom: '8px',
             color: 'var(--text-primary)',
             opacity: 0.9
@@ -312,10 +313,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              border: '1px solid var(--border-color)', 
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border-color)',
               borderRadius: '6px',
               backgroundColor: 'var(--bg-primary)',
               color: 'var(--text-primary)'
@@ -329,10 +330,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           </select>
         </div>
         <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: '14px', 
-            fontWeight: '500', 
+          <label style={{
+            display: 'block',
+            fontSize: '14px',
+            fontWeight: '500',
             marginBottom: '8px',
             color: 'var(--text-primary)',
             opacity: 0.9
@@ -342,10 +343,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           <select
             value={filtroFecha}
             onChange={(e) => setFiltroFecha(e.target.value)}
-            style={{ 
-              width: '100%', 
-              padding: '8px 12px', 
-              border: '1px solid var(--border-color)', 
+            style={{
+              width: '100%',
+              padding: '8px 12px',
+              border: '1px solid var(--border-color)',
               borderRadius: '6px',
               backgroundColor: 'var(--bg-primary)',
               color: 'var(--text-primary)'
@@ -361,11 +362,11 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
       {/* Tabla de Citas */}
       {citasFiltradas.length === 0 ? (
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          padding: '48px', 
-          textAlign: 'center', 
-          borderRadius: '8px', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          padding: '48px',
+          textAlign: 'center',
+          borderRadius: '8px',
           border: '1px solid var(--border-color)',
           color: 'var(--text-primary)',
           opacity: 0.7
@@ -373,10 +374,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           <p>No tienes citas que coincidan con los filtros</p>
         </div>
       ) : (
-        <div style={{ 
-          background: 'var(--bg-secondary)', 
-          borderRadius: '8px', 
-          overflow: 'auto', 
+        <div style={{
+          background: 'var(--bg-secondary)',
+          borderRadius: '8px',
+          overflow: 'auto',
           border: '1px solid var(--border-color)'
         }}>
           <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
@@ -404,9 +405,9 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
             </thead>
             <tbody>
               {citasFiltradas.map((cita, index) => (
-                <tr 
+                <tr
                   key={cita.id}
-                  style={{ 
+                  style={{
                     borderBottom: index < citasFiltradas.length - 1 ? '1px solid var(--border-color)' : 'none',
                     transition: 'background-color 0.2s'
                   }}
@@ -416,9 +417,9 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
                   <td style={{ padding: '12px' }}>
                     <div style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{cita.cliente_nombre}</div>
                     {cita.notas && (
-                      <div style={{ 
-                        fontSize: '12px', 
-                        color: 'var(--text-primary)', 
+                      <div style={{
+                        fontSize: '12px',
+                        color: 'var(--text-primary)',
                         opacity: 0.6,
                         marginTop: '4px'
                       }}>
@@ -436,7 +437,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
                   </td>
                   <td style={{ padding: '12px' }}>
                     <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.8 }}>
-                      {new Date(cita.fecha).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+                      {formatFechaChile(cita.fecha)}
                     </div>
                     <div style={{ fontSize: '13px', color: 'var(--text-primary)', opacity: 0.6, marginTop: '2px' }}>
                       {cita.hora}
@@ -454,9 +455,9 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
                     <select
                       value={cita.estado}
                       onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
-                      style={{ 
-                        padding: '6px 10px', 
-                        border: '1px solid var(--border-color)', 
+                      style={{
+                        padding: '6px 10px',
+                        border: '1px solid var(--border-color)',
                         borderRadius: '4px',
                         fontSize: '13px',
                         fontWeight: '500',
@@ -477,22 +478,22 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
                         onClick={() => handleOpenNotas(cita)}
                         style={{
                           padding: '8px 12px',
-                          background: notasClientes[cita.cliente_email || ''] 
-                            ? 'rgba(212, 175, 55, 0.2)' 
+                          background: notasClientes[cita.cliente_email || '']
+                            ? 'rgba(212, 175, 55, 0.2)'
                             : 'var(--bg-primary)',
                           border: notasClientes[cita.cliente_email || '']
                             ? '1px solid rgba(212, 175, 55, 0.4)'
                             : '1px solid var(--border-color)',
                           borderRadius: '4px',
-                          color: notasClientes[cita.cliente_email || ''] 
-                            ? 'var(--accent-color)' 
+                          color: notasClientes[cita.cliente_email || '']
+                            ? 'var(--accent-color)'
                             : 'var(--text-primary)',
                           cursor: 'pointer',
                           fontSize: '13px',
                           fontWeight: '500'
                         }}
-                        title={notasClientes[cita.cliente_email || ''] 
-                          ? `Ver ${notasClientes[cita.cliente_email || '']} nota(s)` 
+                        title={notasClientes[cita.cliente_email || '']
+                          ? `Ver ${notasClientes[cita.cliente_email || '']} nota(s)`
                           : 'Agregar nota'}
                       >
                         <i className="fas fa-sticky-note"></i>
@@ -525,10 +526,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       )}
 
       {/* Resumen */}
-      <div style={{ 
-        marginTop: '16px', 
-        textAlign: 'center', 
-        fontSize: '14px', 
+      <div style={{
+        marginTop: '16px',
+        textAlign: 'center',
+        fontSize: '14px',
         color: 'var(--text-primary)',
         opacity: 0.7
       }}>

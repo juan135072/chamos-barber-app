@@ -330,12 +330,15 @@ export default async function handler(
 
     // 🔔 Enviar notificación push al barbero
     try {
+      const { formatFechaChile } = await import('../../lib/date-utils');
       const barberoNombre = (barbero as any)?.nombre || 'Barbero'
+      const fechaLegible = formatFechaChile(citaData.fecha);
+
       console.log(`🔔 [crear-cita] Intentando notificar a barbero ${citaData.barbero_id} (${barberoNombre})`)
       const pushResult = await sendNotificationToBarber(
         citaData.barbero_id,
         'Nueva Reserva ✂️',
-        `Hola ${barberoNombre}, tienes una nueva reserva de ${citaData.cliente_nombre} para el ${citaData.fecha} a las ${citaData.hora}.`
+        `Hola ${barberoNombre}, tienes una nueva reserva de ${citaData.cliente_nombre} para el ${fechaLegible} a las ${citaData.hora}.`
       )
       console.log('📊 [crear-cita] Resultado OneSignal:', JSON.stringify(pushResult))
     } catch (pushError) {

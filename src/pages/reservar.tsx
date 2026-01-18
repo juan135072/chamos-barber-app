@@ -1,3 +1,9 @@
+import React, { useState, useEffect, useRef } from 'react'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import Layout from '../components/Layout'
+import { chamosSupabase } from '../../lib/supabase-helpers'
+import type { Database } from '../../lib/database.types'
+import { formatPhoneInput, normalizePhone, isValidChileanPhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
 import { getChileHoy, getChileAhora } from '../lib/date-utils'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
