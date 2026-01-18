@@ -91,9 +91,14 @@ export async function generateChatResponse(message: string, conversationId?: str
     }
 
     // 2. Agregar el mensaje actual del usuario
+    // Si es el primer mensaje (no hay historial), incluir el contexto del sistema
+    const userMessage = contents.length === 0
+      ? `[INSTRUCCIONES DEL SISTEMA - LEE CON ATENCIÓN]\n\n${BARBER_CONTEXT}\n\n[FIN DE INSTRUCCIONES - AHORA RESPONDE AL CLIENTE]\n\nCliente dice: ${message}`
+      : message;
+
     contents.push({
       role: 'user',
-      parts: [{ text: message }]
+      parts: [{ text: userMessage }]
     });
 
     console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
@@ -108,9 +113,6 @@ export async function generateChatResponse(message: string, conversationId?: str
       },
       body: JSON.stringify({
         contents,
-        systemInstruction: {
-          parts: [{ text: BARBER_CONTEXT }]
-        },
         generationConfig: {
           temperature: 0.7,
           maxOutputTokens: 1000,
