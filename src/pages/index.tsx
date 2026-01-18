@@ -114,58 +114,58 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
                 <div
                   key={servicio.id}
                   className={`service-card reveal reveal-up reveal-delay-${index + 1}`}
-                  style={{ padding: 0, overflow: 'hidden' }}
+                  style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}
                 >
-                  <Link href={`/reservar?servicio=${servicio.id}`}>
-                    <div style={{ height: '200px', overflow: 'hidden', cursor: 'pointer' }}>
+                  <Link href={`/reservar?servicio=${servicio.id}`} style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+                    <div style={{ height: '200px', overflow: 'hidden' }}>
                       <img
                         src={servicio.imagen_url || getServiceImage(servicio.categoria, servicio.nombre)}
                         alt={servicio.nombre}
                         style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                       />
                     </div>
+                    <div style={{ padding: '2rem' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0' }}>{servicio.nombre}</h3>
+                      <p style={{ margin: 0 }}>{servicio.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}</p>
+                    </div>
                   </Link>
-                  <div style={{ padding: '2rem' }}>
-                    <h3>{servicio.nombre}</h3>
-                    <p>{servicio.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}</p>
-                  </div>
                 </div>
               ))
             ) : (
               // Fallback estático
               <>
-                <div className="service-card reveal reveal-up reveal-delay-1" style={{ padding: 0, overflow: 'hidden' }}>
-                  <Link href="/reservar">
-                    <div style={{ height: '200px', overflow: 'hidden', cursor: 'pointer' }}>
+                <div className="service-card reveal reveal-up reveal-delay-1" style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}>
+                  <Link href="/reservar" style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+                    <div style={{ height: '200px', overflow: 'hidden' }}>
                       <img src={getServiceImage('cortes')} alt="Corte" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
+                    <div style={{ padding: '2rem' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0' }}>Corte de Cabello</h3>
+                      <p style={{ margin: 0 }}>Cortes clásicos y modernos adaptados a tu estilo personal.</p>
+                    </div>
                   </Link>
-                  <div style={{ padding: '2rem' }}>
-                    <h3>Corte de Cabello</h3>
-                    <p>Cortes clásicos y modernos adaptados a tu estilo personal.</p>
-                  </div>
                 </div>
-                <div className="service-card reveal reveal-up reveal-delay-2" style={{ padding: 0, overflow: 'hidden' }}>
-                  <Link href="/reservar">
-                    <div style={{ height: '200px', overflow: 'hidden', cursor: 'pointer' }}>
+                <div className="service-card reveal reveal-up reveal-delay-2" style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}>
+                  <Link href="/reservar" style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+                    <div style={{ height: '200px', overflow: 'hidden' }}>
                       <img src={getServiceImage('barbas')} alt="Barba" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     </div>
-                  </Link>
-                  <div style={{ padding: '2rem' }}>
-                    <h3>Barba y Afeitado</h3>
-                    <p>Perfilado de barba y afeitado tradicional con toalla caliente.</p>
-                  </div>
-                </div>
-                <div className="service-card reveal reveal-up reveal-delay-3" style={{ padding: 0, overflow: 'hidden' }}>
-                  <Link href="/reservar">
-                    <div style={{ height: '200px', overflow: 'hidden', cursor: 'pointer' }}>
-                      <img src={getServiceImage('tratamientos')} alt="Tratamiento" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <div style={{ padding: '2rem' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0' }}>Barba y Afeitado</h3>
+                      <p style={{ margin: 0 }}>Perfilado de barba y afeitado tradicional con toalla caliente.</p>
                     </div>
                   </Link>
-                  <div style={{ padding: '2rem' }}>
-                    <h3>Tratamientos</h3>
-                    <p>Limpieza facial y masajes capilares para una experiencia completa.</p>
-                  </div>
+                </div>
+                <div className="service-card reveal reveal-up reveal-delay-3" style={{ padding: 0, overflow: 'hidden', cursor: 'pointer' }}>
+                  <Link href="/reservar" style={{ textDecoration: 'none', color: 'inherit', display: 'block', height: '100%' }}>
+                    <div style={{ height: '200px', overflow: 'hidden' }}>
+                      <img src={getServiceImage('tratamientos')} alt="Tratamiento" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    </div>
+                    <div style={{ padding: '2rem' }}>
+                      <h3 style={{ margin: '0 0 0.5rem 0' }}>Tratamientos</h3>
+                      <p style={{ margin: 0 }}>Limpieza facial y masajes capilares para una experiencia completa.</p>
+                    </div>
+                  </Link>
                 </div>
               </>
             )}
