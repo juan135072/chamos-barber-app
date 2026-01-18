@@ -11,7 +11,7 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     // Verificar si es la primera visita en esta sesión
     const hasVisited = sessionStorage.getItem('hasVisitedHome')
-    
+
     if (hasVisited) {
       setShowPreloader(false)
       setIsFirstVisit(false)
@@ -30,7 +30,7 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <Layout 
+    <Layout
       title="Chamos Barber - Barbería en San Fernando, Chile"
       description="Tu barbería de confianza en San Fernando, Chile. Cortes modernos y clásicos con estilo profesional."
       transparentNav={true}
@@ -57,7 +57,12 @@ const HomePage: React.FC = () => {
       {/* Servicios Destacados */}
       <section className="services">
         <div className="container">
-          <h2 className="section-title">Nuestros Servicios</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3rem' }}>
+            <h2 className="section-title" style={{ margin: 0 }}>Nuestros Servicios</h2>
+            <Link href="/servicios" className="btn btn-secondary">
+              Ver Todos <i className="fas fa-arrow-right" style={{ marginLeft: '10px' }}></i>
+            </Link>
+          </div>
           <div className="services-grid">
             <div className="service-card">
               <div className="service-icon">
@@ -109,13 +114,13 @@ const HomePage: React.FC = () => {
               <span className="time">Cerrado</span>
             </div>
           </div>
-          
+
           <div style={{ marginTop: '3rem' }}>
             <h2 className="section-title" style={{ textAlign: 'center' }}>Ubicación</h2>
-            <div style={{ 
-              display: 'flex', 
-              flexDirection: 'column', 
-              alignItems: 'center', 
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
               gap: '1.5rem',
               padding: '2rem',
               backgroundColor: 'var(--bg-secondary)',
@@ -132,11 +137,11 @@ const HomePage: React.FC = () => {
                   San Fernando, O'Higgins, Chile
                 </div>
               </div>
-              
+
               {/* Enlace directo a Google Maps */}
-              <a 
-                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
-                target="_blank" 
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile"
+                target="_blank"
                 rel="noopener noreferrer"
                 style={{
                   display: 'block',
@@ -161,9 +166,9 @@ const HomePage: React.FC = () => {
                 }}
               >
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ 
-                    fontSize: '3rem', 
-                    color: 'var(--accent-color)', 
+                  <div style={{
+                    fontSize: '3rem',
+                    color: 'var(--accent-color)',
                     marginBottom: '1rem',
                     display: 'flex',
                     alignItems: 'center',
@@ -173,17 +178,17 @@ const HomePage: React.FC = () => {
                     <i className="fas fa-map-marker-alt"></i>
                     <i className="fas fa-external-link-alt" style={{ fontSize: '1.5rem' }}></i>
                   </div>
-                  <div style={{ 
-                    fontSize: '1.5rem', 
-                    fontWeight: 'bold', 
+                  <div style={{
+                    fontSize: '1.5rem',
+                    fontWeight: 'bold',
                     color: 'var(--text-primary)',
                     marginBottom: '0.5rem'
                   }}>
                     Rancagua 759
                   </div>
-                  <div style={{ 
-                    fontSize: '1.1rem', 
-                    color: 'var(--text-primary)', 
+                  <div style={{
+                    fontSize: '1.1rem',
+                    color: 'var(--text-primary)',
                     opacity: 0.8,
                     marginBottom: '1rem'
                   }}>
@@ -204,9 +209,9 @@ const HomePage: React.FC = () => {
                     <i className="fas fa-directions"></i>
                     <span>Ver en Google Maps</span>
                   </div>
-                  <div style={{ 
-                    fontSize: '0.9rem', 
-                    color: 'var(--text-primary)', 
+                  <div style={{
+                    fontSize: '0.9rem',
+                    color: 'var(--text-primary)',
                     opacity: 0.6,
                     marginTop: '1rem'
                   }}>
@@ -215,9 +220,9 @@ const HomePage: React.FC = () => {
                 </div>
               </a>
 
-              <a 
-                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile" 
-                target="_blank" 
+              <a
+                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="btn btn-primary"
                 style={{ marginTop: '1rem' }}

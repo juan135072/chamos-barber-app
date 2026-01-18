@@ -24,17 +24,17 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
     return router.pathname === path
   }
 
-  const navbarClass = transparent && !scrolled 
-    ? 'navbar transparent' 
+  const navbarClass = transparent && !scrolled
+    ? 'navbar transparent'
     : 'navbar'
 
   return (
     <nav className={navbarClass}>
       <div className="nav-container">
         <Link href="/" className="nav-brand">
-          <img 
-            src="/chamos-logo.png" 
-            alt="Chamos Barber Shop Logo" 
+          <img
+            src="/chamos-logo.png"
+            alt="Chamos Barber Shop Logo"
             className="nav-logo"
           />
           <span>Chamos Barber</span>
@@ -43,6 +43,9 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
         <div className={`nav-menu ${isMenuOpen ? 'active' : ''}`}>
           <Link href="/" className={`nav-link ${isActive('/') ? 'active' : ''}`}>
             Inicio
+          </Link>
+          <Link href="/servicios" className={`nav-link ${isActive('/servicios') ? 'active' : ''}`}>
+            Servicios
           </Link>
           <Link href="/equipo" className={`nav-link ${isActive('/equipo') ? 'active' : ''}`}>
             Equipo
@@ -55,7 +58,7 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           </Link>
         </div>
 
-        <div 
+        <div
           className="hamburger"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
         >

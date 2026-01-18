@@ -1,90 +1,181 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI, Part } from '@google/generative-ai';
+import { createClient } from '@supabase/supabase-js';
 
+// Cliente administrativo para bypass de RLS en el servidor
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
+
+/**
+ * CONTEXTO DE GUSTAVO - DUEÑO DE CHAMOS BARBER
+ */
 export const BARBER_CONTEXT = `
-# IDENTIDAD Y TONO DE VOZ
-Eres "ChamoBot", el asistente digital de Chamos Barber.
-- **Tu Vibe:** Eres ese barbero de confianza: amable, "pana", respetuoso y eficiente.
-- **Tu Estilo:** No usas lenguaje robotizado ("Le comunico que"). Usas lenguaje natural ("Te cuento que", "Dale", "Claro").
-- **Emojis:** Usas 1 o 2 por mensaje para dar calidez, pero sin parecer un circo. (💈, 😎, ✂️, 🔥).
+# Rol e Identidad
+Eres Gustavo, el dueño y fundador de Chamos Barber en San Fernando, Chile. 
+Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con mucho esfuerzo.
+Eres carismático, educado, apasionado por la excelencia y tratas a los clientes como si estuvieran en su segunda casa.
 
-# REGLAS DE ORO (WHATSAPP ETIQUETTE)
-1. **La Regla del Pulgar:** Tus respuestas no deben ocupar más de la mitad de la pantalla del celular. ¡SÉ BREVE!
-2. **Cero Muros de Texto:** Usa espacios entre líneas.
-3. **Link Siempre Visible:** Si el usuario tiene intención de compra, el link debe ser lo último que vea o estar separado para darle clic fácil.
-4. **No "Lamentamos los inconvenientes":** Si hay un problema, sé empático real: "Entiendo que molesta, déjame ver cómo ayudamos".
+# Personalidad y Tono
+- Hablas de forma casual pero profesional (WhatsApp style).
+- Usa expresiones como: "chévere", "excelente", "bacán", "al tiro".
+- JAMÁS uses la palabra "huecos" (connotación negativa en Chile). Di "horarios", "horas" o "disponibilidad".
+- No digas que eres una IA. Eres Gustavo.
+- Sé breve (máximo 100 palabras por mensaje).
 
-# OBJETIVOS DEL NEGOCIO
-Tu meta no es charlar, es **CONVERTIR**.
-1. Si preguntan precio -> Das el precio y el link de agendar.
-2. Si piden cita -> Explicas por qué es mejor la web (cupo seguro) y das el link.
-3. Si dudan -> Das seguridad ("Juan es un crack en degradados").
+# Reglas de Reserva
+1. Siempre pide el nombre y el WhatsApp del cliente si no los tienes.
+2. Identifica el servicio y el barbero.
+3. Si el cliente no sabe quién atiende, usa 'get_barbers' y muéstralos de forma sencilla (ej: "• Carlos (Especialista en Degradados)").
+4. Si el cliente no sabe qué servicios tenemos o pide precios, usa 'get_services' y muéstralos en una lista clara (ej: "• Corte Senior - $12.000").
+5. Usa las herramientas (tools) para consultar disponibilidad real y realizar la reserva.
+6. Si el cliente prefiere la web: https://chamosbarber.com/reservar
 
-# DATOS DEL NEGOCIO (RAG)
-- **Agendar Cita (Call to Action):** https://chamosbarber.com/agendar
-- **Lista de Servicios:** https://chamosbarber.com/servicios
-
-# MANEJO DE OBJECIONES (EJEMPLOS DE COMPORTAMIENTO)
-
-**Caso 1: Usuario quiere agendar por chat**
-*Mal:* "No puedo agendar citas, vaya a la web."
-*Bien (Tú):* "Me encantaría anotarte yo mismo, hermano, pero el sistema es automático para que nadie te quite el cupo 🔒. Asegúralo aquí rapidito: https://chamosbarber.com/agendar"
-
-**Caso 2: Usuario pregunta precio**
-*Mal:* "El precio es 10.000 pesos."
-*Bien (Tú):* "El corte clásico te sale en $10.000. Te incluye lavado y peinado para salir nítido 😎. ¿Te animas? Reserva aquí: https://chamosbarber.com/agendar"
-
-**Caso 3: Usuario molesto o pide humano**
-*Acción:* Responde con empatía y usa la flag "TRANSFER_AGENT".
-*Respuesta:* "Entiendo perfectamente, disculpa la mala experiencia. Ya mismo le aviso a uno de los muchachos para que te escriba personal. 🙏"
-
-**Caso 4: Saludo casual**
-*Usuario:* "Hola"
-*Tú:* "¡Hola! ¿Qué tal todo? 💈 ¿Buscabas un cambio de look o solo consultar precios?"
-
-# REGLAS DE RITMO (Burbujas de Chat)
-Para que te sientas natural, NO envíes bloques gigantes de texto.
-Si vas a decir dos ideas distintas, sepáralas usando exactamente este símbolo: |||
-Esto hará que el sistema envíe dos mensajes separados con una pausa en el medio.
-
-Ejemplos de Ritmo:
-*Mal:* "Hola Juan, el corte vale 10k y puedes agendar aquí: link" (Muy robótico).
-*Bien:* "¡Hola Juan! Qué tal todo? 👋 ||| El corte te sale en $10.000. ||| Si quieres asegurar tu turno, dale aquí: https://chamosbarber.com/agendar"
-
-Usa el separador ||| siempre que cambies de tema o antes de enviar un link importante.
-
-# INSTRUCCIÓN FINAL
-Usa la información de arriba para responder al usuario. Si no sabes algo, di: "Ese dato te lo debo, pero ya pregunto en el local".
+# Formato de Salida
+Para enviar múltiples burbujas en WhatsApp, usa el separador ||| entre mensajes.
 `;
+
+const tools = [
+  {
+    functionDeclarations: [
+      {
+        name: "get_barbers",
+        description: "Obtiene la lista de barberos activos para conocer sus nombres e IDs.",
+        parameters: { type: "OBJECT", properties: {} }
+      },
+      {
+        name: "get_services",
+        description: "Obtiene la lista de servicios disponibles (precios, duración, IDs).",
+        parameters: { type: "OBJECT", properties: {} }
+      },
+      {
+        name: "search_slots_day",
+        description: "Busca horarios de disponibilidad para un barbero específico en una fecha.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            barbero_id: { type: "STRING", description: "ID único del barbero" },
+            date: { type: "STRING", description: "Fecha en formato YYYY-MM-DD" },
+            duration: { type: "NUMBER", description: "Duración en minutos (default 30)" }
+          },
+          required: ["barbero_id", "date"]
+        }
+      },
+      {
+        name: "book_slot",
+        description: "Crea una reserva real en el sistema.",
+        parameters: {
+          type: "OBJECT",
+          properties: {
+            barbero_id: { type: "STRING" },
+            servicio_id: { type: "STRING" },
+            date: { type: "STRING", description: "YYYY-MM-DD" },
+            time: { type: "STRING", description: "HH:MM" },
+            name: { type: "STRING" },
+            phone: { type: "STRING" },
+            email: { type: "STRING" },
+            notes: { type: "STRING", description: "Formato: [SERVICIOS SOLICITADOS: Serv1, Serv2]" }
+          },
+          required: ["barbero_id", "servicio_id", "date", "time", "name", "phone"]
+        }
+      }
+    ]
+  }
+];
+
+// Mapeo de funciones locales usando el cliente ADMIN
+const functions: Record<string, Function> = {
+  get_barbers: async () => {
+    const { data } = await supabaseAdmin.from('barberos').select('id, nombre, apellido, especialidades').eq('activo', true);
+    return data?.map(b => ({ id: b.id, nombre: `${b.nombre} ${b.apellido}`, especialidad: b.especialidades })) || [];
+  },
+  get_services: async () => {
+    const { data } = await supabaseAdmin.from('servicios').select('id, nombre, precio, duracion_minutos').eq('activo', true);
+    return data?.map(s => ({ id: s.id, nombre: s.nombre, precio: s.precio, duracion: s.duracion_minutos })) || [];
+  },
+  search_slots_day: async ({ barbero_id, date, duration }: any) => {
+    const { data, error } = await supabaseAdmin.rpc('get_horarios_disponibles', {
+      barbero_id_param: barbero_id,
+      fecha_param: date,
+      duracion_minutos_param: duration || 30
+    });
+    if (error) return { error: error.message };
+    return (data as any[])?.filter(s => s.disponible).map(s => s.hora) || [];
+  },
+  book_slot: async (args: any) => {
+    try {
+      const { data, error } = await supabaseAdmin.from('citas').insert([{
+        barbero_id: args.barbero_id,
+        servicio_id: args.servicio_id,
+        fecha: args.date,
+        hora: args.time,
+        cliente_nombre: args.name,
+        cliente_telefono: args.phone,
+        cliente_email: args.email || null,
+        notas: args.notes || null,
+        estado: 'pendiente'
+      }]).select().single();
+
+      if (error) throw error;
+      return { success: true, cita_id: data.id, message: "Reserva creada exitosamente" };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+};
 
 export async function generateChatResponse(message: string) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) {
-      throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
-    }
+    if (!apiKey) throw new Error('GOOGLE_GENERATIVE_AI_API_KEY is missing');
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      tools: tools as any
+    });
 
-    // Intentar con flash latest
-    let model;
-    try {
-      model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
-      const prompt = `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`;
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (flashError: any) {
-      console.error('[BOT-DEBUG] Falló gemini-flash-latest, usando fallback a gemini-pro-latest:', flashError.message);
+    // Iniciamos chat con el contexto de Gustavo
+    const chat = model.startChat({
+      history: [
+        { role: 'user', parts: [{ text: BARBER_CONTEXT }] },
+        { role: 'model', parts: [{ text: "Entendido, soy Gustavo, dueño de Chamos Barber. ¿En qué puedo ayudarte hoy?" }] }
+      ]
+    });
 
-      // Fallback a gemini-pro-latest
-      model = genAI.getGenerativeModel({ model: 'gemini-pro-latest' });
-      const prompt = `${BARBER_CONTEXT}\n\nUsuario: ${message}\n\nChamoBot:`;
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+    const result = await chat.sendMessage(message);
+    let response = result.response;
+    let toolCalls = response.functionCalls();
+
+    // Loop de ejecución de funciones (soporta múltiples llamadas en una respuesta)
+    while (toolCalls && toolCalls.length > 0) {
+      const toolResponses: Part[] = [];
+
+      for (const call of toolCalls) {
+        console.log(`[GUSTAVO-IA] Ejecutando: ${call.name}`, call.args);
+        const functionHandler = functions[call.name];
+
+        if (functionHandler) {
+          const functionResult = await functionHandler(call.args);
+          toolResponses.push({
+            functionResponse: {
+              name: call.name,
+              response: { content: functionResult }
+            }
+          });
+        }
+      }
+
+      // Enviar resultados de vuelta al modelo
+      const result2 = await chat.sendMessage(toolResponses);
+      response = result2.response;
+      toolCalls = response.functionCalls();
     }
+
+    return response.text();
+
   } catch (error) {
     console.error('Error generating AI response:', error);
-    return "Hola mi pana 🙏 ||| Estamos con unos detalles técnicos, pero puedes agendar directo aquí: https://chamosbarber.com/agendar";
+    return "Hola, te habla Gustavo 🙏 ||| Disculpa, estoy con unos detalles técnicos en el sistema. ||| Pero no te preocupes, puedes agendar directo aquí y aseguras tu lugar al tiro: https://chamosbarber.com/reservar";
   }
 }
