@@ -101,13 +101,12 @@ export async function generateChatResponse(message: string, conversationId?: str
 
     // 3. Llamar a la API usando ai-sdk
     const result = await generateText({
-      model: google('gemini-1.5-flash', {
-        apiKey: apiKey
-      }),
+      model: google('gemini-1.5-flash'),
       system: BARBER_CONTEXT,
       messages: messages,
       temperature: 0.7,
       maxTokens: 1000,
+      apiKey: apiKey,
     });
 
     const responseText = result.text;
@@ -142,9 +141,7 @@ export async function splitLongMessage(text: string): Promise<string[]> {
     if (!apiKey) return [text];
 
     const result = await generateText({
-      model: google('gemini-pro', {
-        apiKey: apiKey
-      }),
+      model: google('gemini-pro'),
       prompt: `
       Eres un experto en comunicación por WhatsApp. 
       Divide el siguiente texto en mensajes más cortos y naturales separados por |||.
@@ -159,7 +156,8 @@ export async function splitLongMessage(text: string): Promise<string[]> {
       IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.
       `,
       temperature: 0.3,
-      maxTokens: 500
+      maxTokens: 500,
+      apiKey: apiKey
     });
 
     const dividedText = result.text.trim();
