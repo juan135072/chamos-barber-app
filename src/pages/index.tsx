@@ -167,12 +167,11 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
               {/* Mapa de Google Maps */}
               <div style={{
                 width: '100%',
-                height: '400px',
+                height: '600px',
                 borderRadius: 'var(--border-radius)',
                 overflow: 'hidden',
                 border: '1px solid var(--border-color)',
                 boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-                marginBottom: '1.5rem'
               }}>
                 <iframe
                   width="100%"
@@ -184,109 +183,6 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
                   src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Rancagua+759,San+Fernando,Chile&language=es&zoom=16`}
                 ></iframe>
               </div>
-
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: '1.2rem', color: 'var(--text-primary)', marginBottom: '0.5rem' }}>
-                  <i className="fas fa-map-marker-alt" style={{ color: 'var(--accent-color)', marginRight: '0.5rem' }}></i>
-                  <strong>Rancagua 759</strong>
-                </div>
-                <div style={{ fontSize: '1rem', color: 'var(--text-primary)', opacity: 0.9 }}>
-                  San Fernando, O'Higgins, Chile
-                </div>
-              </div>
-
-              {/* Enlace directo a Google Maps */}
-              <a
-                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  padding: '3rem 2rem',
-                  backgroundColor: 'var(--bg-primary)',
-                  border: '3px solid var(--accent-color)',
-                  borderRadius: 'var(--border-radius)',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 12px rgba(212, 175, 55, 0.15)',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-4px)'
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(212, 175, 55, 0.3)'
-                  e.currentTarget.style.borderColor = 'var(--accent-color)'
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)'
-                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(212, 175, 55, 0.15)'
-                }}
-              >
-                <div style={{ textAlign: 'center' }}>
-                  <div style={{
-                    fontSize: '3rem',
-                    color: 'var(--accent-color)',
-                    marginBottom: '1rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '1rem'
-                  }}>
-                    <i className="fas fa-map-marker-alt"></i>
-                    <i className="fas fa-external-link-alt" style={{ fontSize: '1.5rem' }}></i>
-                  </div>
-                  <div style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 'bold',
-                    color: 'var(--text-primary)',
-                    marginBottom: '0.5rem'
-                  }}>
-                    Rancagua 759
-                  </div>
-                  <div style={{
-                    fontSize: '1.1rem',
-                    color: 'var(--text-primary)',
-                    opacity: 0.8,
-                    marginBottom: '1rem'
-                  }}>
-                    San Fernando, O'Higgins, Chile
-                  </div>
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    backgroundColor: 'var(--accent-color)',
-                    color: '#000',
-                    padding: '12px 24px',
-                    borderRadius: 'var(--border-radius)',
-                    fontSize: '1rem',
-                    fontWeight: 'bold',
-                    marginTop: '0.5rem'
-                  }}>
-                    <i className="fas fa-directions"></i>
-                    <span>Ver en Google Maps</span>
-                  </div>
-                  <div style={{
-                    fontSize: '0.9rem',
-                    color: 'var(--text-primary)',
-                    opacity: 0.6,
-                    marginTop: '1rem'
-                  }}>
-                    Haz clic para abrir en Google Maps
-                  </div>
-                </div>
-              </a>
-
-              <a
-                href="https://www.google.com/maps/search/?api=1&query=Rancagua+759+San+Fernando+Chile"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="btn btn-primary"
-                style={{ marginTop: '1rem' }}
-              >
-                <i className="fas fa-directions"></i>
-                Cómo Llegar
-              </a>
             </div>
           </div>
         </div>
