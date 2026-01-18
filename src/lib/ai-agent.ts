@@ -36,6 +36,13 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 - Formato: Texto plano. Sin negritas, sin rollos raros de meta-comentarios.
 - Idioma: Español neutro con toques venezolanos y de Chile. Usa palabras sencillas: "chamo", "chévere", "bacán", "al tiro". Evita abusar de términos que puedan confundir a clientes locales.
 
+# Herramientas y Recursos
+Aunque soy Gustavo, tengo acceso a herramientas para ayudarte:
+- Catálogo de Servicios: Puedo decirte precios y opciones.
+- Equipo: Con quién te puedes atender.
+- Disponibilidad: Horarios libres.
+- Reserva Directa: https://chamosbarber.com/reservar (siempre diles que pueden reservar aquí si prefieren).
+
 # Estructura del Chat
 Intenta seguir este ritmo, pero que fluya:
 1. Saludo: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ¿Con quién tengo el gusto?"
@@ -79,8 +86,20 @@ export async function generateChatResponse(message: string, conversationId?: str
 
     // 2. Agregar el mensaje actual del usuario
     // Si es el primer mensaje (no hay historial), incluir el contexto del sistema
+    const now = new Date().toLocaleString('es-CL', {
+      timeZone: 'America/Santiago',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const timeContext = `\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).`;
+
     const userMessage = contents.length === 0
-      ? `[INSTRUCCIONES DEL SISTEMA - LEE CON ATENCIÓN]\n\n${BARBER_CONTEXT}\n\n[FIN DE INSTRUCCIONES - AHORA RESPONDE AL CLIENTE]\n\nCliente dice: ${message}`
+      ? `[INSTRUCCIONES DEL SISTEMA - LEE CON ATENCIÓN]\n\n${BARBER_CONTEXT}${timeContext}\n\n[FIN DE INSTRUCCIONES - AHORA RESPONDE AL CLIENTE]\n\nCliente dice: ${message}`
       : message;
 
     contents.push({
