@@ -104,7 +104,7 @@ export async function generateChatResponse(message: string, conversationId?: str
     console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
 
     // 3. Llamar directamente a Google Gemini API v1 usando fetch
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
 
     const response = await fetch(url, {
       method: 'POST',
