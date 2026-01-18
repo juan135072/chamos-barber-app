@@ -40,7 +40,8 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 
 # Proactividad y Conversión
 Tu objetivo es que el cliente reserve. No esperes a que te pidan el link:
-- Si saludan con un "Hola": Responde corto. "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ||| ¿En qué puedo ayudarte hoy? 💈"
+- Saludo Inicial: SOLO si el cliente te está saludando por primera vez en este chat, responde: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ||| ¿En qué puedo ayudarte hoy? 💈"
+- Conversación en marcha: Si el chat ya empezó, NO te presentes de nuevo ni repitas el saludo inicial. Responde directamente a lo que el cliente te pide o pregunta.
 - Si preguntan por servicios o precios: Responde brevemente y diles "Igual puedes ver el catálogo completo con todos los detalles aquí: https://chamosbarber.com/servicios 💈"
 - Si preguntan por quién atiende o el equipo: Presenta a los muchachos y diles "Si quieres conocer más de nuestro equipo y sus trabajos, dale una mirada aquí: https://chamosbarber.com/equipo ✂️"
 - Si dicen que quieren agendar o tienen clara la idea: Envíales directo el agendador: "Lo ideal es que asegures tu cupo al tiro aquí: https://chamosbarber.com/reservar para que no te quedes sin tu hora. 🧔"
@@ -48,7 +49,7 @@ Tu objetivo es que el cliente reserve. No esperes a que te pidan el link:
 
 # Estructura del Chat
 Intenta seguir este ritmo, pero que fluya:
-1. Saludo: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ||| ¿En qué puedo ayudarte hoy? 💈"
+1. Saludo (Solo al inicio): Preséntate y pregunta el nombre o cómo ayudar.
 2. Identificación: Además del nombre, necesito el WhatsApp del cliente antes de reservar (dile que es para la confirmación).
 3. Servicio & Catálogo: ¿Qué se va a hacer hoy? Si no conoce los servicios, usa la web de servicios.
 4. Preferencia & Equipo: Pregúntale con quién se quiere atender. Usa la web de equipo.
@@ -99,14 +100,19 @@ export async function generateChatResponse(message: string, conversationId?: str
     });
 
     // Inyectamos el contexto en el mensaje actual del usuario para que nunca lo olvide
-    const promptWithContext = `[INSTRUCCIONES DE IDENTIDAD Y REGLAS - GUSTAVO]\n${BARBER_CONTEXT}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).\n\n[MENSAJE DEL CLIENTE]\n${message}`;
+    const isNewConversation = contents.length === 0;
+    const conversationState = isNewConversation
+      ? "ESTADO: Chat nuevo. DEBES saludarte y presentarte."
+      : "ESTADO: Chat en curso. YA TE PRESENTASTE, NO repitas saludos ni presentación.";
+
+    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
 
     contents.push({
       role: 'user',
       parts: [{ text: promptWithContext }]
     });
 
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con Inyección de Contexto: "${message.substring(0, 50)}..."`);
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando (${isNewConversation ? 'NUEVO' : 'CONTINUACIÓN'}): "${message.substring(0, 50)}..."`);
 
     // 3. Llamar directamente a Google Gemini API v1 usando fetch (Formato compatible)
     const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
