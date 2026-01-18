@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../lib/database.types'
-import { formatFechaChile } from '../../../lib/date-utils'
+import { formatFechaChile } from '../../lib/date-utils'
 import NotasClienteModal from './NotasClienteModal'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
