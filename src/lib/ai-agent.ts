@@ -12,29 +12,6 @@ const getSupabaseAdmin = () => {
   return createClient(url, key);
 };
 
-/**
- * Obtiene el catálogo actualizado de barberos y servicios para darle contexto a la IA
- */
-async function getBarberContextData() {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-
-  try {
-    const [barberosRes, serviciosRes] = await Promise.all([
-      supabase.from('barberos').select('id, nombre, apellido').eq('activo', true),
-      supabase.from('servicios').select('id, nombre, precio, duracion_minutos').eq('activo', true)
-    ]);
-
-    return {
-      barberos: barberosRes.data || [],
-      servicios: serviciosRes.data || []
-    };
-  } catch (error) {
-    console.error('[GUSTAVO-IA] Error fetching context data:', error);
-    return null;
-  }
-}
-
 const BARBER_CONTEXT = `
 # Rol
 Eres un agente conversacional y tu misión es charlar con el usuario para ayudarle a reservar una cita en la barbería y resolver cualquier duda que tenga sobre nuestros servicios.
@@ -46,72 +23,69 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 - Eres auténtico, carismático y proyectas la confianza de quien lidera su propio negocio.
 - Eres muy educado, cercano y transmites el orgullo que sientes por tu barbería y tu equipo.
 - Hablas de forma casual pero profesional, como un dueño que atiende personalmente a sus clientes por WhatsApp.
-- Eres humilde pero directo; si algo no lo sabes, te comprometes a revisarlo.
-- Usas un lenguaje cálido y respetuoso. Usa emojis de barbería como 💈, ✂️, 🧔 al terminar las frases.
+- Eres humilde pero directo; si algo no lo sabes, te comprometes a revisarlo ("déjame consultar eso personalmente con los muchachos y te aviso").
+- Usas un lenguaje cálido y respetuoso, buscando siempre la satisfacción total (tipo "chévere", "excelente", "bacán").
 
 # Reglas de Oro (Sagradas)
 - Identidad: Jamás menciones que eres una IA o un asistente virtual. Eres Gustavo, el dueño de Chamos Barber.
-- Protocolo: Si no sabes el nombre del usuario, lo primero es preguntárselo.
+- Protocolo: Si no sabes el nombre del usuario, lo primero es preguntárselo: "¡Hola! Bienvenido a Chamos Barber. Te saluda Gustavo, el dueño. ¿Con quién tengo el gusto?"
+- Multimedia: Nunca digas que no puedes enviar notas de voz o fotos. Di que puedes enviarlas sin problema.
 - Mantenimiento: No hables de procesos internos.
-- Brevedad: Tus respuestas deben ser cortas y directas. Máximo 2 párrafos pequeños.
-- Estilo Humano: NO uses listas numeradas ni bullets. Escribe párrafos naturales.
-- Formato: Texto plano. Sin negritas (**), sin cursivas.
-- Ubicación: Chamos Barber solo existe en San Fernando, Chile.
-- Emojis Prohibidos: NUNCA uses el emoji 😊. Usa SOLO 💈, ✂️, 🧔.
+- Brevedad: Tus respuestas no deben pasar de las 100 palabras. Cortito y al pie.
+- Ritmo: Combina frases cortas con alguna más larga para que la charla fluya natural.
+- Formato: Texto plano. Sin negritas, sin rollos raros de meta-comentarios.
+- Idioma: Español neutro con toques venezolanos y de Chile. Usa palabras sencillas: "chamo", "chévere", "bacán", "al tiro". Evita abusar de términos que puedan confundir a clientes locales.
 
-# Proactividad y Conversión
-Tu objetivo es que el cliente reserve. 
+# Herramientas y Recursos
+Aunque soy Gustavo, tengo acceso a herramientas para ayudarte:
+- Catálogo de Servicios: Puedo decirte precios y opciones.
+- Equipo: Con quién te puedes atender.
+- Disponibilidad: Horarios libres.
+- Reserva Directa: https://chamosbarber.com/reservar (siempre diles que pueden reservar aquí si prefieren).
 
-## Proceso de Reserva por Chat
-Si el cliente quiere agendar contigo directamente:
-1. **Identificación**: Pregunta su nombre si no lo sabes.
-2. **Servicio**: Pregunta qué se va a hacer. Mira el catálogo adjunto.
-3. **Barbero**: Pregunta con quién se quiere atender. Mira el equipo adjunto.
-4. **Fecha y Hora**: Pregunta para cuándo. 
-5. **Acción**: Una vez tengas todos los datos claros, usa la herramienta "crear_cita".
+# Estructura del Chat
+Intenta seguir este ritmo, pero que fluya:
+1. Saludo: "¡Hola! Soy Gustavo, el dueño de Chamos Barber. ¿Con quién tengo el gusto?"
+2. Identificación: Además del nombre, necesito el WhatsApp del cliente antes de reservar (dile que es para la confirmación).
+3. Servicio & Catálogo: ¿Qué se va a hacer hoy? Si no conoce los servicios, usa la web: https://chamosbarber.com/servicios
+4. Preferencia & Equipo: Pregúntale con quién se quiere atender. Puedes mandarle el link de nuestro equipo: https://chamosbarber.com/equipo
+5. Cierre: Si el cliente prefiere hacerlo él mismo, dile que puede ir a: https://chamosbarber.com/reservar
+6. Despedida: Confirma que lo esperarás con gusto.
 
-## Catálogo de Servicios y Equipo
-Usa EXCLUSIVAMENTE los nombres e IDs que se te proporcionan en el [CONTEXTO DINÁMICO]. No inventes servicios ni nombres.
-
-## Enlaces Útiles
-- Catálogo: https://chamosbarber.com/servicios
-- Equipo: https://chamosbarber.com/equipo
-- Agendador Online: https://chamosbarber.com/reservar
-
-IMPORTANTE: Estás en San Fernando, Chile. 
+IMPORTANTE: Estás en San Fernando, Chile. Si te preguntan qué tal, puedes decir: "Aquí andamos, dándole con todo para que el local sea su segunda casa". No uses nunca la palabra "huecos", di "horas", "horarios" o "disponibilidad".
 `;
 
 /**
- * Bot del barbero con persistencia de conversación y herramientas
+ * Bot del barbero con persistencia de conversación
+ * Usa llamadas directas a Google Gemini API v1 (sin librerías intermediarias)
  */
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error('API_KEY_MISSING');
 
-    // 1. Cargar historial de Redis
+    // 1. Cargar historial de Redis (Fail-Safe)
     let contents: any[] = [];
     if (conversationId) {
-      const rawHistory = await ChatMemory.getHistory(conversationId);
-      if (Array.isArray(rawHistory)) {
-        contents = rawHistory.filter(item => item && item.role && item.parts).map(h => ({
-          role: h.role === 'model' ? 'model' : 'user',
-          parts: h.parts
-        }));
+      try {
+        const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
+        if (Array.isArray(rawHistory)) {
+          const history = rawHistory.filter(item => item && item.role && item.parts);
+          console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial cargado (${history.length} mensajes)`);
+
+          // Convertir el historial al formato que espera Gemini API v1
+          contents = history.map(h => ({
+            role: h.role === 'model' ? 'model' : 'user',
+            parts: h.parts
+          }));
+        }
+      } catch (redisError) {
+        console.warn(`[GUSTAVO-IA] Falló carga de historial. Continuando sin memoria.`);
       }
     }
 
-    // 2. Preparar contexto dinámico
-    const contextData = await getBarberContextData();
-    const catalogContext = contextData ? `
-[CONTEXTO DINÁMICO - CATÁLOGO REAL]
-BARBEROS DISPONIBLES:
-${contextData.barberos.map(b => `- ${b.nombre} ${b.apellido} (ID: ${b.id})`).join('\n')}
-
-SERVICIOS DISPONIBLES:
-${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.duracion_minutos} min)`).join('\n')}
-` : '';
-
+    // 2. Agregar el mensaje actual del usuario
+    // Si es el primer mensaje (no hay historial), incluir el contexto del sistema
     const now = new Date().toLocaleString('es-CL', {
       timeZone: 'America/Santiago',
       weekday: 'long',
@@ -122,150 +96,144 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       minute: '2-digit'
     });
 
-    const isNewConversation = contents.length === 0;
-    const conversationState = isNewConversation
-      ? "ESTADO: Chat nuevo. DEBES saludarte y presentarte."
-      : "ESTADO: Chat en curso. YA TE PRESENTASTE, NO repitas saludos ni presentación.";
+    const timeContext = `\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).`;
 
-    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
+    const userMessage = contents.length === 0
+      ? `[INSTRUCCIONES DEL SISTEMA - LEE CON ATENCIÓN]\n\n${BARBER_CONTEXT}${timeContext}\n\n[FIN DE INSTRUCCIONES - AHORA RESPONDE AL CLIENTE]\n\nCliente dice: ${message}`
+      : message;
 
     contents.push({
       role: 'user',
-      parts: [{ text: promptWithContext }]
+      parts: [{ text: userMessage }]
     });
 
-    // 3. Definición de herramientas
-    const tools = [{
-      function_declarations: [{
-        name: "crear_cita",
-        description: "Crea una nueva reserva de cita en la base de datos de la barbería.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            barbero_id: { type: "string", description: "ID del barbero." },
-            servicio_id: { type: "string", description: "ID del servicio." },
-            fecha: { type: "string", description: "Fecha YYYY-MM-DD." },
-            hora: { type: "string", description: "Hora HH:mm." },
-            cliente_nombre: { type: "string", description: "Nombre del cliente." },
-            cliente_telefono: { type: "string", description: "WhatsApp del cliente." },
-            notas: { type: "string", description: "Notas adicionales." }
-          },
-          required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando: "${message.substring(0, 50)}..."`);
+
+    // 3. Llamar directamente a Google Gemini API v1 usando fetch
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 1000,
         }
-      }]
-    }];
+      })
+    });
 
-    // 4. Bucle de llamadas a la API (Usamos v1beta para soporte de tools vía REST)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-    let iterations = 0;
-    let finalResponseText = '';
-
-    while (iterations < 5) {
-      iterations++;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, tools })
-      });
-
-      const responseJson = await response.json();
-      if (!response.ok) {
-        console.error('[GUSTAVO-IA] API Error Payload:', JSON.stringify(responseJson, null, 2));
-        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson)}`);
-      }
-
-      const messageResponse = responseJson.candidates?.[0]?.content;
-      if (!messageResponse) throw new Error('No se recibió respuesta del modelo');
-
-      contents.push(messageResponse);
-
-      const toolCall = messageResponse.parts.find((p: any) => p.functionCall);
-      if (toolCall) {
-        const { name, args } = toolCall.functionCall;
-        console.log(`[GUSTAVO-IA] 🛠️ Ejecutando herramienta: ${name}`, args);
-
-        if (name === 'crear_cita') {
-          const result = await executeCreateAppointment(args);
-          contents.push({
-            role: 'function',
-            parts: [{ functionResponse: { name: "crear_cita", response: result } }]
-          });
-          continue;
-        }
-      }
-
-      finalResponseText = messageResponse.parts.map((p: any) => p.text || '').join('');
-      break;
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Gemini API Error ${response.status}: ${errorText}`);
     }
 
-    // 5. Guardar en Redis
-    if (conversationId && finalResponseText) {
-      await ChatMemory.addMessage(conversationId, 'user', message);
-      await ChatMemory.addMessage(conversationId, 'model', finalResponseText);
-      console.log(`[GUSTAVO-IA] [ID:${conversationId}] ✅ Conversación persistida`);
+    const data = await response.json();
+
+    let responseText = '';
+
+    if (data.candidates && data.candidates[0]) {
+      const candidate = data.candidates[0];
+      if (candidate.content?.parts) {
+        for (const part of candidate.content.parts) {
+          if (part.text) {
+            responseText += part.text;
+          }
+        }
+      }
     }
 
-    return finalResponseText;
+    if (!responseText) {
+      throw new Error('No se recibió respuesta del modelo');
+    }
+
+    // 4. Persistir en Redis (Background/Ignore Fail)
+    if (conversationId && responseText) {
+      ChatMemory.addMessage(conversationId, 'user', message).catch(() => { });
+      ChatMemory.addMessage(conversationId, 'model', responseText).catch(() => { });
+    }
+
+    return responseText;
 
   } catch (error: any) {
-    console.error(`[GUSTAVO-IA] ERROR CRÍTICO:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Chamo, disculpa, tuve un pequeño problema técnico. Pásate por aquí para agendar directo: https://chamosbarber.com/reservar";
-  }
-}
+    console.error(`[GUSTAVO-IA] [ID:${conversationId}] ERROR DETALLADO:`, error);
 
-async function executeCreateAppointment(args: any) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return { success: false, error: "DB connection failed" };
-
-  try {
-    const { data: nuevaCita, error: insertError } = await supabase
-      .from('citas')
-      .insert([{
-        barbero_id: args.barbero_id,
-        servicio_id: args.servicio_id,
-        fecha: args.fecha,
-        hora: args.hora,
-        cliente_nombre: args.cliente_nombre,
-        cliente_telefono: args.cliente_telefono,
-        notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
-        estado: 'pendiente'
-      }])
-      .select()
-      .single();
-
-    if (insertError) {
-      if (insertError.code === '23505') return { success: false, error: "Horario ya ocupado" };
-      return { success: false, error: insertError.message };
+    // Si es un fallo de seguridad o bloqueo
+    if (error.message?.includes('safety') || error.message?.includes('blocked')) {
+      return "Chamo, disculpa, no puedo procesar ese comentario. 🙏 ||| ¿Te ayudo con algo de la barbería?";
     }
 
-    try {
-      const { sendNotificationToBarber } = await import('./onesignal');
-      await sendNotificationToBarber(args.barbero_id, 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
-    } catch (e) { }
-
-    return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };
-  } catch (e: any) {
-    return { success: false, error: e.message || "Unknown error" };
+    // Mensaje de fallback limpio pero humano
+    return "Hola, te habla Gustavo. 🙏 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla.";
   }
 }
 
+/**
+ * Helper para dividir mensajes largos en partes más naturales
+ */
 export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+
+    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${apiKey}`;
+
     const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: `Divide este texto para WhatsApp en partes naturales con |||:\n"${text}"` }] }]
+        contents: [{
+          role: 'user',
+          parts: [{
+            text: `Eres un experto en comunicación por WhatsApp. 
+Divide el siguiente texto en mensajes más cortos y naturales separados por |||.
+- Cada parte debe ser una idea completa y coherente
+- Máximo 3-4 partes
+- No agregues nada nuevo, solo divide el texto
+- Mantén emojis y estilo original
+
+Texto a dividir:
+"${text}"
+
+IMPORTANTE: Responde SOLO con el texto dividido, SIN explicaciones ni introducciones.`
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: 500,
+        }
       })
     });
+
+    if (!response.ok) {
+      return [text];
+    }
+
     const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    if (!resultText) return [text];
-    return resultText.split('|||').map((p: string) => p.trim()).filter(Boolean);
-  } catch (e) {
+    let dividedText = '';
+
+    if (data.candidates && data.candidates[0]?.content?.parts) {
+      for (const part of data.candidates[0].content.parts) {
+        if (part.text) {
+          dividedText += part.text;
+        }
+      }
+    }
+
+    if (!dividedText) {
+      return [text];
+    }
+
+    const parts = dividedText.trim().split('|||').map(p => p.trim()).filter(p => p.length > 0);
+
+    return parts.length > 1 ? parts : [text];
+  } catch (error) {
+    console.error('[GUSTAVO-IA] Error splitting message:', error);
     return [text];
   }
 }
