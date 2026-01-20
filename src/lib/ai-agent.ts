@@ -82,7 +82,7 @@ IMPORTANTE: Estás en San Fernando, Chile.
 `;
 
 /**
- * Bot del barbero con estrategia híbrida Gemini 1.5/3
+ * Bot del barbero - Versión UNIFICADA Gemini 3 Flash
  */
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
@@ -122,14 +122,10 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       minute: '2-digit'
     });
 
-    // 3. Estrategia Híbrida: Detectar intención de reserva
-    const bookingKeywords = ['agendar', 'reservar', 'cita', 'hora', 'turno', 'corte', 'barba'];
-    const lowerMessage = message.toLowerCase();
-    const isBookingIntent = bookingKeywords.some(key => lowerMessage.includes(key));
-
-    // Decidir modelo: Gemini 1.5 para charla, Gemini 3 para agendamiento crítico
-    const modelId = isBookingIntent ? 'gemini-3-flash' : 'gemini-1.5-flash';
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Modo: ${isBookingIntent ? 'RESERVA' : 'CHARLA'} | Modelo: ${modelId}`);
+    // 3. Configuración Unificada (Gemini 3 Flash)
+    // Eliminamos la lógica híbrida para evitar errores 404 en el endpoint v1beta con modelos antiguos
+    const modelId = 'gemini-3-flash';
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con ${modelId} (UNIFICADO)`);
 
     const isNewConversation = contents.length === 0;
     const conversationState = isNewConversation
@@ -143,8 +139,8 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       parts: [{ text: promptWithContext }]
     });
 
-    // 4. Definición de herramientas (Solo si es modo reserva)
-    const tools = isBookingIntent ? [{
+    // 4. Herramientas (Siempre disponibles para Gemini 3)
+    const tools = [{
       function_declarations: [{
         name: "crear_cita",
         description: "Crea una nueva reserva de cita en la base de datos de la barbería.",
@@ -162,28 +158,26 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
           required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
         }
       }]
-    }] : undefined;
+    }];
 
-    // 5. Bucle de llamadas a la API (v1beta para mayor compatibilidad de tools)
+    // 5. Bucle de llamadas a la API (v1beta)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
     let iterations = 0;
     let finalResponseText = '';
 
     while (iterations < 5) {
       iterations++;
-      const body: any = { contents };
-      if (tools) body.tools = tools;
 
       const response = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ contents, tools })
       });
 
       const responseJson = await response.json();
       if (!response.ok) {
         console.error('[GUSTAVO-IA] API Error Payload:', JSON.stringify(responseJson, null, 2));
-        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson.error || responseJson)}`);
+        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson)}`);
       }
 
       const messageResponse = responseJson.candidates?.[0]?.content;
@@ -214,14 +208,13 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
     if (conversationId && finalResponseText) {
       ChatMemory.addMessage(conversationId, 'user', message).catch(() => { });
       ChatMemory.addMessage(conversationId, 'model', finalResponseText).catch(() => { });
-      console.log(`[GUSTAVO-IA] [ID:${conversationId}] ✅ Conversación persistida`);
     }
 
     return finalResponseText;
 
   } catch (error: any) {
     console.error(`[GUSTAVO-IA] ERROR CRÍTICO:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Chamo, disculpa, tuve un pequeño problema técnico. Pásate por aquí para agendar directo mientras lo reparo: https://chamosbarber.com/reservar";
+    return "Hola, te habla Gustavo. 🙏 ||| Chamo, tuve un pequeño problema técnico con mi memoria. Pásate por aquí para agendar directo mientras lo reparo: https://chamosbarber.com/reservar";
   }
 }
 
@@ -265,7 +258,7 @@ export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
