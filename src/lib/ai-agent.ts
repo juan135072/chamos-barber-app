@@ -72,10 +72,10 @@ export async function generateChatResponse(message: string, conversationId?: str
     let contents: any[] = [];
     if (conversationId) {
       try {
-        const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
+        const rawHistory = await ChatMemory.getHistory(conversationId);
         if (Array.isArray(rawHistory)) {
           const history = rawHistory.filter(item => item && item.role && item.parts);
-          console.log(`[GUSTAVO-IA] [ID:${conversationId}] Historial cargado (${history.length} mensajes)`);
+          console.log(`[GUSTAVO-IA] [ID:${conversationId}] ✅ Historial cargado desde Redis (${history.length} mensajes)`);
 
           // Convertir el historial al formato que espera Gemini API v1
           contents = history.map(h => ({
@@ -83,8 +83,14 @@ export async function generateChatResponse(message: string, conversationId?: str
             parts: h.parts
           }));
         }
-      } catch (redisError) {
-        console.warn(`[GUSTAVO-IA] Falló carga de historial. Continuando sin memoria.`);
+      } catch (redisError: any) {
+        const timestamp = new Date().toISOString();
+        console.error(`[GUSTAVO-IA] [ID:${conversationId}] ❌ ERROR REDIS - Falló carga de historial`);
+        console.error(`[GUSTAVO-IA] Timestamp: ${timestamp}`);
+        console.error(`[GUSTAVO-IA] Error type: ${redisError?.name || 'Unknown'}`);
+        console.error(`[GUSTAVO-IA] Error message: ${redisError?.message || 'No message'}`);
+        console.error(`[GUSTAVO-IA] Error stack:`, redisError?.stack);
+        console.warn(`[GUSTAVO-IA] ⚠️ Continuando SIN MEMORIA (modo degradado)`);
       }
     }
 
@@ -155,10 +161,31 @@ export async function generateChatResponse(message: string, conversationId?: str
       throw new Error('No se recibió respuesta del modelo');
     }
 
-    // 4. Persistir en Redis (Background/Ignore Fail)
+    // 4. Persistir en Redis con logging mejorado
     if (conversationId && responseText) {
-      ChatMemory.addMessage(conversationId, 'user', message).catch(() => { });
-      ChatMemory.addMessage(conversationId, 'model', responseText).catch(() => { });
+      // Guardar mensaje del usuario
+      ChatMemory.addMessage(conversationId, 'user', message)
+        .then(() => {
+          console.log(`[GUSTAVO-IA] [ID:${conversationId}] ✅ Mensaje usuario guardado en Redis`);
+        })
+        .catch((error: any) => {
+          const timestamp = new Date().toISOString();
+          console.error(`[GUSTAVO-IA] [ID:${conversationId}] ❌ ERROR REDIS - Falló guardar mensaje usuario`);
+          console.error(`[GUSTAVO-IA] Timestamp: ${timestamp}`);
+          console.error(`[GUSTAVO-IA] Error:`, error?.message || error);
+        });
+
+      // Guardar respuesta del bot
+      ChatMemory.addMessage(conversationId, 'model', responseText)
+        .then(() => {
+          console.log(`[GUSTAVO-IA] [ID:${conversationId}] ✅ Respuesta bot guardada en Redis`);
+        })
+        .catch((error: any) => {
+          const timestamp = new Date().toISOString();
+          console.error(`[GUSTAVO-IA] [ID:${conversationId}] ❌ ERROR REDIS - Falló guardar respuesta bot`);
+          console.error(`[GUSTAVO-IA] Timestamp: ${timestamp}`);
+          console.error(`[GUSTAVO-IA] Error:`, error?.message || error);
+        });
     }
 
     return responseText;
