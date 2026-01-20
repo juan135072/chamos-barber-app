@@ -82,7 +82,7 @@ IMPORTANTE: Estás en San Fernando, Chile.
 `;
 
 /**
- * Bot del barbero - Versión UNIFICADA Gemini 3 Flash
+ * Bot del barbero - Versión UNIFICADA Gemini 3 Flash Preview
  */
 export async function generateChatResponse(message: string, conversationId?: string | number) {
   try {
@@ -122,9 +122,8 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       minute: '2-digit'
     });
 
-    // 3. Configuración Unificada (Gemini 3 Flash)
-    // Eliminamos la lógica híbrida para evitar errores 404 en el endpoint v1beta con modelos antiguos
-    const modelId = 'gemini-3-flash';
+    // 3. Configuración Unificada (Gemini 3 Flash Preview)
+    const modelId = 'gemini-3-flash-preview';
     console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con ${modelId} (UNIFICADO)`);
 
     const isNewConversation = contents.length === 0;
@@ -177,7 +176,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       const responseJson = await response.json();
       if (!response.ok) {
         console.error('[GUSTAVO-IA] API Error Payload:', JSON.stringify(responseJson, null, 2));
-        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson)}`);
+        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson.error || responseJson)}`);
       }
 
       const messageResponse = responseJson.candidates?.[0]?.content;
@@ -258,7 +257,7 @@ export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
