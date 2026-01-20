@@ -155,7 +155,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       }]
     }];
 
-    // 4. Bucle de llamadas a la API (Usamos gemini-1.5-flash para estabilidad con tools)
+    // 4. Bucle de llamadas a la API (Usamos v1beta para soporte de tools vía REST)
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     let iterations = 0;
     let finalResponseText = '';
@@ -177,7 +177,6 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       const messageResponse = responseJson.candidates?.[0]?.content;
       if (!messageResponse) throw new Error('No se recibió respuesta del modelo');
 
-      // Añadimos la respuesta al historial para la siguiente iteración
       contents.push(messageResponse);
 
       const toolCall = messageResponse.parts.find((p: any) => p.functionCall);
@@ -191,11 +190,10 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
             role: 'function',
             parts: [{ functionResponse: { name: "crear_cita", response: result } }]
           });
-          continue; // Volver a preguntar al modelo con el resultado
+          continue;
         }
       }
 
-      // Si llegamos aquí sin "continue", es porque no hay más tool calls
       finalResponseText = messageResponse.parts.map((p: any) => p.text || '').join('');
       break;
     }
@@ -211,7 +209,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
 
   } catch (error: any) {
     console.error(`[GUSTAVO-IA] ERROR CRÍTICO:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Chamo, disculpa, tuve un pequeño problema técnico con el sistema. Pásate por aquí para agendar directo mientras lo reparo: https://chamosbarber.com/reservar y nos vemos allá.";
+    return "Hola, te habla Gustavo. 🙏 ||| Chamo, disculpa, tuve un pequeño problema técnico. Pásate por aquí para agendar directo: https://chamosbarber.com/reservar";
   }
 }
 
@@ -236,18 +234,14 @@ async function executeCreateAppointment(args: any) {
       .single();
 
     if (insertError) {
-      console.error('[GUSTAVO-IA] Error en insert:', insertError);
       if (insertError.code === '23505') return { success: false, error: "Horario ya ocupado" };
       return { success: false, error: insertError.message };
     }
 
-    // Notificación OneSignal
     try {
       const { sendNotificationToBarber } = await import('./onesignal');
       await sendNotificationToBarber(args.barbero_id, 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
-    } catch (e) {
-      console.warn('[GUSTAVO-IA] Error enviando notificación push:', e);
-    }
+    } catch (e) { }
 
     return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };
   } catch (e: any) {
