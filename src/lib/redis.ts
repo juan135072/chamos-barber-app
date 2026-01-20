@@ -29,7 +29,7 @@ export const ChatMemory = {
     /**
      * Obtiene los últimos mensajes de una conversación.
      */
-    getHistory: async (conversationId: string | number, limit = 10) => {
+    getHistory: async (conversationId: string | number, limit = 20) => {
         if (!redis) return [];
         try {
             const key = `chat_history:${conversationId}`;
@@ -53,8 +53,8 @@ export const ChatMemory = {
             // Añadir al inicio de la lista
             await redis.lpush(key, message);
 
-            // Limitar el tamaño de la lista (ej: últimos 15 mensajes)
-            await redis.ltrim(key, 0, 14);
+            // Limitar el tamaño de la lista (ej: últimos 20 mensajes)
+            await redis.ltrim(key, 0, 19);
 
             // Expiración en 45 días (cobertura total para ciclos de barbería)
             await redis.expire(key, 3888000);
