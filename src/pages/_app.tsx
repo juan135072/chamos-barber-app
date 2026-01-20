@@ -1,6 +1,7 @@
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
 import { useEffect } from 'react'
+import { useRouter } from 'next/router'
 import { SessionContextProvider } from '@supabase/auth-helpers-react'
 import { supabase } from '../../lib/initSupabase'
 import { Toaster } from 'react-hot-toast'
@@ -14,6 +15,21 @@ import '../styles/admin-minimal.css'
 export default function App({ Component, pageProps }: AppProps) {
   // Nota: OneSignal manejará su propio service worker (OneSignalSDKWorker.js)
   // No registramos sw.js aquí para evitar conflictos con PWA convencionales
+
+  const router = useRouter()
+
+  // Rutas administrativas donde NO queremos mostrar el botón de WhatsApp
+  const adminRoutes = [
+    '/admin',
+    '/barbero',
+    '/barbero-panel',
+    '/pos',
+    '/chamos-acceso',
+    '/barber-app',
+  ]
+
+  // Verificar si la ruta actual es administrativa
+  const isAdminRoute = adminRoutes.some(route => router.pathname.startsWith(route))
 
   return (
     <SessionContextProvider supabaseClient={supabase}>
@@ -60,7 +76,8 @@ export default function App({ Component, pageProps }: AppProps) {
         {/* Componentes de debug de OneSignal (solo en desarrollo) */}
         <OneSignalTestButton />
         <OneSignalDebugPanel />
-        <WhatsAppButton />
+        {/* WhatsApp button solo en páginas públicas (no en admin/barbero/pos) */}
+        {!isAdminRoute && <WhatsAppButton />}
       </OneSignalProvider>
     </SessionContextProvider>
   )
