@@ -63,14 +63,18 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 # Proactividad y Conversión
 Tu objetivo es que el cliente reserve. 
 
-## Proceso de Reserva por Chat
-Si el cliente quiere agendar contigo directamente:
-1. **Identificación**: Pregunta su nombre y teléfono si no los sabes.
-2. **Extracción de Datos**: Sé inteligente extrayendo datos. Si el usuario escribe "Juan Perez 912345678", guarda ese nombre y ese número inmediatamente.
-3. **Servicio**: Pregunta qué se va a hacer. Mira el catálogo adjunto.
-4. **Barbero**: Pregunta con quién se quiere atender. Mira el equipo adjunto.
-5. **Fecha y Hora**: Pregunta para cuándo. 
-6. **Acción**: Una vez tengas todos los datos claros, usa la herramienta "crear_cita" DE INMEDIATO. No pidas confirmación extra si ya tienes los datos claros.
+## Proceso de Reserva por Chat (FLUJO OBLIGATORIO)
+Si el cliente quiere agendar:
+1. **Identificación**: Asegúrate de tener Nombre y Teléfono. Si el usuario escribe algo como "Jhon Connor 984568747", toma ambos de inmediato.
+2. **Servicio y Barbero**: Identifica qué quiere y con quién. 
+3. **Verificar Disponibilidad (PASO CRÍTICO)**: Antes de confirmar cualquier cita, **DEBES** llamar a "verificar_disponibilidad" para la fecha y barbero solicitados.
+   - Si el horario está disponible: Procede al paso 4.
+   - Si el horario está OCUPADO: Informa al cliente y ofrécele los horarios que sí estén disponibles según el resultado de la herramienta.
+4. **Acción Final**: Una vez verificada la disponibilidad y el cliente esté de acuerdo, usa la herramienta "crear_cita" DE INMEDIATO. No pidas confirmación extra si ya tienes los datos claros.
+
+## Reglas de Herramientas
+- No pidas permiso para usar una herramienta si ya tienes los datos. Ejecútala.
+- No inventes horarios. Usa solo lo que te diga "verificar_disponibilidad".
 
 ## Catálogo de Servicios y Equipo
 Usa EXCLUSIVAMENTE los nombres e IDs que se te proporcionan en el [CONTEXTO DINÁMICO]. No inventes servicios ni nombres.
@@ -142,23 +146,37 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
 
     // 4. Herramientas
     const tools = [{
-      function_declarations: [{
-        name: "crear_cita",
-        description: "Crea una nueva reserva de cita en la base de datos de la barbería.",
-        parameters: {
-          type: "OBJECT",
-          properties: {
-            barbero_id: { type: "string", description: "ID del barbero." },
-            servicio_id: { type: "string", description: "ID del servicio." },
-            fecha: { type: "string", description: "Fecha YYYY-MM-DD." },
-            hora: { type: "string", description: "Hora HH:mm." },
-            cliente_nombre: { type: "string", description: "Nombre del cliente." },
-            cliente_telefono: { type: "string", description: "WhatsApp del cliente." },
-            notas: { type: "string", description: "Notas adicionales." }
-          },
-          required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
+      function_declarations: [
+        {
+          name: "verificar_disponibilidad",
+          description: "Consulta los horarios disponibles para un barbero en una fecha específica.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              barbero_id: { type: "string", description: "ID del barbero." },
+              fecha: { type: "string", description: "Fecha en formato YYYY-MM-DD." }
+            },
+            required: ["barbero_id", "fecha"]
+          }
+        },
+        {
+          name: "crear_cita",
+          description: "Crea una nueva reserva de cita en la base de datos de la barbería.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              barbero_id: { type: "string", description: "ID del barbero." },
+              servicio_id: { type: "string", description: "ID del servicio." },
+              fecha: { type: "string", description: "Fecha YYYY-MM-DD." },
+              hora: { type: "string", description: "Hora HH:mm." },
+              cliente_nombre: { type: "string", description: "Nombre del cliente." },
+              cliente_telefono: { type: "string", description: "WhatsApp del cliente." },
+              notas: { type: "string", description: "Notas adicionales." }
+            },
+            required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
+          }
         }
-      }]
+      ]
     }];
 
     // 5. Bucle de llamadas a la API (v1beta)
@@ -191,11 +209,17 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
         const { name, args } = toolCall.functionCall;
         console.log(`[GUSTAVO-IA] 🛠️ Ejecutando herramienta (${modelId}): ${name}`, args);
 
-        if (name === 'crear_cita') {
-          const result = await executeCreateAppointment(args);
+        let result;
+        if (name === 'verificar_disponibilidad') {
+          result = await executeCheckAvailability(args);
+        } else if (name === 'crear_cita') {
+          result = await executeCreateAppointment(args);
+        }
+
+        if (result) {
           contents.push({
             role: 'function',
-            parts: [{ functionResponse: { name: "crear_cita", response: result } }]
+            parts: [{ functionResponse: { name, response: result } }]
           });
           continue;
         }
@@ -215,15 +239,53 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
 
   } catch (error: any) {
     console.error(`[GUSTAVO-IA] ERROR CRÍTICO:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Chamo, tuve un pequeño problema técnico. Pásate por aquí para agendar directo mientras reviso mi sistema: https://chamosbarber.com/reservar";
+    return "Hola, te habla Gustavo. 🙏 ||| Chamo, tuve un pequeño problema técnico con mi sistema. Pásate por aquí para agendar directo mientras lo reviso: https://chamosbarber.com/reservar";
+  }
+}
+
+async function executeCheckAvailability(args: any) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { success: false, error: "DB connection failed" };
+
+  try {
+    console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${args.barbero_id} en ${args.fecha}`);
+
+    const { data, error } = await supabase.rpc('get_horarios_disponibles', {
+      barbero_id_param: args.barbero_id,
+      fecha_param: args.fecha,
+      duracion_minutos_param: 30
+    });
+
+    if (error) {
+      console.error('[GUSTAVO-IA] RPC Error:', error);
+      return { success: false, error: error.message };
+    }
+
+    const disponibles = (data as any[])?.filter(h => h.disponible).map(h => h.hora) || [];
+
+    return {
+      success: true,
+      fecha: args.fecha,
+      horarios_disponibles: disponibles,
+      message: disponibles.length > 0
+        ? `Horarios disponibles para el ${args.fecha}: ${disponibles.join(', ')}`
+        : `Lo siento, no hay horarios disponibles para el ${args.fecha}.`
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message };
   }
 }
 
 async function executeCreateAppointment(args: any) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { success: false, error: "DB connection failed" };
+  if (!supabase) {
+    console.error('[GUSTAVO-IA] ❌ Fallo conexión Supabase');
+    return { success: false, error: "DB connection failed" };
+  }
 
   try {
+    console.log('[GUSTAVO-IA] 💾 Intentando insertar cita:', args);
+
     const { data: nuevaCita, error: insertError } = await supabase
       .from('citas')
       .insert([{
@@ -232,7 +294,7 @@ async function executeCreateAppointment(args: any) {
         fecha: args.fecha,
         hora: args.hora,
         cliente_nombre: args.cliente_nombre,
-        cliente_telefono: args.cliente_telefono,
+        cliente_telefono: String(args.cliente_telefono).replace(/\s/g, ''),
         notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
         estado: 'pendiente'
       }])
@@ -240,9 +302,12 @@ async function executeCreateAppointment(args: any) {
       .single();
 
     if (insertError) {
+      console.error('[GUSTAVO-IA] ❌ Error Insert:', insertError);
       if (insertError.code === '23505') return { success: false, error: "Horario ya ocupado" };
       return { success: false, error: insertError.message };
     }
+
+    console.log('[GUSTAVO-IA] ✅ Cita creada exitosamente ID:', nuevaCita.id);
 
     try {
       const { sendNotificationToBarber } = await import('./onesignal');
@@ -251,6 +316,7 @@ async function executeCreateAppointment(args: any) {
 
     return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };
   } catch (e: any) {
+    console.error('[GUSTAVO-IA] ❌ Error inesperado en executeCreateAppointment:', e);
     return { success: false, error: e.message || "Unknown error" };
   }
 }
