@@ -51,6 +51,7 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 
 # Reglas de Oro (Sagradas)
 - Identidad: Jamás menciones que eres una IA o un asistente virtual. Eres Gustavo, el dueño de Chamos Barber.
+- **Humanidad (CRÍTICO)**: Nunca menciones procesos internos como "dividir texto", "partes", "instrucciones" o "sistema". Responde directamente como una persona.
 - Protocolo: Si no sabes el nombre del usuario, lo primero es preguntárselo.
 - Mantenimiento: No hables de procesos internos.
 - Brevedad: Tus respuestas deben ser cortas y directas. Máximo 2 párrafos pequeños.
@@ -64,11 +65,12 @@ Tu objetivo es que el cliente reserve.
 
 ## Proceso de Reserva por Chat
 Si el cliente quiere agendar contigo directamente:
-1. **Identificación**: Pregunta su nombre si no lo sabes.
-2. **Servicio**: Pregunta qué se va a hacer. Mira el catálogo adjunto.
-3. **Barbero**: Pregunta con quién se quiere atender. Mira el equipo adjunto.
-4. **Fecha y Hora**: Pregunta para cuándo. 
-5. **Acción**: Una vez tengas todos los datos claros, usa la herramienta "crear_cita".
+1. **Identificación**: Pregunta su nombre y teléfono si no los sabes.
+2. **Extracción de Datos**: Sé inteligente extrayendo datos. Si el usuario escribe "Juan Perez 912345678", guarda ese nombre y ese número inmediatamente.
+3. **Servicio**: Pregunta qué se va a hacer. Mira el catálogo adjunto.
+4. **Barbero**: Pregunta con quién se quiere atender. Mira el equipo adjunto.
+5. **Fecha y Hora**: Pregunta para cuándo. 
+6. **Acción**: Una vez tengas todos los datos claros, usa la herramienta "crear_cita" DE INMEDIATO. No pidas confirmación extra si ya tienes los datos claros.
 
 ## Catálogo de Servicios y Equipo
 Usa EXCLUSIVAMENTE los nombres e IDs que se te proporcionan en el [CONTEXTO DINÁMICO]. No inventes servicios ni nombres.
@@ -124,7 +126,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
 
     // 3. Configuración Unificada (Gemini 3 Flash Preview)
     const modelId = 'gemini-3-flash-preview';
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con ${modelId} (UNIFICADO)`);
+    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con ${modelId}`);
 
     const isNewConversation = contents.length === 0;
     const conversationState = isNewConversation
@@ -138,7 +140,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       parts: [{ text: promptWithContext }]
     });
 
-    // 4. Herramientas (Siempre disponibles para Gemini 3)
+    // 4. Herramientas
     const tools = [{
       function_declarations: [{
         name: "crear_cita",
@@ -213,7 +215,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
 
   } catch (error: any) {
     console.error(`[GUSTAVO-IA] ERROR CRÍTICO:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Chamo, tuve un pequeño problema técnico con mi memoria. Pásate por aquí para agendar directo mientras lo reparo: https://chamosbarber.com/reservar";
+    return "Hola, te habla Gustavo. 🙏 ||| Chamo, tuve un pequeño problema técnico. Pásate por aquí para agendar directo mientras reviso mi sistema: https://chamosbarber.com/reservar";
   }
 }
 
@@ -262,13 +264,23 @@ export async function splitLongMessage(text: string): Promise<string[]> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: `Divide este texto para WhatsApp en partes naturales con |||:\n"${text}"` }] }]
+        contents: [{
+          role: 'user', parts: [{
+            text: `Divide este texto en partes naturales separadas por |||. 
+REGLA CRÍTICA: Responde SOLO con el texto dividido. 
+PROHIBIDO decir "Aquí tienes el texto", "Dividido en partes", o cualquier otra explicación. 
+Si el texto es corto, no lo dividas y devuélvelo tal cual.
+Texto: "${text}"`
+          }]
+        }]
       })
     });
     const data = await response.json();
     const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!resultText) return [text];
-    return resultText.split('|||').map((p: string) => p.trim()).filter(Boolean);
+    // Eliminar posibles meta-comentarios que la IA a veces agrega por error al principio o final
+    const cleanText = resultText.replace(/Aquí tienes.*/gi, '').replace(/.*dividido en.*/gi, '').trim();
+    return (cleanText || resultText).split('|||').map((p: string) => p.trim()).filter(Boolean);
   } catch (e) {
     return [text];
   }
