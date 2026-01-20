@@ -56,8 +56,8 @@ export const ChatMemory = {
             // Limitar el tamaño de la lista (ej: últimos 15 mensajes)
             await redis.ltrim(key, 0, 14);
 
-            // Expiración en 7 días si no hay actividad (memoria a largo plazo)
-            await redis.expire(key, 604800);
+            // Expiración en 30 días si no hay actividad (ideal para ciclo de barbería)
+            await redis.expire(key, 2592000);
         } catch (error) {
             console.error('[REDIS] Error adding message:', error);
         }
