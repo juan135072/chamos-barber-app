@@ -155,12 +155,12 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       }]
     }];
 
-    // 4. Bucle de llamadas a la API
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
+    // 4. Bucle de llamadas a la API (Usamos gemini-1.5-flash para estabilidad con tools)
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     let iterations = 0;
     let finalResponseText = '';
 
-    while (iterations < 3) {
+    while (iterations < 5) {
       iterations++;
       const response = await fetch(url, {
         method: 'POST',
@@ -168,18 +168,22 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
         body: JSON.stringify({ contents, tools })
       });
 
-      if (!response.ok) throw new Error(`Gemini API Error ${response.status}: ${await response.text()}`);
+      const responseJson = await response.json();
+      if (!response.ok) {
+        console.error('[GUSTAVO-IA] API Error Payload:', JSON.stringify(responseJson, null, 2));
+        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson)}`);
+      }
 
-      const data = await response.json();
-      const messageResponse = data.candidates?.[0]?.content;
+      const messageResponse = responseJson.candidates?.[0]?.content;
       if (!messageResponse) throw new Error('No se recibió respuesta del modelo');
 
+      // Añadimos la respuesta al historial para la siguiente iteración
       contents.push(messageResponse);
 
       const toolCall = messageResponse.parts.find((p: any) => p.functionCall);
       if (toolCall) {
         const { name, args } = toolCall.functionCall;
-        console.log(`[GUSTAVO-IA] 🛠️ Ejecutando: ${name}`, args);
+        console.log(`[GUSTAVO-IA] 🛠️ Ejecutando herramienta: ${name}`, args);
 
         if (name === 'crear_cita') {
           const result = await executeCreateAppointment(args);
@@ -187,11 +191,11 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
             role: 'function',
             parts: [{ functionResponse: { name: "crear_cita", response: result } }]
           });
-          continue;
+          continue; // Volver a preguntar al modelo con el resultado
         }
       }
 
-      // Extraer texto final
+      // Si llegamos aquí sin "continue", es porque no hay más tool calls
       finalResponseText = messageResponse.parts.map((p: any) => p.text || '').join('');
       break;
     }
@@ -206,49 +210,56 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
     return finalResponseText;
 
   } catch (error: any) {
-    console.error(`[GUSTAVO-IA] ERROR:`, error);
-    return "Hola, te habla Gustavo. 🙏 ||| Chamo, disculpa, tuve un pequeño problema técnico. Pásate por aquí para agendar directo: https://chamosbarber.com/reservar y nos vemos allá.";
+    console.error(`[GUSTAVO-IA] ERROR CRÍTICO:`, error);
+    return "Hola, te habla Gustavo. 🙏 ||| Chamo, disculpa, tuve un pequeño problema técnico con el sistema. Pásate por aquí para agendar directo mientras lo reparo: https://chamosbarber.com/reservar y nos vemos allá.";
   }
 }
 
 async function executeCreateAppointment(args: any) {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { error: "DB connection failed" };
+  if (!supabase) return { success: false, error: "DB connection failed" };
 
-  const { data: nuevaCita, error: insertError } = await supabase
-    .from('citas')
-    .insert([{
-      barbero_id: args.barbero_id,
-      servicio_id: args.servicio_id,
-      fecha: args.fecha,
-      hora: args.hora,
-      cliente_nombre: args.cliente_nombre,
-      cliente_telefono: args.cliente_telefono,
-      notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
-      estado: 'pendiente'
-    }])
-    .select()
-    .single();
-
-  if (insertError) {
-    if (insertError.code === '23505') return { success: false, error: "Horario ya ocupado" };
-    return { success: false, error: insertError.message };
-  }
-
-  // Notificación OneSignal
   try {
-    const { sendNotificationToBarber } = await import('./onesignal');
-    await sendNotificationToBarber(args.barbero_id, 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
-  } catch (e) { }
+    const { data: nuevaCita, error: insertError } = await supabase
+      .from('citas')
+      .insert([{
+        barbero_id: args.barbero_id,
+        servicio_id: args.servicio_id,
+        fecha: args.fecha,
+        hora: args.hora,
+        cliente_nombre: args.cliente_nombre,
+        cliente_telefono: args.cliente_telefono,
+        notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
+        estado: 'pendiente'
+      }])
+      .select()
+      .single();
 
-  return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };
+    if (insertError) {
+      console.error('[GUSTAVO-IA] Error en insert:', insertError);
+      if (insertError.code === '23505') return { success: false, error: "Horario ya ocupado" };
+      return { success: false, error: insertError.message };
+    }
+
+    // Notificación OneSignal
+    try {
+      const { sendNotificationToBarber } = await import('./onesignal');
+      await sendNotificationToBarber(args.barbero_id, 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
+    } catch (e) {
+      console.warn('[GUSTAVO-IA] Error enviando notificación push:', e);
+    }
+
+    return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };
+  } catch (e: any) {
+    return { success: false, error: e.message || "Unknown error" };
+  }
 }
 
 export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
-    const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
