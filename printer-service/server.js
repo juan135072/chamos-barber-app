@@ -60,7 +60,8 @@ function connectPrinter(vid, pid) {
         }
 
         device = patchEventEmitter(device);
-        printer = new escpos.Printer(device);
+        // Usamos codificación Latin1 para evitar que caracteres especiales activen modos multibyte
+        printer = new escpos.Printer(device, { encoding: 'ISO-8859-1' });
         return true;
     } catch (e) {
         device = null;
@@ -96,13 +97,14 @@ app.post('/print', (req, res) => {
         device.open((error) => {
             if (error) { device = null; return res.status(500).json({ error: 'Error de puerto' }); }
 
-            console.log(`🖨️ Generando impresión profesional: ${factura.numero_factura}`);
+            console.log(`🖨️ Generando impresión v6.0 (Sin modo chino): ${factura.numero_factura}`);
 
-            // INICIALIZACIÓN Y CONFIGURACIÓN DE CARACTERES
-            printer.pureText('\x1B\x40'); // ESC @ (Initialize)
-            printer.pureText('\x1B\x74\x02'); // ESC t 2 (Select CP850 - Multilingual)
+            // --- COMANDOS DE INICIALIZACIÓN CRÍTICOS ---
+            printer.pureText('\x1B\x40');   // ESC @ (Initialize printer)
+            printer.pureText('\x1C\x2E');   // FS .  (CANCEL CHINESE CHAR MODE) - MUY IMPORTANTE
+            printer.pureText('\x1B\x74\x10'); // ESC t 16 (Select WPC1252 / Latin 1)
 
-            // APERTURA DE CAJÓN (Al inicio)
+            // APERTURA DE CAJÓN
             printer.cashdraw(2).cashdraw(5);
 
             // HEADER
@@ -170,7 +172,7 @@ app.post('/print', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log('=========================================');
-    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 5.0`);
+    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 6.0`);
     console.log(`🌐 Corriendo en http://localhost:${PORT}`);
     console.log('=========================================');
 });
