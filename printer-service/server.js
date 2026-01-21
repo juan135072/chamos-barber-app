@@ -4,6 +4,18 @@ const bodyParser = require('body-parser');
 const escpos = require('escpos');
 const EventEmitter = require('events');
 
+// --- PARCHE DE COMPATIBILIDAD GLOBAL ---
+try {
+    // Intentamos cargar el módulo usb de bajo nivel que usa escpos-usb
+    const usbLowLevel = require('usb');
+    if (usbLowLevel && typeof usbLowLevel.on !== 'function') {
+        console.log("🛠️ Parcheando núcleo USB (ignorar hotplug events)");
+        usbLowLevel.on = usbLowLevel.addListener = usbLowLevel.removeListener = usbLowLevel.removeAllListeners = () => { };
+    }
+} catch (e) {
+    console.warn("⚠️ No se pudo parchear el módulo 'usb' directamente, se intentará de forma indirecta.");
+}
+
 // Instalar adaptadores según el SO
 try {
     escpos.USB = require('escpos-usb');
@@ -26,12 +38,11 @@ app.use((req, res, next) => {
 let device = null;
 let printer = null;
 
-// Función para asegurar que el dispositivo sea un EventEmitter (Soluciona 'usb.on is not a function')
+// Función para asegurar que el dispositivo sea un EventEmitter (Capa extra de seguridad)
 function patchEventEmitter(obj) {
     if (obj && typeof obj.on !== 'function') {
-        console.log("🛠️ Aplicando parche de compatibilidad EventEmitter...");
+        console.log("🛠️ Aplicando parche de compatibilidad EventEmitter al dispositivo...");
         Object.setPrototypeOf(obj, EventEmitter.prototype);
-        // Opcional: inicializar si es necesario, aunque para escpos suele bastar la herencia
     }
     return obj;
 }
@@ -58,13 +69,14 @@ function connectPrinter(vid, pid) {
 
         if (found) {
             console.log(`🎯 Impresora coincidente encontrada (VID: ${targetVid}, PID: ${targetPid})`);
+            // El error "usb.on" solía ocurrir AQUÍ en el constructor
             device = new escpos.USB(targetVid, targetPid);
         } else {
             console.log("ℹ️ Usando selección automática del primer dispositivo USB disponible.");
             device = new escpos.USB();
         }
 
-        // PARCHE CRÍTICO: Evita error 'usb.on is not a function'
+        // PARCHE CRÍTICO: Evita error 'usb.on is not a function' si el constructor no falló pero el objeto es incompleto
         device = patchEventEmitter(device);
 
         printer = new escpos.Printer(device);
@@ -135,7 +147,7 @@ app.post('/print', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log('=========================================');
-    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 3.0`);
+    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 4.0`);
     console.log(`🌐 Corriendo en http://localhost:${PORT}`);
     console.log('=========================================');
 });
