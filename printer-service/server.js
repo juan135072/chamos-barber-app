@@ -16,6 +16,12 @@ const PORT = 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
+// Middleware para LOGS VERBOSOS (Ayuda a depurar si llegan las peticiones)
+app.use((req, res, next) => {
+    console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
+    next();
+});
+
 // Variable global para el dispositivo
 let device = null;
 let printer = null;

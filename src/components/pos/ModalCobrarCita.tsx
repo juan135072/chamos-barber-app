@@ -215,7 +215,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
 
       if (!impresionExitosa) {
         // Fallback manual si falla la automática
-        alert('Venta registrada. Si la impresora no respondió, puedes intentar imprimir manualmente.')
+        alert('📦 Venta registrada en BD, pero NO se pudo conectar con el servicio de impresora local (Puerto 3001). \n\n⚠️ El cajón no abrirá automáticamente. Se usará el método de impresión del navegador.')
       }
 
     } catch (error: any) {

@@ -366,6 +366,10 @@ export class FacturaTermica {
       throw new Error('Servicio respondió con error')
     } catch (error) {
       console.warn('⚠️ Falló impresión directa (Servicio no disponible):', error)
+      // Opcional: Mostrar alerta si no estamos en un entorno de pruebas
+      if (typeof window !== 'undefined') {
+        console.error('❌ NO SE PUDO CONECTAR CON EL SERVICIO DE IMPRESIÓN (Port 3001). Usando respaldo del navegador...')
+      }
       return false
     }
   }
