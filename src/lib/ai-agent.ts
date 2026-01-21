@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
+import { normalizePhone } from '../../lib/phone-utils';
 
 // Helper para inicializar Supabase de forma segura
 const getSupabaseAdmin = () => {
@@ -294,7 +295,7 @@ async function executeCreateAppointment(args: any) {
         fecha: args.fecha,
         hora: args.hora,
         cliente_nombre: args.cliente_nombre,
-        cliente_telefono: String(args.cliente_telefono).replace(/\s/g, ''),
+        cliente_telefono: normalizePhone(String(args.cliente_telefono)),
         notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
         estado: 'pendiente'
       }])

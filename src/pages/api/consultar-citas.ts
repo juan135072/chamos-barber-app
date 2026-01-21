@@ -10,7 +10,7 @@ export default async function handler(
 ) {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
   console.log('🔵 [consultar-citas] Request received:', req.method, 'from IP:', clientIp)
-  
+
   if (req.method !== 'GET') {
     console.log('❌ [consultar-citas] Method not allowed:', req.method)
     return res.status(405).json({ error: 'Method not allowed' })
@@ -23,19 +23,24 @@ export default async function handler(
   // if (!rateLimitResult.allowed) return
 
   // 🛡️ Validación mejorada
-  const { telefono } = req.query
-  console.log('🔍 [consultar-citas] Telefono:', telefono)
+  let { telefono } = req.query
+  console.log('🔍 [consultar-citas] Telefono original recibido:', telefono)
 
   if (!telefono || typeof telefono !== 'string') {
     console.log('❌ [consultar-citas] Telefono missing or invalid')
     return res.status(400).json({ error: 'Teléfono es requerido' })
   }
-  
+
+  // Normalizar teléfono para asegurar coincidencia con la DB
+  const { normalizePhone } = await import('../../../lib/phone-utils')
+  telefono = normalizePhone(telefono)
+  console.log('🔍 [consultar-citas] Telefono normalizado para búsqueda:', telefono)
+
   // Validar formato de teléfono internacional (8-15 dígitos)
   const phoneRegex = /^\+?[1-9]\d{7,14}$/
   if (!phoneRegex.test(telefono)) {
     console.log('❌ [consultar-citas] Invalid phone format:', telefono)
-    return res.status(400).json({ 
+    return res.status(400).json({
       error: 'Formato de teléfono inválido. Debe tener entre 8 y 15 dígitos.',
       code: 'VALIDATION_ERROR'
     })
@@ -43,18 +48,18 @@ export default async function handler(
 
   try {
     console.log('🔵 [consultar-citas] Creating Supabase client with SERVICE_ROLE_KEY...')
-    
+
     // Verificar variables de entorno
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
       console.error('❌ [consultar-citas] NEXT_PUBLIC_SUPABASE_URL not found')
       return res.status(500).json({ error: 'Configuración de Supabase no encontrada' })
     }
-    
+
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
       console.error('❌ [consultar-citas] SUPABASE_SERVICE_ROLE_KEY not found')
       return res.status(500).json({ error: 'Clave de servicio de Supabase no encontrada' })
     }
-    
+
     // Crear cliente Supabase con SERVICE_ROLE_KEY
     // Esto bypassa todas las políticas RLS
     const supabase = createClient<Database>(
@@ -67,7 +72,7 @@ export default async function handler(
         }
       }
     )
-    
+
     console.log('✅ [consultar-citas] Supabase client created')
 
     // Buscar citas por teléfono del cliente
@@ -105,7 +110,7 @@ export default async function handler(
 
     if (!citas || citas.length === 0) {
       console.log('⚠️ [consultar-citas] No appointments found for this phone number')
-      return res.status(200).json({ 
+      return res.status(200).json({
         citas: [],
         total_citas: 0,
         citas_pendientes: 0
@@ -132,14 +137,14 @@ export default async function handler(
         if (match) {
           const serviciosTexto = match[1].trim()
           const nombresServicios = serviciosTexto.split(',').map((s: string) => s.trim())
-          
+
           if (nombresServicios.length > 1) {
             // Buscar datos completos de todos los servicios
             const { data: serviciosData } = await supabase
               .from('servicios')
               .select('nombre, precio, duracion_minutos')
               .in('nombre', nombresServicios)
-            
+
             if (serviciosData && serviciosData.length > 0) {
               precioTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.precio || 0), 0)
               duracionTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.duracion_minutos || 0), 0)
@@ -176,7 +181,7 @@ export default async function handler(
     // Mapear los datos al formato esperado por el frontend
     const mappedCitas = await Promise.all(citas.map(async (cita: any) => {
       const { precioTotal, duracionTotal, serviciosDetalle } = await calcularDatosServicios(cita)
-      
+
       return {
         id: cita.id,
         fecha: cita.fecha,
@@ -184,12 +189,12 @@ export default async function handler(
         estado: cita.estado,
         notas: cita.notas,
         servicio_nombre: cita.servicios?.nombre || 'Servicio no especificado',
-        barbero_nombre: cita.barberos 
+        barbero_nombre: cita.barberos
           ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
           : 'Barbero no asignado',
         barbero_imagen: cita.barberos?.imagen_url || null,
         barbero_especialidad: cita.barberos?.especialidades && Array.isArray(cita.barberos.especialidades)
-          ? cita.barberos.especialidades.join(', ') 
+          ? cita.barberos.especialidades.join(', ')
           : null,
         precio: precioTotal,
         duracion_total: duracionTotal,
@@ -198,26 +203,26 @@ export default async function handler(
     }))
 
     console.log('✅ [consultar-citas] Returning response with', mappedCitas.length, 'appointments')
-    
+
     // Security logging está implementado en src/lib/security/logger.ts
-    
-    return res.status(200).json({ 
+
+    return res.status(200).json({
       citas: mappedCitas,
       total_citas: citas.length,
       citas_pendientes: citasPendientes
     })
   } catch (error) {
     console.error('❌ [consultar-citas] Unexpected error:', error)
-    
+
     let errorMessage = 'Internal server error'
     let errorDetails = 'Unknown error'
-    
+
     if (error instanceof Error) {
       errorMessage = error.message
       errorDetails = error.stack || error.message
     }
-    
-    return res.status(500).json({ 
+
+    return res.status(500).json({
       error: errorMessage,
       details: errorDetails
     })
