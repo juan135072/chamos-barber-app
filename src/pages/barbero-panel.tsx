@@ -676,6 +676,26 @@ const BarberoPanelPage: React.FC = () => {
                     </>
                   )}
                 </button>
+
+                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    className="btn"
+                    style={{
+                      width: '100%',
+                      backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                      color: '#EF4444',
+                      border: '1px solid rgba(220, 38, 38, 0.3)',
+                      transition: 'var(--transition)'
+                    }}
+                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.2)'}
+                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.1)'}
+                  >
+                    <i className="fas fa-sign-out-alt mr-2"></i>
+                    Cerrar Sesión Corriente
+                  </button>
+                </div>
               </form>
             </div>
           )}

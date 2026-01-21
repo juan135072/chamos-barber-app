@@ -252,35 +252,18 @@ export default function AdminPage() {
               </button>
             ))}
           </nav>
-
-          {/* Bottom Actions */}
+          {/* Bottom Logout Actions */}
           <div
             className="absolute bottom-0 left-0 right-0"
             style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}
           >
             <button
-              onClick={() => router.push('/pos')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#10B981' }}
+              onClick={handleLogout}
+              className="w-full flex items-center px-4 py-3 transition-all hover:bg-red-500 hover:bg-opacity-10"
+              style={{ color: '#EF4444' }}
             >
-              <i className={`fas fa-cash-register ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">POS</span>}
-            </button>
-            <button
-              onClick={() => router.push('/admin/liquidaciones')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#8B5CF6' }}
-            >
-              <i className={`fas fa-money-bill-wave ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Liquidaciones</span>}
-            </button>
-            <button
-              onClick={() => router.push('/admin/gastos')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#F59E0B' }}
-            >
-              <i className={`fas fa-file-invoice-dollar ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Gastos</span>}
+              <i className={`fas fa-sign-out-alt ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+              {sidebarOpen && <span className="ml-3 text-sm font-medium">Cerrar Sesión</span>}
             </button>
           </div>
         </aside>
@@ -332,88 +315,90 @@ export default function AdminPage() {
                 </button>
               </div>
             </div>
-          </header>
+          </header >
 
           {/* Content Area */}
-          <div className="p-6 lg:p-8">
+          < div className="p-6 lg:p-8" >
             {/* Dashboard */}
-            {activeTab === 'dashboard' && (
-              <div className="space-y-6">
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {[
-                    {
-                      label: 'Total Citas',
-                      value: stats.totalCitas,
-                      icon: 'fa-calendar-check',
-                      color: '#D4AF37'
-                    },
-                    {
-                      label: 'Citas Hoy',
-                      value: stats.citasHoy,
-                      icon: 'fa-clock',
-                      color: '#3B82F6'
-                    },
-                    {
-                      label: 'Pendientes',
-                      value: stats.citasPendientes,
-                      icon: 'fa-hourglass-half',
-                      color: '#F59E0B'
-                    },
-                    {
-                      label: 'Barberos',
-                      value: barberos.length,
-                      icon: 'fa-users',
-                      color: '#10B981'
-                    },
-                  ].map((stat, idx) => (
-                    <div
-                      key={idx}
-                      className="p-6 rounded-xl transition-all hover:scale-105"
-                      style={{
-                        backgroundColor: '#111',
-                        border: '1px solid rgba(255, 255, 255, 0.05)'
-                      }}
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <div
-                          className="w-10 h-10 rounded-lg flex items-center justify-center"
-                          style={{
-                            backgroundColor: `${stat.color}20`,
-                            color: stat.color
-                          }}
-                        >
-                          <i className={`fas ${stat.icon}`}></i>
+            {
+              activeTab === 'dashboard' && (
+                <div className="space-y-6">
+                  {/* Stats Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      {
+                        label: 'Total Citas',
+                        value: stats.totalCitas,
+                        icon: 'fa-calendar-check',
+                        color: '#D4AF37'
+                      },
+                      {
+                        label: 'Citas Hoy',
+                        value: stats.citasHoy,
+                        icon: 'fa-clock',
+                        color: '#3B82F6'
+                      },
+                      {
+                        label: 'Pendientes',
+                        value: stats.citasPendientes,
+                        icon: 'fa-hourglass-half',
+                        color: '#F59E0B'
+                      },
+                      {
+                        label: 'Barberos',
+                        value: barberos.length,
+                        icon: 'fa-users',
+                        color: '#10B981'
+                      },
+                    ].map((stat, idx) => (
+                      <div
+                        key={idx}
+                        className="p-6 rounded-xl transition-all hover:scale-105"
+                        style={{
+                          backgroundColor: '#111',
+                          border: '1px solid rgba(255, 255, 255, 0.05)'
+                        }}
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <div
+                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            style={{
+                              backgroundColor: `${stat.color}20`,
+                              color: stat.color
+                            }}
+                          >
+                            <i className={`fas ${stat.icon}`}></i>
+                          </div>
+                        </div>
+                        <div className="text-3xl font-bold mb-1" style={{ color: '#FFF' }}>
+                          {stat.value}
+                        </div>
+                        <div className="text-sm" style={{ color: '#666' }}>
+                          {stat.label}
                         </div>
                       </div>
-                      <div className="text-3xl font-bold mb-1" style={{ color: '#FFF' }}>
-                        {stat.value}
-                      </div>
-                      <div className="text-sm" style={{ color: '#666' }}>
-                        {stat.label}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
 
-                {/* Calendar View - Reservas por Barbero */}
-                <div
-                  className="rounded-xl p-6"
-                  style={{
-                    backgroundColor: '#111',
-                    border: '1px solid rgba(255, 255, 255, 0.05)'
-                  }}
-                >
-                  <CalendarView
-                    barberos={barberos}
-                    onDateSelect={(date) => {
-                      // Opcionalmente abrir el tab de Citas con la fecha seleccionada
-                      console.log('Fecha seleccionada:', date)
+                  {/* Calendar View - Reservas por Barbero */}
+                  <div
+                    className="rounded-xl p-6"
+                    style={{
+                      backgroundColor: '#111',
+                      border: '1px solid rgba(255, 255, 255, 0.05)'
                     }}
-                  />
+                  >
+                    <CalendarView
+                      barberos={barberos}
+                      onDateSelect={(date) => {
+                        // Opcionalmente abrir el tab de Citas con la fecha seleccionada
+                        console.log('Fecha seleccionada:', date)
+                      }}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )
+            }
 
             {/* Other Tabs */}
             {activeTab === 'clientes' && <ClientesTab />}
@@ -427,16 +412,18 @@ export default function AdminPage() {
             {activeTab === 'citas' && <CitasTab />}
             {activeTab === 'configuracion' && <ConfiguracionTab />}
             {activeTab === 'solicitudes' && <SolicitudesTab />}
-          </div>
-        </main>
+          </div >
+        </main >
 
         {/* Mobile Sidebar Overlay */}
-        {sidebarOpen && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
+        {
+          sidebarOpen && (
+            <div
+              className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-20"
+              onClick={() => setSidebarOpen(false)}
+            />
+          )
+        }
 
         {/* Mobile Sidebar Toggle */}
         <button
@@ -446,7 +433,7 @@ export default function AdminPage() {
         >
           <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
         </button>
-      </div>
+      </div >
     </>
   )
 }
