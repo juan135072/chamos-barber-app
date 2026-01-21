@@ -174,7 +174,8 @@ Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas h
 Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
 `;
 
-    const systemSignal = metadata.isAudio ? "\n[SISTEMA: AUDIO_TRANSCRITO]\n" : "";
+    const isAudioNote = metadata.isAudio || message.includes('[SISTEMA: TRANSCRIPCIÓN_AUDIO]');
+    const systemSignal = isAudioNote ? "\n[SISTEMA: AUDIO_RECIBIDO]\n" : "";
     const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}${systemSignal}\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
 
     contents.push({
@@ -485,47 +486,3 @@ Texto: "${text}"`
   }
 }
 
-/**
- * Transcribe audio using Gemini Flash (cheap/fast)
- */
-export async function transcribeAudio(base64: string, mimeType: string): Promise<string> {
-  try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) throw new Error('API_KEY_MISSING');
-
-    console.log(`[GUSTAVO-IA] 🎤 Iniciando transcripción con SDK (${mimeType})...`);
-
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
-      systemInstruction: "Eres un experto en transcripción de audios de WhatsApp para una barbería. Tu única tarea es escribir exactamente lo que dice el audio. No agregues comentarios extra ni explicaciones. Si el audio tiene ruido pero se escucha una voz, prioriza la voz. Si el audio está totalmente vacío o solo es ruido ininteligible, responde estrictamente: '[Audio ininteligible o muy corto]'"
-    });
-
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          data: base64,
-          mimeType: mimeType
-        }
-      },
-      "Transcribe este audio de WhatsApp. Si hay alguien hablando, escribe el texto íntegro. Si no se entiende nada, usa el código de error solicitado."
-    ]);
-
-    const transcription = result.response.text();
-
-    if (!transcription || transcription.trim().length === 0) {
-      console.warn('[GUSTAVO-IA] Transcripción vacía de la API.');
-      return '[Audio ininteligible o muy corto]';
-    }
-
-    console.log(`[GUSTAVO-IA] ✅ Transcripción exitosa: "${transcription.trim().substring(0, 60)}..."`);
-    return transcription.trim();
-  } catch (error: any) {
-    console.error('[GUSTAVO-IA] Fallo crítico en transcribeAudio:', error);
-    // Loguear detalles si es un error de la API
-    if (error.response) {
-      console.error('[GUSTAVO-IA] Detalles error API:', JSON.stringify(error.response, null, 2));
-    }
-    return '[Error técnico al procesar audio]';
-  }
-}

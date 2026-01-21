@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next';
 import { generateChatResponse } from '@/lib/ai-agent';
 import { sendMessageToChatwoot } from '@/lib/chatwoot';
 import { ChatMemory } from '@/lib/redis';
+import { transcribeAudio } from '@/lib/transcription';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -61,10 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     let mimeType = audioAttachment.content_type || 'audio/ogg';
                     if (mimeType.includes('application/octet-stream')) mimeType = 'audio/ogg';
 
-                    // Llamar a la transcripción
-                    const { transcribeAudio } = await import('@/lib/ai-agent');
+                    // Llamar a la transcripción (Whisper)
                     transcribedText = await transcribeAudio(base64Audio, mimeType);
                     isAudioMessage = true;
+                    console.log(`[BOT-DEBUG] Transcripción exitosa: "${transcribedText.substring(0, 50)}..."`);
                 } catch (audioError) {
                     console.error('[BOT-DEBUG] Error procesando audio:', audioError);
                 }
@@ -74,7 +75,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Combinar texto del usuario (si hay) con la transcripción
         let finalInputContent = content || '';
         if (isAudioMessage) {
-            finalInputContent = transcribedText + (content ? `\n(Nota: Además el usuario escribió: ${content})` : '');
+            // Mandamos una señal al sistema de que es un audio transcribre
+            finalInputContent = `[SISTEMA: TRANSCRIPCIÓN_AUDIO] ${transcribedText}` + (content ? `\n\n(Nota del cliente en texto: ${content})` : '');
         }
 
         // --- SEGUIMIENTO DE VENTANA DE CONVERSACIÓN (COSTO CERO) ---
