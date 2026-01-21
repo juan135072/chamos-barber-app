@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
 import { normalizePhone } from '../../lib/phone-utils';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Helper para inicializar Supabase de forma segura
 const getSupabaseAdmin = () => {
@@ -492,42 +493,39 @@ export async function transcribeAudio(base64: string, mimeType: string): Promise
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error('API_KEY_MISSING');
 
-    const modelId = 'gemini-1.5-flash';
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    console.log(`[GUSTAVO-IA] 🎤 Iniciando transcripción con SDK (${mimeType})...`);
 
-    console.log(`[GUSTAVO-IA] 🎤 Iniciando transcripción (${mimeType})...`);
-
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{
-          role: 'user',
-          parts: [
-            { text: "Transcribe exactamente lo que dice este audio. Si no hay voz o no se entiende, responde '[Ininteligible]'. Responde SOLO con el texto transcrito." },
-            {
-              inlineData: {
-                data: base64,
-                mimeType: mimeType
-              }
-            }
-          ]
-        }]
-      })
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: "Eres un experto en transcripción de audios de WhatsApp para una barbería. Tu única tarea es escribir exactamente lo que dice el audio. No agregues comentarios extra ni explicaciones. Si el audio tiene ruido pero se escucha una voz, prioriza la voz. Si el audio está totalmente vacío o solo es ruido ininteligible, responde estrictamente: '[Audio ininteligible o muy corto]'"
     });
 
-    const data = await response.json();
-    const transcription = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const result = await model.generateContent([
+      {
+        inlineData: {
+          data: base64,
+          mimeType: mimeType
+        }
+      },
+      "Transcribe este audio de WhatsApp. Si hay alguien hablando, escribe el texto íntegro. Si no se entiende nada, usa el código de error solicitado."
+    ]);
 
-    if (!transcription) {
-      console.warn('[GUSTAVO-IA] No se obtuvo transcripción. Response:', JSON.stringify(data, null, 2));
+    const transcription = result.response.text();
+
+    if (!transcription || transcription.trim().length === 0) {
+      console.warn('[GUSTAVO-IA] Transcripción vacía de la API.');
       return '[Audio ininteligible o muy corto]';
     }
 
-    console.log(`[GUSTAVO-IA] ✅ Transcripción completa: "${transcription.trim().substring(0, 50)}..."`);
+    console.log(`[GUSTAVO-IA] ✅ Transcripción exitosa: "${transcription.trim().substring(0, 60)}..."`);
     return transcription.trim();
-  } catch (error) {
-    console.error('[GUSTAVO-IA] Error en transcribeAudio:', error);
-    return '[Error al procesar audio]';
+  } catch (error: any) {
+    console.error('[GUSTAVO-IA] Fallo crítico en transcribeAudio:', error);
+    // Loguear detalles si es un error de la API
+    if (error.response) {
+      console.error('[GUSTAVO-IA] Detalles error API:', JSON.stringify(error.response, null, 2));
+    }
+    return '[Error técnico al procesar audio]';
   }
 }
