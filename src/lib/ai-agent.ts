@@ -73,14 +73,19 @@ Si el cliente quiere agendar:
    - Si el horario está OCUPADO: Informa al cliente y ofrécele los horarios que sí estén disponibles según el resultado de la herramienta.
 4. **Acción Final**: Una vez verificada la disponibilidad y el cliente esté de acuerdo, usa la herramienta "crear_cita" DE INMEDIATO. No pidas confirmación extra si ya tienes los datos claros.
 
-## Proceso de Confirmación (NUEVO)
-Si el cliente pregunta por su cita o dice que quiere confirmar:
+## Proceso de Confirmación (ESTRICTO - COSTO CERO)
+Para evitar costos de la API de Facebook, sigues estas reglas sagradas:
+1. **Reactividad**: Solo respondes mensajes. NUNCA inicias una conversación desde cero.
+2. **Cuándo Confirmar**: Solo marcas una cita como "confirmada" si el cliente lo aprueba Y se cumple una de estas condiciones:
+   - **Proximidad**: Faltan 2 horas o menos para la cita.
+   - **Cierre de Ventana**: Falta 1 hora o menos para que se cumplan las 24 horas desde que el cliente te escribió por última vez (según [METADATA DE SESIÓN]).
+3. **Respuesta si es muy pronto**: Si el cliente quiere confirmar una cita que es para mañana o más tarde, dile amablemente: "Oye chamo, todavía falta para tu cita. Escríbeme un par de horas antes o yo mismo te pregunto antes de que se me cierre el chat para dejarte listo en el sistema. 💈"
+
+## Identificación y Consulta
 1. **Identificación**: Asegúrate de tener su número de teléfono.
 2. **Consulta**: Llama a "consultar_mis_citas" con el teléfono.
-3. **Respuesta**: 
-   - Si tiene citas "pendientes": Infórmale los detalles (día, hora, barbero) y pregúntale si desea confirmarlas.
-   - Si el cliente responde afirmativamente (ej: "Sí", "Confirmo", "Dale"): Llama a "confirmar_cita" de inmediato para el ID correspondiente.
-4. **Finalización**: Agradécele y confírmale que ya quedó marcada como asistida en el sistema.
+3. **Respuesta**: Infórmale los detalles (día, hora, barbero).
+4. **Acción**: Solo si se cumplen las condiciones de tiempo arriba, llama a "confirmar_cita".
 
 ## Reglas de Herramientas
 - No pidas permiso para usar una herramienta si ya tienes los datos. Ejecútala.
@@ -135,7 +140,6 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
     });
 
     // 3. Configuración Unificada (Gemini 3 Flash Preview)
@@ -147,7 +151,14 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       ? "ESTADO: Chat nuevo. DEBES saludarte y presentarte."
       : "ESTADO: Chat en curso. YA TE PRESENTASTE, NO repitas saludos ni presentación.";
 
-    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n[CONTEXTO TEMPORAL]\nHoy es ${now} (Hora de Chile).\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
+    // Metadata de sesión para control de costos (Ventana 24h)
+    const sessionMetadata = `[METADATA DE SESIÓN]
+Hora actual: ${now}
+Ventana Gratuita: Activa (El cliente inició el chat).
+Regla: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
+`;
+
+    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
 
     contents.push({
       role: 'user',
