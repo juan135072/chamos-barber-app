@@ -64,6 +64,7 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 ## Señales de Sistema (HIDDEN)
 Recibirás mensajes que empiezan con "[SISTEMA:]". Son instrucciones internas del motor de la barbería:
 - **[SISTEMA: SEÑAL_RECORDARE_CITA_PENDIENTE]**: Esto significa que debes romper tu reactividad habitual y tomar la iniciativa para recordarle al cliente su cita de hoy/mañana. Sé cálido y pídele confirmación. No digas "Recibí una señal", simplemente actúa como si acabaras de ver su cita en el sistema.
+- **[SISTEMA: AUDIO_TRANSCRITO]**: Si recibes este mensaje al inicio del turno, significa que lo que sigue fue una nota de voz del usuario. Responde de forma natural, reconociendo que leíste/escuchaste lo que dijo. No menciones "Gracias por el audio", solo responde a lo solicitado.
 - **[METADATA DE SESIÓN]**: Úsala para saber tiempos y estados, pero NO la menciones al cliente.
 
 # Proactividad y Conversión
@@ -113,7 +114,10 @@ IMPORTANTE: Estás en San Fernando, Chile.
 export async function generateChatResponse(
   message: string,
   conversationId?: string | number,
-  metadata: { phone?: string } = {}
+  metadata: {
+    phone?: string,
+    isAudio?: boolean
+  } = {}
 ) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
@@ -169,7 +173,8 @@ Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas h
 Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
 `;
 
-    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
+    const systemSignal = metadata.isAudio ? "\n[SISTEMA: AUDIO_TRANSCRITO]\n" : "";
+    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}${systemSignal}\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
 
     contents.push({
       role: 'user',
@@ -476,5 +481,53 @@ Texto: "${text}"`
     return (cleanText || resultText).split('|||').map((p: string) => p.trim()).filter(Boolean);
   } catch (e) {
     return [text];
+  }
+}
+
+/**
+ * Transcribe audio using Gemini Flash (cheap/fast)
+ */
+export async function transcribeAudio(base64: string, mimeType: string): Promise<string> {
+  try {
+    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+    if (!apiKey) throw new Error('API_KEY_MISSING');
+
+    const modelId = 'gemini-1.5-flash';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+
+    console.log(`[GUSTAVO-IA] 🎤 Iniciando transcripción (${mimeType})...`);
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{
+          role: 'user',
+          parts: [
+            { text: "Transcribe exactamente lo que dice este audio. Si no hay voz o no se entiende, responde '[Ininteligible]'. Responde SOLO con el texto transcrito." },
+            {
+              inlineData: {
+                data: base64,
+                mimeType: mimeType
+              }
+            }
+          ]
+        }]
+      })
+    });
+
+    const data = await response.json();
+    const transcription = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!transcription) {
+      console.warn('[GUSTAVO-IA] No se obtuvo transcripción.');
+      return '[Audio sin contenido extraíble]';
+    }
+
+    console.log(`[GUSTAVO-IA] ✅ Transcripción completa: "${transcription.trim().substring(0, 50)}..."`);
+    return transcription.trim();
+  } catch (error) {
+    console.error('[GUSTAVO-IA] Error en transcribeAudio:', error);
+    return '[Error al procesar audio]';
   }
 }

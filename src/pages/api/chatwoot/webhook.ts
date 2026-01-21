@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json({ status: 'ignored_event' });
         }
 
-        const { message_type, content, conversation, sender } = body;
+        const { message_type, content, conversation, sender, attachments } = body;
 
         // Solo responder a mensajes entrantes (del cliente)
         if (message_type !== 'incoming') {
@@ -43,24 +43,58 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json({ status: 'agent_message_ignored' });
         }
 
+        // --- PROCESAMIENTO DE AUDIO (NOTAS DE VOZ) ---
+        let transcribedText = '';
+        let isAudioMessage = false;
+
+        if (attachments && Array.isArray(attachments)) {
+            const audioAttachment = attachments.find((a: any) => a.file_type === 'audio');
+            if (audioAttachment && audioAttachment.data_url) {
+                console.log(`[BOT-DEBUG] Detectada nota de voz: ${audioAttachment.data_url}. Transcribiendo...`);
+                try {
+                    const audioResponse = await fetch(audioAttachment.data_url);
+                    if (!audioResponse.ok) throw new Error(`Fallo descarga de audio: ${audioResponse.status}`);
+
+                    const arrayBuffer = await audioResponse.arrayBuffer();
+                    const base64Audio = Buffer.from(arrayBuffer).toString('base64');
+
+                    let mimeType = audioAttachment.content_type || 'audio/ogg';
+                    if (mimeType.includes('application/octet-stream')) mimeType = 'audio/ogg';
+
+                    // Llamar a la transcripción
+                    const { transcribeAudio } = await import('@/lib/ai-agent');
+                    transcribedText = await transcribeAudio(base64Audio, mimeType);
+                    isAudioMessage = true;
+                } catch (audioError) {
+                    console.error('[BOT-DEBUG] Error procesando audio:', audioError);
+                }
+            }
+        }
+
+        // Combinar texto del usuario (si hay) con la transcripción
+        let finalInputContent = content || '';
+        if (isAudioMessage) {
+            finalInputContent = transcribedText + (content ? `\n(Nota: Además el usuario escribió: ${content})` : '');
+        }
+
         // --- SEGUIMIENTO DE VENTANA DE CONVERSACIÓN (COSTO CERO) ---
         const phone = sender?.phone_number || conversation?.contact_handle;
         if (phone && conversation.id) {
             await ChatMemory.trackConversationWindow(phone, conversation.id);
         }
 
-        if (!content || content.trim() === '') {
+        if (!finalInputContent || finalInputContent.trim() === '') {
             return res.status(200).json({ status: 'empty_content' });
         }
 
-        console.log(`[BOT-DEBUG] Mensaje recibido: "${content}" en conv:${conversation.id}. Iniciando espera de 7s...`);
+        console.log(`[BOT-DEBUG] Mensaje recibido: "${finalInputContent.substring(0, 100)}..." en conv:${conversation.id}.`);
 
         // --- LÓGICA DE AGRUPACIÓN (DEBOUNCE) ---
         const eventId = Math.random().toString(36).substring(7);
         const conversationId = conversation.id;
 
         // 1. Guardar mensaje en el buffer y marcar este evento como el último
-        await ChatMemory.appendToBuffer(conversationId, content);
+        await ChatMemory.appendToBuffer(conversationId, finalInputContent);
         await ChatMemory.setLastEventId(conversationId, eventId);
 
         // 2. Esperar 5 segundos de "silencio"
@@ -74,16 +108,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 4. Si llegamos aquí, han pasado unos segundos sin mensajes nuevos. Consolidamos.
-        let consolidatedMessage = content; // Fallback al mensaje actual
+        let consolidatedMessage = finalInputContent;
         try {
             const buffer = await ChatMemory.getBuffer(conversationId);
             if (buffer && buffer.length > 0) {
                 consolidatedMessage = buffer.join('\n');
-                console.log(`[BOT-DEBUG] Mensajes consolidados (${buffer.length}):`, consolidatedMessage);
+                console.log(`[BOT-DEBUG] Mensajes consolidados (${buffer.length})`);
             }
             await ChatMemory.clearBuffer(conversationId);
         } catch (bufferError) {
-            console.error('[BOT-DEBUG] Error al consolidar buffer (usando fallback):', bufferError);
+            console.error('[BOT-DEBUG] Error al consolidar buffer:', bufferError);
         }
 
         // Generar respuesta con AI
@@ -91,7 +125,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             // Extraer metadatos (ej: teléfono del remitente)
             const metadata = {
-                phone: sender?.phone_number || conversation?.contact_handle || undefined
+                phone: sender?.phone_number || conversation?.contact_handle || undefined,
+                isAudio: isAudioMessage
             };
             console.log(`[BOT-DEBUG] Ejecutando IA con metadata:`, metadata);
             aiResponse = await generateChatResponse(consolidatedMessage, conversationId, metadata);
