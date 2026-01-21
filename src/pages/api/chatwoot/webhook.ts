@@ -43,6 +43,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(200).json({ status: 'agent_message_ignored' });
         }
 
+        // --- SEGUIMIENTO DE VENTANA DE CONVERSACIÓN (COSTO CERO) ---
+        const phone = sender?.phone_number || conversation?.contact_handle;
+        if (phone && conversation.id) {
+            await ChatMemory.trackConversationWindow(phone, conversation.id);
+        }
+
         if (!content || content.trim() === '') {
             return res.status(200).json({ status: 'empty_content' });
         }

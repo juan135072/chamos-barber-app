@@ -117,6 +117,37 @@ export const ChatMemory = {
             console.error('[REDIS] Error getting last event ID:', error);
             return null;
         }
+    },
+
+    /**
+     * Gestión de Ventana de Conversación (Costo Cero)
+     */
+    trackConversationWindow: async (phone: string, conversationId: string | number) => {
+        if (!redis) return;
+        try {
+            const key = `conv_window:${phone}`;
+            const data = JSON.stringify({
+                conversationId,
+                last_incoming_at: new Date().toISOString()
+            });
+            // Guardar por 24 horas (ventana gratuita de Facebook)
+            await redis.set(key, data, 'EX', 86400);
+            console.log(`[REDIS] Ventana registrada para ${phone}: conv ${conversationId}`);
+        } catch (error) {
+            console.error('[REDIS] Error tracking conversation window:', error);
+        }
+    },
+
+    getConversationWindow: async (phone: string) => {
+        if (!redis) return null;
+        try {
+            const key = `conv_window:${phone}`;
+            const data = await redis.get(key);
+            return data ? JSON.parse(data) : null;
+        } catch (error) {
+            console.error('[REDIS] Error getting conversation window:', error);
+            return null;
+        }
     }
 };
 
