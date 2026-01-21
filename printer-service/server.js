@@ -82,10 +82,12 @@ app.post('/open-drawer', (req, res) => {
                 return res.status(500).json({ error: 'Error abriendo puerto impresora: ' + error.message });
             }
 
+            // Intentar abrir con ambos pines comunes (2 y 5) para máxima compatibilidad
             printer
                 .cashdraw(2)
+                .cashdraw(5)
                 .close(() => {
-                    console.log('✅ Cajón abierto exitosamente');
+                    console.log('✅ Comando de apertura enviado (Pines 2 y 5)');
                     try { device.close(); } catch (e) { }
                     device = null;
                 });
@@ -130,6 +132,8 @@ app.post('/print', (req, res) => {
                 .align('ct')
                 .style('b')
                 .size(1, 1)
+                .cashdraw(2) // Intentar abrir al inicio para mayor rapidez
+                .cashdraw(5)
                 .text('CHAMOS BARBER')
                 .size(0, 0)
                 .text('Barberia Profesional')
@@ -180,10 +184,9 @@ app.post('/print', (req, res) => {
                 .text('Esperamos verte pronto')
                 .text('@chamosbarber')
                 .feed(2)
-                .cashdraw(2) // Abrir cajón antes de cortar y cerrar
                 .cut()
                 .close(() => {
-                    console.log(`✅ Factura ${factura.numero_factura} impresa y cajón abierto`);
+                    console.log(`✅ Factura ${factura.numero_factura} impresa y comandos de cajón enviados`);
                     // El dispositivo se cierra automáticamente con printer.close() si el adapter lo soporta
                     // pero para mayor seguridad en este adapter escpos-usb:
                     try { device.close(); } catch (e) { }
