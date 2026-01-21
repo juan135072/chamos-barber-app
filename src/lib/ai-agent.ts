@@ -520,8 +520,8 @@ export async function transcribeAudio(base64: string, mimeType: string): Promise
     const transcription = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!transcription) {
-      console.warn('[GUSTAVO-IA] No se obtuvo transcripción.');
-      return '[Audio sin contenido extraíble]';
+      console.warn('[GUSTAVO-IA] No se obtuvo transcripción. Response:', JSON.stringify(data, null, 2));
+      return '[Audio ininteligible o muy corto]';
     }
 
     console.log(`[GUSTAVO-IA] ✅ Transcripción completa: "${transcription.trim().substring(0, 50)}..."`);
