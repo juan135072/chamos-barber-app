@@ -134,7 +134,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             aiResponse = await generateChatResponse(consolidatedMessage, conversationId, metadata);
         } catch (aiError) {
             console.error('[BOT-DEBUG] Error crítico en generateChatResponse:', aiError);
-            aiResponse = "Hola, te habla Gustavo. 💈 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla. 💈";
+            aiResponse = "Hola, te habla Gustavo. 💈 ||| Hola amigo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla. 💈";
         }
 
         if (!aiResponse) {
