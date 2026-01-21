@@ -385,7 +385,13 @@ async function executeListClientAppointments(args: any) {
 
   try {
     const telefono = normalizePhone(String(args.telefono));
-    console.log(`[GUSTAVO-IA] 🔍 Buscando citas para: ${telefono}`);
+
+    // Generar variaciones para búsqueda robusta (cubrir +569, 569 y 9...)
+    const phoneNormalized = telefono; // +569XXXXXXXX
+    const phoneWith56 = phoneNormalized.replace(/^\+/, ''); // 569XXXXXXXX
+    const phoneRaw = phoneNormalized.replace(/^\+56/, '');   // 9XXXXXXXX
+
+    console.log(`[GUSTAVO-IA] 🔍 Buscando citas para: ${phoneNormalized}, ${phoneWith56}, ${phoneRaw}`);
 
     // Buscamos citas futuras o de hoy
     const today = new Date().toISOString().split('T')[0];
@@ -400,7 +406,7 @@ async function executeListClientAppointments(args: any) {
         servicios (nombre),
         barberos (nombre, apellido)
       `)
-      .eq('cliente_telefono', telefono)
+      .or(`cliente_telefono.eq."${phoneNormalized}",cliente_telefono.eq."${phoneWith56}",cliente_telefono.eq."${phoneRaw}"`)
       .gte('fecha', today)
       .order('fecha', { ascending: true });
 
