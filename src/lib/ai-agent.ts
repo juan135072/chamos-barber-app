@@ -73,6 +73,15 @@ Si el cliente quiere agendar:
    - Si el horario está OCUPADO: Informa al cliente y ofrécele los horarios que sí estén disponibles según el resultado de la herramienta.
 4. **Acción Final**: Una vez verificada la disponibilidad y el cliente esté de acuerdo, usa la herramienta "crear_cita" DE INMEDIATO. No pidas confirmación extra si ya tienes los datos claros.
 
+## Proceso de Confirmación (NUEVO)
+Si el cliente pregunta por su cita o dice que quiere confirmar:
+1. **Identificación**: Asegúrate de tener su número de teléfono.
+2. **Consulta**: Llama a "consultar_mis_citas" con el teléfono.
+3. **Respuesta**: 
+   - Si tiene citas "pendientes": Infórmale los detalles (día, hora, barbero) y pregúntale si desea confirmarlas.
+   - Si el cliente responde afirmativamente (ej: "Sí", "Confirmo", "Dale"): Llama a "confirmar_cita" de inmediato para el ID correspondiente.
+4. **Finalización**: Agradécele y confírmale que ya quedó marcada como asistida en el sistema.
+
 ## Reglas de Herramientas
 - No pidas permiso para usar una herramienta si ya tienes los datos. Ejecútala.
 - No inventes horarios. Usa solo lo que te diga "verificar_disponibilidad".
@@ -176,6 +185,28 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
             },
             required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
           }
+        },
+        {
+          name: "consultar_mis_citas",
+          description: "Busca las citas agendadas para un número de teléfono.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              telefono: { type: "string", description: "Número de teléfono/WhatsApp del cliente." }
+            },
+            required: ["telefono"]
+          }
+        },
+        {
+          name: "confirmar_cita",
+          description: "Marca una cita como confirmada en el sistema.",
+          parameters: {
+            type: "OBJECT",
+            properties: {
+              cita_id: { type: "string", description: "El ID único de la cita a confirmar." }
+            },
+            required: ["cita_id"]
+          }
         }
       ]
     }];
@@ -215,6 +246,10 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
           result = await executeCheckAvailability(args);
         } else if (name === 'crear_cita') {
           result = await executeCreateAppointment(args);
+        } else if (name === 'consultar_mis_citas') {
+          result = await executeListClientAppointments(args);
+        } else if (name === 'confirmar_cita') {
+          result = await executeUpdateAppointmentStatus(args);
         }
 
         if (result) {
@@ -319,6 +354,69 @@ async function executeCreateAppointment(args: any) {
   } catch (e: any) {
     console.error('[GUSTAVO-IA] ❌ Error inesperado en executeCreateAppointment:', e);
     return { success: false, error: e.message || "Unknown error" };
+  }
+}
+
+async function executeListClientAppointments(args: any) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { success: false, error: "DB connection failed" };
+
+  try {
+    const telefono = normalizePhone(String(args.telefono));
+    console.log(`[GUSTAVO-IA] 🔍 Buscando citas para: ${telefono}`);
+
+    // Buscamos citas futuras o de hoy
+    const today = new Date().toISOString().split('T')[0];
+
+    const { data: citas, error } = await supabase
+      .from('citas')
+      .select(`
+        id,
+        fecha,
+        hora,
+        estado,
+        servicios (nombre),
+        barberos (nombre, apellido)
+      `)
+      .eq('cliente_telefono', telefono)
+      .gte('fecha', today)
+      .order('fecha', { ascending: true });
+
+    if (error) throw error;
+
+    return {
+      success: true,
+      citas: citas.map((c: any) => ({
+        id: c.id,
+        fecha: c.fecha,
+        hora: c.hora.substring(0, 5),
+        barbero: c.barberos ? `${c.barberos.nombre} ${c.barberos.apellido}` : 'Sin asignar',
+        servicio: c.servicios ? c.servicios.nombre : 'Sin especificar',
+        estado: c.estado
+      }))
+    };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function executeUpdateAppointmentStatus(args: any) {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { success: false, error: "DB connection failed" };
+
+  try {
+    console.log(`[GUSTAVO-IA] ✅ Confirmando cita ID: ${args.cita_id}`);
+
+    const { error } = await supabase
+      .from('citas')
+      .update({ estado: 'confirmada' })
+      .eq('id', args.cita_id);
+
+    if (error) throw error;
+
+    return { success: true, message: "Cita confirmada exitosamente" };
+  } catch (e: any) {
+    return { success: false, error: e.message };
   }
 }
 
