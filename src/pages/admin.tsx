@@ -207,7 +207,9 @@ export default function AdminPage() {
           style={{
             width: sidebarOpen ? '240px' : '72px',
             backgroundColor: '#111',
-            borderRight: '1px solid rgba(255, 255, 255, 0.05)'
+            borderRight: '1px solid rgba(255, 255, 255, 0.05)',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
           {/* Logo */}
@@ -230,7 +232,7 @@ export default function AdminPage() {
           </div>
 
           {/* Navigation */}
-          <nav className="py-4 overflow-y-auto" style={{ height: 'calc(100vh - 64px - 112px)' }}>
+          <nav className="py-4 overflow-y-auto flex-1">
             {menuItems.map(item => (
               <button
                 key={item.id}
@@ -254,7 +256,7 @@ export default function AdminPage() {
           </nav>
           {/* Bottom Logout Actions */}
           <div
-            className="absolute bottom-0 left-0 right-0"
+            className="mt-auto"
             style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}
           >
             <button
@@ -305,14 +307,6 @@ export default function AdminPage() {
                     {adminUser.rol}
                   </p>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-5"
-                  style={{ color: '#666' }}
-                  title="Cerrar sesión"
-                >
-                  <i className="fas fa-sign-out-alt"></i>
-                </button>
               </div>
             </div>
           </header >
