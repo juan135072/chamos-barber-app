@@ -77,21 +77,25 @@ app.post('/open-drawer', (req, res) => {
     try {
         device.open(function (error) {
             if (error) {
-                console.error('Error abriendo puerto:', error);
-                device = null; // Reset para reintentar después
+                console.error('❌ Error abriendo puerto para cajón:', error);
+                device = null;
                 return res.status(500).json({ error: 'Error abriendo puerto impresora: ' + error.message });
             }
 
             printer
                 .cashdraw(2)
                 .close(() => {
-                    console.log('✅ Cajón abierto');
+                    console.log('✅ Cajón abierto exitosamente');
+                    try { device.close(); } catch (e) { }
+                    device = null;
                 });
 
             res.json({ success: true, message: 'Comando de apertura enviado' });
         });
     } catch (e) {
-        console.error('Catch en open-drawer:', e);
+        console.error('❌ Catch en open-drawer:', e);
+        if (device) { try { device.close(); } catch (e2) { } }
+        device = null;
         res.status(500).json({ error: e.message });
     }
 });
@@ -176,13 +180,22 @@ app.post('/print', (req, res) => {
                 .text('Esperamos verte pronto')
                 .text('@chamosbarber')
                 .feed(2)
+                .cashdraw(2) // Abrir cajón antes de cortar y cerrar
                 .cut()
-                .cashdraw(2)
-                .close();
+                .close(() => {
+                    console.log(`✅ Factura ${factura.numero_factura} impresa y cajón abierto`);
+                    // El dispositivo se cierra automáticamente con printer.close() si el adapter lo soporta
+                    // pero para mayor seguridad en este adapter escpos-usb:
+                    try { device.close(); } catch (e) { }
+                    device = null; // Limpiar para permitir reconexión limpia
+                });
+
             res.json({ success: true });
         });
     } catch (e) {
-        console.error('Error de impresión:', e);
+        console.error('❌ Error crítico en endpoint /print:', e);
+        if (device) { try { device.close(); } catch (e2) { } }
+        device = null;
         res.status(500).json({ error: e.message });
     }
 });

@@ -201,12 +201,12 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       try {
         const datosFactura = await obtenerDatosFactura(facturaData.id, supabase)
         if (datosFactura) {
-          // Intentar abrir el cajón automáticamente primero (acción inmediata)
-          try {
-            fetch('http://localhost:3001/open-drawer', { method: 'POST' }).catch(() => { })
-          } catch (e) { }
+          // LÓGICA OPTIMIZADA:
+          // Se elimina el fetch manual a /open-drawer aquí, ya que generarEImprimirFactura
+          // llama a imprimirDirecto, y el servicio local abre el cajón al imprimir.
+          // Esto evita el conflicto de dispositivo ocupado que causaba impresiones erróneas.
 
-          // Intentar impresión directa (que también abre el cajón al final)
+          // Intentar impresión directa (que también abre el cajón)
           impresionExitosa = await generarEImprimirFactura(datosFactura, 'imprimir')
         }
       } catch (printError) {
