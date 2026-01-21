@@ -83,7 +83,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Generar respuesta con AI
         let aiResponse = '';
         try {
-            aiResponse = await generateChatResponse(consolidatedMessage, conversationId);
+            // Extraer metadatos (ej: teléfono del remitente)
+            const metadata = {
+                phone: sender?.phone_number || conversation?.contact_handle || undefined
+            };
+            console.log(`[BOT-DEBUG] Ejecutando IA con metadata:`, metadata);
+            aiResponse = await generateChatResponse(consolidatedMessage, conversationId, metadata);
         } catch (aiError) {
             console.error('[BOT-DEBUG] Error crítico en generateChatResponse:', aiError);
             aiResponse = "Hola, te habla Gustavo. 💈 ||| Oye chamo, disculpa, pero el sistema me dio un pequeño tirón y no pude procesar tu mensaje completo. ||| Pásate por aquí si quieres asegurar tu hora directo: https://chamosbarber.com/reservar y nos vemos en la silla. 💈";

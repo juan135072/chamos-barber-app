@@ -105,7 +105,11 @@ IMPORTANTE: Estás en San Fernando, Chile.
 /**
  * Bot del barbero - Versión UNIFICADA Gemini 3 Flash Preview
  */
-export async function generateChatResponse(message: string, conversationId?: string | number) {
+export async function generateChatResponse(
+  message: string,
+  conversationId?: string | number,
+  metadata: { phone?: string } = {}
+) {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) throw new Error('API_KEY_MISSING');
@@ -154,8 +158,10 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
     // Metadata de sesión para control de costos (Ventana 24h)
     const sessionMetadata = `[METADATA DE SESIÓN]
 Hora actual: ${now}
+Teléfono del cliente: ${metadata.phone || 'Desconocido'}
 Ventana Gratuita: Activa (El cliente inició el chat).
-Regla: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
+Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas hecho en este turno, llama a "consultar_mis_citas" para saber su estado actual. 
+Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
 `;
 
     const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
