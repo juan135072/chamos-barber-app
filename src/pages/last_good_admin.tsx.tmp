@@ -207,9 +207,7 @@ export default function AdminPage() {
           style={{
             width: sidebarOpen ? '240px' : '72px',
             backgroundColor: '#111',
-            borderRight: '1px solid rgba(255, 255, 255, 0.05)',
-            display: 'flex',
-            flexDirection: 'column'
+            borderRight: '1px solid rgba(255, 255, 255, 0.05)'
           }}
         >
           {/* Logo */}
@@ -232,7 +230,7 @@ export default function AdminPage() {
           </div>
 
           {/* Navigation */}
-          <nav className="py-4 overflow-y-auto flex-1">
+          <nav className="py-4 overflow-y-auto" style={{ height: 'calc(100vh - 64px - 112px)' }}>
             {menuItems.map(item => (
               <button
                 key={item.id}
@@ -254,38 +252,9 @@ export default function AdminPage() {
               </button>
             ))}
           </nav>
-
-          {/* Special Admin Actions */}
-          <div className="py-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <button
-              onClick={() => router.push('/pos')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#10B981' }}
-            >
-              <i className={`fas fa-cash-register ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">POS (Caja)</span>}
-            </button>
-            <button
-              onClick={() => router.push('/admin/gastos')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#F59E0B' }}
-            >
-              <i className={`fas fa-file-invoice-dollar ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Gastos</span>}
-            </button>
-            <button
-              onClick={() => router.push('/admin/liquidaciones')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#8B5CF6' }}
-            >
-              <i className={`fas fa-money-bill-wave ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Liquidaciones</span>}
-            </button>
-          </div>
-
           {/* Bottom Logout Actions */}
           <div
-            className="mt-auto"
+            className="absolute bottom-0 left-0 right-0"
             style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}
           >
             <button
@@ -336,6 +305,14 @@ export default function AdminPage() {
                     {adminUser.rol}
                   </p>
                 </div>
+                <button
+                  onClick={handleLogout}
+                  className="w-9 h-9 rounded-full flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-5"
+                  style={{ color: '#666' }}
+                  title="Cerrar sesión"
+                >
+                  <i className="fas fa-sign-out-alt"></i>
+                </button>
               </div>
             </div>
           </header >
