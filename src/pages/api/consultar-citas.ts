@@ -31,15 +31,23 @@ export default async function handler(
     return res.status(400).json({ error: 'Teléfono es requerido' })
   }
 
-  // Normalizar teléfono para asegurar coincidencia con la DB
+  // Normalizar teléfono y generar variaciones para búsqueda robusta
   const { normalizePhone } = await import('../../../lib/phone-utils')
-  telefono = normalizePhone(telefono)
-  console.log('🔍 [consultar-citas] Telefono normalizado para búsqueda:', telefono)
 
-  // Validar formato de teléfono internacional (8-15 dígitos)
-  const phoneRegex = /^\+?[1-9]\d{7,14}$/
-  if (!phoneRegex.test(telefono)) {
-    console.log('❌ [consultar-citas] Invalid phone format:', telefono)
+  const phoneNormalized = normalizePhone(telefono) // +569XXXXXXXX
+  const phoneWith56 = phoneNormalized.replace(/^\+/, '') // 569XXXXXXXX
+  const phoneRaw = phoneNormalized.replace(/^\+56/, '')   // 9XXXXXXXX
+
+  console.log('🔍 [consultar-citas] Variaciones de búsqueda:', {
+    phoneNormalized,
+    phoneWith56,
+    phoneRaw
+  })
+
+  // Validar formato mínimo (al menos 8-15 caracteres en total)
+  const phoneDigits = phoneNormalized.replace(/\D/g, '')
+  if (phoneDigits.length < 8 || phoneDigits.length > 15) {
+    console.log('❌ [consultar-citas] Invalid phone length:', phoneDigits.length)
     return res.status(400).json({
       error: 'Formato de teléfono inválido. Debe tener entre 8 y 15 dígitos.',
       code: 'VALIDATION_ERROR'
@@ -75,8 +83,8 @@ export default async function handler(
 
     console.log('✅ [consultar-citas] Supabase client created')
 
-    // Buscar citas por teléfono del cliente
-    console.log('🔍 [consultar-citas] Fetching appointments for:', telefono)
+    // Buscar citas por teléfono del cliente usando variaciones (OR)
+    console.log('🔍 [consultar-citas] Fetching appointments...')
     const { data: citas, error: citasError } = await supabase
       .from('citas')
       .select(`
@@ -97,7 +105,7 @@ export default async function handler(
           especialidades
         )
       `)
-      .eq('cliente_telefono', telefono)
+      .or(`cliente_telefono.eq."${phoneNormalized}",cliente_telefono.eq."${phoneWith56}",cliente_telefono.eq."${phoneRaw}"`)
       .order('fecha', { ascending: false })
       .order('hora', { ascending: false })
 
