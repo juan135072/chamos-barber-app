@@ -3,6 +3,9 @@ import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../../lib/database.types'
 import { calcularCategoriaCliente, DATA_RETENTION_POLICY, type ClienteCategoria } from '../../../../lib/data-retention-policy'
 import toast from 'react-hot-toast'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
+import { format } from 'date-fns'
 
 interface ClienteConActividad {
   cliente_telefono: string
@@ -47,7 +50,7 @@ export default function ClientesTab() {
 
         if (!existing || new Date(cita.fecha) > new Date(existing.ultima_cita)) {
           const categoriaInfo = calcularCategoriaCliente(cita.fecha)
-          
+
           clientesMap.set(key, {
             cliente_telefono: cita.cliente_telefono,
             cliente_nombre: cita.cliente_nombre,
@@ -117,29 +120,70 @@ export default function ClientesTab() {
 
       if (error) throw error
 
-      // Crear JSON para exportar
-      const exportData = {
-        cliente: {
-          nombre: cliente.cliente_nombre,
-          telefono: cliente.cliente_telefono,
-          email: cliente.cliente_email,
-          total_citas: cliente.total_citas,
-          ultima_cita: cliente.ultima_cita,
-          categoria: cliente.categoria_info.label
+      const doc = new jsPDF()
+
+      // Configuración de colores
+      const gold = [212, 175, 55] // #D4AF37
+      const darkBg = [17, 17, 17] // #111111
+
+      // Header
+      doc.setFontSize(22)
+      doc.setTextColor(gold[0], gold[1], gold[2])
+      doc.text('CHAMOS BARBER', 14, 20)
+
+      doc.setFontSize(16)
+      doc.setTextColor(0, 0, 0)
+      doc.text('Historial del Cliente', 14, 30)
+
+      // Info del Cliente
+      doc.setFontSize(10)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Cliente: ${cliente.cliente_nombre}`, 14, 40)
+      doc.text(`Teléfono: ${cliente.cliente_telefono}`, 14, 45)
+      doc.text(`Categoría: ${cliente.categoria_info.label}`, 14, 50)
+      doc.text(`Fecha de Exportación: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 55)
+
+      // Tabla de Citas
+      const tableData = citasCliente?.map(cita => [
+        format(new Date(cita.fecha), 'dd/MM/yyyy'),
+        cita.hora,
+        cita.servicios?.nombre || 'Servicio no especificado',
+        cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido || ''}` : 'No asignado',
+        `$${Number(cita.precio_final || 0).toLocaleString()}`
+      ]) || []
+
+      autoTable(doc, {
+        startY: 65,
+        head: [['Fecha', 'Hora', 'Servicio', 'Barbero', 'Precio']],
+        body: tableData,
+        theme: 'grid',
+        headStyles: {
+          fillColor: darkBg as any,
+          textColor: gold as any,
+          fontSize: 11,
+          fontStyle: 'bold'
         },
-        citas: citasCliente,
-        fecha_exportacion: new Date().toISOString()
-      }
+        styles: {
+          fontSize: 10,
+          cellPadding: 3
+        },
+        alternateRowStyles: {
+          fillColor: [245, 245, 245]
+        }
+      })
 
-      // Descargar JSON
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `cliente_${cliente.cliente_telefono}_${new Date().toISOString().split('T')[0]}.json`
-      a.click()
+      // Resumen Final
+      const finalY = (doc as any).lastAutoTable.finalY + 10
+      doc.setFontSize(12)
+      doc.setTextColor(0, 0, 0)
+      doc.text(`Total de Citas: ${cliente.total_citas}`, 14, finalY)
+      doc.text(`Última Cita: ${format(new Date(cliente.ultima_cita), 'dd/MM/yyyy')}`, 14, finalY + 7)
 
-      toast.success('Historial exportado exitosamente')
+      // Guardar PDF
+      const fileName = `historial_${cliente.cliente_nombre.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`
+      doc.save(fileName)
+
+      toast.success('Historial exportado como PDF exitosamente')
     } catch (error) {
       console.error('Error exporting cliente:', error)
       toast.error('Error al exportar historial')
@@ -171,11 +215,10 @@ export default function ClientesTab() {
         <div className="flex gap-2">
           <button
             onClick={() => setFiltroCategoria('TODOS')}
-            className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-all ${
-              filtroCategoria === 'TODOS'
+            className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-all ${filtroCategoria === 'TODOS'
                 ? 'bg-accent text-white'
                 : 'bg-secondary border border-border'
-            }`}
+              }`}
             style={filtroCategoria === 'TODOS' ? {
               backgroundColor: 'var(--accent-color)',
               color: 'var(--bg-primary)'
@@ -194,11 +237,10 @@ export default function ClientesTab() {
               <button
                 key={key}
                 onClick={() => setFiltroCategoria(key as ClienteCategoria)}
-                className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-all ${
-                  filtroCategoria === key
+                className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-all ${filtroCategoria === key
                     ? 'ring-2 ring-offset-2'
                     : 'border border-border'
-                }`}
+                  }`}
                 style={filtroCategoria === key ? {
                   backgroundColor: config.color + '20',
                   color: config.color,
