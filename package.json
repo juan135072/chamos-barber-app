@@ -16,7 +16,8 @@
     "db:view": "node scripts/view-table.js",
     "db:viewer": "node scripts/start-db-viewer.js",
     "db:studio": "node scripts/open-supabase-studio.js",
-    "setup:ai": "node scripts/setup-gemini-knowledge.js"
+    "setup:ai": "node scripts/setup-gemini-knowledge.js",
+    "printer": "cd printer-service && node server.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.9",

@@ -101,16 +101,13 @@ temp/
 # Temporary folders
 .tmp/
 .temp/
+temp_*/
 
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+# Executables and Large Binaries
+*.exe
+*.zip
+!public/printer-service.zip
+
 # Supabase MCP Configuration (contains sensitive keys)
 supabase-mcp-config.json
 

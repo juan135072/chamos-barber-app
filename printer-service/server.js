@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
 const escpos = require('escpos');
+const EventEmitter = require('events');
 
 // Instalar adaptadores según el SO
 try {
@@ -16,32 +17,61 @@ const PORT = 3001;
 app.use(cors());
 app.use(bodyParser.json());
 
-// Middleware para LOGS VERBOSOS (Ayuda a depurar si llegan las peticiones)
+// Middleware para LOGS VERBOSOS
 app.use((req, res, next) => {
     console.log(`📡 [${new Date().toLocaleTimeString()}] ${req.method} ${req.path}`);
     next();
 });
 
-// Variable global para el dispositivo
 let device = null;
 let printer = null;
 
-// Intentar conectar a la impresora USB
+// Función para asegurar que el dispositivo sea un EventEmitter (Soluciona 'usb.on is not a function')
+function patchEventEmitter(obj) {
+    if (obj && typeof obj.on !== 'function') {
+        console.log("🛠️ Aplicando parche de compatibilidad EventEmitter...");
+        Object.setPrototypeOf(obj, EventEmitter.prototype);
+        // Opcional: inicializar si es necesario, aunque para escpos suele bastar la herencia
+    }
+    return obj;
+}
+
 function connectPrinter(vid, pid) {
     try {
-        if (vid && pid) {
-            console.log(`🔍 Buscando impresora específica VID: ${vid}, PID: ${pid}`);
-            device = new escpos.USB(parseInt(vid), parseInt(pid));
+        console.log("🔍 Escaneando puertos USB...");
+        if (!escpos.USB) throw new Error("Adaptador USB no cargado.");
+
+        const devices = escpos.USB.findPrinter();
+        if (!devices || devices.length === 0) {
+            console.log("⚠️ No se detectaron impresoras USB encendidas.");
+            return false;
+        }
+
+        // IDs específicos del usuario (VID: 1155/0x0483, PID: 22304/0x5720)
+        const targetVid = vid || 0x0483;
+        const targetPid = pid || 0x5720;
+
+        const found = devices.find(d =>
+            d.deviceDescriptor.idVendor === targetVid &&
+            d.deviceDescriptor.idProduct === targetPid
+        );
+
+        if (found) {
+            console.log(`🎯 Impresora coincidente encontrada (VID: ${targetVid}, PID: ${targetPid})`);
+            device = new escpos.USB(targetVid, targetPid);
         } else {
-            console.log('🔍 Buscando cualquier impresora USB...');
+            console.log("ℹ️ Usando selección automática del primer dispositivo USB disponible.");
             device = new escpos.USB();
         }
 
+        // PARCHE CRÍTICO: Evita error 'usb.on is not a function'
+        device = patchEventEmitter(device);
+
         printer = new escpos.Printer(device);
-        console.log('✅ Impresora USB detectada e inicializada');
+        console.log('✅ Impresora USB lista y vinculada');
         return true;
     } catch (e) {
-        console.warn('⚠️ No se detectó impresora USB:', e.message);
+        console.error('❌ Error fatal al conectar:', e.message);
         device = null;
         printer = null;
         return false;
@@ -50,170 +80,62 @@ function connectPrinter(vid, pid) {
 
 connectPrinter();
 
-// Endpoint de estado
 app.get('/status', (req, res) => {
-    const isConnected = !!(device);
-    res.json({
-        status: 'online',
-        printer_connected: isConnected,
-        message: isConnected ? 'Servicio activo e impresora lista' : 'Servicio activo, pero impresora no detectada'
-    });
+    res.json({ status: 'online', printer_connected: !!device });
 });
 
-// Endpoint para listar dispositivos USB (ayuda a configurar VID/PID)
-app.get('/devices', (req, res) => {
-    try {
-        const devices = escpos.USB.findPrinter();
-        res.json({ success: true, devices });
-    } catch (e) {
-        res.status(500).json({ success: false, error: e.message });
-    }
-});
-
-// Endpoint para abrir cajón de dinero (sin imprimir)
 app.post('/open-drawer', (req, res) => {
-    const { vid, pid } = req.query;
-
-    if (!device) {
-        if (!connectPrinter(vid, pid)) {
-            return res.status(500).json({ error: 'No hay impresora conectada' });
-        }
-    }
-
+    if (!device && !connectPrinter()) return res.status(500).json({ error: 'No hay impresora' });
     try {
-        device.open(function (error) {
-            if (error) {
-                console.error('❌ Error abriendo puerto para cajón:', error);
+        device.open((error) => {
+            if (error) { device = null; return res.status(500).json({ error: error.message }); }
+            printer.cashdraw(2).cashdraw(5).close(() => {
+                console.log('✅ Cajón abierto (Comandos 2 y 5 enviados)');
+                try { device.close(); } catch (e) { }
                 device = null;
-                return res.status(500).json({ error: 'Error abriendo puerto impresora: ' + error.message });
+            });
+            res.json({ success: true });
+        });
+    } catch (e) { device = null; res.status(500).json({ error: e.message }); }
+});
+
+app.post('/print', (req, res) => {
+    const { factura } = req.body;
+    if (!device && !connectPrinter()) return res.status(500).json({ error: 'No hay impresora' });
+    try {
+        device.open((error) => {
+            if (error) { device = null; return res.status(500).json({ error: 'Error de puerto' }); }
+            console.log(`🖨️ Imprimiendo factura: ${factura.numero_factura}`);
+            printer.font('a').align('ct').style('b').size(1, 1)
+                .cashdraw(2).cashdraw(5) // Apertura rápida
+                .text('CHAMOS BARBER').size(0, 0)
+                .text('--------------------------------')
+                .align('lt').text(`Doc: ${factura.numero_factura}`)
+                .text(`Cliente: ${factura.cliente_nombre}`)
+                .text('--------------------------------');
+
+            if (factura.items) {
+                factura.items.forEach(item => {
+                    printer.text(`${item.cantidad}x ${item.nombre || item.servicio} $${(item.subtotal || 0).toLocaleString('es-CL')}`);
+                });
             }
 
-            // Intentar abrir con ambos pines comunes (2 y 5) para máxima compatibilidad
-            printer
-                .cashdraw(2)
-                .cashdraw(5)
+            printer.text('--------------------------------').align('rt').size(1, 1).style('b')
+                .text(`TOTAL: $${(factura.total || 0).toLocaleString('es-CL')}`)
+                .size(0, 0).style('n').feed(2).cut()
                 .close(() => {
-                    console.log('✅ Comando de apertura enviado (Pines 2 y 5)');
+                    console.log(`✅ Impresión finalizada con éxito`);
                     try { device.close(); } catch (e) { }
                     device = null;
                 });
-
-            res.json({ success: true, message: 'Comando de apertura enviado' });
-        });
-    } catch (e) {
-        console.error('❌ Catch en open-drawer:', e);
-        if (device) { try { device.close(); } catch (e2) { } }
-        device = null;
-        res.status(500).json({ error: e.message });
-    }
-});
-
-// Endpoint para imprimir factura
-app.post('/print', (req, res) => {
-    const { factura } = req.body;
-    const { vid, pid } = req.query;
-
-    if (!factura) {
-        return res.status(400).json({ error: 'Faltan datos de la factura' });
-    }
-
-    if (!device) {
-        if (!connectPrinter(vid, pid)) {
-            return res.status(500).json({ error: 'No hay impresora conectada' });
-        }
-    }
-
-    try {
-        device.open(function (error) {
-            if (error) {
-                console.error('Error abriendo puerto:', error);
-                device = null;
-                return res.status(500).json({ error: 'Error abriendo puerto impresora' });
-            }
-
-            console.log(`🖨️ Imprimiendo factura: ${factura.numero_factura}`);
-
-            printer
-                .font('a')
-                .align('ct')
-                .style('b')
-                .size(1, 1)
-                .cashdraw(2) // Intentar abrir al inicio para mayor rapidez
-                .cashdraw(5)
-                .text('CHAMOS BARBER')
-                .size(0, 0)
-                .text('Barberia Profesional')
-                .text('--------------------------------')
-                .style('n')
-                .text('Rancagua 759, San Fernando')
-                .text('www.chamosbarber.com')
-                .feed(1)
-                .align('lt')
-                .text(`Fecha: ${new Date(factura.created_at).toLocaleString('es-CL')}`)
-                .text(`Cliente: ${factura.cliente_nombre}`)
-            if (factura.barbero) {
-                printer.text(`Barbero: ${factura.barbero.nombre} ${factura.barbero.apellido}`);
-            }
-            printer
-                .text('--------------------------------')
-                .align('ct')
-                .style('b')
-                .text(factura.tipo_documento === 'factura' ? 'FACTURA' : 'BOLETA')
-                .text(factura.numero_factura)
-                .style('n')
-                .align('lt')
-                .text('--------------------------------')
-                .text('CANT  DESCRIPCION       PRECIO')
-                .text('--------------------------------');
-
-            // Items
-            if (factura.items && Array.isArray(factura.items)) {
-                factura.items.forEach(item => {
-                    const nombre = (item.nombre || item.servicio || '').substring(0, 16).padEnd(16);
-                    const precio = `$${(item.subtotal || item.precio || 0).toLocaleString('es-CL')}`.padStart(10);
-                    printer.text(`${(item.cantidad || 1).toString().padEnd(3)}x  ${nombre} ${precio}`);
-                });
-            }
-
-            printer
-                .text('--------------------------------')
-                .align('rt')
-                .size(1, 1)
-                .style('b')
-                .text(`TOTAL: $${(factura.total || 0).toLocaleString('es-CL')}`)
-                .size(0, 0)
-                .style('n')
-                .text(`Metodo de pago: ${factura.metodo_pago}`)
-                .feed(1)
-                .align('ct')
-                .text('¡GRACIAS POR TU PREFERENCIA!')
-                .text('Esperamos verte pronto')
-                .text('@chamosbarber')
-                .feed(2)
-                .cut()
-                .close(() => {
-                    console.log(`✅ Factura ${factura.numero_factura} impresa y comandos de cajón enviados`);
-                    // El dispositivo se cierra automáticamente con printer.close() si el adapter lo soporta
-                    // pero para mayor seguridad en este adapter escpos-usb:
-                    try { device.close(); } catch (e) { }
-                    device = null; // Limpiar para permitir reconexión limpia
-                });
-
             res.json({ success: true });
         });
-    } catch (e) {
-        console.error('❌ Error crítico en endpoint /print:', e);
-        if (device) { try { device.close(); } catch (e2) { } }
-        device = null;
-        res.status(500).json({ error: e.message });
-    }
+    } catch (e) { device = null; res.status(500).json({ error: e.message }); }
 });
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log('=========================================');
-    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1`);
+    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 3.0`);
     console.log(`🌐 Corriendo en http://localhost:${PORT}`);
     console.log('=========================================');
-    console.log('💡 Mantén esta ventana abierta.');
-    console.log('💡 Para Windows: Usa Zadig para instalar driver WinUSB.');
 });
