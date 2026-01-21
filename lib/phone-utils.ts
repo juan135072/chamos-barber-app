@@ -1,118 +1,135 @@
 /**
- * Utilidades para formateo y normalización de números telefónicos chilenos
- * Formato estándar: +56 9 1234 5678
+ * Utilidades para formateo y normalización de números telefónicos
+ * Soporta múltiples países con sus respectivos códigos
  */
 
+export const COUNTRIES = [
+  { name: 'Chile', code: '+56', flag: '🇨🇱', pattern: '9 XXXX XXXX', length: 9 },
+  { name: 'Venezuela', code: '+58', flag: '🇻🇪', pattern: '4XX XXX XXXX', length: 10 },
+  { name: 'Colombia', code: '+57', flag: '🇨🇴', pattern: '3XX XXX XXXX', length: 10 },
+  { name: 'Argentina', code: '+54', flag: '🇦🇷', pattern: '9 XX XXXX XXXX', length: 11 },
+  { name: 'Perú', code: '+51', flag: '🇵🇪', pattern: '9XX XXX XXX', length: 9 },
+  { name: 'España', code: '+34', flag: '🇪🇸', pattern: 'X XX XX XX XX', length: 9 },
+] as const
+
+export type CountryCode = typeof COUNTRIES[number]['code']
+
 /**
- * Formatea un número de teléfono chileno mientras el usuario escribe
- * Acepta: 912345678, 9 1234 5678, +56912345678, +56 9 1234 5678, etc.
- * Retorna formato: +56 9 1234 5678
+ * Formatea un número de teléfono mientras el usuario escribe
+ * Ahora es más genérico pero mantiene compatibilidad
  */
-export function formatPhoneInput(value: string): string {
-  // Remover todo excepto dígitos y el signo +
-  let cleaned = value.replace(/[^\d+]/g, '')
-  
-  // Si empieza con +56, removerlo temporalmente para procesamiento
-  const hasCountryCode = cleaned.startsWith('+56') || cleaned.startsWith('56')
-  if (hasCountryCode) {
-    cleaned = cleaned.replace(/^\+?56/, '')
+export function formatPhoneInput(value: string, countryCode: string = '+56'): string {
+  // Remover todo excepto dígitos
+  let cleaned = value.replace(/\D/g, '')
+
+  // Si coincide con el código de país al inicio, removerlo para el input visual
+  const codeDigits = countryCode.replace(/\D/g, '')
+  if (cleaned.startsWith(codeDigits)) {
+    cleaned = cleaned.slice(codeDigits.length)
   }
-  
-  // Remover ceros iniciales
-  cleaned = cleaned.replace(/^0+/, '')
-  
-  // Limitar a 9 dígitos
-  cleaned = cleaned.slice(0, 9)
-  
-  // Si no hay dígitos, retornar vacío
-  if (!cleaned) return ''
-  
-  // Formatear: +56 9 1234 5678
-  let formatted = '+56'
-  
-  if (cleaned.length >= 1) {
-    formatted += ' ' + cleaned.charAt(0)
+
+  // En Chile, a veces ponen el 0 al inicio, removerlo
+  if (countryCode === '+56') {
+    cleaned = cleaned.replace(/^0+/, '')
   }
-  
-  if (cleaned.length >= 2) {
-    formatted += ' ' + cleaned.slice(1, 5)
-  }
-  
-  if (cleaned.length >= 6) {
-    formatted += ' ' + cleaned.slice(5, 9)
-  }
-  
-  return formatted.trim()
+
+  // Limitar según el país (default 12 por seguridad)
+  const country = COUNTRIES.find(c => c.code === countryCode)
+  const maxLength = country ? country.length : 12
+  cleaned = cleaned.slice(0, maxLength)
+
+  return cleaned
 }
 
 /**
  * Normaliza un número de teléfono a formato estándar para almacenamiento
- * Acepta cualquier formato y retorna: +56912345678 (sin espacios)
+ * Retorna: +56912345678 (sin espacios)
  */
-export function normalizePhone(value: string): string {
+export function normalizePhone(value: string, selectedCountryCode: string = '+56'): string {
+  // Si ya tiene un +, asumimos que ya está normalizado o tiene código
+  if (value.startsWith('+')) {
+    return value.replace(/\s/g, '')
+  }
+
   // Remover todo excepto dígitos
   let cleaned = value.replace(/\D/g, '')
-  
-  // Si empieza con 56, asumimos que ya tiene código de país
-  if (cleaned.startsWith('56')) {
-    cleaned = cleaned.slice(2)
+
+  // Si empieza con el código del país seleccionado (sin el +), removerlo
+  const countryDigits = selectedCountryCode.replace(/\D/g, '')
+  if (cleaned.startsWith(countryDigits)) {
+    cleaned = cleaned.slice(countryDigits.length)
   }
-  
-  // Remover ceros iniciales
-  cleaned = cleaned.replace(/^0+/, '')
-  
-  // Debe tener exactamente 9 dígitos (formato chileno)
-  if (cleaned.length !== 9) {
-    return value // Retornar original si no es válido
-  }
-  
+
   // Retornar con código de país
-  return '+56' + cleaned
+  return selectedCountryCode + cleaned
 }
 
 /**
- * Valida si un número de teléfono chileno es válido
- * Debe tener 9 dígitos y empezar con 9
+ * Valida si un número de teléfono es válido según el país
  */
-export function isValidChileanPhone(value: string): boolean {
+export function isValidPhone(value: string, countryCode: string = '+56'): boolean {
   const cleaned = value.replace(/\D/g, '')
-  const digits = cleaned.startsWith('56') ? cleaned.slice(2) : cleaned
-  
-  // Debe tener 9 dígitos y empezar con 9 (celulares en Chile)
-  return digits.length === 9 && digits.startsWith('9')
+  const country = COUNTRIES.find(c => c.code === countryCode)
+
+  if (!country) return cleaned.length >= 8
+
+  // Para Chile específicamente: 9 dígitos y empieza con 9
+  if (countryCode === '+56') {
+    const digits = cleaned.startsWith('56') ? cleaned.slice(2) : cleaned
+    return digits.length === 9 && digits.startsWith('9')
+  }
+
+  // Para otros, validación básica de longitud
+  const digits = cleaned.startsWith(countryCode.replace(/\D/g, ''))
+    ? cleaned.slice(countryCode.replace(/\D/g, '').length)
+    : cleaned
+
+  return digits.length === country.length
 }
 
 /**
- * Obtiene el placeholder formateado
+ * Obtiene el placeholder según el país
  */
-export function getPhonePlaceholder(): string {
-  return '+56 9 1234 5678'
+export function getPhonePlaceholder(countryCode: string = '+56'): string {
+  const country = COUNTRIES.find(c => c.code === countryCode)
+  return country ? country.pattern : '912345678'
 }
 
 /**
  * Obtiene el hint/ayuda para el usuario
  */
-export function getPhoneHint(): string {
-  return 'Formato: +56 9 1234 5678 (código de país + número celular)'
+export function getPhoneHint(countryCode: string = '+56'): string {
+  const country = COUNTRIES.find(c => c.code === countryCode)
+  return country
+    ? `Formato ${country.name}: ${country.code} ${country.pattern}`
+    : 'Ingresa tu número de teléfono'
 }
 
 /**
  * Convierte un número normalizado a formato legible
- * +56912345678 → +56 9 1234 5678
  */
 export function formatPhoneDisplay(value: string): string {
-  const cleaned = value.replace(/\D/g, '')
-  const digits = cleaned.startsWith('56') ? cleaned.slice(2) : cleaned
-  
-  if (digits.length !== 9) return value
-  
-  return `+56 ${digits.charAt(0)} ${digits.slice(1, 5)} ${digits.slice(5, 9)}`
+  if (!value) return ''
+
+  // Intentar encontrar qué país es por el código
+  for (const country of COUNTRIES) {
+    if (value.startsWith(country.code)) {
+      const digits = value.slice(country.code.length)
+      if (country.code === '+56' && digits.length === 9) {
+        return `${country.code} ${digits.charAt(0)} ${digits.slice(1, 5)} ${digits.slice(5, 9)}`
+      }
+      return `${country.code} ${digits}`
+    }
+  }
+
+  return value
 }
 
-/**
- * Compara dos números de teléfono normalizados
- * Útil para búsquedas y comparaciones
- */
 export function phonesMatch(phone1: string, phone2: string): boolean {
-  return normalizePhone(phone1) === normalizePhone(phone2)
+  if (!phone1 || !phone2) return false
+
+  const n1 = phone1.startsWith('+') ? phone1.replace(/\s/g, '') : normalizePhone(phone1)
+  const n2 = phone2.startsWith('+') ? phone2.replace(/\s/g, '') : normalizePhone(phone2)
+
+  return n1 === n2
 }

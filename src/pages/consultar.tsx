@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import Layout from '../components/Layout'
 import { formatPhoneInput, normalizePhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
+import PhoneInput from '../components/PhoneInput'
 
 // Build Version: 2025-11-09-v6 - Multiple services with individual prices and duration
 interface Cita {
@@ -52,11 +53,11 @@ const ConsultarPage: React.FC = () => {
     if (cita.notas) {
       // Buscar el patrón con o sin saltos de línea antes/después
       const match = cita.notas.match(/\[SERVICIOS SOLICITADOS:\s*([^\]]+)\]/)
-      
+
       if (match) {
         const serviciosTexto = match[1].trim()
         const nombresServicios = serviciosTexto.split(',').map(s => s.trim())
-        
+
         // Si hay más de un servicio, reemplazar todos
         if (nombresServicios.length > 1) {
           return nombresServicios.map((nombre, idx) => ({
@@ -73,10 +74,10 @@ const ConsultarPage: React.FC = () => {
   // Helper function to clean notes by removing the services list
   const limpiarNotas = (notas?: string): string | null => {
     if (!notas) return null
-    
+
     // Remove the [SERVICIOS SOLICITADOS: ...] part including surrounding whitespace
     const notasLimpias = notas.replace(/\s*\[SERVICIOS SOLICITADOS:\s*[^\]]+\]\s*/g, '').trim()
-    
+
     return notasLimpias || null
   }
 
@@ -88,25 +89,24 @@ const ConsultarPage: React.FC = () => {
     }
 
     setLoading(true)
-    // Normalizar el teléfono para la búsqueda
-    const normalizedPhone = normalizePhone(telefono)
-    console.log('📤 [consultar] Teléfono original:', telefono)
-    console.log('📤 [consultar] Teléfono normalizado:', normalizedPhone)
-    
+    // El teléfono ya viene normalizado desde el componente PhoneInput
+    const normalizedPhone = telefono
+    console.log('📤 [consultar] Teléfono:', normalizedPhone)
+
     try {
       const url = `/api/consultar-citas?telefono=${encodeURIComponent(normalizedPhone)}`
       console.log('🔍 [consultar] URL:', url)
-      
+
       const response = await fetch(url)
       console.log('📥 [consultar] Respuesta recibida:', response.status, response.statusText)
-      
+
       if (response.ok) {
         const data: ConsultarResponse = await response.json()
         console.log('📋 [consultar] Datos recibidos:', data)
         console.log('📊 [consultar] Total citas:', data.total_citas)
         console.log('📊 [consultar] Citas pendientes:', data.citas_pendientes)
         console.log('📊 [consultar] Número de citas en array:', data.citas?.length || 0)
-        
+
         setCitas(data.citas || [])
         setTotalCitas(data.total_citas || 0)
         setCitasPendientes(data.citas_pendientes || 0)
@@ -161,20 +161,20 @@ const ConsultarPage: React.FC = () => {
   }
 
   // Separar citas próximas de historial
-  const upcomingCitas = citas.filter(cita => 
-    !isPastDate(cita.fecha, cita.hora) && 
-    cita.estado.toLowerCase() !== 'cancelada' && 
+  const upcomingCitas = citas.filter(cita =>
+    !isPastDate(cita.fecha, cita.hora) &&
+    cita.estado.toLowerCase() !== 'cancelada' &&
     cita.estado.toLowerCase() !== 'completada'
   )
-  
-  const historyCitas = citas.filter(cita => 
-    isPastDate(cita.fecha, cita.hora) || 
-    cita.estado.toLowerCase() === 'cancelada' || 
+
+  const historyCitas = citas.filter(cita =>
+    isPastDate(cita.fecha, cita.hora) ||
+    cita.estado.toLowerCase() === 'cancelada' ||
     cita.estado.toLowerCase() === 'completada'
   )
 
   return (
-    <Layout 
+    <Layout
       title="Consultar Citas - Chamos Barber"
       description="Consulta el estado de tus citas reservadas en Chamos Barber. Revisa fechas, horarios y confirmaciones."
     >
@@ -189,10 +189,10 @@ const ConsultarPage: React.FC = () => {
         <div className="container">
           <div className="consultation-form">
             <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <i className="fas fa-search" style={{ 
-                fontSize: '3rem', 
-                color: 'var(--accent-color)', 
-                marginBottom: '1rem' 
+              <i className="fas fa-search" style={{
+                fontSize: '3rem',
+                color: 'var(--accent-color)',
+                marginBottom: '1rem'
               }}></i>
               <h2 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
                 Buscar mis Citas
@@ -203,44 +203,26 @@ const ConsultarPage: React.FC = () => {
             </div>
 
             <form onSubmit={handleSubmit}>
-              <div className="form-group">
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <i className="fab fa-whatsapp" style={{ color: '#25D366' }}></i>
-                  Número de Teléfono (WhatsApp)
-                </label>
-                <input 
-                  type="tel"
-                  className="form-input"
-                  value={telefono}
-                  onChange={(e) => {
-                    // Formatear automáticamente mientras escribe
-                    const formatted = formatPhoneInput(e.target.value)
-                    setTelefono(formatted)
-                  }}
-                  placeholder={getPhonePlaceholder()}
-                  required
-                  maxLength={17} // +56 9 1234 5678 = 17 caracteres
-                  style={{
-                    fontFamily: 'monospace',
-                    fontSize: '1.1rem',
-                    letterSpacing: '0.05em'
-                  }}
-                />
-                <small style={{ 
-                  opacity: '0.8', 
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  marginTop: '0.5rem'
-                }}>
-                  <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
-                  Usa el mismo formato con el que reservaste: {getPhonePlaceholder()}
-                </small>
-              </div>
+              <PhoneInput
+                label="Número de Teléfono (WhatsApp)"
+                value={telefono}
+                onChange={(val) => setTelefono(val)}
+                required
+              />
+              <small style={{
+                opacity: '0.8',
+                fontSize: '0.85rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginTop: '0.5rem'
+              }}>
+                <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
+                Usa el mismo formato con el que reservaste.
+              </small>
 
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className={`btn btn-primary ${loading ? 'loading' : ''}`}
                 disabled={loading}
                 style={{ width: '100%' }}
@@ -264,23 +246,23 @@ const ConsultarPage: React.FC = () => {
               <div className="appointments-results">
                 {citas.length === 0 ? (
                   <div className="no-results">
-                    <i className="fas fa-calendar-times" style={{ 
-                      fontSize: '3rem', 
-                      color: 'var(--accent-color)', 
-                      marginBottom: '1rem' 
+                    <i className="fas fa-calendar-times" style={{
+                      fontSize: '3rem',
+                      color: 'var(--accent-color)',
+                      marginBottom: '1rem'
                     }}></i>
                     <h3>No se encontraron citas</h3>
                     <p>No encontramos citas asociadas a este número de teléfono.</p>
-                    <p>Verifica que hayas ingresado el número correcto o 
-                       <a href="/reservar" style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
-                         {' '}reserva una nueva cita aquí
-                       </a>.
+                    <p>Verifica que hayas ingresado el número correcto o
+                      <a href="/reservar" style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
+                        {' '}reserva una nueva cita aquí
+                      </a>.
                     </p>
                   </div>
                 ) : (
                   <>
                     {/* Mensaje de Bienvenida y Estadísticas */}
-                    <div style={{ 
+                    <div style={{
                       marginBottom: '2rem',
                       padding: '2rem',
                       background: 'linear-gradient(135deg, var(--accent-color) 0%, #c89d3c 100%)',
@@ -288,8 +270,8 @@ const ConsultarPage: React.FC = () => {
                       color: '#1a1a1a',
                       textAlign: 'center'
                     }}>
-                      <h2 style={{ 
-                        fontSize: '2rem', 
+                      <h2 style={{
+                        fontSize: '2rem',
                         marginBottom: '1rem',
                         fontWeight: 'bold'
                       }}>
@@ -299,11 +281,11 @@ const ConsultarPage: React.FC = () => {
                       <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem', opacity: 0.9 }}>
                         Nos alegra tenerte como cliente. Tu confianza es nuestro mayor orgullo.
                       </p>
-                      
+
                       {/* Estadísticas */}
-                      <div style={{ 
-                        display: 'flex', 
-                        gap: '2rem', 
+                      <div style={{
+                        display: 'flex',
+                        gap: '2rem',
                         justifyContent: 'center',
                         flexWrap: 'wrap',
                         marginTop: '1.5rem'
@@ -321,7 +303,7 @@ const ConsultarPage: React.FC = () => {
                             <i className="fas fa-calendar"></i> Total de Citas
                           </div>
                         </div>
-                        
+
                         <div style={{
                           padding: '1rem 2rem',
                           background: 'rgba(26, 26, 26, 0.2)',
@@ -392,8 +374,8 @@ const ConsultarPage: React.FC = () => {
                                   position: 'relative',
                                   flexShrink: 0
                                 }}>
-                                  <img 
-                                    src={cita.barbero_imagen} 
+                                  <img
+                                    src={cita.barbero_imagen}
                                     alt={cita.barbero_nombre}
                                     style={{
                                       width: '100px',
@@ -420,18 +402,18 @@ const ConsultarPage: React.FC = () => {
                                     <i className="fas fa-scissors" style={{ fontSize: '0.8rem', color: '#1a1a1a' }}></i>
                                   </div>
                                 </div>
-                                
+
                                 <div style={{ flex: 1 }}>
-                                  <h4 style={{ 
-                                    fontSize: '1.3rem', 
+                                  <h4 style={{
+                                    fontSize: '1.3rem',
                                     marginBottom: '0.5rem',
                                     color: 'var(--accent-color)'
                                   }}>
                                     Tu barbero: {cita.barbero_nombre}
                                   </h4>
                                   {cita.barbero_especialidad && (
-                                    <p style={{ 
-                                      fontSize: '0.95rem', 
+                                    <p style={{
+                                      fontSize: '0.95rem',
                                       opacity: 0.8,
                                       marginBottom: '0.5rem'
                                     }}>
@@ -457,7 +439,7 @@ const ConsultarPage: React.FC = () => {
                               {(() => {
                                 const serviciosDetalle = cita.servicios_detalle || []
                                 const tieneMultiplesServicios = serviciosDetalle.length > 1
-                                
+
                                 return (
                                   <div>
                                     <strong>
@@ -493,14 +475,14 @@ const ConsultarPage: React.FC = () => {
                                                 {idx + 1}
                                               </span>
                                               <span style={{ flex: 1 }}>{servicio.nombre}</span>
-                                              <span style={{ 
+                                              <span style={{
                                                 color: 'var(--accent-color)',
                                                 fontWeight: '600',
                                                 whiteSpace: 'nowrap'
                                               }}>
                                                 ${servicio.precio?.toLocaleString()}
                                               </span>
-                                              <span style={{ 
+                                              <span style={{
                                                 opacity: 0.7,
                                                 fontSize: '0.85rem',
                                                 whiteSpace: 'nowrap'
@@ -556,8 +538,8 @@ const ConsultarPage: React.FC = () => {
                                 <strong>Barbero:</strong> {cita.barbero_nombre}
                               </div>
                               <div>
-                                <strong>Estado:</strong> 
-                                <span style={{ 
+                                <strong>Estado:</strong>
+                                <span style={{
                                   color: getEstadoColor(cita.estado),
                                   fontWeight: '600',
                                   marginLeft: '0.5rem'
@@ -567,8 +549,8 @@ const ConsultarPage: React.FC = () => {
                               </div>
                             </div>
                             {limpiarNotas(cita.notas) && (
-                              <div style={{ 
-                                marginTop: '1rem', 
+                              <div style={{
+                                marginTop: '1rem',
                                 padding: '0.75rem',
                                 background: 'rgba(212, 175, 55, 0.1)',
                                 borderRadius: 'var(--border-radius)',
@@ -577,9 +559,9 @@ const ConsultarPage: React.FC = () => {
                                 <strong>Notas:</strong> {limpiarNotas(cita.notas)}
                               </div>
                             )}
-                            
+
                             {cita.estado.toLowerCase() === 'pendiente' && (
-                              <div style={{ 
+                              <div style={{
                                 marginTop: '1rem',
                                 padding: '0.75rem',
                                 background: 'rgba(255, 165, 0, 0.1)',
@@ -587,7 +569,7 @@ const ConsultarPage: React.FC = () => {
                                 fontSize: '0.9rem',
                                 border: '1px solid rgba(255, 165, 0, 0.3)'
                               }}>
-                                <i className="fas fa-info-circle"></i> Tu cita está pendiente de confirmación. 
+                                <i className="fas fa-info-circle"></i> Tu cita está pendiente de confirmación.
                                 Te contactaremos pronto por WhatsApp.
                               </div>
                             )}
@@ -612,7 +594,7 @@ const ConsultarPage: React.FC = () => {
                               {(() => {
                                 const serviciosDetalle = cita.servicios_detalle || []
                                 const tieneMultiplesServicios = serviciosDetalle.length > 1
-                                
+
                                 return (
                                   <div>
                                     <strong>
@@ -648,14 +630,14 @@ const ConsultarPage: React.FC = () => {
                                                 {idx + 1}
                                               </span>
                                               <span style={{ flex: 1 }}>{servicio.nombre}</span>
-                                              <span style={{ 
+                                              <span style={{
                                                 color: 'var(--accent-color)',
                                                 fontWeight: '600',
                                                 whiteSpace: 'nowrap'
                                               }}>
                                                 ${servicio.precio?.toLocaleString()}
                                               </span>
-                                              <span style={{ 
+                                              <span style={{
                                                 opacity: 0.7,
                                                 fontSize: '0.85rem',
                                                 whiteSpace: 'nowrap'
@@ -711,8 +693,8 @@ const ConsultarPage: React.FC = () => {
                                 <strong>Barbero:</strong> {cita.barbero_nombre}
                               </div>
                               <div>
-                                <strong>Estado:</strong> 
-                                <span style={{ 
+                                <strong>Estado:</strong>
+                                <span style={{
                                   color: getEstadoColor(cita.estado),
                                   fontWeight: '600',
                                   marginLeft: '0.5rem'
@@ -727,7 +709,7 @@ const ConsultarPage: React.FC = () => {
                     )}
 
                     {/* Contact Info */}
-                    <div style={{ 
+                    <div style={{
                       marginTop: '2rem',
                       padding: '1.5rem',
                       background: 'var(--bg-primary)',
@@ -742,9 +724,9 @@ const ConsultarPage: React.FC = () => {
                         Si necesitas cancelar, reprogramar o tienes alguna consulta sobre tu cita:
                       </p>
                       <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
-                        <a 
-                          href="https://wa.me/56983588553" 
-                          target="_blank" 
+                        <a
+                          href="https://wa.me/56983588553"
+                          target="_blank"
                           rel="noopener noreferrer"
                           className="btn btn-primary"
                           style={{ padding: '10px 20px' }}
@@ -752,11 +734,11 @@ const ConsultarPage: React.FC = () => {
                           <i className="fab fa-whatsapp"></i>
                           WhatsApp
                         </a>
-                        <a 
+                        <a
                           href="tel:+56983588553"
                           className="btn btn-secondary"
                           style={{ padding: '10px 20px' }}
-                          >
+                        >
                           <i className="fas fa-phone"></i>
                           Llamar
                         </a>
