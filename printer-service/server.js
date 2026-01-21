@@ -60,7 +60,7 @@ function connectPrinter(vid, pid) {
         }
 
         device = patchEventEmitter(device);
-        // Usamos codificación Latin1 para evitar que caracteres especiales activen modos multibyte
+        // Forzamos ISO-8859-1 para estabilidad total de símbolos ASCII ($)
         printer = new escpos.Printer(device, { encoding: 'ISO-8859-1' });
         return true;
     } catch (e) {
@@ -97,14 +97,15 @@ app.post('/print', (req, res) => {
         device.open((error) => {
             if (error) { device = null; return res.status(500).json({ error: 'Error de puerto' }); }
 
-            console.log(`🖨️ Generando impresión v6.0 (Sin modo chino): ${factura.numero_factura}`);
+            console.log(`🖨️ Generando impresión v7.0 (USA Charset): ${factura.numero_factura}`);
 
-            // --- COMANDOS DE INICIALIZACIÓN CRÍTICOS ---
-            printer.pureText('\x1B\x40');   // ESC @ (Initialize printer)
-            printer.pureText('\x1C\x2E');   // FS .  (CANCEL CHINESE CHAR MODE) - MUY IMPORTANTE
-            printer.pureText('\x1B\x74\x10'); // ESC t 16 (Select WPC1252 / Latin 1)
+            // --- INICIALIZACIÓN INTERNACIONAL AGRESIVA ---
+            printer.pureText('\x1B\x40');   // ESC @ (Reset/Initialize)
+            printer.pureText('\x1C\x2E');   // FS .  (Cancel Chinese Mode - CRITICAL)
+            printer.pureText('\x1B\x52\x00'); // ESC R 0 (Select Int. Char Set: USA - For $ symbol)
+            printer.pureText('\x1B\x74\x00'); // ESC t 0 (Select Char Table: PC437 - For $ symbol)
 
-            // APERTURA DE CAJÓN
+            // APERTURA DE CAJÓN (Pin 2 y 5)
             printer.cashdraw(2).cashdraw(5);
 
             // HEADER
@@ -130,7 +131,7 @@ app.post('/print', (req, res) => {
             }
             printer.feed(1);
 
-            // ITEMS
+            // ITEMS (Layout profesional alineado)
             printer.style('b').text('CANT  DESCRIPCION         TOTAL');
             printer.style('normal').text('--------------------------------');
 
@@ -164,7 +165,7 @@ app.post('/print', (req, res) => {
             res.json({ success: true });
         });
     } catch (e) {
-        console.error('❌ Error en proceso de impresion:', e);
+        console.error('❌ Error fatal en impresión:', e);
         device = null;
         res.status(500).json({ error: e.message });
     }
@@ -172,7 +173,7 @@ app.post('/print', (req, res) => {
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log('=========================================');
-    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 6.0`);
+    console.log(`🖨️  CHAMOS PRINTER SERVICE v1.1 PRO EX 7.0`);
     console.log(`🌐 Corriendo en http://localhost:${PORT}`);
     console.log('=========================================');
 });
