@@ -33,20 +33,25 @@ interface OneSignalProviderProps {
   children: React.ReactNode
   appId?: string
   autoPrompt?: boolean
+  enabled?: boolean
 }
 
 export default function OneSignalProvider({
   children,
   appId = '63aa14ec-de8c-46b3-8949-e9fd221f8d70',
-  autoPrompt = true
+  autoPrompt = true,
+  enabled = true
 }: OneSignalProviderProps) {
   const [initialized, setInitialized] = useState(false)
   const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default')
   const [showPrompt, setShowPrompt] = useState(false)
 
   useEffect(() => {
-    // Solo ejecutar en el cliente
-    if (typeof window === 'undefined') return
+    // Solo ejecutar en el cliente y si está habilitado
+    if (typeof window === 'undefined' || !enabled) {
+      if (!enabled) console.log('🔕 OneSignal está deshabilitado para esta ruta')
+      return
+    }
 
     // Usar variable de entorno si está disponible
     const finalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || appId

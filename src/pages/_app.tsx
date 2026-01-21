@@ -31,9 +31,13 @@ export default function App({ Component, pageProps }: AppProps) {
   // Verificar si la ruta actual es administrativa
   const isAdminRoute = adminRoutes.some(route => router.pathname.startsWith(route))
 
+  // Rutas de barberos donde SÍ queremos OneSignal
+  const barberRoutes = ['/barbero-panel', '/barber-app']
+  const isBarberRoute = barberRoutes.some(route => router.pathname.startsWith(route))
+
   return (
     <SessionContextProvider supabaseClient={supabase}>
-      <OneSignalProvider autoPrompt={false}>
+      <OneSignalProvider autoPrompt={false} enabled={isBarberRoute}>
         <Head>
           <meta charSet="UTF-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
