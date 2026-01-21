@@ -102,20 +102,16 @@ export default function RegistrarWalkInModal({
     try {
       setLoading(true)
 
-      // 1. Crear o buscar cliente walk-in (o usar existente si ya hay lógica de búsqueda)
-      // Por simplicidad, usamos la función existente que valida duplicados
+      // 1. Crear o buscar cliente walk-in
       let clienteWalkIn: WalkInClient | null = null;
       try {
+        const cleanedPhone = formData.telefono.replace(/\D/g, '');
         clienteWalkIn = await createWalkInClient({
           ...formData,
-          telefono: formData.telefono.replace(/\D/g, '')
+          telefono: cleanedPhone
         })
       } catch (err: any) {
-        // Si ya existe, intentamos buscarlo (fallback simple)
         if (err.message?.includes('Ya existe')) {
-          // Aquí idealmente buscaríamos el ID, pero por ahora asumimos éxito parcial
-          // En un sistema real, deberíamos obtener el ID del cliente existente.
-          // Para este MVP de reserva manual, insertaremos la cita con los datos de texto directamente
           console.log('Cliente ya existe, procediendo con reserva...')
         } else {
           throw err
@@ -124,10 +120,32 @@ export default function RegistrarWalkInModal({
 
       // 2. Si es reserva manual, crear la cita en la tabla 'citas'
       if (activeTab === 'reserva') {
+        // VALIDACIÓN PREVIA: Verificar si ya existe una cita para ese barbero y fecha (Cualquier estado)
+        const { data: dayCitas, error: checkError } = await supabase
+          .from('citas')
+          .select('id, hora, estado')
+          .eq('barbero_id', selectedBarbero)
+          .eq('fecha', fechaReserva);
+
+        if (checkError) {
+          console.error('Error al verificar disponibilidad:', checkError);
+        }
+
+        // Comparar horas (manejando posibles formatos HH:MM vs HH:MM:SS)
+        const conflict = (dayCitas as any[])?.find((c: any) => c.hora.startsWith(horaReserva) || horaReserva.startsWith(c.hora.substring(0, 5)));
+
+        if (conflict) {
+          const msg = (conflict as any).estado === 'cancelada'
+            ? '⚠️ Este horario tiene una cita CANCELADA. La base de datos no permite duplicados en el mismo horario. Por favor selecciona otro o elimina la cita cancelada desde la pestaña de Citas.'
+            : '⚠️ Este horario ya está ocupado por este barbero. Por favor selecciona otro.';
+          setError(msg);
+          setLoading(false);
+          return;
+        }
+
         // Preparamos las notas incluyendo los servicios extra si hay más de uno
         let notasFinales = `[WALK-IN] ${formData.notas || ''}`;
         if (selectedServicios.length > 0) {
-          // Buscar nombres de servicios para agregarlos a las notas
           const serviciosNombres = selectedServicios.map(id => {
             const s = servicios.find(srv => srv.id === id);
             return s ? s.nombre : id;
@@ -137,16 +155,14 @@ export default function RegistrarWalkInModal({
 
         const citaPayload = {
           barbero_id: selectedBarbero,
-          servicio_id: selectedServicios[0] || null, // Principal (campo obligatorio o FK)
-          // servicios_ids: selectedServicios, // REMOVIDO: No existe en la definición de tipos de la BD actual
+          servicio_id: selectedServicios[0] || null,
           fecha: fechaReserva,
           hora: horaReserva,
           cliente_nombre: formData.nombre,
-          cliente_telefono: formData.telefono,
+          cliente_telefono: formData.telefono.replace(/\D/g, ''),
           cliente_email: formData.email || null,
           notas: notasFinales,
-          estado: 'confirmada', // Confirmada directamente
-          // origen: 'walk-in' // REMOVIDO: No existe en la definición de tipos, se maneja vía notas o lógica de negocio
+          estado: 'confirmada',
         }
 
         // Insertar cita usando supabase directo
@@ -154,7 +170,15 @@ export default function RegistrarWalkInModal({
           .from('citas')
           .insert([citaPayload] as any)
 
-        if (citaError) throw citaError
+        if (citaError) {
+          // Manejar específicamente el error de restricción única (race condition)
+          if (citaError.code === '23505') {
+            setError('⚠️ Este horario acaba de ser ocupado. Por favor selecciona otro.');
+            setLoading(false);
+            return;
+          }
+          throw citaError
+        }
 
         toast.success('Reserva manual creada exitosamente')
       } else {
@@ -419,8 +443,8 @@ export default function RegistrarWalkInModal({
                           key={s.id}
                           onClick={() => toggleServicio(s.id)}
                           className={`flex items-center gap-2 p-2 rounded cursor-pointer text-sm transition-colors ${selectedServicios.includes(s.id)
-                              ? 'bg-[var(--accent-color)] text-[var(--bg-primary)]'
-                              : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
+                            ? 'bg-[var(--accent-color)] text-[var(--bg-primary)]'
+                            : 'hover:bg-[var(--bg-secondary)] text-[var(--text-primary)]'
                             }`}
                         >
                           <div className={`w-4 h-4 rounded border flex items-center justify-center ${selectedServicios.includes(s.id) ? 'border-white bg-white/20' : 'border-[var(--text-secondary)]'
