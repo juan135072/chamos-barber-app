@@ -120,11 +120,12 @@ Password: (Configurada en el registro)
 ## 🌐 Ecosistema Digital (URLs)
 
 ### 🚀 Aplicación Principal
-- **Sitio Web / Reservas**: [https://chamosbarber.com](https://chamosbarber.com)
+- **Sitio Web**: [https://chamosbarber.com](https://chamosbarber.com)
+- **Reservas**: [https://chamosbarber.com/reservar](https://chamosbarber.com/reservar)
 - **Panel Administrativo**: [https://chamosbarber.com/admin](https://chamosbarber.com/admin)
 - **Panel Barberos**: [https://chamosbarber.com/barber-app](https://chamosbarber.com/barber-app)
-- **Página de Consultas**: [https://chamosbarber.com/consultar-citas](https://chamosbarber.com/consultar-citas)
-- **Login Central**: [https://chamosbarber.com/login](https://chamosbarber.com/login)
+- **Página de Consultas**: [https://chamosbarber.com/consultar](https://chamosbarber.com/consultar)
+- **Login Central (Privado)**: [https://chamosbarber.com/chamos-acceso](https://chamosbarber.com/chamos-acceso)
 
 ### 🛠️ Servicios y Backend
 - **Supabase (Base de Datos)**: [https://supabase.chamosbarber.com](https://supabase.chamosbarber.com)
