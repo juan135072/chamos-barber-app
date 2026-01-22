@@ -11,6 +11,7 @@ import { useCitasRealtime } from '../../hooks/useCitasRealtime'
 import { useMetricasDiarias } from '../../hooks/useMetricasDiarias'
 import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
 import { chamosSupabase } from '../../../lib/supabase-helpers'
+import { useOneSignal } from '../../components/providers/OneSignalProvider'
 import MetricasRapidas from '../../components/barber-app/dashboard/MetricasRapidas'
 import ProximaCitaCard from '../../components/barber-app/dashboard/ProximaCitaCard'
 import CitasList from '../../components/barber-app/citas/CitasList'
@@ -37,51 +38,31 @@ export default function BarberAppPage() {
   const [citaParaCobrar, setCitaParaCobrar] = useState<any>(null)
   const [modalCobroOpen, setModalCobroOpen] = useState(false)
 
+  const { setExternalId, triggerPrompt, sendTags, permissionStatus } = useOneSignal()
+
   // Configurar OneSignal con datos del barbero
   useEffect(() => {
     if (!session?.barberoId || !barbero) return
 
-    // Esperar a que OneSignal esté disponible
-    const setupOneSignal = () => {
-      const OneSignal = (window as any).OneSignal
-      if (!OneSignal) {
-        setTimeout(setupOneSignal, 1000)
-        return
-      }
+    // Usar el provider central para vincular el ID
+    setExternalId(session.barberoId)
 
-      OneSignal.push(() => {
-        // Establecer external user ID (barbero_id)
-        OneSignal.setExternalUserId(session.barberoId)
-          .then(() => {
-            console.log('✅ External User ID configurado:', session.barberoId)
-          })
-          .catch((err: any) => {
-            console.error('❌ Error configurando External User ID:', err)
-          })
+    // Enviar tags
+    sendTags({
+      barbero_id: session.barberoId,
+      barbero_nombre: `${barbero.nombre} ${barbero.apellido}`,
+      rol: 'barbero',
+      email: session.email
+    })
 
-        // Establecer tags personalizados
-        OneSignal.sendTags({
-          barbero_id: session.barberoId,
-          barbero_nombre: `${barbero.nombre} ${barbero.apellido}`,
-          rol: 'barbero',
-          email: session.email
-        }).then(() => {
-          console.log('✅ Tags de OneSignal configurados')
-        }).catch((err: any) => {
-          console.error('❌ Error configurando tags:', err)
-        })
-
-        // Solicitar permisos de notificación si no se han otorgado
-        OneSignal.getNotificationPermission().then((permission: string) => {
-          if (permission === 'default') {
-            OneSignal.showNativePrompt()
-          }
-        })
-      })
+    // Mostrar el prompt después de un pequeño delay si no hay permisos
+    if (permissionStatus === 'default') {
+      const timer = setTimeout(() => {
+        triggerPrompt()
+      }, 3000)
+      return () => clearTimeout(timer)
     }
-
-    setupOneSignal()
-  }, [session?.barberoId, barbero])
+  }, [session?.barberoId, barbero, setExternalId, triggerPrompt, sendTags, permissionStatus])
 
   // Handlers para las acciones de citas
   const handleCheckIn = async (citaId: string) => {

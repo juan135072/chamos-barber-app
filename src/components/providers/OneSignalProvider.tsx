@@ -17,6 +17,7 @@ interface OneSignalContextType {
   showPrompt: boolean
   triggerPrompt: () => void
   setExternalId: (id: string) => Promise<void>
+  sendTags: (tags: Record<string, any>) => Promise<void>
 }
 
 const OneSignalContext = createContext<OneSignalContextType | undefined>(undefined)
@@ -45,6 +46,7 @@ export default function OneSignalProvider({
   const [initialized, setInitialized] = useState(false)
   const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default')
   const [showPrompt, setShowPrompt] = useState(false)
+  const [isRequesting, setIsRequesting] = useState(false)
 
   useEffect(() => {
     // Solo ejecutar en el cliente y si está habilitado
@@ -147,7 +149,7 @@ export default function OneSignalProvider({
     }
 
     initOneSignal()
-  }, [appId, autoPrompt])
+  }, [appId, autoPrompt, enabled])
 
   // Función para solicitar permisos
   const requestPermission = async () => {
@@ -159,6 +161,12 @@ export default function OneSignalProvider({
         return
       }
 
+      if (isRequesting) {
+        console.log('⏳ Ya hay una solicitud de permisos en curso, ignorando...')
+        return
+      }
+
+      setIsRequesting(true)
       console.log('🔔 Solicitando permisos de notificación...')
 
       // Verificar si ya están denegados a nivel de navegador
@@ -210,6 +218,8 @@ export default function OneSignalProvider({
     } catch (error) {
       console.error('❌ Error solicitando permisos:', error)
       alert('Hubo un problema al activar las notificaciones. Por favor intenta nuevamente o contacta al administrador.')
+    } finally {
+      setIsRequesting(false)
     }
   }
 
@@ -314,13 +324,29 @@ export default function OneSignalProvider({
     }
   }
 
+  // Función para enviar tags
+  const sendTags = async (tags: Record<string, any>) => {
+    try {
+      const OneSignal = (window as any).OneSignal
+      if (OneSignal && OneSignal.User && OneSignal.User.addTags) {
+        await OneSignal.User.addTags(tags)
+        console.log('✅ [OneSignal] Tags actualizados:', tags)
+      } else {
+        console.warn('⚠️ [OneSignal] SDK no listo para enviar tags')
+      }
+    } catch (error) {
+      console.error('❌ Error enviando tags a OneSignal:', error)
+    }
+  }
+
   return (
     <OneSignalContext.Provider value={{
       initialized,
       permissionStatus,
       showPrompt,
       triggerPrompt,
-      setExternalId
+      setExternalId,
+      sendTags
     }}>
       {children}
 
