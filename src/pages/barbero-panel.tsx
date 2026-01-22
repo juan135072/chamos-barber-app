@@ -6,6 +6,7 @@ import toast, { Toaster } from 'react-hot-toast'
 import CitasSection from '../components/barbero/CitasSection'
 import GananciasSection from '../components/barbero/GananciasSection'
 import ChangePasswordSection from '../components/barbero/ChangePasswordSection'
+import { Bell, BellOff } from 'lucide-react'
 import DashboardSection from '../components/barbero/DashboardSection'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
@@ -92,7 +93,10 @@ const BarberoPanelPage: React.FC = () => {
 
       // 🔔 OneSignal: Vincular ID y mostrar prompt
       setExternalId(barbero.id)
+
+      // Intentar disparar el prompt después de un delay
       setTimeout(() => {
+        console.log('🔄 [Barbero Panel] Intentando auto-trigger de OneSignal...')
         triggerPrompt()
       }, 5000)
 
@@ -102,6 +106,41 @@ const BarberoPanelPage: React.FC = () => {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Obtener estado de OneSignal
+  const { permissionStatus, triggerPrompt: osTriggerPrompt, repairSubscription } = useOneSignal()
+
+  // Icono dinámico según el estado de permisos
+  const NotificationBell = () => {
+    return (
+      <button
+        onClick={() => {
+          console.log('🔔 Clic manual en campana')
+          triggerPrompt()
+        }}
+        onDoubleClick={repairSubscription}
+        style={{
+          padding: '0.5rem',
+          borderRadius: '50%',
+          background: permissionStatus === 'granted' ? 'rgba(16, 185, 129, 0.1)' :
+            permissionStatus === 'denied' ? 'rgba(239, 68, 68, 0.1)' :
+              'rgba(212, 175, 55, 0.1)',
+          color: permissionStatus === 'granted' ? '#10B981' :
+            permissionStatus === 'denied' ? '#EF4444' :
+              '#D4AF37',
+          border: '1px solid currentColor',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          animation: permissionStatus === 'default' ? 'pulse 2s infinite' : 'none'
+        }}
+        title="Estado de notificaciones (Doble clic para reparar)"
+      >
+        {permissionStatus === 'granted' ? <Bell size={20} /> : <BellOff size={20} />}
+      </button>
+    )
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -283,6 +322,15 @@ const BarberoPanelPage: React.FC = () => {
       </Head>
       <Toaster position="top-right" />
 
+      {/* Estilos para animaciones */}
+      <style jsx global>{`
+        @keyframes pulse {
+          0% { transform: scale(1); opacity: 1; }
+          50% { transform: scale(1.1); opacity: 0.7; }
+          100% { transform: scale(1); opacity: 1; }
+        }
+      `}</style>
+
       <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
         {/* Header - Solo visible en navegador normal */}
         {!isStandalone && (
@@ -339,6 +387,32 @@ const BarberoPanelPage: React.FC = () => {
         )}
 
         <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+          {/* Header minimalista para PWA */}
+          {isStandalone && profile && (
+            <div style={{
+              display: 'flex',
+              justifyContent: 'between',
+              alignItems: 'center',
+              marginBottom: '1.5rem',
+              padding: '0.5rem',
+              background: 'var(--bg-secondary)',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
+                  <i className="fas fa-scissors" style={{ color: 'var(--bg-primary)', fontSize: '0.8rem' }}></i>
+                </div>
+                <div>
+                  <h2 style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0 }}>Chamos Barber</h2>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--accent-color)', margin: 0 }}>Panel de Barbero</p>
+                </div>
+              </div>
+              <div style={{ flex: 1 }}></div>
+              <NotificationBell />
+            </div>
+          )}
 
           {/* Tabs - Solo visibles en navegador normal */}
           {!isStandalone && (
