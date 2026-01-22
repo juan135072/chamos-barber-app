@@ -152,13 +152,56 @@ export default function OneSignalProvider({
   const requestPermission = async () => {
     try {
       const OneSignal = (window as any).OneSignal
-      if (!OneSignal) return
+      if (!OneSignal) {
+        console.error('❌ OneSignal SDK no disponible')
+        alert('Error: El sistema de notificaciones no está listo. Por favor recarga la página.')
+        return
+      }
 
-      const permission = await OneSignal.Notifications.requestPermission()
-      setPermissionStatus(permission ? 'granted' : 'denied')
-      setShowPrompt(false)
+      console.log('🔔 Solicitando permisos de notificación...')
+
+      // En OneSignal Web SDK v16, cuando slidedown está deshabilitado,
+      // debemos usar showSlidedownPrompt() o el método nativo del navegador
+      // La mejor opción es usar Slidedown de OneSignal que maneja todo correctamente
+
+      try {
+        // Mostrar el slidedown prompt de OneSignal (maneja el prompt nativo internamente)
+        await OneSignal.Slidedown.promptPush()
+
+        // Verificar el resultado después de que el usuario responda
+        setTimeout(async () => {
+          const permission = OneSignal.Notifications.permission
+          console.log('📬 Resultado de permisos:', permission)
+          setPermissionStatus(permission ? 'granted' : 'denied')
+
+          if (permission) {
+            console.log('✅ Notificaciones habilitadas exitosamente')
+            alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
+          } else {
+            console.log('❌ Permisos denegados por el usuario')
+          }
+
+          setShowPrompt(false)
+        }, 500)
+      } catch (slidedownError) {
+        // Si Slidedown falla, intentar con el método directo del navegador
+        console.warn('⚠️ Slidedown no disponible, usando método nativo del navegador')
+
+        const browserPermission = await Notification.requestPermission()
+        const granted = browserPermission === 'granted'
+
+        setPermissionStatus(granted ? 'granted' : 'denied')
+        setShowPrompt(false)
+
+        if (granted) {
+          // Notificar a OneSignal que el permiso fue otorgado
+          console.log('✅ Permiso otorgado mediante navegador nativo')
+          alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
+        }
+      }
     } catch (error) {
       console.error('❌ Error solicitando permisos:', error)
+      alert('Hubo un problema al activar las notificaciones. Por favor intenta nuevamente o contacta al administrador.')
     }
   }
 
