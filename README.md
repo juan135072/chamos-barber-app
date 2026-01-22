@@ -24,27 +24,22 @@ Chamos Barber es una aplicación web moderna que permite:
 
 ```
 chamos-barber-app/
-├── docs/                          # 📚 Documentación completa
+├── docs/                          # 📚 Documentación organizada
+│   ├── archive/                   # Historial de cambios y reportes antiguos
+│   ├── guides/                    # Guías de desarrollo y administración
 │   ├── architecture/              # Arquitectura del sistema
-│   ├── features/                  # Documentación de funcionalidades
-│   ├── guides/                    # Guías de desarrollo
-│   ├── api/                       # Documentación de APIs
-│   └── deployment/                # Guías de deployment
-├── src/
-│   ├── components/                # Componentes React
-│   │   ├── admin/                 # Componentes del admin
-│   │   │   └── tabs/              # Tabs del panel admin
-│   │   └── barbero/               # Componentes de barberos
-│   ├── pages/                     # Páginas Next.js
-│   │   ├── admin.tsx              # Panel de administración
-│   │   ├── barbero-panel.tsx      # Panel de barberos
-│   │   ├── login.tsx              # Login multi-rol
-│   │   └── api/                   # API Routes
-│   └── lib/                       # Utilidades y helpers
-├── scripts/                       # Scripts de utilidad
-│   ├── SQL/                       # Scripts SQL
-│   └── setup/                     # Scripts de configuración
-└── public/                        # Archivos estáticos
+│   ├── deployment/                # Guías de despliegue (Coolify/VPS)
+│   └── testing/                   # Guías de pruebas y calidad
+├── database/                      # 🗄️ Scripts de base de datos
+│   └── scripts/                   # Migraciones y utilidades SQL
+├── src/                           # 💻 Código fuente (Next.js)
+│   ├── components/                # Componentes React (Admin, POS, Barberos)
+│   ├── pages/                     # Rutas y API Endpoints
+│   ├── lib/                       # Utilidades y configuración de Supabase
+│   └── styles/                    # Estilos globales y módulos CSS
+├── public/                        # 📄 Archivos estáticos y activos
+├── printer-service/               # 🖨️ Microservicio local para impresión térmica
+└── scripts/                       # 🛠️ Scripts de automatización y setup
 
 ```
 
