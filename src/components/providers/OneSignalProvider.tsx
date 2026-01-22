@@ -250,6 +250,7 @@ export default function OneSignalProvider({
         }
       }
     } catch (error) {
+      // Build Force: v1.0.1 - Ensuring fix for NotificationPermission overlap is applied
       console.error('❌ Error solicitando permisos:', error)
       alert('Hubo un problema al activar las notificaciones. Por favor intenta nuevamente o contacta al administrador.')
     } finally {
