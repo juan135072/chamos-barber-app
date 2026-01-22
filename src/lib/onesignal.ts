@@ -21,15 +21,22 @@ export async function sendNotificationToBarber(barberId: string, title: string, 
     }
 
     try {
-        console.log(`🔔 [OneSignal Service] Preparando notificación para barbero: ${barberId}`)
+        const cleanBarberId = barberId.trim()
+        console.log(`🔔 [OneSignal Service] Preparando notificación para barbero: ${cleanBarberId}`)
 
-        const payload = {
+        const payload: any = {
             app_id: ONESIGNAL_APP_ID,
             // Identificador interno para el dashboard de OneSignal (Crucial para depurar)
-            name: `Reserva: ${barberId.substring(0, 8)} - ${new Date().toLocaleTimeString()}`,
+            name: `Reserva: ${cleanBarberId.substring(0, 8)} - ${new Date().toLocaleTimeString()}`,
+
+            // MÉTODO MODERNO (SDK v16+)
             include_aliases: {
-                external_id: [barberId]
+                external_id: [cleanBarberId]
             },
+
+            // MÉTODO LEGACY (Para asegurar compatibilidad si el alias no está listo)
+            include_external_user_ids: [cleanBarberId],
+
             target_channel: "push",
             headings: { en: title, es: title },
             contents: { en: message, es: message },

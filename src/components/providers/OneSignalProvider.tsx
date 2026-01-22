@@ -317,8 +317,9 @@ export default function OneSignalProvider({
 
       // Guardar el ID para vincularlo más tarde
       if (typeof window !== 'undefined') {
-        (window as any).__pendingBarberExternalId = id
-        console.log('📝 [OneSignal] ID guardado para vincular después de activar notificaciones:', id)
+        const cleanId = id.trim()
+          ; (window as any).__pendingBarberExternalId = cleanId
+        console.log('📝 [OneSignal] ID guardado para vincular después de activar notificaciones:', cleanId)
       }
 
       // Función recursiva con límite de intentos
