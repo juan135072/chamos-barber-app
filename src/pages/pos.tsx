@@ -101,6 +101,43 @@ export default function POSPage() {
                   </div>
                 </div>
 
+                {/* Botón Abrir Caja Manual */}
+                <button
+                  onClick={async () => {
+                    try {
+                      const controller = new AbortController()
+                      const timeoutId = setTimeout(() => controller.abort(), 2000)
+
+                      const response = await fetch('http://localhost:3001/open-drawer', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        signal: controller.signal
+                      })
+                      clearTimeout(timeoutId)
+
+                      if (response.ok) {
+                        alert('✅ Cajón abierto correctamente')
+                      } else {
+                        throw new Error('Error al abrir cajón')
+                      }
+                    } catch (e) {
+                      alert('⚠️ No se pudo conectar con la impresora local para abrir el cajón.\n\nVerifica que el servicio de impresión esté ejecutándose en el puerto 3001.')
+                    }
+                  }}
+                  className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
+                  style={{
+                    color: 'var(--bg-primary)',
+                    backgroundColor: 'var(--accent-color)',
+                    border: '2px solid var(--accent-color)'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
+                  title="Abrir caja manualmente sin realizar un pago"
+                >
+                  <i className="fas fa-cash-register mr-2"></i>
+                  Abrir Caja
+                </button>
+
                 {/* Botones de navegación */}
                 {esAdmin && (
                   <button
