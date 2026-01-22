@@ -1,0 +1,20 @@
+# Code Owners - Chamos Barber
+
+# Global owner - Juan Díaz is responsible for all code reviews
+* @juan135072
+
+# Critical Production Files - Require explicit approval
+/.env.example @juan135072
+/next.config.js @juan135072
+/package.json @juan135072
+/database/ @juan135072
+/supabase/ @juan135072
+
+# Deployment Configuration
+/deploy.sh @juan135072
+/nixpacks.toml @juan135072
+/ecosystem.config.js @juan135072
+
+# Security & Authentication
+/src/lib/supabase*.ts @juan135072
+/src/pages/api/ @juan135072

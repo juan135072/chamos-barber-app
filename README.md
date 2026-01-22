@@ -117,25 +117,12 @@ Email: barbero@chamosbarber.com
 Password: (Configurada en el registro)
 ```
 
-## 🌐 Ecosistema Digital (URLs)
+## 🌐 URLs del Proyecto
 
-### 🚀 Aplicación Principal
-- **Sitio Web**: [https://chamosbarber.com](https://chamosbarber.com)
-- **Reservas**: [https://chamosbarber.com/reservar](https://chamosbarber.com/reservar)
-- **Panel Administrativo**: [https://chamosbarber.com/admin](https://chamosbarber.com/admin)
-- **Panel Barberos**: [https://chamosbarber.com/barber-app](https://chamosbarber.com/barber-app)
-- **Página de Consultas**: [https://chamosbarber.com/consultar](https://chamosbarber.com/consultar)
-- **Login Central (Privado)**: [https://chamosbarber.com/chamos-acceso](https://chamosbarber.com/chamos-acceso)
-
-### 🛠️ Servicios y Backend
-- **Supabase (Base de Datos)**: [https://supabase.chamosbarber.com](https://supabase.chamosbarber.com)
-- **Coolify (Despliegue)**: [https://coolify.app](https://coolify.app)
-- **n8n (Automatizaciones/Bots)**: [https://n8n.chamosbarber.com](https://n8n.chamosbarber.com)
-- **Chatwoot (Atención al Cliente)**: [https://chatwoot.chamosbarber.com](https://chatwoot.chamosbarber.com)
-- **OneSignal (Notificaciones)**: [https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70](https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70)
-
-### 🖨️ Servicios Locales (POS)
-- **Printer Service**: `http://localhost:3001` (Microservicio para impresión térmica)
+- **Producción**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl)
+- **Panel Admin**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/admin](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/admin)
+- **Panel Barbero**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/barbero-panel](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/barbero-panel)
+- **API/Supabase**: Directo a través de la configuración de cliente
 
 ## 📝 Estado del Proyecto
 
