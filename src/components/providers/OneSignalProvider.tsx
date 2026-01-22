@@ -49,100 +49,98 @@ export default function OneSignalProvider({
   const [showPrompt, setShowPrompt] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
 
-  useEffect(() => {
-    // Solo ejecutar en el cliente y si está habilitado
-    if (typeof window === 'undefined' || !enabled) {
-      if (!enabled) console.log('🔕 OneSignal está deshabilitado para esta ruta')
-      return
-    }
+  // Función para inicializar OneSignal (definida a nivel de componente para ser accesible)
+  const initOneSignal = useCallback(async () => {
+    if (typeof window === 'undefined' || !enabled) return
 
-    // Usar variable de entorno si está disponible
-    const finalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || appId
+    try {
+      const finalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || appId
+      console.log('🔔 Inicializando OneSignal...')
 
-    console.log('🔔 Inicializando OneSignal...')
+      // 1. CARGA DINÁMICA DEL SDK
+      if (!(window as any).OneSignal) {
+        console.log('📥 Cargando OneSignal SDK desde CDN...')
+        const script = document.createElement('script')
+        script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
+        script.async = true
+        script.defer = true
+        document.head.appendChild(script)
 
-    // Función para inicializar OneSignal
-    const initOneSignal = async () => {
-      try {
-        // 1. CARGA DINÁMICA DEL SDK
-        if (!(window as any).OneSignal) {
-          console.log('📥 Cargando OneSignal SDK desde CDN...')
-          const script = document.createElement('script')
-          script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
-          script.async = true
-          script.defer = true
-          document.head.appendChild(script)
+        await new Promise((resolve) => {
+          script.onload = () => resolve(true)
+          script.onerror = () => resolve(false)
+        })
+      }
 
-          await new Promise((resolve) => {
-            script.onload = () => {
-              console.log('✅ [OneSignal] SDK cargado dinámicamente')
-              resolve(true)
-            }
-          })
-        }
+      // 2. ESPERAR A QUE EL OBJETO ONESIGNAL ESTÉ LISTO
+      let attempts = 0
+      while (!(window as any).OneSignal && attempts < 20) {
+        await new Promise(r => setTimeout(r, 100))
+        attempts++
+      }
 
-        const OneSignal = (window as any).OneSignal
+      const OneSignal = (window as any).OneSignal
+      if (!OneSignal) {
+        console.error('❌ [OneSignal] SDK no se pudo cargar después de varios intentos')
+        return
+      }
 
-        // Evitar inicialización duplicada
-        if (OneSignal && OneSignal.initialized) {
-          console.log('✅ [OneSignal] El SDK ya está inicializado')
-          setInitialized(true)
-          return
-        }
+      // Evitar inicialización duplicada
+      if (OneSignal.initialized) {
+        console.log('✅ [OneSignal] El SDK ya está inicializado')
+        setInitialized(true)
+        return
+      }
 
-        // Función que configura OneSignal una vez que el SDK está disponible
-        const configureOneSignal = () => {
-          const OneSignal = (window as any).OneSignal
-          if (!OneSignal) {
-            console.error('❌ [OneSignal] SDK no disponible para configuración')
-            return
+      console.log('🔔 [OneSignal] Ejecutando OneSignal.init()...')
+
+      await OneSignal.init({
+        appId: finalAppId,
+        allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
+        notifyButton: { enable: false },
+        promptOptions: {
+          slidedown: {
+            enabled: true,
+            autoPrompt: false
           }
+        },
+        serviceWorkerParam: { scope: '/' },
+        serviceWorkerPath: '/OneSignalSDKWorker.js'
+      })
 
-          console.log('🔔 [OneSignal] Iniciando OneSignal.init()...')
+      console.log('✅ [OneSignal] Inicializado correctamente')
+      setInitialized(true)
 
-          OneSignal.init({
-            appId: finalAppId,
-            allowLocalhostAsSecureOrigin: process.env.NODE_ENV === 'development',
-            notifyButton: { enable: false },
-            promptOptions: {
-              slidedown: {
-                enabled: true,
-                autoPrompt: false
-              }
-            },
-            serviceWorkerParam: { scope: '/' },
-            serviceWorkerPath: '/OneSignalSDKWorker.js'
-          }).then(() => {
-            console.log('✅ [OneSignal] Inicializado correctamente')
-            setInitialized(true)
+      // Configurar permisos y listeners
+      try {
+        const permission = OneSignal.Notifications?.permission
+        setPermissionStatus(permission ? 'granted' : 'default')
 
-            // Configurar permisos y listeners
-            try {
-              const permission = OneSignal.Notifications?.permission
-              setPermissionStatus(permission ? 'granted' : 'default')
+        OneSignal.Notifications?.addEventListener('permissionChange', (granted: boolean) => {
+          console.log('🔔 [OneSignal] Permiso cambió:', granted ? 'concedido' : 'denegado')
+          setPermissionStatus(granted ? 'granted' : 'denied')
+          if (granted) setShowPrompt(false)
+        })
+      } catch (e) {
+        console.warn('⚠️ Error en listeners de permisos', e)
+      }
 
-              OneSignal.Notifications?.addEventListener('permissionChange', (granted: boolean) => {
-                console.log('🔔 [OneSignal] Permiso cambió:', granted ? 'concedido' : 'denegado')
-                setPermissionStatus(granted ? 'granted' : 'denied')
-                if (granted) setShowPrompt(false)
-              })
-            } catch (e) { console.warn('⚠️ Error en listeners de permisos', e) }
-
-            // Manejar autoPrompt
-            if (autoPrompt && !OneSignal.Notifications?.permission) {
-              setTimeout(() => setShowPrompt(true), 2000)
-            }
-          }).catch((err: any) => console.error('❌ [OneSignal] Error en init():', err))
-        }
-
-        configureOneSignal()
-      } catch (error) {
-        console.error('❌ Error inicializando OneSignal:', error)
+      // Manejar autoPrompt
+      if (autoPrompt && OneSignal.Notifications && !OneSignal.Notifications.permission) {
+        setTimeout(() => setShowPrompt(true), 2000)
+      }
+    } catch (error: any) {
+      console.error('❌ Error inicializando OneSignal:', error)
+      if (error.toString().includes('indexedDB') || error.message?.includes('backing store')) {
+        console.error('💾 ERROR CRÍTICO: Base de datos del navegador corrupta.')
+        alert('⚠️ Error de sistema: Tu navegador tiene un problema con la base de datos interna (IndexedDB).\n\nPara solucionarlo:\n1. Cierra todas las pestañas de este sitio.\n2. Limpia los datos de navegación/caché.\n3. Reinicia tu navegador.')
       }
     }
-
-    initOneSignal()
   }, [appId, autoPrompt, enabled])
+
+  useEffect(() => {
+    initOneSignal()
+  }, [initOneSignal])
 
   // Función para solicitar permisos
   const requestPermission = useCallback(async () => {
@@ -157,9 +155,13 @@ export default function OneSignalProvider({
     try {
       const OneSignal = (window as any).OneSignal
       if (!OneSignal?.Notifications) {
-        console.error('❌ OneSignal SDK no disponible')
-        alert('Error: El sistema de notificaciones no está listo. Por favor recarga la página.')
-        return
+        console.error('❌ OneSignal SDK no listo para solicitar permisos')
+        // Re-intentar inicialización si es posible
+        await initOneSignal()
+        if (!(window as any).OneSignal?.Notifications) {
+          alert('Error: El sistema de notificaciones aún se está cargando. Por favor espera 3 segundos e intenta nuevamente.')
+          return
+        }
       }
 
       // Verificar si ya están denegados a nivel de navegador
