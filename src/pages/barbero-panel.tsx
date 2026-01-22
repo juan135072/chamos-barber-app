@@ -10,6 +10,7 @@ import { Bell, BellOff } from 'lucide-react'
 import DashboardSection from '../components/barbero/DashboardSection'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
+import OnScreenLogger from '../components/debug/OnScreenLogger'
 
 interface BarberoProfile {
   id: string
@@ -904,6 +905,9 @@ const BarberoPanelPage: React.FC = () => {
             </button>
           </nav>
         )}
+
+        {/* On-Screen Logger para PWA */}
+        <OnScreenLogger />
       </div>
     </>
   )
