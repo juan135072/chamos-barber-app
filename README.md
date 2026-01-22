@@ -119,10 +119,10 @@ Password: (Configurada en el registro)
 
 ## 🌐 URLs del Proyecto
 
-- **Producción**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl)
-- **Panel Admin**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/admin](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/admin)
-- **Panel Barbero**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/barbero-panel](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/barbero-panel)
-- **API/Supabase**: Directo a través de la configuración de cliente
+- **Producción**: [https://chamosbarber.com](https://chamosbarber.com)
+- **Panel Admin**: [https://chamosbarber.com/admin](https://chamosbarber.com/admin)
+- **Panel Barbero**: [https://chamosbarber.com/barbero-panel](https://chamosbarber.com/barbero-panel)
+- **Supabase**: [https://supabase.chamosbarber.com](https://supabase.chamosbarber.com)
 
 ## 📝 Estado del Proyecto
 
