@@ -103,85 +103,60 @@ npm run build
 npm run start
 ```
 
-## 🔐 Credenciales de Prueba
+## 🔐 Credenciales de Acceso
 
-### Admin Principal
+### Panel de Administración
 ```
-Email: admin@chamosbarber.com
-Password: ChamosAdmin2024!
+Email: juan@chamosbarber.com
+Password: (Configurada por el administrador)
 ```
 
-### Barberos
+### Panel de Barberos (Ejemplo)
 ```
-Email: carlos@chamosbarber.com
-Password: Temporal123!
+Email: barbero@chamosbarber.com
+Password: (Configurada en el registro)
 ```
 
 ## 🌐 URLs del Proyecto
 
-- **Producción**: https://chamosbarber.com
-- **Panel Admin**: https://chamosbarber.com/admin
-- **Panel Barbero**: https://chamosbarber.com/barbero-panel
-- **Supabase**: https://supabase.chamosbarber.com
+- **Producción**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl)
+- **Panel Admin**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/admin](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/admin)
+- **Panel Barbero**: [https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/barbero-panel](https://chamosbarber-antigravity-3112.coolify.tg-cl.cl/barbero-panel)
+- **API/Supabase**: Directo a través de la configuración de cliente
 
 ## 📝 Estado del Proyecto
 
 ### ✅ Completado
 - [x] Sistema de autenticación multi-rol
 - [x] Panel de administración completo
-- [x] Panel de barberos
-- [x] Sistema de reservas
-- [x] Gestión de citas (admin y barberos)
-- [x] CRUD de barberos
-- [x] CRUD de servicios
-- [x] Portfolio de barberos
-- [x] URLs amigables (slugs)
-- [x] Sistema de roles y permisos
-- [x] Row Level Security (RLS) configurado
-- [x] Deploy automático con Coolify
-- [x] **Documentación completa del proyecto** 🎉
-- [x] **Deploy exitoso en producción** (2025-11-02)
-
-### 🚧 En Desarrollo
-- [ ] Notificaciones por email
-- [ ] Sistema de pagos
-- [ ] Vista de calendario
-- [ ] Reportes avanzados
+- [x] Panel de barberos y gestión de citas
+- [x] Sistema de reservas online e IA (Gustavo)
+- [x] Microservicio de impresión térmica v7.0 PRO EX
+- [x] Organización profesional del repositorio (2026-01-22)
+- [x] Deploy automático con Coolify desde rama `main`
 
 ### 🚀 Último Deploy Exitoso
 
-**Fecha**: 2025-11-02 17:39:15 UTC  
-**Commit**: [`2d91c6f`](https://github.com/juan135072/chamos-barber-app/commit/2d91c6f4bebe8ed0388dad6ed8e35bbfd11b00a5)  
+**Fecha**: 2026-01-22 09:22:03  
+**Commit**: [`f54787e`](https://github.com/juan135072/chamos-barber-app/commit/f54787ee1079540b79745e1079540b79745e)  
 **Estado**: ✅ **EXITOSO** - En producción  
-**Build Time**: 2 min 30 seg  
-**Cambios**: Fix import path en CitasSection.tsx
-
-Ver [historial completo de deployments](docs/deployment/COOLIFY_DEPLOY.md#-historial-de-deployments)
+**Rama**: `main`
 
 ## 🤝 Contribución
 
 Para contribuir al proyecto:
 
-1. Lee la [Guía de Contribución](docs/guides/CONTRIBUTING.md)
-2. Crea una rama desde `master`
-3. Haz tus cambios
-4. Crea un Pull Request
-
-## 📞 Soporte
-
-- **Issues**: https://github.com/juan135072/chamos-barber-app/issues
-- **Email**: admin@chamosbarber.com
-
-## 📄 Licencia
-
-Este proyecto es privado y propietario.
+1. Lee la [Guía de Contribución](CONTRIBUTING.md)
+2. Crea una rama descriptiva
+3. Haz tus cambios y verifica con `npm run build`
+4. Crea un Pull Request a `main`
 
 ## 🎖️ Créditos
 
-Desarrollado con ❤️ por venezolanos en Chile 🇻🇪🇨🇱
+Desarrollado con ❤️ por **Juan Díaz** y venezolanos en Chile 🇻🇪🇨🇱
 
 ---
 
-**Última actualización**: 2025-11-02 17:39:15 UTC  
-**Versión**: 1.0.1  
-**Deploy Status**: 🚀 En Producción (commit `2d91c6f`)
+**Última actualización**: 2026-01-22  
+**Versión**: 1.2.0 (Estable)  
+**Deploy Status**: 🚀 En Producción (rama `main`)
