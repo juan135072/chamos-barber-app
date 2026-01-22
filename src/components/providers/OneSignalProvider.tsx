@@ -113,8 +113,23 @@ export default function OneSignalProvider({
 
       // Configurar permisos y listeners
       try {
-        const permission = OneSignal.Notifications?.permission
-        setPermissionStatus(permission ? 'granted' : 'default')
+        // Detectar permiso inicial de forma más precisa
+        const osPermission = OneSignal.Notifications?.permission
+        const browserPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default'
+
+        console.log('📊 [OneSignal Status]', {
+          osPermission,
+          browserPermission,
+          isStandalone: window.matchMedia('(display-mode: standalone)').matches
+        })
+
+        if (osPermission === true) {
+          setPermissionStatus('granted')
+        } else if (browserPermission === 'denied') {
+          setPermissionStatus('denied')
+        } else {
+          setPermissionStatus('default')
+        }
 
         OneSignal.Notifications?.addEventListener('permissionChange', (granted: boolean) => {
           console.log('🔔 [OneSignal] Permiso cambió:', granted ? 'concedido' : 'denegado')
@@ -126,7 +141,7 @@ export default function OneSignalProvider({
       }
 
       // Manejar autoPrompt
-      if (autoPrompt && OneSignal.Notifications && !OneSignal.Notifications.permission) {
+      if (autoPrompt && OneSignal.Notifications && !OneSignal.Notifications.permission && Notification.permission !== 'denied') {
         setTimeout(() => setShowPrompt(true), 2000)
       }
     } catch (error: any) {
@@ -270,10 +285,14 @@ export default function OneSignalProvider({
 
   // Función para disparar el prompt manualmente
   const triggerPrompt = useCallback(() => {
-    if (permissionStatus === 'default') {
+    console.log('🎯 triggerPrompt llamado. Estado actual:', { permissionStatus, initialized, showPrompt })
+    if (permissionStatus === 'default' || permissionStatus === 'denied') {
       setShowPrompt(true)
+    } else {
+      console.log('⏭️ triggerPrompt ignorado porque ya hay permisos o están denegados:', permissionStatus)
+      // Si el usuario insiste (clic manual), podrías mostrar un alert o similar
     }
-  }, [permissionStatus])
+  }, [permissionStatus, initialized, showPrompt])
 
   // Función para establecer external ID
   const setExternalId = useCallback(async (id: string) => {
@@ -402,7 +421,7 @@ export default function OneSignalProvider({
       {children}
 
       {/* Prompt personalizado de notificaciones */}
-      {showPrompt && permissionStatus === 'default' && (
+      {showPrompt && (permissionStatus === 'default' || permissionStatus === 'denied') && (
         <div className="onesignal-prompt-overlay">
           <div className="onesignal-prompt">
             <button
@@ -413,32 +432,46 @@ export default function OneSignalProvider({
               <X size={20} />
             </button>
 
-            <div className="onesignal-prompt-icon">
-              <Bell size={48} />
+            <div className={`onesignal-prompt-icon ${permissionStatus === 'denied' ? 'bg-red-500' : ''}`}>
+              {permissionStatus === 'denied' ? <BellOff size={48} /> : <Bell size={48} />}
             </div>
 
             <h3 className="onesignal-prompt-title">
-              Activa las Notificaciones
+              {permissionStatus === 'denied' ? 'Notificaciones Bloqueadas' : 'Activa las Notificaciones'}
             </h3>
 
             <p className="onesignal-prompt-message">
-              Recibe notificaciones en tiempo real sobre nuevas citas, actualizaciones importantes y mensajes del sistema.
+              {permissionStatus === 'denied'
+                ? 'Has bloqueado las notificaciones en tu navegador. Para recibirlas, debes entrar a la configuración del sitio (icono del candado 🔒) y cambiar el permiso a "Permitir".'
+                : 'Recibe notificaciones en tiempo real sobre nuevas citas, actualizaciones importantes y mensajes del sistema.'
+              }
             </p>
 
             <div className="onesignal-prompt-actions">
-              <button
-                className="onesignal-btn onesignal-btn-primary"
-                onClick={requestPermission}
-              >
-                <Bell size={20} />
-                Permitir Notificaciones
-              </button>
-              <button
-                className="onesignal-btn onesignal-btn-secondary"
-                onClick={dismissPrompt}
-              >
-                Ahora No
-              </button>
+              {permissionStatus === 'denied' ? (
+                <button
+                  className="onesignal-btn onesignal-btn-primary"
+                  onClick={dismissPrompt}
+                >
+                  Entendido
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="onesignal-btn onesignal-btn-primary"
+                    onClick={requestPermission}
+                  >
+                    <Bell size={20} />
+                    Permitir Notificaciones
+                  </button>
+                  <button
+                    className="onesignal-btn onesignal-btn-secondary"
+                    onClick={dismissPrompt}
+                  >
+                    Ahora No
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
