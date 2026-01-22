@@ -284,9 +284,8 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
         onClick={() => setIsOpen(!isOpen)}
         className="onesignal-debug-toggle"
         style={{
-          bottom: isOpen ? 'auto' : '100px',
-          top: isOpen ? '20px' : 'auto',
-          right: '20px',
+          top: '20px',
+          left: '20px',
           backgroundColor: '#d4af37',
           color: '#121212',
           width: 'auto',
@@ -297,7 +296,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          zIndex: 99999
+          zIndex: 100000
         }}
       >
         <i className="fas fa-bug"></i>
@@ -309,7 +308,7 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
 
       {/* Panel */}
       {isOpen && (
-        <div className="onesignal-debug-panel" style={{ zIndex: 99998, bottom: '20px', left: '20px', right: '20px', width: 'auto' }}>
+        <div className="onesignal-debug-panel" style={{ zIndex: 99999, bottom: '20px', left: '20px', right: '20px', width: 'auto', top: '80px' }}>
           <div className="onesignal-debug-header">
             <h3><i className="fas fa-shield-halved"></i> OneSignal Debug</h3>
             <button onClick={() => setIsOpen(false)} className="onesignal-debug-close">
