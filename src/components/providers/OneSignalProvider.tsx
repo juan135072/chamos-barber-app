@@ -177,6 +177,21 @@ export default function OneSignalProvider({
           if (permission) {
             console.log('✅ Notificaciones habilitadas exitosamente')
             alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
+
+            // Vincular External ID ahora que las notificaciones están activadas
+            const pendingId = (window as any).__pendingBarberExternalId
+            if (pendingId && OneSignal.login) {
+              console.log('🆔 [OneSignal] Vinculando ID después de activar notificaciones:', pendingId)
+              setTimeout(async () => {
+                try {
+                  await OneSignal.login(pendingId)
+                  console.log('✅ [OneSignal] ID vinculado exitosamente después de activar notificaciones')
+                  delete (window as any).__pendingBarberExternalId
+                } catch (err) {
+                  console.error('❌ Error vinculando ID después de activar notificaciones:', err)
+                }
+              }, 1000)
+            }
           } else {
             console.log('❌ Permisos denegados por el usuario')
           }
@@ -225,16 +240,33 @@ export default function OneSignalProvider({
     try {
       const OneSignal = (window as any).OneSignal
 
+      // NUEVA ESTRATEGIA: Solo vincular External ID DESPUÉS de que el usuario haya
+      // otorgado permisos de notificación. Esto asegura que OneSignal esté 100% inicializado.
+
+      // Guardar el ID para vincularlo más tarde
+      if (typeof window !== 'undefined') {
+        (window as any).__pendingBarberExternalId = id
+        console.log('📝 [OneSignal] ID guardado para vincular después de activar notificaciones:', id)
+      }
+
       // Función recursiva con límite de intentos
       const attemptLogin = async (attemptsLeft: number) => {
         if (attemptsLeft <= 0) {
-          console.error('❌ [OneSignal] Se agotaron los reintentos para establecer External ID')
+          console.warn('⏸️ [OneSignal] No se pudo vincular External ID automáticamente. Se vinculará cuando el usuario active las notificaciones.')
           return
         }
 
+        // Solo intentar vincular si:
+        // 1. OneSignal está completamente inicializado
+        // 2. El usuario ya otorgó permisos de notificación
+        const hasPermission = OneSignal?.Notifications?.permission
+
+        if (!hasPermission) {
+          console.log('⏸️ [OneSignal] Esperando a que el usuario active las notificaciones para vincular ID')
+          return // No intentar vincular ahora, esperar a que se active
+        }
+
         // Verificar que OneSignal esté completamente inicializado
-        // IMPORTANTE: Verificar que User.PushSubscription exista antes de llamar a login()
-        // Esto previene el error: "Cannot read properties of undefined (reading 'tt')"
         if (
           OneSignal &&
           OneSignal.login &&
@@ -243,14 +275,16 @@ export default function OneSignalProvider({
           typeof OneSignal.login === 'function'
         ) {
           try {
-            console.log(`🆔 [OneSignal] Intentando vincular ID: ${id} (Intentos restantes: ${attemptsLeft})`)
+            console.log(`🆔 [OneSignal] Vinculando ID después de permisos otorgados: ${id}`)
             await OneSignal.login(id)
 
-            // Verificar si se aplicó correctamente
+            // Verificar que se aplicó
             setTimeout(() => {
               const currentId = OneSignal.User?.externalId
               if (currentId === id) {
                 console.log('✅ [OneSignal] External ID verificado exitosamente:', id)
+                // Limpiar el ID pendiente
+                delete (window as any).__pendingBarberExternalId
               } else {
                 console.warn('⚠️ [OneSignal] Login llamado pero externalId no coincide aún')
               }
@@ -259,7 +293,7 @@ export default function OneSignalProvider({
             console.error('❌ [OneSignal] Error en login():', loginError)
             // Reintentar si hay errores
             if (attemptsLeft > 1) {
-              setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
+              setTimeout(() => attemptLogin(attemptsLeft - 1), 3000)
             }
           }
         } else {
@@ -267,14 +301,21 @@ export default function OneSignalProvider({
             hasOneSignal: !!OneSignal,
             hasLogin: !!OneSignal?.login,
             hasUser: !!OneSignal?.User,
-            hasPushSubscription: !!OneSignal?.User?.PushSubscription
+            hasPushSubscription: !!OneSignal?.User?.PushSubscription,
+            hasPermission
           }
           console.warn(`⚠️ [OneSignal] SDK no completamente inicializado (${attemptsLeft}):`, readyStatus)
-          setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
+          setTimeout(() => attemptLogin(attemptsLeft - 1), 3000)
         }
       }
 
-      await attemptLogin(5)
+      // Solo intentar inmediatamente si ya tiene permisos
+      const currentPermission = OneSignal?.Notifications?.permission
+      if (currentPermission) {
+        await attemptLogin(3) // Solo 3 intentos cuando ya hay permisos
+      } else {
+        console.log('⏸️ [OneSignal] External ID se vinculará automáticamente cuando el usuario active las notificaciones')
+      }
     } catch (error) {
       console.error('❌ Error estableciendo External ID en OneSignal:', error)
     }
