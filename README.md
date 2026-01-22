@@ -117,12 +117,24 @@ Email: barbero@chamosbarber.com
 Password: (Configurada en el registro)
 ```
 
-## 🌐 URLs del Proyecto
+## 🌐 Ecosistema Digital (URLs)
 
-- **Producción**: [https://chamosbarber.com](https://chamosbarber.com)
-- **Panel Admin**: [https://chamosbarber.com/admin](https://chamosbarber.com/admin)
-- **Panel Barbero**: [https://chamosbarber.com/barbero-panel](https://chamosbarber.com/barbero-panel)
-- **Supabase**: [https://supabase.chamosbarber.com](https://supabase.chamosbarber.com)
+### 🚀 Aplicación Principal
+- **Sitio Web / Reservas**: [https://chamosbarber.com](https://chamosbarber.com)
+- **Panel Administrativo**: [https://chamosbarber.com/admin](https://chamosbarber.com/admin)
+- **Panel Barberos**: [https://chamosbarber.com/barber-app](https://chamosbarber.com/barber-app)
+- **Página de Consultas**: [https://chamosbarber.com/consultar-citas](https://chamosbarber.com/consultar-citas)
+- **Login Central**: [https://chamosbarber.com/login](https://chamosbarber.com/login)
+
+### 🛠️ Servicios y Backend
+- **Supabase (Base de Datos)**: [https://supabase.chamosbarber.com](https://supabase.chamosbarber.com)
+- **Coolify (Despliegue)**: [https://coolify.app](https://coolify.app)
+- **n8n (Automatizaciones/Bots)**: [https://n8n.chamosbarber.com](https://n8n.chamosbarber.com)
+- **Chatwoot (Atención al Cliente)**: [https://chatwoot.chamosbarber.com](https://chatwoot.chamosbarber.com)
+- **OneSignal (Notificaciones)**: [https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70](https://app.onesignal.com/apps/63aa14ec-de8c-46b3-8949-e9fd221f8d70)
+
+### 🖨️ Servicios Locales (POS)
+- **Printer Service**: `http://localhost:3001` (Microservicio para impresión térmica)
 
 ## 📝 Estado del Proyecto
 
