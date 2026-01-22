@@ -204,17 +204,50 @@ export default function OneSignalProvider({
           }
           setShowPrompt(false)
         } else {
-          console.log('⚠️ Prompt nativo no concedido o bloqueado, intentando Slidedown...')
-          // Intentar Slidedown si el nativo no funcionó (común si no hay "user gesture" suficiente o está bloqueado)
-          await OneSignal.Slidedown.promptPush()
-          // En caso de Slidedown, no cerramos el prompt local inmediatamente 
-          // porque el Slidedown de OneSignal aparecerá encima
-          setTimeout(() => setShowPrompt(false), 1000)
+          // requestPermission devolvió false - verificar si ahora están bloqueadas
+          const currentPermission = Notification.permission
+
+          if (currentPermission === 'denied') {
+            console.log('❌ Notificaciones bloqueadas por el navegador')
+            setPermissionStatus('denied')
+            alert('⚠️ Las notificaciones están bloqueadas en tu navegador.\n\n' +
+              'Para activarlas:\n' +
+              '1. Haz clic en el icono del candado 🔒 junto a la URL\n' +
+              '2. Busca "Notificaciones"\n' +
+              '3. Cámbialo a "Permitir"\n' +
+              '4. Recarga la página y vuelve a intentar')
+            setShowPrompt(false)
+          } else {
+            // No están bloqueadas, solo el prompt nativo no funcionó - intentar Slidedown
+            console.log('⚠️ Prompt nativo no mostrado, intentando Slidedown...')
+            try {
+              await OneSignal.Slidedown.promptPush()
+              console.log('📬 Slidedown lanzado')
+              setTimeout(() => setShowPrompt(false), 1000)
+            } catch (slidedownError) {
+              console.error('❌ Error lanzando Slidedown:', slidedownError)
+              setShowPrompt(false)
+            }
+          }
         }
       } catch (error) {
-        console.warn('⚠️ Error en Notifications.requestPermission(), intentando Slidedown como fallback:', error)
-        await OneSignal.Slidedown.promptPush()
-        setShowPrompt(false)
+        console.warn('⚠️ Error en Notifications.requestPermission():', error)
+        // Verificar si están bloqueadas antes de intentar Slidedown
+        if (Notification.permission === 'denied') {
+          console.log('❌ Notificaciones bloqueadas, no se puede mostrar Slidedown')
+          setPermissionStatus('denied')
+          setShowPrompt(false)
+        } else {
+          try {
+            console.log('⚠️ Intentando Slidedown como fallback...')
+            await OneSignal.Slidedown.promptPush()
+            console.log('📬 Slidedown lanzado como fallback')
+            setShowPrompt(false)
+          } catch (slidedownError) {
+            console.error('❌ Error lanzando Slidedown:', slidedownError)
+            setShowPrompt(false)
+          }
+        }
       }
     } catch (error) {
       console.error('❌ Error solicitando permisos:', error)
