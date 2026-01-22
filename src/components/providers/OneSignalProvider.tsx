@@ -84,7 +84,8 @@ export default function OneSignalProvider({
             // Configuración de prompts
             promptOptions: {
               slidedown: {
-                enabled: false // Deshabilitamos el slidedown por defecto
+                enabled: true, // Habilitado para permitir promptPush()
+                autoPrompt: false // Seguimos manejando el prompt manualmente
               }
             },
 
@@ -160,59 +161,51 @@ export default function OneSignalProvider({
 
       console.log('🔔 Solicitando permisos de notificación...')
 
-      // En OneSignal Web SDK v16, cuando slidedown está deshabilitado,
-      // debemos usar showSlidedownPrompt() o el método nativo del navegador
-      // La mejor opción es usar Slidedown de OneSignal que maneja todo correctamente
-
-      try {
-        // Mostrar el slidedown prompt de OneSignal (maneja el prompt nativo internamente)
-        await OneSignal.Slidedown.promptPush()
-
-        // Verificar el resultado después de que el usuario responda
-        setTimeout(async () => {
-          const permission = OneSignal.Notifications.permission
-          console.log('📬 Resultado de permisos:', permission)
-          setPermissionStatus(permission ? 'granted' : 'denied')
-
-          if (permission) {
-            console.log('✅ Notificaciones habilitadas exitosamente')
-            alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
-
-            // Vincular External ID ahora que las notificaciones están activadas
-            const pendingId = (window as any).__pendingBarberExternalId
-            if (pendingId && OneSignal.login) {
-              console.log('🆔 [OneSignal] Vinculando ID después de activar notificaciones:', pendingId)
-              setTimeout(async () => {
-                try {
-                  await OneSignal.login(pendingId)
-                  console.log('✅ [OneSignal] ID vinculado exitosamente después de activar notificaciones')
-                  delete (window as any).__pendingBarberExternalId
-                } catch (err) {
-                  console.error('❌ Error vinculando ID después de activar notificaciones:', err)
-                }
-              }, 1000)
-            }
-          } else {
-            console.log('❌ Permisos denegados por el usuario')
-          }
-
-          setShowPrompt(false)
-        }, 500)
-      } catch (slidedownError) {
-        // Si Slidedown falla, intentar con el método directo del navegador
-        console.warn('⚠️ Slidedown no disponible, usando método nativo del navegador')
-
-        const browserPermission = await Notification.requestPermission()
-        const granted = browserPermission === 'granted'
-
-        setPermissionStatus(granted ? 'granted' : 'denied')
+      // Verificar si ya están denegados a nivel de navegador
+      if (Notification.permission === 'denied') {
+        alert('⚠️ Las notificaciones están bloqueadas en tu navegador.\n\nPor favor, haz clic en el icono del candado junto a la URL y cambia el permiso de Notificaciones a "Permitir" para continuar.')
         setShowPrompt(false)
+        return
+      }
 
-        if (granted) {
-          // Notificar a OneSignal que el permiso fue otorgado
-          console.log('✅ Permiso otorgado mediante navegador nativo')
+      // En OneSignal Web SDK v16, el método directo es Notifications.requestPermission()
+      try {
+        const result = await OneSignal.Notifications.requestPermission()
+        console.log('📬 Resultado de requestPermission():', result)
+
+        // El resultado es un booleano en v16 (true si se concedió)
+        const permission = result === true || OneSignal.Notifications.permission === true
+
+        setPermissionStatus(permission ? 'granted' : 'denied')
+
+        if (permission) {
+          console.log('✅ Notificaciones habilitadas exitosamente')
           alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
+
+          // Vincular External ID ahora que las notificaciones están activadas
+          const pendingId = (window as any).__pendingBarberExternalId
+          if (pendingId && OneSignal.login) {
+            console.log('🆔 [OneSignal] Vinculando ID después de activar notificaciones:', pendingId)
+            setTimeout(async () => {
+              try {
+                await OneSignal.login(pendingId)
+                console.log('✅ [OneSignal] ID vinculado exitosamente después de activar notificaciones')
+                delete (window as any).__pendingBarberExternalId
+              } catch (err) {
+                console.error('❌ Error vinculando ID después de activar notificaciones:', err)
+              }
+            }, 1000)
+          }
+        } else {
+          console.log('❌ Permisos no otorgados')
         }
+
+        setShowPrompt(false)
+      } catch (error) {
+        console.warn('⚠️ Falló Notifications.requestPermission(), intentando Slidedown...')
+        // Fallback a Slidedown si el método directo falla
+        await OneSignal.Slidedown.promptPush()
+        setShowPrompt(false)
       }
     } catch (error) {
       console.error('❌ Error solicitando permisos:', error)
