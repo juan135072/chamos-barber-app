@@ -109,19 +109,23 @@ export default function OneSignalProvider({
             console.log('✅ [OneSignal] Inicializado correctamente')
             setInitialized(true)
 
-            // Verificar estado de permisos actual
-            const permission = OneSignal.Notifications.permission
-            const permStatus = permission ? 'granted' : 'default'
-            setPermissionStatus(permStatus as 'default' | 'granted' | 'denied')
+            // Verificar estado de permisos actual de forma segura
+            try {
+              const permission = OneSignal.Notifications?.permission
+              const permStatus = permission ? 'granted' : 'default'
+              setPermissionStatus(permStatus as 'default' | 'granted' | 'denied')
 
-            // Escuchar cambios de permisos
-            OneSignal.Notifications.addEventListener('permissionChange', (granted: boolean) => {
-              console.log('🔔 Permiso cambió:', granted ? 'concedido' : 'denegado')
-              setPermissionStatus(granted ? 'granted' : 'denied')
-              if (granted) {
-                setShowPrompt(false)
-              }
-            })
+              // Escuchar cambios de permisos
+              OneSignal.Notifications?.addEventListener('permissionChange', (granted: boolean) => {
+                console.log('🔔 Permiso cambió:', granted ? 'concedido' : 'denegado')
+                setPermissionStatus(granted ? 'granted' : 'denied')
+                if (granted) {
+                  setShowPrompt(false)
+                }
+              })
+            } catch (permError) {
+              console.warn('⚠️ [OneSignal] Error al configurar listeners de permisos:', permError)
+            }
 
             // Log de suscripción (seguro)
             try {
@@ -133,12 +137,17 @@ export default function OneSignalProvider({
             }
 
             // Si autoPrompt está habilitado y no hay permisos, mostrar prompt personalizado
-            if (autoPrompt && permStatus === 'default') {
-              setTimeout(() => {
-                console.log('🔔 Mostrando prompt de notificaciones...')
-                setShowPrompt(true)
-              }, 2000)
+            if (autoPrompt) {
+              const currentPermission = OneSignal.Notifications?.permission
+              if (!currentPermission) {
+                setTimeout(() => {
+                  console.log('🔔 Mostrando prompt de notificaciones...')
+                  setShowPrompt(true)
+                }, 2000)
+              }
             }
+          }).catch((initErr: any) => {
+            console.error('❌ [OneSignal] Error en OneSignal.init():', initErr)
           })
         }
 
@@ -288,14 +297,14 @@ export default function OneSignalProvider({
       const OneSignal = (window as any).OneSignal
 
       // Evitar bucle: Si el ID ya es el mismo, no hacer nada
-      // Usar try/catch porque el SDK v16 puede fallar internamente si el User no está listo
+      // Usar try/catch y navegación segura porque el SDK v16 puede fallar internamente
       try {
-        if (OneSignal?.User?.externalId === id) {
+        if (OneSignal?.User && OneSignal.User.externalId === id) {
           console.log('✅ [OneSignal] External ID ya coincide, saltando login:', id)
           return
         }
       } catch (e) {
-        console.log('⏭️ [OneSignal] No se pudo leer externalId (SDK no listo), procediendo con guardado de ID pendiente')
+        console.log('⏭️ [OneSignal] No se pudo leer externalId de forma segura, procediendo...')
       }
 
       // NUEVA ESTRATEGIA: Solo vincular External ID DESPUÉS de que el usuario haya

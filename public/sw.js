@@ -3,6 +3,13 @@
 // Caché de archivos estáticos y soporte offline
 // ================================================================
 
+// MESSAGE HANDLER - Debe estar en el nivel superior para evitar advertencias del navegador
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 const CACHE_NAME = 'chamos-barber-v1.0.0'
 const API_CACHE_NAME = 'chamos-barber-api-v1'
 
@@ -187,14 +194,7 @@ self.addEventListener('sync', (event) => {
     )
   }
 })
-
-// ================================================================
-// MESSAGE HANDLER - Debe estar en el nivel superior
-// ================================================================
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting()
-  }
+// background sync logic above
 })
 
 console.log('✅ Service Worker cargado correctamente')
