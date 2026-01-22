@@ -205,7 +205,7 @@ export default function OneSignalProvider({
           setShowPrompt(false)
         } else {
           // requestPermission devolvió false - verificar si ahora están bloqueadas
-          const currentPermission = Notification.permission
+          const currentPermission: NotificationPermission = Notification.permission
 
           if (currentPermission === 'denied') {
             console.log('❌ Notificaciones bloqueadas por el navegador')
