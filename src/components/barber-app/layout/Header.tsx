@@ -7,6 +7,8 @@ import React from 'react'
 import { User, Power, PowerOff } from 'lucide-react'
 import { Barbero } from '../../../types/barber-app'
 import { useDisponibilidad } from '../../../hooks/useDisponibilidad'
+import { useOneSignal } from '../../providers/OneSignalProvider'
+import { Bell, BellOff } from 'lucide-react'
 
 interface HeaderProps {
   barbero: Barbero
@@ -17,6 +19,8 @@ export default function Header({ barbero }: HeaderProps) {
     barbero.id,
     barbero.disponibilidad
   )
+
+  const { permissionStatus, triggerPrompt } = useOneSignal()
 
   const handleToggle = async () => {
     await toggleDisponibilidad(!disponibilidad)
@@ -51,20 +55,40 @@ export default function Header({ barbero }: HeaderProps) {
           </div>
 
           {/* Toggle de disponibilidad */}
-          <button
-            className={`toggle-btn ${disponibilidad ? 'disponible' : 'ocupado'}`}
-            onClick={handleToggle}
-            disabled={loading}
-            aria-label={disponibilidad ? 'Marcar como ocupado' : 'Marcar como disponible'}
-          >
-            {loading ? (
-              <div className="spinner" />
-            ) : disponibilidad ? (
-              <Power size={20} />
-            ) : (
-              <PowerOff size={20} />
-            )}
-          </button>
+          <div className="header-actions">
+            {/* Indicador de Notificaciones */}
+            <button
+              className={`action-btn notification-status ${permissionStatus}`}
+              onClick={triggerPrompt}
+              title={
+                permissionStatus === 'granted' ? 'Notificaciones activas' :
+                  permissionStatus === 'denied' ? 'Notificaciones bloqueadas' :
+                    'Activar notificaciones'
+              }
+              aria-label="Estado de notificaciones"
+            >
+              {permissionStatus === 'granted' ? (
+                <Bell size={20} />
+              ) : (
+                <BellOff size={20} />
+              )}
+            </button>
+
+            <button
+              className={`toggle-btn ${disponibilidad ? 'disponible' : 'ocupado'}`}
+              onClick={handleToggle}
+              disabled={loading}
+              aria-label={disponibilidad ? 'Marcar como ocupado' : 'Marcar como disponible'}
+            >
+              {loading ? (
+                <div className="spinner" />
+              ) : disponibilidad ? (
+                <Power size={20} />
+              ) : (
+                <PowerOff size={20} />
+              )}
+            </button>
+          </div>
         </div>
       </header>
 
@@ -200,6 +224,52 @@ export default function Header({ barbero }: HeaderProps) {
         .toggle-btn:disabled {
           opacity: 0.6;
           cursor: not-allowed;
+        }
+
+        .header-actions {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+        }
+
+        .action-btn {
+          width: 44px;
+          height: 44px;
+          border-radius: 12px;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          background: rgba(255, 255, 255, 0.05);
+          color: rgba(255, 255, 255, 0.6);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .action-btn:active {
+          transform: scale(0.95);
+        }
+
+        .notification-status.granted {
+          background: rgba(16, 185, 129, 0.1);
+          color: #10b981;
+          border-color: rgba(16, 185, 129, 0.2);
+        }
+
+        .notification-status.denied {
+          background: rgba(239, 68, 68, 0.1);
+          color: #ef4444;
+          border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .notification-status.default {
+          animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+          0% { border-color: rgba(212, 175, 55, 0.2); }
+          50% { border-color: rgba(212, 175, 55, 0.6); }
+          100% { border-color: rgba(212, 175, 55, 0.2); }
         }
 
         .spinner {

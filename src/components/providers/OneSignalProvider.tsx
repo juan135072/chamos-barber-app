@@ -288,9 +288,14 @@ export default function OneSignalProvider({
       const OneSignal = (window as any).OneSignal
 
       // Evitar bucle: Si el ID ya es el mismo, no hacer nada
-      if (OneSignal?.User?.externalId === id) {
-        console.log('✅ [OneSignal] External ID ya coincide, saltando login:', id)
-        return
+      // Usar try/catch porque el SDK v16 puede fallar internamente si el User no está listo
+      try {
+        if (OneSignal?.User?.externalId === id) {
+          console.log('✅ [OneSignal] External ID ya coincide, saltando login:', id)
+          return
+        }
+      } catch (e) {
+        console.log('⏭️ [OneSignal] No se pudo leer externalId (SDK no listo), procediendo con guardado de ID pendiente')
       }
 
       // NUEVA ESTRATEGIA: Solo vincular External ID DESPUÉS de que el usuario haya
