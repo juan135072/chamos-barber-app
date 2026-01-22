@@ -205,9 +205,9 @@ export default function OneSignalProvider({
           setShowPrompt(false)
         } else {
           // requestPermission devolvió false - verificar si ahora están bloqueadas
-          const currentPermission: NotificationPermission = Notification.permission
+          const currentPermission = Notification.permission
 
-          if (currentPermission === 'denied') {
+          if ((currentPermission as any) === 'denied') {
             console.log('❌ Notificaciones bloqueadas por el navegador')
             setPermissionStatus('denied')
             alert('⚠️ Las notificaciones están bloqueadas en tu navegador.\n\n' +
@@ -233,7 +233,7 @@ export default function OneSignalProvider({
       } catch (error) {
         console.warn('⚠️ Error en Notifications.requestPermission():', error)
         // Verificar si están bloqueadas antes de intentar Slidedown
-        if (Notification.permission === 'denied') {
+        if ((Notification.permission as any) === 'denied') {
           console.log('❌ Notificaciones bloqueadas, no se puede mostrar Slidedown')
           setPermissionStatus('denied')
           setShowPrompt(false)
