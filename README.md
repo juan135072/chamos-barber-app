@@ -137,8 +137,8 @@ Password: (Configurada en el registro)
 
 ### 🚀 Último Deploy Exitoso
 
-**Fecha**: 2026-01-22 09:22:03  
-**Commit**: [`f54787e`](https://github.com/juan135072/chamos-barber-app/commit/f54787ee1079540b79745e1079540b79745e)  
+**Fecha**: 2026-01-22 10:16:00  
+**Commit**: [`641e988`](https://github.com/juan135072/chamos-barber-app/commit/641e988)  
 **Estado**: ✅ **EXITOSO** - En producción  
 **Rama**: `main`
 
@@ -158,5 +158,5 @@ Desarrollado con ❤️ por **Juan Díaz** y venezolanos en Chile 🇻🇪🇨�
 ---
 
 **Última actualización**: 2026-01-22  
-**Versión**: 1.2.0 (Estable)  
+**Versión**: 1.2.1 (Seguridad)  
 **Deploy Status**: 🚀 En Producción (rama `main`)
