@@ -201,9 +201,23 @@ export default function OneSignalProvider({
         setTimeout(async () => {
           const subId = OneSignal.User?.PushSubscription?.id
           const extId = OneSignal.User?.externalId
+          const optedOut = OneSignal.User?.PushSubscription?.optedOut
+
           console.log('📊 [OneSignal Diagnostics] Permission Granted')
           console.log('🆔 Subscription ID:', subId)
           console.log('🆔 External ID:', extId)
+          console.log('🚫 Opted Out:', optedOut)
+
+          // Auto-resuscitation: If permission is granted but user is opted out, force opt-in
+          if (optedOut && OneSignal.User?.PushSubscription?.optIn) {
+            console.log('🔄 [OneSignal] El usuario está marcado como optedOut pero tiene permisos. Auto-resucitando...');
+            try {
+              await OneSignal.User.PushSubscription.optIn();
+              console.log('✅ [OneSignal] Auto-resucitación completada');
+            } catch (optError) {
+              console.error('❌ [OneSignal] Error durante auto-resucitación:', optError);
+            }
+          }
         }, 1000)
 
         // Vincular ID pendiente si existe
@@ -352,14 +366,22 @@ export default function OneSignalProvider({
             await OneSignal.login(id)
 
             // Verificar que se aplicó
-            setTimeout(() => {
+            setTimeout(async () => {
               const currentId = OneSignal.User?.externalId
+              const optedOut = OneSignal.User?.PushSubscription?.optedOut
+
               if (currentId === id) {
                 console.log('✅ [OneSignal] External ID verificado exitosamente:', id)
                 // Limpiar el ID pendiente
                 delete (window as any).__pendingBarberExternalId
               } else {
                 console.warn('⚠️ [OneSignal] Login llamado pero externalId no coincide aún')
+              }
+
+              // También verificar estado de suscripción aquí durante el login
+              if (optedOut && OneSignal.User?.PushSubscription?.optIn) {
+                console.log('🔄 [OneSignal] Detectado optedOut durante login. Intentando optIn...');
+                await OneSignal.User.PushSubscription.optIn().catch(e => console.error('Error auto-optin:', e));
               }
             }, 1000)
           } catch (loginError) {
