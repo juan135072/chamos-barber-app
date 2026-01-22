@@ -8,7 +8,7 @@
 
 'use client'
 
-import React, { useEffect, useState, createContext, useContext } from 'react'
+import React, { useEffect, useState, createContext, useContext, useCallback } from 'react'
 import { Bell, BellOff, X } from 'lucide-react'
 
 interface OneSignalContextType {
@@ -63,6 +63,15 @@ export default function OneSignalProvider({
     // Función para inicializar OneSignal
     const initOneSignal = async () => {
       try {
+        const OneSignal = (window as any).OneSignal
+
+        // Evitar inicialización duplicada
+        if (OneSignal && OneSignal.initialized) {
+          console.log('✅ [OneSignal] El SDK ya está inicializado')
+          setInitialized(true)
+          return
+        }
+
         // Función que configura OneSignal una vez que el SDK está disponible
         const configureOneSignal = () => {
           const OneSignal = (window as any).OneSignal
@@ -152,7 +161,7 @@ export default function OneSignalProvider({
   }, [appId, autoPrompt, enabled])
 
   // Función para solicitar permisos
-  const requestPermission = async () => {
+  const requestPermission = useCallback(async () => {
     try {
       const OneSignal = (window as any).OneSignal
       if (!OneSignal) {
@@ -256,27 +265,33 @@ export default function OneSignalProvider({
     } finally {
       setIsRequesting(false)
     }
-  }
+  }, [isRequesting])
 
   // Función para cerrar el prompt
-  const dismissPrompt = () => {
+  const dismissPrompt = useCallback(() => {
     setShowPrompt(false)
     console.log('⏭️ Prompt de notificaciones cerrado')
-  }
+  }, [])
 
   // Función para disparar el prompt manualmente
-  const triggerPrompt = () => {
+  const triggerPrompt = useCallback(() => {
     if (permissionStatus === 'default') {
       setShowPrompt(true)
     }
-  }
+  }, [permissionStatus])
 
   // Función para establecer external ID
-  const setExternalId = async (id: string) => {
+  const setExternalId = useCallback(async (id: string) => {
     if (!id) return
 
     try {
       const OneSignal = (window as any).OneSignal
+
+      // Evitar bucle: Si el ID ya es el mismo, no hacer nada
+      if (OneSignal?.User?.externalId === id) {
+        console.log('✅ [OneSignal] External ID ya coincide, saltando login:', id)
+        return
+      }
 
       // NUEVA ESTRATEGIA: Solo vincular External ID DESPUÉS de que el usuario haya
       // otorgado permisos de notificación. Esto asegura que OneSignal esté 100% inicializado.
@@ -357,10 +372,10 @@ export default function OneSignalProvider({
     } catch (error) {
       console.error('❌ Error estableciendo External ID en OneSignal:', error)
     }
-  }
+  }, [])
 
   // Función para enviar tags
-  const sendTags = async (tags: Record<string, any>) => {
+  const sendTags = useCallback(async (tags: Record<string, any>) => {
     try {
       const OneSignal = (window as any).OneSignal
       if (OneSignal && OneSignal.User && OneSignal.User.addTags) {
@@ -372,7 +387,7 @@ export default function OneSignalProvider({
     } catch (error) {
       console.error('❌ Error enviando tags a OneSignal:', error)
     }
-  }
+  }, [])
 
   return (
     <OneSignalContext.Provider value={{
