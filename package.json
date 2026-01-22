@@ -1,6 +1,6 @@
 {
   "name": "chamos-barber-nextjs",
-  "version": "1.0.1",
+  "version": "1.2.0",
   "description": "Chamos Barber - Sistema completo de gestión para barbería venezolana en Chile",
   "private": true,
   "scripts": {
@@ -69,8 +69,8 @@
     "portfolio",
     "booking"
   ],
-  "author": "Chamos Barber Team",
-  "license": "MIT",
+  "author": "Juan Díaz",
+  "license": "Proprietary",
   "engines": {
     "node": ">=20.9.0",
     "npm": ">=10.0.0"
