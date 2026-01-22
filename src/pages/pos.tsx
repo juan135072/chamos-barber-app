@@ -29,8 +29,24 @@ export default function POSPage() {
   }, [usuario, cargando, router])
 
   const handleCerrarSesion = async () => {
-    await supabase.auth.signOut()
-    router.push('/chamos-acceso')
+    try {
+      // Limpiar datos locales preventivamente
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+
+        // Limpiar cookies de sesión si es posible
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+        })
+      }
+
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('⚠️ Error durante signOut de Supabase:', error)
+    } finally {
+      router.push('/chamos-acceso')
+    }
   }
 
   const handleVolverAdmin = () => {

@@ -21,14 +21,14 @@ const STATIC_CACHE = [
 // ================================================================
 self.addEventListener('install', (event) => {
   console.log('📦 Service Worker: Instalando...')
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('✅ Service Worker: Archivos estáticos cacheados')
       return cache.addAll(STATIC_CACHE)
     })
   )
-  
+
   // Forzar activación inmediata
   self.skipWaiting()
 })
@@ -38,7 +38,7 @@ self.addEventListener('install', (event) => {
 // ================================================================
 self.addEventListener('activate', (event) => {
   console.log('🚀 Service Worker: Activando...')
-  
+
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -51,7 +51,7 @@ self.addEventListener('activate', (event) => {
       )
     })
   )
-  
+
   // Tomar control inmediato de todas las páginas
   return self.clients.claim()
 })
@@ -62,17 +62,17 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
-  
+
   // Ignorar solicitudes externas (Supabase, CDN, etc.)
   if (url.origin !== location.origin) {
     return
   }
-  
+
   // Ignorar POST/PUT/DELETE (solo cachear GET)
   if (request.method !== 'GET') {
     return
   }
-  
+
   // Estrategia: Network First para /barber-app, Cache First para estáticos
   if (url.pathname.startsWith('/barber-app')) {
     // Network First: Intenta red primero, si falla usa caché
@@ -104,18 +104,18 @@ self.addEventListener('fetch', (event) => {
         if (cachedResponse) {
           return cachedResponse
         }
-        
+
         return fetch(request).then((response) => {
           // No cachear si no es 200 OK
           if (!response || response.status !== 200 || response.type === 'error') {
             return response
           }
-          
+
           const responseToCache = response.clone()
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseToCache)
           })
-          
+
           return response
         })
       })
@@ -128,7 +128,7 @@ self.addEventListener('fetch', (event) => {
 // ================================================================
 self.addEventListener('push', (event) => {
   console.log('📬 Push notification recibida:', event)
-  
+
   const options = {
     body: event.data ? event.data.text() : 'Nueva cita agendada',
     icon: '/android-chrome-192x192.png',
@@ -153,7 +153,7 @@ self.addEventListener('push', (event) => {
       }
     ]
   }
-  
+
   event.waitUntil(
     self.registration.showNotification('Chamos Barber', options)
   )
@@ -164,9 +164,9 @@ self.addEventListener('push', (event) => {
 // ================================================================
 self.addEventListener('notificationclick', (event) => {
   console.log('🔔 Notificación clickeada:', event.action)
-  
+
   event.notification.close()
-  
+
   if (event.action === 'ver') {
     event.waitUntil(
       clients.openWindow('/barber-app')
@@ -179,12 +179,21 @@ self.addEventListener('notificationclick', (event) => {
 // ================================================================
 self.addEventListener('sync', (event) => {
   console.log('🔄 Background Sync:', event.tag)
-  
+
   if (event.tag === 'sync-citas') {
     event.waitUntil(
       // Implementar lógica de sincronización
       console.log('Sincronizando citas pendientes...')
     )
+  }
+})
+
+// ================================================================
+// MESSAGE HANDLER - Debe estar en el nivel superior
+// ================================================================
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
   }
 })
 

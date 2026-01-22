@@ -211,8 +211,26 @@ const BarberoPanelPage: React.FC = () => {
   }
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push('/chamos-acceso')
+    try {
+      // Limpiar datos locales preventivamente
+      if (typeof window !== 'undefined') {
+        localStorage.clear()
+        sessionStorage.clear()
+
+        // Limpiar cookies de sesión si es posible
+        document.cookie.split(";").forEach((c) => {
+          document.cookie = c.replace(/^ +/, "").replace(/=.*/, "=;expires=" + new Date().toUTCString() + ";path=/")
+        })
+      }
+
+      // Intentar cerrar sesión en Supabase
+      await supabase.auth.signOut()
+    } catch (error) {
+      console.error('⚠️ Error durante signOut de Supabase (procediendo con redirección):', error)
+    } finally {
+      // Forzar redirección siempre
+      router.push('/chamos-acceso')
+    }
   }
 
   if (loading) {
