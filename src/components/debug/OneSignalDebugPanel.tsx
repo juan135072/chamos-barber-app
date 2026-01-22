@@ -14,7 +14,7 @@ interface OneSignalDebugPanelProps {
 }
 
 export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e9fd221f8d70' }: OneSignalDebugPanelProps) {
-  const [isOpen, setIsOpen] = useState(true) // Auto-abierto para diagnóstico inmediato
+  const [isOpen, setIsOpen] = useState(false) // Cerrado por defecto - el usuario debe hacer clic
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>('loading')
   const [permission, setPermission] = useState<'default' | 'granted' | 'denied'>('default')
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null)
