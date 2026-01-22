@@ -232,20 +232,44 @@ export default function OneSignalProvider({
           return
         }
 
-        if (OneSignal && OneSignal.login && OneSignal.User) {
-          console.log(`🆔 [OneSignal] Intentando vincular ID: ${id} (Intentos restantes: ${attemptsLeft})`)
-          await OneSignal.login(id)
+        // Verificar que OneSignal esté completamente inicializado
+        // IMPORTANTE: Verificar que User.PushSubscription exista antes de llamar a login()
+        // Esto previene el error: "Cannot read properties of undefined (reading 'tt')"
+        if (
+          OneSignal &&
+          OneSignal.login &&
+          OneSignal.User &&
+          OneSignal.User.PushSubscription &&
+          typeof OneSignal.login === 'function'
+        ) {
+          try {
+            console.log(`🆔 [OneSignal] Intentando vincular ID: ${id} (Intentos restantes: ${attemptsLeft})`)
+            await OneSignal.login(id)
 
-          // Verificar si se aplicó
-          const currentId = OneSignal.User.externalId
-          if (currentId === id) {
-            console.log('✅ [OneSignal] External ID verificado exitosamente:', id)
-          } else {
-            console.warn('⚠️ [OneSignal] Login llamado pero externalId no coincide aún, reintentando...')
-            setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
+            // Verificar si se aplicó correctamente
+            setTimeout(() => {
+              const currentId = OneSignal.User?.externalId
+              if (currentId === id) {
+                console.log('✅ [OneSignal] External ID verificado exitosamente:', id)
+              } else {
+                console.warn('⚠️ [OneSignal] Login llamado pero externalId no coincide aún')
+              }
+            }, 1000)
+          } catch (loginError) {
+            console.error('❌ [OneSignal] Error en login():', loginError)
+            // Reintentar si hay errores
+            if (attemptsLeft > 1) {
+              setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
+            }
           }
         } else {
-          console.warn(`⚠️ [OneSignal] SDK no listo para login (${attemptsLeft}), reintentando en 2s...`)
+          const readyStatus = {
+            hasOneSignal: !!OneSignal,
+            hasLogin: !!OneSignal?.login,
+            hasUser: !!OneSignal?.User,
+            hasPushSubscription: !!OneSignal?.User?.PushSubscription
+          }
+          console.warn(`⚠️ [OneSignal] SDK no completamente inicializado (${attemptsLeft}):`, readyStatus)
           setTimeout(() => attemptLogin(attemptsLeft - 1), 2000)
         }
       }
