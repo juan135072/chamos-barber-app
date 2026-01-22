@@ -174,9 +174,10 @@ export default function OneSignalProvider({
             }
           }
 
-          // Auto-resucitar si está opted-out pero tiene permisos
-          if (browserPermission === 'granted' && optedOut === true) {
-            console.warn('🔄 [AUTOFIX] Usuario con permisos pero OPTED-OUT detectado. Intentando auto-resucitación...');
+          // Auto-resucitar si está opted-out O si el estado es desconocido (undefined)
+          if (browserPermission === 'granted' && (optedOut === true || optedOut === undefined)) {
+            const reason = optedOut === true ? 'OPTED-OUT' : 'ESTADO DESCONOCIDO (undefined)';
+            console.warn(`🔄 [AUTOFIX] Usuario con permisos pero ${reason}. Intentando auto-resucitación...`);
             try {
               if (OneSignal.User?.PushSubscription?.optIn) {
                 await OneSignal.User.PushSubscription.optIn();
@@ -187,13 +188,20 @@ export default function OneSignalProvider({
                   console.log('📊 [AUTOFIX] Estado después de auto-resucitación:', {
                     optedOut: newOptedOut,
                     subscriptionId: newSubId,
-                    resultado: newOptedOut === false ? '✅ ÉXITO' : '❌ FALLÓ'
+                    resultado: newOptedOut === false ? '✅ ÉXITO - Usuario re-suscrito' : '❌ FALLÓ - Estado sigue corrupto'
                   });
+
+                  // Si falló, recomendar Nuclear Reset
+                  if (newOptedOut !== false) {
+                    console.error('❌ [AUTOFIX] El auto-fix falló. RECOMENDACIÓN: Usa el botón "RESETEO NUCLEAR" en el panel de debug.');
+                  }
                 }, 2000);
               }
             } catch (err) {
               console.error('❌ [AUTOFIX] Error en auto-resucitación:', err);
             }
+          } else if (browserPermission === 'granted' && optedOut === false) {
+            console.log('✅ [OneSignal] Estado correcto: Usuario suscrito (optedOut: false)');
           }
         }, 3000);
 
