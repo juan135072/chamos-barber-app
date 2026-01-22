@@ -150,7 +150,18 @@ export default function OneSignalProvider({
           console.log('📊 [OneSignal Initial State]', {
             permission: OneSignal.Notifications?.permission,
             subscriptionId: subId,
-            optedOut: optedOut
+            optedOut: optedOut,
+            externalId: OneSignal.User?.externalId
+          });
+
+          // 🔴 DEBUG DETALLADO PARA DIAGNÓSTICO
+          console.log('🔴 [DEBUG DETALLADO] Estado completo de OneSignal:', {
+            'Permisos del Navegador': browserPermission,
+            'Permisos de OneSignal': OneSignal.Notifications?.permission,
+            'Subscription ID': subId || '❌ NO HAY',
+            'External ID': OneSignal.User?.externalId || '❌ NO CONFIGURADO',
+            'Opted Out (Desuscrito)': optedOut === true ? '❌ SÍ (PROBLEMA DETECTADO)' : optedOut === false ? '✅ NO (OK)' : '⚠️ DESCONOCIDO',
+            'Service Worker': 'serviceWorker' in navigator ? '✅ Soportado' : '❌ No soportado'
           });
 
           if (browserPermission === 'granted' && !subId && !optedOut) {
@@ -160,6 +171,28 @@ export default function OneSignalProvider({
               await OneSignal.Notifications.requestPermission();
             } catch (err) {
               console.error('❌ Error forzando registro:', err);
+            }
+          }
+
+          // Auto-resucitar si está opted-out pero tiene permisos
+          if (browserPermission === 'granted' && optedOut === true) {
+            console.warn('🔄 [AUTOFIX] Usuario con permisos pero OPTED-OUT detectado. Intentando auto-resucitación...');
+            try {
+              if (OneSignal.User?.PushSubscription?.optIn) {
+                await OneSignal.User.PushSubscription.optIn();
+                console.log('✅ [AUTOFIX] Llamada a optIn() exitosa. Verificando estado en 2s...');
+                setTimeout(() => {
+                  const newOptedOut = OneSignal.User?.PushSubscription?.optedOut;
+                  const newSubId = OneSignal.User?.PushSubscription?.id;
+                  console.log('📊 [AUTOFIX] Estado después de auto-resucitación:', {
+                    optedOut: newOptedOut,
+                    subscriptionId: newSubId,
+                    resultado: newOptedOut === false ? '✅ ÉXITO' : '❌ FALLÓ'
+                  });
+                }, 2000);
+              }
+            } catch (err) {
+              console.error('❌ [AUTOFIX] Error en auto-resucitación:', err);
             }
           }
         }, 3000);
