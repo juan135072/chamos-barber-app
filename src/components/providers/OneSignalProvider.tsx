@@ -182,36 +182,37 @@ export default function OneSignalProvider({
         console.log('📬 Resultado de requestPermission():', result)
 
         // El resultado es un booleano en v16 (true si se concedió)
-        const permission = result === true || OneSignal.Notifications.permission === true
-
-        setPermissionStatus(permission ? 'granted' : 'denied')
-
-        if (permission) {
+        // Si es false, puede ser que el usuario denegó o que el navegador bloqueó el prompt nativo
+        if (result === true) {
+          setPermissionStatus('granted')
           console.log('✅ Notificaciones habilitadas exitosamente')
           alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
 
-          // Vincular External ID ahora que las notificaciones están activadas
+          // Vincular External ID
           const pendingId = (window as any).__pendingBarberExternalId
           if (pendingId && OneSignal.login) {
             console.log('🆔 [OneSignal] Vinculando ID después de activar notificaciones:', pendingId)
             setTimeout(async () => {
               try {
                 await OneSignal.login(pendingId)
-                console.log('✅ [OneSignal] ID vinculado exitosamente después de activar notificaciones')
+                console.log('✅ [OneSignal] ID vinculado exitosamente')
                 delete (window as any).__pendingBarberExternalId
               } catch (err) {
-                console.error('❌ Error vinculando ID después de activar notificaciones:', err)
+                console.error('❌ Error vinculando ID:', err)
               }
             }, 1000)
           }
+          setShowPrompt(false)
         } else {
-          console.log('❌ Permisos no otorgados')
+          console.log('⚠️ Prompt nativo no concedido o bloqueado, intentando Slidedown...')
+          // Intentar Slidedown si el nativo no funcionó (común si no hay "user gesture" suficiente o está bloqueado)
+          await OneSignal.Slidedown.promptPush()
+          // En caso de Slidedown, no cerramos el prompt local inmediatamente 
+          // porque el Slidedown de OneSignal aparecerá encima
+          setTimeout(() => setShowPrompt(false), 1000)
         }
-
-        setShowPrompt(false)
       } catch (error) {
-        console.warn('⚠️ Falló Notifications.requestPermission(), intentando Slidedown...')
-        // Fallback a Slidedown si el método directo falla
+        console.warn('⚠️ Error en Notifications.requestPermission(), intentando Slidedown como fallback:', error)
         await OneSignal.Slidedown.promptPush()
         setShowPrompt(false)
       }
