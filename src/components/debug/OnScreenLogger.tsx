@@ -63,6 +63,59 @@ export default function OnScreenLogger() {
 
     const clearLogs = () => setLogs([])
 
+    const nuclearReset = async () => {
+        if (!confirm('⚠️ ADVERTENCIA ⚠️\n\nEsto eliminará TODOS los datos de OneSignal y recargará la página.\n\nDeberás volver a aceptar los permisos de notificación.\n\n¿Estás seguro?')) {
+            return
+        }
+
+        console.log('☢️ [NUCLEAR RESET] Iniciando reseteo nuclear...')
+
+        try {
+            // 1. Desregistrar todos los service workers
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations()
+                for (const registration of registrations) {
+                    console.log('🗑️ [NUCLEAR RESET] Desregistrando Service Worker:', registration.scope)
+                    await registration.unregister()
+                }
+            }
+
+            // 2. Limpiar IndexedDB
+            if ('indexedDB' in window) {
+                const dbs = await indexedDB.databases()
+                dbs.forEach((db) => {
+                    if (db.name) {
+                        console.log('🗑️ [NUCLEAR RESET] Eliminando DB:', db.name)
+                        indexedDB.deleteDatabase(db.name)
+                    }
+                })
+            }
+
+            // 3. Limpiar caché
+            if ('caches' in window) {
+                const cacheNames = await caches.keys()
+                await Promise.all(cacheNames.map(name => {
+                    console.log('🗑️ [NUCLEAR RESET] Eliminando caché:', name)
+                    return caches.delete(name)
+                }))
+            }
+
+            // 4. Limpiar storage
+            localStorage.clear()
+            sessionStorage.clear()
+
+            console.log('✅ [NUCLEAR RESET] Limpieza completa. Recargando en 1s...')
+
+            // 5. Recargar la página
+            setTimeout(() => {
+                window.location.reload()
+            }, 1000)
+        } catch (error) {
+            console.error('❌ [NUCLEAR RESET] Error:', error)
+            alert('Error durante el reseteo. Revisa la consola.')
+        }
+    }
+
     const getLogColor = (type: string) => {
         switch (type) {
             case 'error': return '#ef4444'
@@ -142,33 +195,50 @@ export default function OnScreenLogger() {
                     flexDirection: 'column',
                     overflow: 'hidden'
                 }}>
-                    {/* Header */}
                     <div style={{
                         padding: '12px 16px',
                         background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)',
                         color: 'white',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        gap: '8px'
                     }}>
                         <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 700 }}>
                             📱 Debug Logger PWA
                         </h3>
-                        <button
-                            onClick={clearLogs}
-                            style={{
-                                background: 'rgba(255, 255, 255, 0.2)',
-                                border: 'none',
-                                borderRadius: '6px',
-                                padding: '4px 12px',
-                                color: 'white',
-                                fontSize: '12px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                            }}
-                        >
-                            🗑️ Limpiar
-                        </button>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                                onClick={clearLogs}
+                                style={{
+                                    background: 'rgba(255, 255, 255, 0.2)',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '4px 10px',
+                                    color: 'white',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                }}
+                            >
+                                🗑️
+                            </button>
+                            <button
+                                onClick={nuclearReset}
+                                style={{
+                                    background: '#ef4444',
+                                    border: 'none',
+                                    borderRadius: '6px',
+                                    padding: '4px 10px',
+                                    color: 'white',
+                                    fontSize: '11px',
+                                    cursor: 'pointer',
+                                    fontWeight: 600
+                                }}
+                            >
+                                ☢️ RESET
+                            </button>
+                        </div>
                     </div>
 
                     {/* Logs */}
