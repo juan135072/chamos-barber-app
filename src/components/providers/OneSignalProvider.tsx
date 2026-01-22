@@ -18,6 +18,7 @@ interface OneSignalContextType {
   triggerPrompt: () => void
   setExternalId: (id: string) => Promise<void>
   sendTags: (tags: Record<string, any>) => Promise<void>
+  repairSubscription: () => Promise<void>
 }
 
 const OneSignalContext = createContext<OneSignalContextType | undefined>(undefined)
@@ -171,110 +172,119 @@ export default function OneSignalProvider({
 
   // Función para solicitar permisos
   const requestPermission = useCallback(async () => {
+    if (isRequesting) {
+      console.log('⏳ Ya hay una solicitud de permisos en curso, ignorando...')
+      return
+    }
+
+    setIsRequesting(true)
+    console.log('🔔 Solicitando permisos de notificación...')
+
     try {
       const OneSignal = (window as any).OneSignal
-      if (!OneSignal) {
+      if (!OneSignal?.Notifications) {
         console.error('❌ OneSignal SDK no disponible')
         alert('Error: El sistema de notificaciones no está listo. Por favor recarga la página.')
         return
       }
 
-      if (isRequesting) {
-        console.log('⏳ Ya hay una solicitud de permisos en curso, ignorando...')
-        return
-      }
-
-      setIsRequesting(true)
-      console.log('🔔 Solicitando permisos de notificación...')
-
       // Verificar si ya están denegados a nivel de navegador
       if (Notification.permission === 'denied') {
         alert('⚠️ Las notificaciones están bloqueadas en tu navegador.\n\nPor favor, haz clic en el icono del candado junto a la URL y cambia el permiso de Notificaciones a "Permitir" para continuar.')
         setShowPrompt(false)
+        setPermissionStatus('denied')
         return
       }
 
       // En OneSignal Web SDK v16, el método directo es Notifications.requestPermission()
-      try {
-        const result = await OneSignal.Notifications.requestPermission()
-        console.log('📬 Resultado de requestPermission():', result)
+      const granted = await OneSignal.Notifications.requestPermission()
+      console.log('📬 Resultado de requestPermission():', granted)
 
-        // El resultado es un booleano en v16 (true si se concedió)
-        // Si es false, puede ser que el usuario denegó o que el navegador bloqueó el prompt nativo
-        if (result === true) {
-          setPermissionStatus('granted')
-          console.log('✅ Notificaciones habilitadas exitosamente')
-          alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
+      if (granted) {
+        setPermissionStatus('granted')
+        setShowPrompt(false)
+        console.log('✅ Notificaciones habilitadas exitosamente')
+        alert('✅ ¡Notificaciones activadas! Ahora recibirás alertas de nuevas citas.')
 
-          // Vincular External ID
-          const pendingId = (window as any).__pendingBarberExternalId
-          if (pendingId && OneSignal.login) {
-            console.log('🆔 [OneSignal] Vinculando ID después de activar notificaciones:', pendingId)
-            setTimeout(async () => {
-              try {
-                await OneSignal.login(pendingId)
-                console.log('✅ [OneSignal] ID vinculado exitosamente')
-                delete (window as any).__pendingBarberExternalId
-              } catch (err) {
-                console.error('❌ Error vinculando ID:', err)
-              }
-            }, 1000)
-          }
-          setShowPrompt(false)
-        } else {
-          // requestPermission devolvió false - verificar si ahora están bloqueadas
-          const currentPermission = Notification.permission
+        // Log details after permission granted
+        setTimeout(async () => {
+          const subId = OneSignal.User?.PushSubscription?.id
+          const extId = OneSignal.User?.externalId
+          console.log('📊 [OneSignal Diagnostics] Permission Granted')
+          console.log('🆔 Subscription ID:', subId)
+          console.log('🆔 External ID:', extId)
+        }, 1000)
 
-          if ((currentPermission as any) === 'denied') {
-            console.log('❌ Notificaciones bloqueadas por el navegador')
-            setPermissionStatus('denied')
-            alert('⚠️ Las notificaciones están bloqueadas en tu navegador.\n\n' +
-              'Para activarlas:\n' +
-              '1. Haz clic en el icono del candado 🔒 junto a la URL\n' +
-              '2. Busca "Notificaciones"\n' +
-              '3. Cámbialo a "Permitir"\n' +
-              '4. Recarga la página y vuelve a intentar')
-            setShowPrompt(false)
-          } else {
-            // No están bloqueadas, solo el prompt nativo no funcionó - intentar Slidedown
-            console.log('⚠️ Prompt nativo no mostrado, intentando Slidedown...')
-            try {
-              await OneSignal.Slidedown.promptPush()
-              console.log('📬 Slidedown lanzado')
-              setTimeout(() => setShowPrompt(false), 1000)
-            } catch (slidedownError) {
-              console.error('❌ Error lanzando Slidedown:', slidedownError)
-              setShowPrompt(false)
-            }
+        // Vincular ID pendiente si existe
+        const pendingId = (window as any).__pendingBarberExternalId
+        if (pendingId && OneSignal.login) {
+          console.log('🆔 [OneSignal] Vinculando ID pendiente:', pendingId)
+          try {
+            await OneSignal.login(pendingId)
+            console.log('✅ [OneSignal] ID vinculado exitosamente')
+            delete (window as any).__pendingBarberExternalId
+          } catch (err) {
+            console.error('❌ Error vinculando ID:', err)
           }
         }
-      } catch (error) {
-        console.warn('⚠️ Error en Notifications.requestPermission():', error)
-        // Verificar si están bloqueadas antes de intentar Slidedown
-        if ((Notification.permission as any) === 'denied') {
-          console.log('❌ Notificaciones bloqueadas, no se puede mostrar Slidedown')
+      } else {
+        // Si no se concedió, verificar si es por bloqueo o simplemente el usuario cerró el prompt
+        if ((Notification.permission as string) === 'denied') {
           setPermissionStatus('denied')
-          setShowPrompt(false)
+          alert('⚠️ Has bloqueado las notificaciones. Para activarlas, cambia los permisos en la configuración de tu navegador.')
         } else {
+          // Intentar Slidedown como fallback si el nativo falló o fue ignorado
+          console.log('⚠️ Intentando Slidedown como fallback...')
           try {
-            console.log('⚠️ Intentando Slidedown como fallback...')
             await OneSignal.Slidedown.promptPush()
-            console.log('📬 Slidedown lanzado como fallback')
-            setShowPrompt(false)
           } catch (slidedownError) {
             console.error('❌ Error lanzando Slidedown:', slidedownError)
-            setShowPrompt(false)
           }
         }
+        setShowPrompt(false)
       }
     } catch (error) {
-      // Build Force: v1.0.1 - Ensuring fix for NotificationPermission overlap is applied
       console.error('❌ Error solicitando permisos:', error)
-      alert('Hubo un problema al activar las notificaciones. Por favor intenta nuevamente o contacta al administrador.')
+      alert('Hubo un problema al activar las notificaciones. Por favor intenta nuevamente.')
     } finally {
       setIsRequesting(false)
     }
   }, [isRequesting])
+
+  /**
+   * REPARAR SUSCRIPCIÓN (Diagnóstico Avanzado)
+   */
+  const repairSubscription = useCallback(async () => {
+    if (!confirm('¿Problemas con las notificaciones? Esto reiniciará la conexión con OneSignal y limpiará la caché. ¿Continuar?')) {
+      return
+    }
+
+    console.log('🛠️ Iniciando reparación de OneSignal...')
+    try {
+      // 1. Desregistrar Service Workers
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations()
+        for (const registration of registrations) {
+          if (registration.active?.scriptURL.includes('OneSignal') || registration.active?.scriptURL.includes('sw.js')) {
+            console.log('🗑️ Desregistrando SW:', registration.active.scriptURL)
+            await registration.unregister()
+          }
+        }
+      }
+
+      // 2. Limpiar cache
+      if ('caches' in window) {
+        const cacheNames = await caches.keys()
+        await Promise.all(cacheNames.map(name => caches.delete(name)))
+      }
+
+      alert('⚙️ Conexión reiniciada. Por favor recarga la página para activar los cambios.')
+      window.location.reload()
+    } catch (err) {
+      console.error('❌ Error en reparación:', err)
+      alert('Error al intentar reparar. Por favor limpia la caché de tu navegador manualmente.')
+    }
+  }, [])
 
   // Función para cerrar el prompt
   const dismissPrompt = useCallback(() => {
@@ -410,7 +420,8 @@ export default function OneSignalProvider({
       showPrompt,
       triggerPrompt,
       setExternalId,
-      sendTags
+      sendTags,
+      repairSubscription
     }}>
       {children}
 

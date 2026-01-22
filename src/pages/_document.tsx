@@ -27,8 +27,6 @@ export default function Document() {
         <meta name="format-detection" content="telephone=no" />
         <meta name="apple-touch-fullscreen" content="yes" />
 
-        {/* OneSignal SDK */}
-        <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
       </Head>
       <body>
         <Main />
