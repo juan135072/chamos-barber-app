@@ -26,21 +26,16 @@ export async function sendNotificationToBarber(barberId: string, title: string, 
 
         const payload: any = {
             app_id: ONESIGNAL_APP_ID,
-            // Identificador interno para el dashboard de OneSignal (Crucial para depurar)
             name: `Reserva: ${cleanBarberId.substring(0, 8)} - ${new Date().toLocaleTimeString()}`,
 
-            // MÉTODO MODERNO (SDK v16+)
+            // MÉTODO MODERNO (SDK v16+): Targeting por alias de external_id
             include_aliases: {
                 external_id: [cleanBarberId]
             },
 
-            // MÉTODO LEGACY (Para asegurar compatibilidad si el alias no está listo)
-            include_external_user_ids: [cleanBarberId],
-
             target_channel: "push",
             headings: { en: title, es: title },
             contents: { en: message, es: message },
-            // Opcional: Redirigir al panel de citas al hacer clic
             url: `${process.env.NEXT_PUBLIC_SITE_URL || ''}/barbero-panel`
         }
 

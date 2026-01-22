@@ -111,6 +111,17 @@ export default function OneSignalProvider({
       console.log('✅ [OneSignal] Inicializado correctamente')
       setInitialized(true)
 
+      // Diagnóstico de Service Worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration().then(reg => {
+          console.log('📡 [OneSignal SW Status]', reg ? {
+            script: reg.active?.scriptURL,
+            state: reg.active?.state,
+            scope: reg.scope
+          } : 'No hay Service Worker registrado');
+        });
+      }
+
       // Configurar permisos y listeners
       try {
         // Detectar permiso inicial de forma más precisa
@@ -130,6 +141,28 @@ export default function OneSignalProvider({
         } else {
           setPermissionStatus('default')
         }
+
+        // AUTO-FIX AGRESIVO: Si hay permisos pero no hay suscripción
+        setTimeout(async () => {
+          const subId = OneSignal.User?.PushSubscription?.id;
+          const optedOut = OneSignal.User?.PushSubscription?.optedOut;
+
+          console.log('📊 [OneSignal Initial State]', {
+            permission: OneSignal.Notifications?.permission,
+            subscriptionId: subId,
+            optedOut: optedOut
+          });
+
+          if (browserPermission === 'granted' && !subId && !optedOut) {
+            console.warn('⚠️ [OneSignal] Permisos concedidos pero sin suscripción activa. Intentando registrar...');
+            try {
+              // En v16, llamar a requestPermission() cuando ya hay permisos suele disparar el registro
+              await OneSignal.Notifications.requestPermission();
+            } catch (err) {
+              console.error('❌ Error forzando registro:', err);
+            }
+          }
+        }, 3000);
 
         OneSignal.Notifications?.addEventListener('permissionChange', (granted: boolean) => {
           console.log('🔔 [OneSignal] Permiso cambió:', granted ? 'concedido' : 'denegado')
