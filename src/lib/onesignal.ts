@@ -33,6 +33,9 @@ export async function sendNotificationToBarber(barberId: string, title: string, 
                 external_id: [cleanBarberId]
             },
 
+            // MÉTODO LEGACY (Añadido de nuevo como respaldo mientras se soluciona el estado de suscripción)
+            include_external_user_ids: [cleanBarberId],
+
             target_channel: "push",
             headings: { en: title, es: title },
             contents: { en: message, es: message },

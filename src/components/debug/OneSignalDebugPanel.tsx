@@ -19,6 +19,8 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
   const [permission, setPermission] = useState<'default' | 'granted' | 'denied'>('default')
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null)
   const [externalUserId, setExternalUserId] = useState<string | null>(null)
+  const [optedOut, setOptedOut] = useState<boolean | null>(null)
+  const [swStatus, setSwStatus] = useState<string>('Checking...')
   const [tags, setTags] = useState<Record<string, any>>({})
 
   // Verificar estado de OneSignal
@@ -64,11 +66,19 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
         try {
           if (OneSignal.User) {
             userTags = await OneSignal.User.getTags()
+            setOptedOut(OneSignal.User.PushSubscription?.optedOut || false)
           }
         } catch (e) {
           console.warn('OneSignal getTags not ready')
         }
         setTags(userTags || {})
+
+        // Check SW
+        if ('serviceWorker' in navigator) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          const osSw = regs.find(r => r.active?.scriptURL.includes('OneSignal'));
+          setSwStatus(osSw ? `Active (${osSw.active?.state})` : 'Missing');
+        }
 
         // Escuchar cambios
         OneSignal.Notifications.addEventListener('permissionChange', (granted: boolean) => {
@@ -163,6 +173,52 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
     } catch (error) {
       console.error('❌ Network Error:', error)
       alert('❌ Error de red al contactar con /api/debug/test-onesignal')
+    }
+  }
+
+  // NUCLEAR RESET
+  const nuclearReset = async () => {
+    if (!confirm('⚠️ ALERTA NUCLEAR: Esto borrará TODO (IndexedDB, Service Workers, Cache) y cerrará sesión. Se usa solo si nada funciona. ¿Proceder?')) return;
+
+    try {
+      // 1. Unregister ALL Service Workers
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (const r of regs) await r.unregister();
+      }
+
+      // 2. Clear IndexedDB
+      const dbs = await window.indexedDB.databases();
+      for (const db of dbs) {
+        if (db.name) window.indexedDB.deleteDatabase(db.name);
+      }
+
+      // 3. Clear Cache
+      const cacheNames = await caches.keys();
+      for (const name of cacheNames) await caches.delete(name);
+
+      // 4. Clear Storage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      alert('✅ Limpieza completa. La página se recargará ahora.');
+      window.location.reload();
+    } catch (err) {
+      alert('Error en reseteo: ' + err);
+    }
+  }
+
+  // FORCE OPT-IN
+  const forceOptIn = async () => {
+    try {
+      const OneSignal = (window as any).OneSignal;
+      if (OneSignal?.User?.PushSubscription?.optIn) {
+        await OneSignal.User.PushSubscription.optIn();
+        alert('🔄 Intento de Opt-In enviado. Refresca para ver cambios.');
+        refreshStatus();
+      }
+    } catch (err) {
+      alert('Error en opt-in: ' + err);
     }
   }
 
@@ -326,6 +382,18 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
                       {externalUserId ? externalUserId : 'No configurado'}
                     </span>
                   </div>
+                  <div className="info-row">
+                    <span className="info-label">Opted Out (Desuscrito):</span>
+                    <span className="info-value" style={{ color: optedOut ? '#ef4444' : '#10b981' }}>
+                      {optedOut ? 'SÍ (Opted Out)' : 'NO (Suscrito)'}
+                    </span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">Service Worker:</span>
+                    <span className="info-value">
+                      {swStatus}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Tags */}
@@ -385,6 +453,24 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
                 <button onClick={refreshStatus} className="onesignal-debug-btn">
                   <i className="fas fa-sync" style={{ fontSize: '14px', marginRight: '8px' }}></i>
                   Refrescar Estado
+                </button>
+
+                <button
+                  onClick={forceOptIn}
+                  className="onesignal-debug-btn"
+                  style={{ background: '#10b981', marginTop: '8px' }}
+                >
+                  <i className="fas fa-toggle-on" style={{ fontSize: '14px', marginRight: '8px' }}></i>
+                  Forzar Suscripción (Opt-In)
+                </button>
+
+                <button
+                  onClick={nuclearReset}
+                  className="onesignal-debug-btn"
+                  style={{ background: '#ef4444', marginTop: '16px' }}
+                >
+                  <i className="fas fa-radiation" style={{ fontSize: '14px', marginRight: '8px' }}></i>
+                  RESETEO NUCLEAR (Reset total)
                 </button>
               </div>
             </div>
