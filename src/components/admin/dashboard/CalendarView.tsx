@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import type { Database } from '../../../../lib/database.types'
+import CitaDetailModal from '../modals/CitaDetailModal'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   barberos?: { nombre: string; apellido: string }
-  servicios?: { nombre: string; duracion_minutos: number }
+  servicios?: { nombre: string; precio: number; duracion_minutos: number }
 }
 
 interface CalendarViewProps {
@@ -20,6 +21,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
   const [weekDays, setWeekDays] = useState<Date[]>([])
   const [citasPorBarbero, setCitasPorBarbero] = useState<Record<string, Cita[]>>({})
   const [loading, setLoading] = useState(true)
+  const [selectedCita, setSelectedCita] = useState<Cita | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   // Generar los 7 días de la semana actual
   useEffect(() => {
@@ -65,8 +68,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
         .from('citas')
         .select(`
           *,
-          barberos (nombre, apellido),
-          servicios (nombre, duracion_minutos)
+          barberos:barbero_id (nombre, apellido),
+          servicios:servicio_id (nombre, precio, duracion_minutos)
         `)
         .eq('fecha', dateStr)
         .order('hora')
@@ -328,7 +331,10 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                             borderLeft: `4px solid ${getEstadoColor(cita.estado)}`,
                             border: '1px solid rgba(255, 255, 255, 0.08)'
                           }}
-                          onClick={() => onDateSelect && onDateSelect(selectedDay)}
+                          onClick={() => {
+                            setSelectedCita(cita)
+                            setIsModalOpen(true)
+                          }}
                         >
                           <div className="flex items-center justify-between mb-2">
                             <span className="font-bold text-sm" style={{ color: '#FFF' }}>
@@ -389,6 +395,12 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
           </div>
         ))}
       </div>
+
+      <CitaDetailModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        cita={selectedCita}
+      />
     </div>
   )
 }
