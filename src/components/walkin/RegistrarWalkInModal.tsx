@@ -84,9 +84,29 @@ export default function RegistrarWalkInModal({
   }
 
   const toggleServicio = (id: string) => {
-    setSelectedServicios(prev =>
-      prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
-    )
+    setSelectedServicios(prev => {
+      if (prev.includes(id)) {
+        return prev.filter(s => s !== id)
+      } else {
+        return [...prev, id]
+      }
+    })
+  }
+
+  const actualizarCantidadServicio = (id: string, delta: number) => {
+    setSelectedServicios(prev => {
+      if (delta > 0) {
+        return [...prev, id];
+      } else {
+        const index = prev.lastIndexOf(id);
+        if (index !== -1) {
+          const next = [...prev];
+          next.splice(index, 1);
+          return next;
+        }
+        return prev;
+      }
+    });
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,15 +179,20 @@ export default function RegistrarWalkInModal({
           return;
         }
 
-        // Construir el array de items (servicios)
-        const items = selectedServicios.map(id => {
+        // Construir el array de items (servicios) con cantidades
+        const counts = selectedServicios.reduce((acc, id) => {
+          acc[id] = (acc[id] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>);
+
+        const items = Object.entries(counts).map(([id, quantity]) => {
           const s = servicios.find(srv => srv.id === id);
           return {
             servicio_id: id,
             nombre: s ? s.nombre : 'Servicio',
             precio: s ? s.precio : 0,
-            cantidad: 1,
-            subtotal: s ? s.precio : 0
+            cantidad: quantity,
+            subtotal: (s ? s.precio : 0) * quantity
           };
         });
 
@@ -176,13 +201,13 @@ export default function RegistrarWalkInModal({
         // Preparamos las notas incluyendo los servicios extra si hay más de uno
         let notasFinales = `[WALK-IN] ${formData.notas || ''}`;
         if (selectedServicios.length > 1) {
-          const serviciosNombres = items.map(i => i.nombre).join(', ');
+          const serviciosNombres = items.map(i => `${i.nombre} (${i.cantidad})`).join(', ');
           notasFinales += ` - Servicios: ${serviciosNombres}`;
         }
 
         const citaPayload = {
           barbero_id: selectedBarbero,
-          servicio_id: selectedServicios[0] || null,
+          servicio_id: items[0]?.servicio_id || null,
           fecha: fechaReserva,
           hora: horaReserva,
           cliente_nombre: formData.nombre,
@@ -480,7 +505,29 @@ export default function RegistrarWalkInModal({
                             }`}>
                             {selectedServicios.includes(s.id) && <div className="w-2 h-2 bg-white rounded-full" />}
                           </div>
-                          <span>{s.nombre} - ${s.precio}</span>
+                          <span className="flex-1">{s.nombre} - ${s.precio}</span>
+
+                          {selectedServicios.includes(s.id) && (
+                            <div className="flex items-center gap-2 bg-white/10 px-2 py-1 rounded" onClick={e => e.stopPropagation()}>
+                              <button
+                                type="button"
+                                onClick={() => actualizarCantidadServicio(s.id, -1)}
+                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20"
+                              >
+                                -
+                              </button>
+                              <span className="min-w-[1rem] text-center font-bold">
+                                {selectedServicios.filter(id => id === s.id).length}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => actualizarCantidadServicio(s.id, 1)}
+                                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20"
+                              >
+                                +
+                              </button>
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>

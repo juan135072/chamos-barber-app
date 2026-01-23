@@ -5,6 +5,7 @@ import type { Database } from '../../../../lib/database.types'
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   barberos?: { nombre: string; apellido: string }
   servicios?: { nombre: string; precio: number }
+  items?: any[]
 }
 
 export default function CitasTab() {
@@ -352,13 +353,30 @@ export default function CitasTab() {
                       ? `${cita.barberos.nombre} ${cita.barberos.apellido}`
                       : 'N/A'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                      {cita.servicios?.nombre || 'N/A'}
-                    </div>
-                    <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                      ${cita.servicios?.precio || 0}
-                    </div>
+                  <td className="px-6 py-4">
+                    {cita.items && cita.items.length > 0 ? (
+                      <div className="space-y-1">
+                        {cita.items.map((item: any, idx: number) => (
+                          <div key={idx} className="text-sm">
+                            <span style={{ color: 'var(--text-primary)' }}>
+                              {item.cantidad > 1 ? `${item.cantidad}x ` : ''}{item.nombre}
+                            </span>
+                            <div className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                              ${item.precio} {item.cantidad > 1 ? `(sub: $${item.subtotal})` : ''}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm">
+                        <div style={{ color: 'var(--text-primary)' }}>
+                          {cita.servicios?.nombre || 'N/A'}
+                        </div>
+                        <div style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                          ${cita.servicios?.precio || 0}
+                        </div>
+                      </div>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
                     <div>{new Date(cita.fecha).toLocaleDateString('es-ES')}</div>

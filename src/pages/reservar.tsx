@@ -146,17 +146,41 @@ const ReservarPage: React.FC = () => {
     })
   }
 
-  const calcularTotales = () => {
-    const serviciosInfo = serviciosSeleccionados.map(id =>
-      servicios.find(s => s.id === id)
-    ).filter(Boolean) as (Servicio & { tiempo_buffer?: number })[]
+  const actualizarCantidadServicio = (servicioId: string, delta: number) => {
+    setServiciosSeleccionados(prev => {
+      if (delta > 0) {
+        return [...prev, servicioId];
+      } else {
+        const index = prev.lastIndexOf(servicioId);
+        if (index !== -1) {
+          const next = [...prev];
+          next.splice(index, 1);
+          return next;
+        }
+        return prev;
+      }
+    });
+  }
 
-    const duracionServicios = serviciosInfo.reduce((sum, s) => sum + s.duracion_minutos, 0)
+  const calcularTotales = () => {
+    // Agrupar por ID para contar cantidades
+    const counts = serviciosSeleccionados.reduce((acc, id) => {
+      acc[id] = (acc[id] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const serviciosInfo = Object.entries(counts).map(([id, quantity]) => {
+      const s = servicios.find(srv => srv.id === id);
+      if (!s) return null;
+      return { ...s, quantity };
+    }).filter(Boolean) as (Servicio & { quantity: number; tiempo_buffer?: number })[];
+
+    const duracionServicios = serviciosInfo.reduce((sum, s) => sum + (s.duracion_minutos * s.quantity), 0)
     // El buffer que bloqueamos es el máximo de los servicios elegidos (limpieza final)
     const maxBuffer = serviciosInfo.reduce((max, s) => Math.max(max, s.tiempo_buffer || 5), 0)
 
     const duracionTotal = duracionServicios + (serviciosInfo.length > 0 ? maxBuffer : 0)
-    const precioTotal = serviciosInfo.reduce((sum, s) => sum + s.precio, 0)
+    const precioTotal = serviciosInfo.reduce((sum, s) => sum + (s.precio * s.quantity), 0)
 
     return { duracionTotal, duracionServicios, precioTotal, serviciosInfo }
   }
@@ -179,14 +203,25 @@ const ReservarPage: React.FC = () => {
 
       // Usar API route en vez de helper directo
       // Esto bypassa el problema de RLS usando SERVICE_ROLE_KEY en el backend
+      const { serviciosInfo } = calcularTotales();
+      const items = serviciosInfo.map(s => ({
+        servicio_id: s.id,
+        nombre: s.nombre,
+        precio: s.precio,
+        cantidad: s.quantity,
+        subtotal: s.precio * s.quantity
+      }));
+
       const response = await fetch('/api/crear-cita', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          servicio_id: serviciosSeleccionados[0], // Primer servicio (para compatibilidad)
-          servicios_ids: serviciosSeleccionados, // Array completo de servicios
+          servicio_id: items[0]?.servicio_id, // Primer servicio (para compatibilidad)
+          servicios_ids: serviciosSeleccionados, // Array completo de servicios (incluyendo duplicados para que el API sume tiempos)
+          items: items, // Objeto estructurado
+          precio_final: calcularTotales().precioTotal,
           barbero_id: formData.barbero_id,
           fecha: formData.fecha,
           hora: formData.hora,
@@ -384,7 +419,7 @@ const ReservarPage: React.FC = () => {
                         )}
 
                         {/* Contenido del servicio */}
-                        <div style={{ flex: 1, paddingRight: '3rem' }}>
+                        <div style={{ flex: 1, paddingRight: '2rem' }}>
                           <h3 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
                             {servicio.nombre}
                           </h3>
@@ -395,9 +430,32 @@ const ReservarPage: React.FC = () => {
                             <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
                               ${servicio.precio.toLocaleString()}
                             </span>
-                            <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
-                              {servicio.duracion_minutos} min
-                            </span>
+
+                            {isSelected ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); actualizarCantidadServicio(servicio.id, -1); }}
+                                  style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '0.25rem' }}
+                                >
+                                  <i className="fas fa-minus" style={{ fontSize: '0.7rem' }}></i>
+                                </button>
+                                <span style={{ fontWeight: 'bold', minWidth: '1.5rem', textAlign: 'center' }}>
+                                  {serviciosSeleccionados.filter(id => id === servicio.id).length}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={(e) => { e.stopPropagation(); actualizarCantidadServicio(servicio.id, 1); }}
+                                  style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', padding: '0.25rem' }}
+                                >
+                                  <i className="fas fa-plus" style={{ fontSize: '0.7rem' }}></i>
+                                </button>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
+                                {servicio.duracion_minutos} min
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>

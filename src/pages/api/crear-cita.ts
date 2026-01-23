@@ -142,12 +142,14 @@ export default async function handler(
     }
 
     // 2. Verificar que todos los servicios existen y están activos (LO NECESITAMOS PARA CALCULAR DURACIÓN)
+    // Usamos un Set para obtener IDs únicos y cargarlos todos a la vez
+    const uniqueServiciosIds = Array.from(new Set(serviciosIds))
     const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios')
-      .select('id, nombre, activo, duracion_minutos, tiempo_buffer')
-      .in('id', serviciosIds)
+      .select('id, nombre, activo, duracion_minutos, tiempo_buffer, precio')
+      .in('id', uniqueServiciosIds)
 
-    if (serviciosError || !serviciosData || serviciosData.length !== serviciosIds.length) {
+    if (serviciosError || !serviciosData || serviciosData.length !== uniqueServiciosIds.length) {
       return res.status(400).json({
         error: 'Uno o más servicios seleccionados no están disponibles',
         code: 'SERVICIO_NO_DISPONIBLE'
@@ -163,7 +165,15 @@ export default async function handler(
     }
 
     // 3. Calcular duración y tiempos de la nueva cita (incluyendo BUFFER)
-    const totalServiciosMinutos = (serviciosData as any[]).reduce((sum: number, s: any) => sum + (s.duracion_minutos || 30), 0)
+    // Crear un mapa para acceso rápido
+    const servMap = new Map((serviciosData as any[]).map(s => [s.id, s]))
+
+    // IMPORTANTE: Sumar duración por cada ocurrencia en el array serviciosIds
+    const totalServiciosMinutos = serviciosIds.reduce((sum: number, id: string) => {
+      const s = servMap.get(id)
+      return sum + (s?.duracion_minutos || 30)
+    }, 0)
+
     // Usamos el buffer máximo de los servicios seleccionados como margen de limpieza final
     const tiempoBuffer = (serviciosData as any[]).reduce((max: number, s: any) => Math.max(max, s.tiempo_buffer || 5), 0)
 
@@ -278,14 +288,32 @@ export default async function handler(
     // Si hay múltiples servicios, agregar la información a las notas
     let notasCompletas = citaData.notas || ''
 
+    const counts = serviciosIds.reduce((acc, id) => {
+      acc[id] = (acc[id] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const items = citaData.items || Object.entries(counts).map(([id, quantity]) => {
+      const s = servMap.get(id)
+      return {
+        servicio_id: id,
+        nombre: s?.nombre || 'Servicio',
+        precio: s?.precio || 0,
+        cantidad: quantity,
+        subtotal: (s?.precio || 0) * quantity
+      }
+    })
+
+    const totalCalculado = items.reduce((sum: number, i: any) => sum + i.subtotal, 0)
+
     if (serviciosIds.length > 1) {
-      const nombresServicios = (serviciosData as any[]).map((s: any) => s.nombre).join(', ')
+      const nombresServicios = items.map((i: any) => `${i.nombre} (${i.cantidad})`).join(', ')
       const infoServicios = `\n\n[SERVICIOS SOLICITADOS: ${nombresServicios}]`
       notasCompletas = notasCompletas + infoServicios
     }
 
     // Preparar datos de la cita (usando primer servicio para compatibilidad)
-    const citaInsert: CitaInsert = {
+    const citaInsert: any = {
       servicio_id: serviciosIds[0], // Primer servicio (obligatorio por compatibilidad DB)
       barbero_id: citaData.barbero_id,
       fecha: citaData.fecha,
@@ -294,7 +322,9 @@ export default async function handler(
       cliente_telefono: citaData.cliente_telefono,
       cliente_email: citaData.cliente_email || null,
       notas: notasCompletas || null,
-      estado: citaData.estado || 'pendiente'
+      estado: citaData.estado || 'pendiente',
+      items: items,
+      precio_final: citaData.precio_final || totalCalculado
     }
 
     // INSERTAR LA CITA

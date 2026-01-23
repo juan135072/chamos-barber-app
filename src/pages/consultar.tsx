@@ -23,6 +23,8 @@ interface ServicioDetalle {
   nombre: string
   precio: number
   duracion_minutos: number
+  cantidad?: number
+  subtotal?: number
 }
 
 interface ServicioInfo {
@@ -474,13 +476,16 @@ const ConsultarPage: React.FC = () => {
                                               }}>
                                                 {idx + 1}
                                               </span>
-                                              <span style={{ flex: 1 }}>{servicio.nombre}</span>
+                                              <span style={{ flex: 1 }}>
+                                                {servicio.cantidad && servicio.cantidad > 1 ? `${servicio.cantidad}x ` : ''}
+                                                {servicio.nombre}
+                                              </span>
                                               <span style={{
                                                 color: 'var(--accent-color)',
                                                 fontWeight: '600',
                                                 whiteSpace: 'nowrap'
                                               }}>
-                                                ${servicio.precio?.toLocaleString()}
+                                                ${(servicio.subtotal || (servicio.precio * (servicio.cantidad || 1)))?.toLocaleString()}
                                               </span>
                                               <span style={{
                                                 opacity: 0.7,

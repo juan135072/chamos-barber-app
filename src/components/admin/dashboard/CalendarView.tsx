@@ -359,7 +359,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                           <p className="truncate font-semibold mb-1" style={{ color: '#FFF' }}>
                             {cita.cliente_nombre}
                           </p>
-                          {cita.servicios && (
+                          {cita.items && cita.items.length > 0 ? (
+                            <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
+                              {cita.items.map((item: any) => `${item.cantidad > 1 ? `${item.cantidad}x ` : ''}${item.nombre}`).join(', ')}
+                            </p>
+                          ) : cita.servicios && (
                             <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
                               {cita.servicios.nombre}
                             </p>

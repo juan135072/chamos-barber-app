@@ -93,6 +93,8 @@ export default async function handler(
         hora,
         estado,
         notas,
+        items,
+        precio_final,
         servicios (
           nombre,
           precio,
@@ -135,11 +137,29 @@ export default async function handler(
 
     // Helper para calcular datos de múltiples servicios
     const calcularDatosServicios = async (cita: any) => {
-      let precioTotal = cita.servicios?.precio || 0
-      let duracionTotal = cita.servicios?.duracion_minutos || 0
-      let serviciosDetalle: any[] = []
+      // 1. Prioridad: Columna 'items' (nuevo formato estructurado)
+      if (cita.items && Array.isArray(cita.items) && cita.items.length > 0) {
+        const precioTotal = cita.items.reduce((sum: number, i: any) => sum + (i.subtotal || 0), 0)
+        // La duración total no está guardada por item, pero podemos estimarla o usar precio_final si solo queremos el total
+        // Por ahora sumamos duraciones si podemos obtenerlas, o usamos el fallback de notas si es viejo
+        const serviciosDetalle = cita.items
 
-      // Si hay múltiples servicios en las notas, buscar sus datos
+        // Calculamos duración total sumando duraciones de servicios individuales (necesitamos cargarlos si no están en items)
+        // En el nuevo flujo de reserva, los items tienen nombre, precio, cantidad, subtotal.
+        // Vamos a intentar obtener las duraciones para que la info sea completa.
+        const serviciosIds = cita.items.map((i: any) => i.servicio_id)
+        const { data: srvData } = await (supabase
+          .from('servicios')
+          .select('id, duracion_minutos')
+          .in('id', serviciosIds) as any)
+
+        const duracionesMap = new Map((srvData || []).map((s: any) => [s.id, s.duracion_minutos]))
+        const duracionTotal = cita.items.reduce((sum: number, i: any) => sum + ((duracionesMap.get(i.servicio_id) as number) || 0) * (i.cantidad || 1), 0)
+
+        return { precioTotal, duracionTotal, serviciosDetalle }
+      }
+
+      // 2. Fallback: Parsear de notas (formato previo)
       if (cita.notas) {
         const match = cita.notas.match(/\[SERVICIOS SOLICITADOS:\s*([^\]]+)\]/)
         if (match) {
@@ -147,41 +167,28 @@ export default async function handler(
           const nombresServicios = serviciosTexto.split(',').map((s: string) => s.trim())
 
           if (nombresServicios.length > 1) {
-            // Buscar datos completos de todos los servicios
             const { data: serviciosData } = await supabase
               .from('servicios')
               .select('nombre, precio, duracion_minutos')
               .in('nombre', nombresServicios)
 
             if (serviciosData && serviciosData.length > 0) {
-              precioTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.precio || 0), 0)
-              duracionTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.duracion_minutos || 0), 0)
-              serviciosDetalle = serviciosData
+              const precioTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.precio || 0), 0)
+              const duracionTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.duracion_minutos || 0), 0)
+              return { precioTotal, duracionTotal, serviciosDetalle: serviciosData }
             }
-          } else {
-            // Un solo servicio
-            serviciosDetalle = [{
-              nombre: cita.servicios?.nombre,
-              precio: cita.servicios?.precio,
-              duracion_minutos: cita.servicios?.duracion_minutos
-            }]
           }
-        } else {
-          // No hay múltiples servicios, usar el servicio principal
-          serviciosDetalle = [{
-            nombre: cita.servicios?.nombre,
-            precio: cita.servicios?.precio,
-            duracion_minutos: cita.servicios?.duracion_minutos
-          }]
         }
-      } else {
-        // No hay notas, usar el servicio principal
-        serviciosDetalle = [{
-          nombre: cita.servicios?.nombre,
-          precio: cita.servicios?.precio,
-          duracion_minutos: cita.servicios?.duracion_minutos
-        }]
       }
+
+      // 3. Fallback final: Servicio principal (legacy)
+      const precioTotal = cita.servicios?.precio || 0
+      const duracionTotal = cita.servicios?.duracion_minutos || 0
+      const serviciosDetalle = [{
+        nombre: cita.servicios?.nombre,
+        precio: cita.servicios?.precio,
+        duracion_minutos: cita.servicios?.duracion_minutos
+      }]
 
       return { precioTotal, duracionTotal, serviciosDetalle }
     }
