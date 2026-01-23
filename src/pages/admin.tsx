@@ -18,6 +18,10 @@ import GananciasTab from '../components/admin/tabs/GananciasTab'
 import CalendarView from '../components/admin/dashboard/CalendarView'
 import WalkInClientsPanel from '../components/walkin/WalkInClientsPanel'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
+import GestionUbicaciones from '../components/admin/GestionUbicaciones'
+import GeneradorClave from '../components/admin/GeneradorClave'
+import AsistenciaHoyPanel from '../components/admin/AsistenciaHoyPanel'
+import ConfiguradorHorarios from '../components/admin/ConfiguradorHorarios'
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -157,12 +161,14 @@ export default function AdminPage() {
   const menuItems = [
     { id: 'dashboard', icon: 'fas fa-th-large', label: 'Dashboard' },
     { id: 'citas', icon: 'fas fa-calendar-alt', label: 'Citas' },
+    { id: 'asistencia', icon: 'fas fa-clipboard-check', label: 'Asistencia' },
     { id: 'clientes', icon: 'fas fa-users', label: 'Clientes' },
     { id: 'walkin', icon: 'fas fa-walking', label: 'Walk-In' },
     { id: 'barberos', icon: 'fas fa-user-tie', label: 'Barberos' },
     { id: 'horarios', icon: 'fas fa-clock', label: 'Horarios' },
     { id: 'servicios', icon: 'fas fa-scissors', label: 'Servicios' },
     { id: 'categorias', icon: 'fas fa-tags', label: 'Categorías' },
+    { id: 'ubicaciones', icon: 'fas fa-map-marker-alt', label: 'Ubicaciones GPS' },
     { id: 'comisiones', icon: 'fas fa-percentage', label: 'Comisiones' },
     { id: 'ganancias', icon: 'fas fa-chart-line', label: 'Ganancias' },
     { id: 'configuracion', icon: 'fas fa-cog', label: 'Configuración' },
@@ -435,6 +441,28 @@ export default function AdminPage() {
             {activeTab === 'citas' && <CitasTab />}
             {activeTab === 'configuracion' && <ConfiguracionTab />}
             {activeTab === 'solicitudes' && <SolicitudesTab />}
+
+            {/* Asistencia Tab */}
+            {activeTab === 'asistencia' && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div>
+                    <GeneradorClave />
+                  </div>
+                  <div>
+                    <AsistenciaHoyPanel />
+                  </div>
+                </div>
+
+                {/* Configuración de Horarios */}
+                <div>
+                  <ConfiguradorHorarios />
+                </div>
+              </div>
+            )}
+
+            {/* Ubicaciones GPS Tab */}
+            {activeTab === 'ubicaciones' && <GestionUbicaciones />}
           </div >
         </main >
 

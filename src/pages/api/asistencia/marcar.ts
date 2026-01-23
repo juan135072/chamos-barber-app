@@ -87,10 +87,25 @@ export default async function handler(
             })
         }
 
-        // 6. Determinar estado (normal o tarde)
+        // 6. Obtener configuración de horarios
+        const { data: configuracion } = await supabase
+            .from('configuracion_horarios')
+            .select('hora_entrada_puntual')
+            .eq('activa', true)
+            .limit(1)
+            .single()
+
+        // Usar configuración o valor por defecto
+        let limiteNormal = 9 * 60 + 30 // 9:30 AM por defecto
+
+        if (configuracion && configuracion.hora_entrada_puntual) {
+            const [horaLimite, minutosLimite] = configuracion.hora_entrada_puntual.split(':').map(Number)
+            limiteNormal = horaLimite * 60 + minutosLimite
+        }
+
+        // 7. Determinar estado (normal o tarde)
         const [hora, minutos] = horaActual.split(':').map(Number)
         const minutosTotales = hora * 60 + minutos
-        const limiteNormal = 9 * 60 + 30 // 9:30 AM
 
         const estado = minutosTotales <= limiteNormal ? 'normal' : 'tarde'
 

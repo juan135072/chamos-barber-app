@@ -66,13 +66,40 @@ export default function MarcarAsistencia() {
         setLoading(true)
 
         try {
+            // 🌍 PASO 1: Obtener ubicación GPS
+            if (!navigator.geolocation) {
+                toast.error('Tu dispositivo no soporta geolocalización')
+                setLoading(false)
+                return
+            }
+
+            const ubicacionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(resolve, reject, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                })
+            })
+
+            toast.loading('📍 Obteniendo tu ubicación...', { id: 'gps' })
+
+            const position = await ubicacionPromise
+            const latitud = position.coords.latitude
+            const longitud = position.coords.longitude
+
+            toast.success('✓ Ubicación obtenida', { id: 'gps' })
+
+            // 🔐 PASO 2: Enviar asistencia con ubicación
             const response = await fetch('/api/asistencia/marcar', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    clave: clave.trim().toUpperCase()
+                    clave: clave.trim().toUpperCase(),
+                    latitud,
+                    longitud,
+                    ubicacion_id: '00000000-0000-0000-0000-000000000001' // TODO: Obtener dinámicamente
                 })
             })
 
@@ -94,9 +121,23 @@ export default function MarcarAsistencia() {
                 estado: data.asistencia.estado
             })
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error al marcar asistencia:', error)
-            toast.error('Error de conexión')
+
+            // Errores de geolocalización
+            if (error.code) {
+                if (error.code === error.PERMISSION_DENIED) {
+                    toast.error('❌ Debes permitir acceso a tu ubicación para marcar asistencia')
+                } else if (error.code === error.POSITION_UNAVAILABLE) {
+                    toast.error('❌ No se pudo obtener tu ubicación. ¿Estás en interiores?')
+                } else if (error.code === error.TIMEOUT) {
+                    toast.error('❌ Tiempo de espera agotado. Intenta de nuevo.')
+                } else {
+                    toast.error('❌ Error al obtener ubicación')
+                }
+            } else {
+                toast.error('Error de conexión')
+            }
         } finally {
             setLoading(false)
         }
@@ -262,6 +303,8 @@ export default function MarcarAsistencia() {
                     <li>La clave cambia cada día</li>
                     <li>Solo puedes marcar una vez por día</li>
                     <li>Llegadas después de 9:30 AM = tarde</li>
+                    <li><strong>📍 Debes estar físicamente en la barbería</strong></li>
+                    <li>Acepta los permisos de ubicación cuando te los pida</li>
                 </ul>
             </div>
         </div>
