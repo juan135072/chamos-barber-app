@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesServerClient } from '@supabase/auth-helpers-nextjs'
+import { createPagesServerClient } from '@/lib/supabase-server'
 
 /**
  * =====================================================
@@ -19,7 +19,7 @@ export default async function handler(
     }
 
     try {
-        const supabase = createPagesServerClient({ req, res })
+        const supabase = createPagesServerClient(req, res)
 
         // Verificar autenticación
         const { data: { user }, error: authError } = await supabase.auth.getUser()

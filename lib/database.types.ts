@@ -731,6 +731,155 @@ export interface Database {
           created_at?: string
         }
       }
+      asistencias: {
+        Row: {
+          id: string
+          barbero_id: string
+          fecha: string
+          hora: string
+          estado: string
+          clave_usada: string | null
+          ubicacion_barberia_id: string | null
+          latitud_registrada: number | null
+          longitud_registrada: number | null
+          distancia_metros: number | null
+          dispositivo: string | null
+          ip_address: string | null
+          salida_registrada: boolean
+          hora_salida: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          barbero_id: string
+          fecha: string
+          hora: string
+          estado: string
+          clave_usada?: string | null
+          ubicacion_barberia_id?: string | null
+          latitud_registrada?: number | null
+          longitud_registrada?: number | null
+          distancia_metros?: number | null
+          dispositivo?: string | null
+          ip_address?: string | null
+          salida_registrada?: boolean
+          hora_salida?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          barbero_id?: string
+          fecha?: string
+          hora?: string
+          estado?: string
+          clave_usada?: string | null
+          ubicacion_barberia_id?: string | null
+          latitud_registrada?: number | null
+          longitud_registrada?: number | null
+          distancia_metros?: number | null
+          dispositivo?: string | null
+          ip_address?: string | null
+          salida_registrada?: boolean
+          hora_salida?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      claves_diarias: {
+        Row: {
+          id: string
+          fecha: string
+          clave: string
+          activa: boolean
+          created_at: string
+          created_by: string | null
+        }
+        Insert: {
+          id?: string
+          fecha: string
+          clave: string
+          activa?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+        Update: {
+          id?: string
+          fecha?: string
+          clave?: string
+          activa?: boolean
+          created_at?: string
+          created_by?: string | null
+        }
+      }
+      configuracion_horarios: {
+        Row: {
+          id: string
+          nombre: string
+          hora_entrada_puntual: string
+          hora_salida_minima: string | null
+          activa: boolean
+          ubicacion_barberia_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          hora_entrada_puntual?: string
+          hora_salida_minima?: string | null
+          activa?: boolean
+          ubicacion_barberia_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          hora_entrada_puntual?: string
+          hora_salida_minima?: string | null
+          activa?: boolean
+          ubicacion_barberia_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      ubicaciones_barberia: {
+        Row: {
+          id: string
+          nombre: string
+          direccion: string | null
+          latitud: number
+          longitud: number
+          radio_metros: number
+          activa: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          direccion?: string | null
+          latitud: number
+          longitud: number
+          radio_metros?: number
+          activa?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          direccion?: string | null
+          latitud?: number
+          longitud?: number
+          radio_metros?: number
+          activa?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
     }
     Functions: {
       get_horarios_disponibles: {

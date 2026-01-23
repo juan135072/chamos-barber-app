@@ -25,11 +25,31 @@ export default function MarcarAsistencia() {
     const [loading, setLoading] = useState(false)
     const [verificandoAsistencia, setVerificandoAsistencia] = useState(true)
     const [asistenciaHoy, setAsistenciaHoy] = useState<AsistenciaHoy | null>(null)
+    const [ubicacionId, setUbicacionId] = useState<string | null>(null)
 
-    // Verificar si ya marcó hoy
+    // Al cargar el componente o cambiar el usuario
     useEffect(() => {
-        verificarAsistenciaHoy()
+        if (user) {
+            verificarAsistenciaHoy()
+            obtenerUbicacionActiva()
+        }
     }, [user])
+
+    const obtenerUbicacionActiva = async () => {
+        try {
+            const { data: ubicaciones } = await supabase
+                .from('ubicaciones_barberia')
+                .select('id')
+                .eq('activa', true)
+                .limit(1)
+
+            if (ubicaciones && ubicaciones.length > 0) {
+                setUbicacionId(ubicaciones[0].id)
+            }
+        } catch (error) {
+            console.error('Error al obtener ubicación:', error)
+        }
+    }
 
     const verificarAsistenciaHoy = async () => {
         if (!user) return
@@ -43,7 +63,7 @@ export default function MarcarAsistencia() {
                 .select('fecha, hora, estado')
                 .eq('barbero_id', user.id)
                 .eq('fecha', fechaHoy)
-                .single()
+                .maybeSingle()
 
             if (data) {
                 setAsistenciaHoy(data)
@@ -63,6 +83,11 @@ export default function MarcarAsistencia() {
             return
         }
 
+        if (!ubicacionId) {
+            toast.error('❌ Error de configuración: No hay ubicación activa registrada.')
+            return
+        }
+
         setLoading(true)
 
         try {
@@ -73,17 +98,18 @@ export default function MarcarAsistencia() {
                 return
             }
 
-            const ubicacionPromise = new Promise<GeolocationPosition>((resolve, reject) => {
+            toast.loading('📍 Obteniendo tu ubicación...', { id: 'gps' })
+
+            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
                 navigator.geolocation.getCurrentPosition(resolve, reject, {
                     enableHighAccuracy: true,
                     timeout: 10000,
                     maximumAge: 0
                 })
+            }).catch(err => {
+                throw err
             })
 
-            toast.loading('📍 Obteniendo tu ubicación...', { id: 'gps' })
-
-            const position = await ubicacionPromise
             const latitud = position.coords.latitude
             const longitud = position.coords.longitude
 
@@ -99,44 +125,44 @@ export default function MarcarAsistencia() {
                     clave: clave.trim().toUpperCase(),
                     latitud,
                     longitud,
-                    ubicacion_id: '00000000-0000-0000-0000-000000000001' // TODO: Obtener dinámicamente
+                    ubicacion_id: ubicacionId
                 })
             })
 
             const data = await response.json()
 
             if (!response.ok) {
-                toast.error(data.error || 'Error al marcar asistencia')
+                toast.error(data.error || 'Error al registrar asistencia')
                 return
             }
 
             // Éxito
-            toast.success(data.mensaje)
+            toast.success(data.mensaje || '✅ Asistencia marcada')
             setClave('')
 
-            // Actualizar estado
+            // Actualizar estado local para mostrar el ticket de éxito
             setAsistenciaHoy({
-                fecha: data.asistencia.fecha,
-                hora: data.asistencia.hora,
-                estado: data.asistencia.estado
+                fecha: data.asistencia?.fecha || new Date().toISOString().split('T')[0],
+                hora: data.asistencia?.hora || new Date().toLocaleTimeString(),
+                estado: data.asistencia?.estado || 'normal'
             })
 
         } catch (error: any) {
             console.error('Error al marcar asistencia:', error)
 
-            // Errores de geolocalización
-            if (error.code) {
+            // Manejar errores de GPS específicamente
+            if (error instanceof GeolocationPositionError) {
                 if (error.code === error.PERMISSION_DENIED) {
-                    toast.error('❌ Debes permitir acceso a tu ubicación para marcar asistencia')
+                    toast.error('❌ Debes permitir el acceso a tu ubicación')
                 } else if (error.code === error.POSITION_UNAVAILABLE) {
-                    toast.error('❌ No se pudo obtener tu ubicación. ¿Estás en interiores?')
+                    toast.error('❌ Posición no disponible. Intenta en exteriores.')
                 } else if (error.code === error.TIMEOUT) {
-                    toast.error('❌ Tiempo de espera agotado. Intenta de nuevo.')
+                    toast.error('❌ Tiempo agotado al obtener ubicación')
                 } else {
-                    toast.error('❌ Error al obtener ubicación')
+                    toast.error('❌ Error de GPS')
                 }
             } else {
-                toast.error('Error de conexión')
+                toast.error(error.message || 'Error de conexión')
             }
         } finally {
             setLoading(false)
@@ -302,9 +328,8 @@ export default function MarcarAsistencia() {
                 <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.5rem' }}>
                     <li>La clave cambia cada día</li>
                     <li>Solo puedes marcar una vez por día</li>
-                    <li>Llegadas después de 9:30 AM = tarde</li>
-                    <li><strong>📍 Debes estar físicamente en la barbería</strong></li>
-                    <li>Acepta los permisos de ubicación cuando te los pida</li>
+                    <li><strong>📍 Debes estar en la barbería (GPS)</strong></li>
+                    <li>Acepta los permisos de ubicación</li>
                 </ul>
             </div>
         </div>
