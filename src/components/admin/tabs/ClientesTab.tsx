@@ -6,6 +6,8 @@ import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
+import RegistrarWalkInModal from '../../walkin/RegistrarWalkInModal'
+import { Calendar } from 'lucide-react'
 
 interface ClienteConActividad {
   cliente_telefono: string
@@ -24,6 +26,10 @@ export default function ClientesTab() {
   const [loading, setLoading] = useState(true)
   const [filtroCategoria, setFiltroCategoria] = useState<ClienteCategoria | 'TODOS'>('TODOS')
   const [searchTerm, setSearchTerm] = useState('')
+
+  // Estados para modal de agendamiento
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [selectedCliente, setSelectedCliente] = useState<any>(null)
 
   useEffect(() => {
     loadClientes()
@@ -190,6 +196,20 @@ export default function ClientesTab() {
     }
   }
 
+  const handleAgendar = (cliente: ClienteConActividad) => {
+    setSelectedCliente({
+      nombre: cliente.cliente_nombre,
+      telefono: cliente.cliente_telefono,
+      email: cliente.cliente_email
+    })
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedCliente(null)
+  }
+
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -216,8 +236,8 @@ export default function ClientesTab() {
           <button
             onClick={() => setFiltroCategoria('TODOS')}
             className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap transition-all ${filtroCategoria === 'TODOS'
-                ? 'bg-accent text-white'
-                : 'bg-secondary border border-border'
+              ? 'bg-accent text-white'
+              : 'bg-secondary border border-border'
               }`}
             style={filtroCategoria === 'TODOS' ? {
               backgroundColor: 'var(--accent-color)',
@@ -238,8 +258,8 @@ export default function ClientesTab() {
                 key={key}
                 onClick={() => setFiltroCategoria(key as ClienteCategoria)}
                 className={`px-4 py-2 rounded-md text-sm font-medium whitespace-nowrap flex items-center gap-2 transition-all ${filtroCategoria === key
-                    ? 'ring-2 ring-offset-2'
-                    : 'border border-border'
+                  ? 'ring-2 ring-offset-2'
+                  : 'border border-border'
                   }`}
                 style={filtroCategoria === key ? {
                   backgroundColor: config.color + '20',
@@ -335,15 +355,26 @@ export default function ClientesTab() {
                       {cliente.total_citas}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() => handleExportarCliente(cliente)}
-                        className="text-sm px-3 py-1 rounded hover:opacity-70 transition-opacity"
-                        style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
-                        title="Exportar historial"
-                      >
-                        <i className="fas fa-download mr-1"></i>
-                        Exportar
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleAgendar(cliente)}
+                          className="text-sm px-3 py-1 rounded hover:opacity-70 transition-opacity flex items-center gap-1"
+                          style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', border: '1px solid rgba(212, 175, 55, 0.2)' }}
+                          title="Agendar Cita"
+                        >
+                          <Calendar className="w-4 h-4" />
+                          Agendar
+                        </button>
+                        <button
+                          onClick={() => handleExportarCliente(cliente)}
+                          className="text-sm px-3 py-1 rounded hover:opacity-70 transition-opacity flex items-center gap-1"
+                          style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
+                          title="Exportar historial"
+                        >
+                          <i className="fas fa-download mr-1"></i>
+                          Exportar
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -386,19 +417,41 @@ export default function ClientesTab() {
                   <p>Total citas: {cliente.total_citas}</p>
                   <p>Inactivo: {cliente.meses_inactivo} meses</p>
                 </div>
-                <button
-                  onClick={() => handleExportarCliente(cliente)}
-                  className="w-full text-sm px-3 py-2 rounded"
-                  style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
-                >
-                  <i className="fas fa-download mr-2"></i>
-                  Exportar Historial
-                </button>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAgendar(cliente)}
+                    className="flex-1 text-sm px-3 py-2 rounded flex items-center justify-center gap-2"
+                    style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37', border: '1px solid rgba(212, 175, 55, 0.2)' }}
+                  >
+                    <Calendar className="w-4 h-4" />
+                    Agendar
+                  </button>
+                  <button
+                    onClick={() => handleExportarCliente(cliente)}
+                    className="flex-1 text-sm px-3 py-2 rounded"
+                    style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
+                  >
+                    <i className="fas fa-download mr-2"></i>
+                    Exportar
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         </>
       )}
+      {/* Resumen */}
+      <div className="mt-4 text-sm text-center" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+        Mostrando {clientesFiltrados.length} de {clientes.length} clientes
+      </div>
+
+      {/* Modal de Agendamiento */}
+      <RegistrarWalkInModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSuccess={loadClientes}
+        initialData={selectedCliente}
+      />
     </div>
   )
 }

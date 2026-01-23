@@ -18,12 +18,18 @@ interface RegistrarWalkInModalProps {
   isOpen: boolean
   onClose: () => void
   onSuccess: () => void
+  initialData?: {
+    nombre: string
+    telefono: string
+    email?: string | null
+  }
 }
 
 export default function RegistrarWalkInModal({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  initialData
 }: RegistrarWalkInModalProps) {
   // Tabs: 'registro' (solo registrar cliente) o 'reserva' (registrar y crear cita)
   const [activeTab, setActiveTab] = useState<'registro' | 'reserva'>('reserva')
@@ -51,8 +57,18 @@ export default function RegistrarWalkInModal({
   useEffect(() => {
     if (isOpen) {
       loadDatosReserva()
+
+      if (initialData) {
+        setFormData({
+          nombre: initialData.nombre,
+          telefono: initialData.telefono,
+          email: initialData.email || '',
+          notas: ''
+        })
+        setActiveTab('reserva')
+      }
     }
-  }, [isOpen])
+  }, [isOpen, initialData])
 
   const loadDatosReserva = async () => {
     try {

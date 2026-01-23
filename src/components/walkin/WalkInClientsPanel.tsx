@@ -39,6 +39,7 @@ export default function WalkInClientsPanel() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+  const [selectedClientForModal, setSelectedClientForModal] = useState<any>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -77,6 +78,20 @@ export default function WalkInClientsPanel() {
       console.error('Error deleting walk-in client:', err)
       alert('Error al eliminar cliente')
     }
+  }
+
+  const handleAgendar = (cliente: WalkInClient) => {
+    setSelectedClientForModal({
+      nombre: cliente.nombre,
+      telefono: cliente.telefono,
+      email: cliente.email
+    })
+    setModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setModalOpen(false)
+    setSelectedClientForModal(null)
   }
 
   // Filtrar clientes por búsqueda
@@ -446,16 +461,26 @@ export default function WalkInClientsPanel() {
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button
-                        onClick={() =>
-                          handleDelete(cliente.id, cliente.nombre)
-                        }
-                        className="p-2 rounded-lg transition-opacity hover:opacity-70"
-                        style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
-                        title="Eliminar"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => handleAgendar(cliente)}
+                          className="p-2 rounded-lg transition-opacity hover:opacity-70"
+                          style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37' }}
+                          title="Agendar Cita"
+                        >
+                          <Calendar className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() =>
+                            handleDelete(cliente.id, cliente.nombre)
+                          }
+                          className="p-2 rounded-lg transition-opacity hover:opacity-70"
+                          style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
+                          title="Eliminar"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -507,13 +532,22 @@ export default function WalkInClientsPanel() {
                       </div>
                     )}
                   </div>
-                  <button
-                    onClick={() => handleDelete(cliente.id, cliente.nombre)}
-                    className="p-2 rounded-lg"
-                    style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleAgendar(cliente)}
+                      className="p-2 rounded-lg"
+                      style={{ backgroundColor: 'rgba(212, 175, 55, 0.1)', color: '#D4AF37' }}
+                    >
+                      <Calendar className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(cliente.id, cliente.nombre)}
+                      className="p-2 rounded-lg"
+                      style={{ backgroundColor: '#ef444420', color: '#ef4444' }}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
                 {cliente.notas && (
                   <div
@@ -542,8 +576,9 @@ export default function WalkInClientsPanel() {
       {/* Modal */}
       <RegistrarWalkInModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={handleCloseModal}
         onSuccess={loadData}
+        initialData={selectedClientForModal}
       />
     </div>
   )
