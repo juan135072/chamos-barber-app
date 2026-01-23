@@ -19,7 +19,7 @@ interface AsistenciaHoy {
     barbero_id: string
     hora: string
     estado: string
-    barberos: { nombre: string }
+    barberos?: { nombre: string } | { nombre: string }[]
 }
 
 export default function AsistenciaHoyPanel() {
