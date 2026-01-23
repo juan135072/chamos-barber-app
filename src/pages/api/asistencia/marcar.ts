@@ -87,7 +87,45 @@ export default async function handler(
             })
         }
 
-        // 6. Obtener configuración de horarios
+        // 6. Validación de Geolocalización (GPS)
+        const { latitud, longitud, ubicacion_id } = req.body
+
+        if (!latitud || !longitud || !ubicacion_id) {
+            console.error('❌ [marcar-asistencia] Faltan datos de geolocalización')
+            return res.status(400).json({
+                error: 'Se requiere geolocalización para marcar asistencia. Asegúrate de dar permisos de ubicación.'
+            })
+        }
+
+        // Validar ubicación usando función SQL
+        const { data: ubicacionValida, error: gpsError } = await supabase
+            .rpc('ubicacion_es_valida', {
+                p_lat: latitud,
+                p_lng: longitud,
+                p_ubicacion_id: ubicacion_id
+            })
+
+        if (gpsError) {
+            console.error('❌ [marcar-asistencia] Error al validar GPS:', gpsError)
+            return res.status(500).json({ error: 'Error al validar geolocalización' })
+        }
+
+        if (!ubicacionValida) {
+            console.error('❌ [marcar-asistencia] Ubicación fuera de rango')
+            return res.status(400).json({
+                error: 'Estás fuera del rango permitido para marcar asistencia en esta barbería.'
+            })
+        }
+
+        // Obtener distancia para registro
+        const { data: infoDistancia } = await supabase
+            .rpc('calcular_distancia_metros', {
+                lat1: latitud,
+                lng1: longitud,
+                u_id: ubicacion_id
+            })
+
+        // 7. Obtener configuración de horarios
         const { data: configuracion } = await supabase
             .from('configuracion_horarios')
             .select('hora_entrada_puntual')
@@ -103,7 +141,7 @@ export default async function handler(
             limiteNormal = horaLimite * 60 + minutosLimite
         }
 
-        // 7. Determinar estado (normal o tarde)
+        // 8. Determinar estado (normal o tarde)
         const [hora, minutos] = horaActual.split(':').map(Number)
         const minutosTotales = hora * 60 + minutos
 
@@ -119,7 +157,7 @@ export default async function handler(
         console.log(`📱 [marcar-asistencia] Dispositivo: ${dispositivo}`)
         console.log(`🌐 [marcar-asistencia] IP: ${ipAddress}`)
 
-        // 8. Insertar asistencia
+        // 9. Insertar asistencia
         const { data: nuevaAsistencia, error: insertError } = await supabase
             .from('asistencias')
             .insert({
@@ -129,7 +167,11 @@ export default async function handler(
                 clave_usada: clave.trim().toUpperCase(),
                 estado: estado,
                 dispositivo: dispositivo,
-                ip_address: ipAddress
+                ip_address: ipAddress,
+                latitud_registrada: latitud,
+                longitud_registrada: longitud,
+                distancia_metros: infoDistancia || null,
+                ubicacion_barberia_id: ubicacion_id
             })
             .select()
             .single()
