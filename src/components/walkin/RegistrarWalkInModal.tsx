@@ -159,13 +159,24 @@ export default function RegistrarWalkInModal({
           return;
         }
 
+        // Construir el array de items (servicios)
+        const items = selectedServicios.map(id => {
+          const s = servicios.find(srv => srv.id === id);
+          return {
+            servicio_id: id,
+            nombre: s ? s.nombre : 'Servicio',
+            precio: s ? s.precio : 0,
+            cantidad: 1,
+            subtotal: s ? s.precio : 0
+          };
+        });
+
+        const totalItems = items.reduce((sum, i) => sum + i.subtotal, 0);
+
         // Preparamos las notas incluyendo los servicios extra si hay más de uno
         let notasFinales = `[WALK-IN] ${formData.notas || ''}`;
-        if (selectedServicios.length > 0) {
-          const serviciosNombres = selectedServicios.map(id => {
-            const s = servicios.find(srv => srv.id === id);
-            return s ? s.nombre : id;
-          }).join(', ');
+        if (selectedServicios.length > 1) {
+          const serviciosNombres = items.map(i => i.nombre).join(', ');
           notasFinales += ` - Servicios: ${serviciosNombres}`;
         }
 
@@ -179,6 +190,8 @@ export default function RegistrarWalkInModal({
           cliente_email: formData.email || null,
           notas: notasFinales,
           estado: 'confirmada',
+          items: items,
+          precio_final: totalItems
         }
 
         // Insertar cita usando supabase directo

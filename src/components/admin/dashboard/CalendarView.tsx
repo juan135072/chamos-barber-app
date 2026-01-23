@@ -70,13 +70,15 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
         .select(`
           *,
           barberos:barbero_id (nombre, apellido),
-          servicios:servicio_id (nombre, precio, duracion_minutos),
-          items
+          servicios:servicio_id (nombre, precio, duracion_minutos)
         `)
         .eq('fecha', dateStr)
         .order('hora')
 
-      if (error) throw error
+      if (error) {
+        console.error('Error fetching citas:', error)
+        throw error
+      }
 
       // Agrupar citas por barbero
       const citasAgrupadas: Record<string, Cita[]> = {}
