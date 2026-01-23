@@ -107,7 +107,7 @@ export default function HistorialAsistencia() {
 
                 <div style={{
                     padding: '1rem',
-                    Background: 'rgba(245, 158, 11, 0.1)',
+                    background: 'rgba(245, 158, 11, 0.1)',
                     border: '2px solid rgba(245, 158, 11, 0.3)',
                     borderRadius: '8px',
                     textAlign: 'center'
