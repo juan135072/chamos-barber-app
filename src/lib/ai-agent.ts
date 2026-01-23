@@ -112,7 +112,7 @@ IMPORTANTE: Estás en San Fernando, Chile.
 `;
 
 /**
- * Bot del barbero - Versión UNIFICADA Gemini 3 Flash Preview
+ * Bot del barbero - Versión UNIFICADA Gemini 1.5 Flash
  */
 export async function generateChatResponse(
   message: string,
@@ -158,8 +158,8 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       hour: '2-digit',
     });
 
-    // 3. Configuración Unificada (Gemini 3 Flash Preview)
-    const modelId = 'gemini-3-flash-preview';
+    // 3. Configuración Unificada (Gemini 1.5 Flash)
+    const modelId = 'gemini-1.5-flash';
     console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con ${modelId}`);
 
     const isNewConversation = contents.length === 0;
@@ -461,7 +461,7 @@ export async function splitLongMessage(text: string): Promise<string[]> {
   try {
     const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
     if (!apiKey) return [text];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
