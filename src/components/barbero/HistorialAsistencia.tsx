@@ -8,7 +8,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useUser } from '@supabase/auth-helpers-react'
 
 interface Asistencia {
     id: string
@@ -24,8 +23,11 @@ interface Estadisticas {
     porcentajePuntualidad: number
 }
 
-export default function HistorialAsistencia() {
-    const user = useUser()
+interface Props {
+    barberoId: string
+}
+
+export default function HistorialAsistencia({ barberoId }: Props) {
 
     const [loading, setLoading] = useState(true)
     const [asistencias, setAsistencias] = useState<Asistencia[]>([])
@@ -37,10 +39,10 @@ export default function HistorialAsistencia() {
     })
 
     useEffect(() => {
-        if (user) {
+        if (barberoId) {
             cargarHistorial()
         }
-    }, [user])
+    }, [barberoId])
 
     const cargarHistorial = async () => {
         setLoading(true)

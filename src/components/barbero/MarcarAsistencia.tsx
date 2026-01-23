@@ -8,7 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useSupabaseClient, useUser } from '@supabase/auth-helpers-react'
+import { useSupabaseClient } from '@supabase/auth-helpers-react'
 import toast from 'react-hot-toast'
 
 interface AsistenciaHoy {
@@ -17,8 +17,11 @@ interface AsistenciaHoy {
     estado: string
 }
 
-export default function MarcarAsistencia() {
-    const user = useUser()
+interface Props {
+    barberoId: string
+}
+
+export default function MarcarAsistencia({ barberoId }: Props) {
     const supabase = useSupabaseClient()
 
     const [clave, setClave] = useState('')
@@ -27,13 +30,13 @@ export default function MarcarAsistencia() {
     const [asistenciaHoy, setAsistenciaHoy] = useState<AsistenciaHoy | null>(null)
     const [ubicacionId, setUbicacionId] = useState<string | null>(null)
 
-    // Al cargar el componente o cambiar el usuario
+    // Al cargar el componente o cambiar el ID del barbero
     useEffect(() => {
-        if (user) {
+        if (barberoId) {
             verificarAsistenciaHoy()
             obtenerUbicacionActiva()
         }
-    }, [user])
+    }, [barberoId])
 
     const obtenerUbicacionActiva = async () => {
         try {
@@ -52,7 +55,7 @@ export default function MarcarAsistencia() {
     }
 
     const verificarAsistenciaHoy = async () => {
-        if (!user) return
+        if (!barberoId) return
 
         setVerificandoAsistencia(true)
         try {
@@ -61,7 +64,7 @@ export default function MarcarAsistencia() {
             const { data, error } = await supabase
                 .from('asistencias')
                 .select('fecha, hora, estado')
-                .eq('barbero_id', user.id)
+                .eq('barbero_id', barberoId)
                 .eq('fecha', fechaHoy)
                 .maybeSingle()
 

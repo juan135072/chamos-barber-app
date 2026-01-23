@@ -512,6 +512,23 @@ const BarberoPanelPage: React.FC = () => {
               >
                 <i className="fas fa-shield-alt"></i> Seguridad
               </button>
+              <button
+                onClick={() => setActiveTab('asistencia')}
+                style={{
+                  padding: '1rem 2rem',
+                  background: 'none',
+                  border: 'none',
+                  whiteSpace: 'nowrap',
+                  borderBottom: activeTab === 'asistencia' ? '3px solid var(--accent-color)' : 'none',
+                  color: activeTab === 'asistencia' ? 'var(--accent-color)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1rem',
+                  transition: 'all 0.3s'
+                }}
+              >
+                <i className="fas fa-clock"></i> Asistencia
+              </button>
             </div>
           )}
 
@@ -530,6 +547,13 @@ const BarberoPanelPage: React.FC = () => {
 
           {activeTab === 'seguridad' && (
             <ChangePasswordSection />
+          )}
+
+          {activeTab === 'asistencia' && profile && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <MarcarAsistencia barberoId={profile.id} />
+              <HistorialAsistencia barberoId={profile.id} />
+            </div>
           )}
 
           {activeTab === 'perfil' && (
@@ -886,6 +910,25 @@ const BarberoPanelPage: React.FC = () => {
             >
               <i className="fas fa-user-circle" style={{ fontSize: '1.2rem' }}></i>
               <span style={{ fontSize: '0.75rem' }}>Perfil</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('asistencia')}
+              style={{
+                flex: 1,
+                padding: '0.75rem 0',
+                background: 'none',
+                border: 'none',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '4px',
+                color: activeTab === 'asistencia' ? 'var(--accent-color)' : 'var(--text-primary)',
+                opacity: activeTab === 'asistencia' ? 1 : 0.6,
+                transition: 'all 0.2s'
+              }}
+            >
+              <i className="fas fa-clock" style={{ fontSize: '1.2rem' }}></i>
+              <span style={{ fontSize: '0.75rem' }}>Asistencia</span>
             </button>
             <button
               onClick={() => router.push('/barbero/liquidaciones')}
