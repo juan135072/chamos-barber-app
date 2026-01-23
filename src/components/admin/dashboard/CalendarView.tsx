@@ -7,6 +7,7 @@ type Barbero = Database['public']['Tables']['barberos']['Row']
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   barberos?: { nombre: string; apellido: string }
   servicios?: { nombre: string; precio: number; duracion_minutos: number }
+  items?: any[]
 }
 
 interface CalendarViewProps {
@@ -69,7 +70,8 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
         .select(`
           *,
           barberos:barbero_id (nombre, apellido),
-          servicios:servicio_id (nombre, precio, duracion_minutos)
+          servicios:servicio_id (nombre, precio, duracion_minutos),
+          items
         `)
         .eq('fecha', dateStr)
         .order('hora')
@@ -400,6 +402,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         cita={selectedCita}
+        onUpdate={loadCitas}
       />
     </div>
   )

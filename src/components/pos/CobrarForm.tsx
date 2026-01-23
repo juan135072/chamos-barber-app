@@ -164,8 +164,15 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     setClienteNombre(cita.cliente_nombre || '')
     setCitaId(cita.id)
 
-    // Si la cita tiene un servicio, agregarlo al carrito
-    if (cita.servicio_id) {
+    // Si la cita tiene items (múltiples servicios), usarlos
+    if (cita.items && cita.items.length > 0) {
+      setCarrito(cita.items.map((item: any) => ({
+        ...item,
+        precio: parseFloat(item.precio.toString()),
+        subtotal: parseFloat(item.subtotal.toString())
+      })))
+    } else if (cita.servicio_id) {
+      // Fallback: si solo tiene el servicio_id original
       const servicio = servicios.find(s => s.id === cita.servicio_id)
       if (servicio) {
         setCarrito([{
@@ -181,6 +188,7 @@ export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) 
     // Avanzar a servicios pero con la cita linkeada
     setPaso(2)
   }
+
 
   const handleCobrar = async () => {
     // Validaciones
