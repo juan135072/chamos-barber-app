@@ -114,6 +114,9 @@ IMPORTANTE: Estás en San Fernando, Chile.
 /**
  * Bot del barbero - Versión UNIFICADA Gemini 3 Flash Preview
  */
+/**
+ * Bot del barbero - Versión UNIFICADA con Soporte para Proxy de Agentes (Llama/Kimi)
+ */
 export async function generateChatResponse(
   message: string,
   conversationId?: string | number,
@@ -123,17 +126,22 @@ export async function generateChatResponse(
   } = {}
 ) {
   try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) throw new Error('API_KEY_MISSING');
+    const proxyUrl = process.env.LOCAL_AI_PROXY_URL;
+    const modelId = process.env.AGENT_MODEL || 'llama-3.3-70b-versatile';
 
-    // 1. Cargar historial de Redis
-    let contents: any[] = [];
+    if (!proxyUrl) {
+      console.warn('[GUSTAVO-IA] LOCAL_AI_PROXY_URL missing, falling back to Gemini logic or error');
+      throw new Error('PROXY_URL_MISSING');
+    }
+
+    // 1. Cargar historial y convertir a formato OpenAI
+    let messages: any[] = [];
     if (conversationId) {
       const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
       if (Array.isArray(rawHistory)) {
-        contents = rawHistory.filter(item => item && item.role && item.parts).map(h => ({
-          role: h.role === 'model' ? 'model' : 'user',
-          parts: h.parts
+        messages = rawHistory.filter(item => item && item.role).map(h => ({
+          role: h.role === 'model' ? 'assistant' : 'user',
+          content: h.parts?.[0]?.text || h.content || ''
         }));
       }
     }
@@ -158,53 +166,60 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       hour: '2-digit',
     });
 
-    // 3. Configuración Unificada (Gemini 3 Flash Preview)
-    const modelId = 'gemini-3-flash-preview';
-    console.log(`[GUSTAVO-IA] [ID:${conversationId}] Procesando con ${modelId}`);
-
-    const isNewConversation = contents.length === 0;
+    const isNewConversation = messages.length === 0;
     const conversationState = isNewConversation
       ? "ESTADO: Chat nuevo. DEBES saludarte y presentarte."
       : "ESTADO: Chat en curso. YA TE PRESENTASTE, NO repitas saludos ni presentación.";
 
-    // Metadata de sesión para control de costos (Ventana 24h)
     const sessionMetadata = `[METADATA DE SESIÓN]
 Hora actual: ${now}
 Teléfono del cliente: ${metadata.phone || 'Desconocido'}
 Ventana Gratuita: Activa (El cliente inició el chat).
-Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas hecho en este turno, llama a "consultar_mis_citas" para saber su estado actual. 
+Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas hecho en ese turno, llama a "consultar_mis_citas" para saber su estado actual. 
 Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
 `;
 
     const isAudioNote = metadata.isAudio || message.includes('[SISTEMA: TRANSCRIPCIÓN_AUDIO]');
     const systemSignal = isAudioNote ? "\n[SISTEMA: AUDIO_RECIBIDO]\n" : "";
-    const promptWithContext = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}${systemSignal}\n\n[ESTADO DEL CHAT]\n${conversationState}\n\n[MENSAJE DEL CLIENTE]\n${message}`;
 
-    contents.push({
-      role: 'user',
-      parts: [{ text: promptWithContext }]
+    const systemPrompt = `[INSTRUCCIONES DE SISTEMA - GUSTAVO]\n${BARBER_CONTEXT}\n\n${catalogContext}\n\n${sessionMetadata}${systemSignal}\n\n[ESTADO DEL CHAT]\n${conversationState}`;
+
+    // Insertar system prompt al inicio
+    messages.unshift({
+      role: 'system',
+      content: systemPrompt
     });
 
-    // 4. Herramientas
-    const tools = [{
-      function_declarations: [
-        {
+    // Agregar mensaje actual
+    messages.push({
+      role: 'user',
+      content: message
+    });
+
+    // 4. Definición de Herramientas (Formato OpenAI)
+    const tools = [
+      {
+        type: "function",
+        function: {
           name: "verificar_disponibilidad",
           description: "Consulta los horarios disponibles para un barbero en una fecha específica.",
           parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
               barbero_id: { type: "string", description: "ID del barbero." },
               fecha: { type: "string", description: "Fecha en formato YYYY-MM-DD." }
             },
             required: ["barbero_id", "fecha"]
           }
-        },
-        {
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "crear_cita",
           description: "Crea una nueva reserva de cita en la base de datos de la barbería.",
           parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
               barbero_id: { type: "string", description: "ID del barbero." },
               servicio_id: { type: "string", description: "ID del servicio." },
@@ -216,87 +231,97 @@ Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza 
             },
             required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
           }
-        },
-        {
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "consultar_mis_citas",
           description: "Busca las citas agendadas para un número de teléfono.",
           parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
               telefono: { type: "string", description: "Número de teléfono/WhatsApp del cliente." }
             },
             required: ["telefono"]
           }
-        },
-        {
+        }
+      },
+      {
+        type: "function",
+        function: {
           name: "confirmar_cita",
           description: "Marca una cita como confirmada en el sistema.",
           parameters: {
-            type: "OBJECT",
+            type: "object",
             properties: {
               cita_id: { type: "string", description: "El ID único de la cita a confirmar." }
             },
             required: ["cita_id"]
           }
         }
-      ]
-    }];
+      }
+    ];
 
-    // 5. Bucle de llamadas a la API (v1beta)
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelId}:generateContent?key=${apiKey}`;
+    // 5. Bucle de llamadas (Proxy logic)
     let iterations = 0;
     let finalResponseText = '';
 
     while (iterations < 5) {
       iterations++;
+      console.log(`[GUSTAVO-IA] Llamando al proxy (it:${iterations})...`);
 
-      const response = await fetch(url, {
+      const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, tools })
+        body: JSON.stringify({
+          model: modelId,
+          messages,
+          tools,
+          tool_choice: 'auto'
+        })
       });
 
-      const responseJson = await response.json();
       if (!response.ok) {
-        console.error('[GUSTAVO-IA] API Error Payload:', JSON.stringify(responseJson, null, 2));
-        throw new Error(`Gemini API Error ${response.status}: ${JSON.stringify(responseJson.error || responseJson)}`);
+        const err = await response.text();
+        throw new Error(`Proxy Error ${response.status}: ${err}`);
       }
 
-      const messageResponse = responseJson.candidates?.[0]?.content;
-      if (!messageResponse) throw new Error('No se recibió respuesta del modelo');
+      const data = await response.json();
+      const choice = data.choices?.[0];
+      const assistantMessage = choice?.message;
 
-      contents.push(messageResponse);
+      if (!assistantMessage) throw new Error('No se recibió respuesta válida del proxy');
 
-      const toolCall = messageResponse.parts.find((p: any) => p.functionCall);
-      if (toolCall) {
-        const { name, args } = toolCall.functionCall;
-        console.log(`[GUSTAVO-IA] 🛠️ Ejecutando herramienta (${modelId}): ${name}`, args);
+      messages.push(assistantMessage);
 
-        let result;
-        if (name === 'verificar_disponibilidad') {
-          result = await executeCheckAvailability(args);
-        } else if (name === 'crear_cita') {
-          result = await executeCreateAppointment(args);
-        } else if (name === 'consultar_mis_citas') {
-          result = await executeListClientAppointments(args);
-        } else if (name === 'confirmar_cita') {
-          result = await executeUpdateAppointmentStatus(args);
-        }
+      if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+        for (const toolCall of assistantMessage.tool_calls) {
+          const { name, arguments: argsString } = toolCall.function;
+          const args = JSON.parse(argsString);
+          console.log(`[GUSTAVO-IA] 🛠️ Ejecutando herramienta (${modelId}): ${name}`, args);
 
-        if (result) {
-          contents.push({
-            role: 'function',
-            parts: [{ functionResponse: { name, response: result } }]
+          let result;
+          if (name === 'verificar_disponibilidad') result = await executeCheckAvailability(args);
+          else if (name === 'crear_cita') result = await executeCreateAppointment(args);
+          else if (name === 'consultar_mis_citas') result = await executeListClientAppointments(args);
+          else if (name === 'confirmar_cita') result = await executeUpdateAppointmentStatus(args);
+
+          messages.push({
+            role: 'tool',
+            tool_call_id: toolCall.id,
+            name: name,
+            content: JSON.stringify(result)
           });
-          continue;
         }
+        continue;
       }
 
-      finalResponseText = messageResponse.parts.map((p: any) => p.text || '').join('');
+      finalResponseText = assistantMessage.content || '';
       break;
     }
 
-    // 6. Guardar en Redis
+    // 6. Guardar en Redis (Mantener formato previo para compatibilidad)
     if (conversationId && finalResponseText) {
       ChatMemory.addMessage(conversationId, 'user', message).catch(() => { });
       ChatMemory.addMessage(conversationId, 'model', finalResponseText).catch(() => { });
@@ -459,27 +484,31 @@ async function executeUpdateAppointmentStatus(args: any) {
 
 export async function splitLongMessage(text: string): Promise<string[]> {
   try {
-    const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-    if (!apiKey) return [text];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
-    const response = await fetch(url, {
+    const proxyUrl = process.env.LOCAL_AI_PROXY_URL;
+    const modelId = process.env.AGENT_MODEL || 'llama-3.3-70b-versatile';
+
+    if (!proxyUrl) return [text];
+
+    const response = await fetch(proxyUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        contents: [{
-          role: 'user', parts: [{
-            text: `Divide este texto en partes naturales separadas por |||. 
+        model: modelId,
+        messages: [{
+          role: 'user', content: `Divide este texto en partes naturales separadas por |||. 
 REGLA CRÍTICA: Responde SOLO con el texto dividido. 
 PROHIBIDO decir "Aquí tienes el texto", "Dividido en partes", o cualquier otra explicación. 
 Si el texto es corto, no lo dividas y devuélvelo tal cual.
 Texto: "${text}"`
-          }]
         }]
       })
     });
+
     const data = await response.json();
-    const resultText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const resultText = data.choices?.[0]?.message?.content;
+
     if (!resultText) return [text];
+
     // Eliminar posibles meta-comentarios que la IA a veces agrega por error al principio o final
     const cleanText = resultText.replace(/Aquí tienes.*/gi, '').replace(/.*dividido en.*/gi, '').trim();
     return (cleanText || resultText).split('|||').map((p: string) => p.trim()).filter(Boolean);
