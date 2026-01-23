@@ -110,12 +110,12 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
             setIsSaving(true)
             const total = items.reduce((sum, item) => sum + item.subtotal, 0)
 
-            const { error } = await (supabase
+            const { error } = await (supabase as any)
                 .from('citas')
                 .update({
                     items: items,
                     precio_final: total
-                } as any) as any)
+                })
                 .eq('id', cita.id)
 
             if (error) throw error

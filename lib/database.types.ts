@@ -279,6 +279,7 @@ export interface Database {
           updated_at?: string
           foto_resultado_url?: string | null
           notas_tecnicas?: string | null
+          items?: any | null
         }
         Update: {
           id?: string
