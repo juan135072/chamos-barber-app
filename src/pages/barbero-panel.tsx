@@ -6,6 +6,8 @@ import toast, { Toaster } from 'react-hot-toast'
 import CitasSection from '../components/barbero/CitasSection'
 import GananciasSection from '../components/barbero/GananciasSection'
 import ChangePasswordSection from '../components/barbero/ChangePasswordSection'
+import MarcarAsistencia from '../components/barbero/MarcarAsistencia'
+import HistorialAsistencia from '../components/barbero/HistorialAsistencia'
 import { Bell, BellOff } from 'lucide-react'
 import DashboardSection from '../components/barbero/DashboardSection'
 import { chamosSupabase } from '../../lib/supabase-helpers'
@@ -32,7 +34,7 @@ const BarberoPanelPage: React.FC = () => {
 
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<BarberoProfile | null>(null)
-  const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias' | 'seguridad' | 'dashboard'>('dashboard')
+  const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias' | 'seguridad' | 'dashboard' | 'asistencia'>('dashboard')
   const [saving, setSaving] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
