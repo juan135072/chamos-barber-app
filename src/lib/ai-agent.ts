@@ -657,15 +657,17 @@ function heuristicToolParser(text: string): { name: string, args: any }[] {
   if (results.length === 0) {
     const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
     for (const line of lines) {
-      const nameMatch = line.match(/^\s*(\w+)\(/);
+      // Limpiar prefijos como 'func1=' también aquí
+      const cleanLine = line.replace(/^[a-zA-Z0-9]+=/, '').trim();
+      const nameMatch = cleanLine.match(/^\s*(\w+)\(/);
       if (nameMatch) {
         const name = nameMatch[1];
         const args: any = {};
-        const openParen = line.indexOf('(');
-        const closeParen = line.lastIndexOf(')');
+        const openParen = cleanLine.indexOf('(');
+        const closeParen = cleanLine.lastIndexOf(')');
 
         if (openParen !== -1 && closeParen !== -1) {
-          const argsString = line.substring(openParen + 1, closeParen);
+          const argsString = cleanLine.substring(openParen + 1, closeParen);
           // Split robusto: corta en comas que preceden a un "key=" (con o sin espacio)
           const pairs = argsString.split(/,\s*(?=\w+\s*=)/).map(p => p.trim());
 
