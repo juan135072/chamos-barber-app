@@ -129,6 +129,8 @@ export async function generateChatResponse(
     const proxyUrl = process.env.LOCAL_AI_PROXY_URL || process.env.LOCAL_API_AGENTES_PROXY_URL;
     const modelId = process.env.AGENT_MODEL || 'llama-3.3-70b-versatile';
 
+    console.log(`[GUSTAVO-IA] 🚀 INICIANDO GENERACIÓN: "${message.substring(0, 50)}..." | Conv: ${conversationId} | Metadata:`, JSON.stringify(metadata));
+
     if (!proxyUrl) {
       console.warn('[GUSTAVO-IA] LOCAL_AI_PROXY_URL missing. Verify Coolify ENV variables.');
       return "Hola amiguito, te habla Gustavo. 💈 ||| Mis sistemas están en mantenimiento un momentito, pero por favor resérvame directamente aquí: https://chamosbarber.com/reservar";
@@ -222,13 +224,13 @@ Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 
           parameters: {
             type: "object",
             properties: {
-              barbero_id: { type: "string", description: "ID único del barbero (ej: uuid). Asegúrate de usar exactament el nombre de campo 'barbero_id'." },
-              servicio_id: { type: "string", description: "ID del servicio." },
-              fecha: { type: "string", description: "Fecha YYYY-MM-DD." },
-              hora: { type: "string", description: "Hora HH:mm." },
-              cliente_nombre: { type: "string", description: "Nombre del cliente." },
-              cliente_telefono: { type: "string", description: "WhatsApp del cliente." },
-              notas: { type: "string", description: "Notas adicionales." }
+              barbero_id: { type: "string", description: "El ID (UUID) del barbero seleccionado. OBTÉNLOS del CATÁLOGO DINÁMICO. Campo obligatorio." },
+              servicio_id: { type: "string", description: "El ID (UUID) del servicio seleccionado. OBTÉNLOS del CATÁLOGO DINÁMICO. Campo obligatorio." },
+              fecha: { type: "string", description: "Fecha de la cita YYYY-MM-DD. Campo obligatorio." },
+              hora: { type: "string", description: "Hora de la cita HH:mm. Campo obligatorio." },
+              cliente_nombre: { type: "string", description: "Nombre completo del cliente." },
+              cliente_telefono: { type: "string", description: "Número de WhatsApp del cliente (+56XXXXXXXXX)." },
+              notas: { type: "string", description: "Notas adicionales o requerimientos del cliente." }
             },
             required: ["barbero_id", "servicio_id", "fecha", "hora", "cliente_nombre", "cliente_telefono"]
           }
@@ -304,13 +306,20 @@ Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 
         for (const toolCall of assistantMessage.tool_calls) {
           const { name, arguments: argsString } = toolCall.function;
           const args = JSON.parse(argsString);
-          console.log(`[GUSTAVO-IA] 🛠️ Ejecutando herramienta (${modelId}): ${name}`, args);
+          console.log(`[GUSTAVO-IA] 🛠️  EJECUTANDO: ${name}`, JSON.stringify(args));
 
           let result;
-          if (name === 'verificar_disponibilidad') result = await executeCheckAvailability(args);
-          else if (name === 'crear_cita') result = await executeCreateAppointment(args);
-          else if (name === 'consultar_mis_citas') result = await executeListClientAppointments(args);
-          else if (name === 'confirmar_cita') result = await executeUpdateAppointmentStatus(args);
+          if (name === 'verificar_disponibilidad') {
+            result = await executeCheckAvailability(args);
+          } else if (name === 'crear_cita') {
+            result = await executeCreateAppointment(args);
+          } else if (name === 'consultar_mis_citas') {
+            result = await executeListClientAppointments(args);
+          } else if (name === 'confirmar_cita') {
+            result = await executeUpdateAppointmentStatus(args);
+          }
+
+          console.log(`[GUSTAVO-IA] ✅ RESULTADO ${name}:`, JSON.stringify(result));
 
           messages.push({
             role: 'tool',
@@ -397,20 +406,22 @@ async function executeCreateAppointment(args: any) {
       return { success: false, error: "Missing barbero_id" };
     }
 
-    console.log('[GUSTAVO-IA] 💾 Intentando insertar cita:', { ...args, barbero_id: barberoIdStr });
+    const payload = {
+      barbero_id: barberoIdStr,
+      servicio_id: args.servicio_id,
+      fecha: args.fecha,
+      hora: args.hora,
+      cliente_nombre: args.cliente_nombre,
+      cliente_telefono: normalizePhone(String(args.cliente_telefono)),
+      notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
+      estado: 'pendiente'
+    };
+
+    console.log('[GUSTAVO-IA] 💾 Intentando INSERT en Supabase:', JSON.stringify(payload));
 
     const { data: nuevaCita, error: insertError } = await supabase
       .from('citas')
-      .insert([{
-        barbero_id: barberoIdStr,
-        servicio_id: args.servicio_id,
-        fecha: args.fecha,
-        hora: args.hora,
-        cliente_nombre: args.cliente_nombre,
-        cliente_telefono: normalizePhone(String(args.cliente_telefono)),
-        notas: `[RESERVA WHATSAPP/IA] ${args.notas || ''}`,
-        estado: 'pendiente'
-      }])
+      .insert([payload])
       .select()
       .single();
 
