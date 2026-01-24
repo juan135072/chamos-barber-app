@@ -126,12 +126,12 @@ export async function generateChatResponse(
   } = {}
 ) {
   try {
-    const proxyUrl = process.env.LOCAL_AI_PROXY_URL;
+    const proxyUrl = process.env.LOCAL_AI_PROXY_URL || process.env.LOCAL_API_AGENTES_PROXY_URL;
     const modelId = process.env.AGENT_MODEL || 'llama-3.3-70b-versatile';
 
     if (!proxyUrl) {
-      console.warn('[GUSTAVO-IA] LOCAL_AI_PROXY_URL missing, falling back to Gemini logic or error');
-      throw new Error('PROXY_URL_MISSING');
+      console.warn('[GUSTAVO-IA] LOCAL_AI_PROXY_URL missing. Verify Coolify ENV variables.');
+      return "Hola amiguito, te habla Gustavo. 💈 ||| Mis sistemas están en mantenimiento un momentito, pero por favor resérvame directamente aquí: https://chamosbarber.com/reservar";
     }
 
     // 1. Cargar historial y convertir a formato OpenAI
