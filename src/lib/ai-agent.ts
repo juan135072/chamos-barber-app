@@ -97,8 +97,9 @@ Para evitar costos de la API de Facebook, sigues estas reglas sagradas:
 4. **Acción**: Solo si se cumplen las condiciones de tiempo arriba, llama a "confirmar_cita".
 
 ## PROTOCOLO TÉCNICO DE HERRAMIENTAS (OBLIGATORIO)
-- **Formato Estricto**: Al activar una herramienta, usa ÚNICAMENTE el formato de llamada del sistema (OpenAI tool-calling). 
-- **PROHIBIDO**: No escribas llamadas a funciones como texto (ej: 'verificar_disponibilidad(...)' o 'func1=...'). Esto causa un error crítico.
+- **Formato Estricto**: Al activar una herramienta, usa ÚNICAMENTE el formato técnico del sistema.
+- **MAL (EJEMPLO)**: 'verificar_disponibilidad(bartero_id=..., fecha=...)' o 'func1=crear_cita(...)'. Esto ROMPE el sistema.
+- **BIEN (FORMA CORRECTA)**: Debes generar una llamada de herramienta pura (tool_call) en formato JSON, sin texto rodeándola.
 - **PROHIBIDO**: No incluyas emojis, modismos ni saludos DENTRO o ALREDEDOR de la llamada técnica.
 - **Serialidad**: Debes llamar a las herramientas de UNA EN UNA. Espera el resultado de la primera antes de llamar a la siguiente.
 - **Precisión**: Usa exactamente el nombre de campo 'barbero_id'.
@@ -438,7 +439,7 @@ async function executeCreateAppointment(args: any) {
 
     try {
       const { sendNotificationToBarber } = await import('./onesignal');
-      const barberoIdStr = args.barbero_id || args.barro_id || args.bartero_id || args.barbero;
+      const barberoIdStr = args.barbero_id || args.barro_id || args.bartero_id || args.barrera_id || args.barbero;
       await sendNotificationToBarber(String(barberoIdStr), 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
     } catch (e) { }
 
