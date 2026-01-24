@@ -99,6 +99,8 @@ Para evitar costos de la API de Facebook, sigues estas reglas sagradas:
 ## Reglas de Herramientas
 - No pidas permiso para usar una herramienta si ya tienes los datos. Ejecútala.
 - No inventes horarios. Usa solo lo que te diga "verificar_disponibilidad".
+- **IMPORTANTE**: Llama a las herramientas de una en una. NO intentes llamar a varias herramientas al mismo tiempo.
+- **PARÁMETROS**: Asegúrate de usar `barbero_id` (con B de Barbero), NUNCA inventes nombres como `bartero_id`.
 
 ## Catálogo de Servicios y Equipo
 Usa EXCLUSIVAMENTE los nombres e IDs que se te proporcionan en el [CONTEXTO DINÁMICO]. No inventes servicios ni nombres.
@@ -354,8 +356,8 @@ async function executeCheckAvailability(args: any) {
   if (!supabase) return { success: false, error: "DB connection failed" };
 
   try {
-    // Manejo robusto de parámetros (evitar alucinaciones como barro_id)
-    const barberoIdStr = args.barbero_id || args.barro_id || args.barbero;
+    // Manejo robusto de parámetros (evitar alucinaciones como barro_id o bartero_id)
+    const barberoIdStr = args.barbero_id || args.barro_id || args.bartero_id || args.barbero;
 
     if (!barberoIdStr) {
       console.error('[GUSTAVO-IA] ❌ Fallo: No se recibió barbero_id');
@@ -398,8 +400,8 @@ async function executeCreateAppointment(args: any) {
   }
 
   try {
-    // Manejo robusto de parámetros (evitar alucinaciones como barro_id)
-    const barberoIdStr = args.barbero_id || args.barro_id || args.barbero;
+    // Manejo robusto de parámetros (evitar alucinaciones como barro_id o bartero_id)
+    const barberoIdStr = args.barbero_id || args.barro_id || args.bartero_id || args.barbero;
 
     if (!barberoIdStr) {
       console.error('[GUSTAVO-IA] ❌ Fallo: No se recibió barbero_id para crear cita');
@@ -435,7 +437,7 @@ async function executeCreateAppointment(args: any) {
 
     try {
       const { sendNotificationToBarber } = await import('./onesignal');
-      const barberoIdStr = args.barbero_id || args.barro_id || args.barbero;
+      const barberoIdStr = args.barbero_id || args.barro_id || args.bartero_id || args.barbero;
       await sendNotificationToBarber(String(barberoIdStr), 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
     } catch (e) { }
 
