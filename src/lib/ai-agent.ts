@@ -294,8 +294,51 @@ Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 
       });
 
       if (!response.ok) {
-        const err = await response.text();
-        throw new Error(`Proxy Error ${response.status}: ${err}`);
+        const errText = await response.text();
+        console.error(`[GUSTAVO-IA] ⚠️  Proxy Error ${response.status}: ${errText}`);
+
+        try {
+          const errJSON = JSON.parse(errText);
+          if (errJSON.failed_generation) {
+            console.log(`[GUSTAVO-IA] 🔍 Detectada 'failed_generation', intentando parseo heurístico...`);
+            const parsed = heuristicToolParser(errJSON.failed_generation);
+
+            if (parsed) {
+              console.log(`[GUSTAVO-IA] 🧠 Heurística exitosa: ${parsed.name}`, parsed.args);
+              // Inyectar mensaje manual de asistente con tool_calls simulado
+              const fakeToolCallId = `call_fallback_${Date.now()}`;
+              const assistantMessage = {
+                role: 'assistant',
+                tool_calls: [{
+                  id: fakeToolCallId,
+                  type: 'function',
+                  function: { name: parsed.name, arguments: JSON.stringify(parsed.args) }
+                }]
+              };
+              messages.push(assistantMessage);
+
+              // Ejecutar la herramienta manualmente
+              let result;
+              if (parsed.name === 'verificar_disponibilidad') result = await executeCheckAvailability(parsed.args);
+              else if (parsed.name === 'crear_cita') result = await executeCreateAppointment(parsed.args);
+              else if (parsed.name === 'consultar_mis_citas') result = await executeListClientAppointments(parsed.args);
+              else if (parsed.name === 'confirmar_cita') result = await executeUpdateAppointmentStatus(parsed.args);
+
+              messages.push({
+                role: 'tool',
+                tool_call_id: fakeToolCallId,
+                name: parsed.name,
+                content: JSON.stringify(result)
+              });
+
+              continue; // Reintentar con el resultado de la herramienta
+            }
+          }
+        } catch (pe) {
+          console.error('[GUSTAVO-IA] ❌ Falló el parseo heurístico del error.');
+        }
+
+        throw new Error(`Proxy Error ${response.status}: ${errText}`);
       }
 
       const data = await response.json();
@@ -551,6 +594,39 @@ Texto: "${text}"`
     return (cleanText || resultText).split('|||').map((p: string) => p.trim()).filter(Boolean);
   } catch (e) {
     return [text];
+  }
+}
+
+/**
+   * Intento de parseo de strings como "verificar_disponibilidad(barnero_id=..., fecha=...)"
+   * generado por modelos que no siguen bien el formato JSON de herramientas.
+   */
+function heuristicToolParser(text: string) {
+  try {
+    const nameMatch = text.match(/^\s*(\w+)/);
+    if (!nameMatch) return null;
+    const name = nameMatch[1];
+
+    const args: any = {};
+    const openParen = text.indexOf('(');
+    const closeParen = text.lastIndexOf(')');
+
+    if (openParen === -1 || closeParen === -1) return null;
+
+    const argsString = text.substring(openParen + 1, closeParen);
+    const pairs = argsString.split(',').map(p => p.trim());
+
+    for (const pair of pairs) {
+      const parts = pair.split('=');
+      if (parts.length < 2) continue;
+      const key = parts[0].trim();
+      const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+      if (key && val) args[key] = val;
+    }
+
+    return { name, args };
+  } catch (e) {
+    return null;
   }
 }
 
