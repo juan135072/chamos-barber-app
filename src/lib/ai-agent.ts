@@ -416,28 +416,35 @@ async function executeCheckAvailability(args: any) {
       return { success: false, error: "Missing barbero_id" };
     }
 
-    console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${barberoIdStr} en ${args.fecha}`);
+    // 4. Obtener duracción aproximada del servicio (o default)
+    const { data: svc } = await supabase.from('servicios').select('duracion').eq('id', args.servicio_id).single();
+    const duracion = svc?.duracion || 30;
 
-    const { data, error } = await supabase.rpc('get_horarios_disponibles', {
+    // FECHA OBLIGATORIA: Si no viene, usamos hoy
+    const fechaFinal = args.fecha || new Date().toISOString().split('T')[0];
+
+    console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${barberoIdStr} en ${fechaFinal}`);
+
+    const { data: slots, error: rpcError } = await supabase.rpc('get_horarios_disponibles', {
       barbero_id_param: barberoIdStr,
-      fecha_param: args.fecha,
-      duracion_minutos_param: 30
+      fecha_param: fechaFinal,
+      duracion_minutos_param: duracion
     });
 
-    if (error) {
-      console.error('[GUSTAVO-IA] RPC Error:', error);
-      return { success: false, error: error.message };
+    if (rpcError) { // Changed 'error' to 'rpcError' to match the new variable name
+      console.error('[GUSTAVO-IA] RPC Error:', rpcError);
+      return { success: false, error: rpcError.message };
     }
 
-    const disponibles = (data as any[])?.filter(h => h.disponible).map(h => h.hora) || [];
+    const disponibles = (slots as any[])?.filter(h => h.disponible).map(h => h.hora) || [];
 
     return {
       success: true,
-      fecha: args.fecha,
+      fecha: fechaFinal,
       horarios_disponibles: disponibles,
       message: disponibles.length > 0
-        ? `Horarios disponibles para el ${args.fecha}: ${disponibles.join(', ')}`
-        : `Lo siento, no hay horarios disponibles para el ${args.fecha}.`
+        ? `Horarios disponibles para el ${fechaFinal}: ${disponibles.join(', ')}`
+        : `Lo siento, no hay horarios disponibles para el ${fechaFinal}.`
     };
   } catch (e: any) {
     return { success: false, error: e.message };
@@ -625,12 +632,22 @@ function heuristicToolParser(text: string): { name: string, args: any }[] {
       const cleanLine = line.replace(/^[a-zA-Z0-9]+=/, '').trim();
       const obj = JSON.parse(cleanLine);
 
+      // Caso A: Formato OpenAI Standard (name + arguments string)
       if (obj.name && obj.arguments) {
         results.push({
           name: obj.name,
           args: typeof obj.arguments === 'string' ? JSON.parse(obj.arguments) : obj.arguments
         });
-      } else if (obj.name && obj.args) { // Variación común
+      }
+      // Caso B: Formato Llama/Kimi alternativo (name + parameters object)
+      else if (obj.name && obj.parameters) {
+        results.push({
+          name: obj.name,
+          args: obj.parameters
+        });
+      }
+      // Caso C: Variación simplificada (name + args)
+      else if (obj.name && obj.args) {
         results.push({ name: obj.name, args: obj.args });
       }
     } catch (e) { }
@@ -649,8 +666,8 @@ function heuristicToolParser(text: string): { name: string, args: any }[] {
 
         if (openParen !== -1 && closeParen !== -1) {
           const argsString = line.substring(openParen + 1, closeParen);
-          // Regex robusto para separar key=val con comillas
-          const pairs = argsString.split(/,(?=\w+=)/).map(p => p.trim());
+          // Split robusto: corta en comas que preceden a un "key=" (con o sin espacio)
+          const pairs = argsString.split(/,\s*(?=\w+\s*=)/).map(p => p.trim());
 
           for (const pair of pairs) {
             const parts = pair.split('=');
