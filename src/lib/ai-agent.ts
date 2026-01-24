@@ -61,6 +61,7 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 - Ubicación: Chamos Barber solo existe en San Fernando, Chile.
 - **Lenguaje (CRÍTICO)**: Aunque eres venezolano, llevas mucho tiempo en Chile y hablas de forma que todos te entiendan bien. **PROHIBIDO** usar la palabra "chamo" o modismos venezolanos muy marcados. Usa un lenguaje chileno neutro y amable (como "amigo", "compa" o "estimado").
 - **Teléfono (NUEVO)**: Si el cliente entrega un número de teléfono sin código de área (ej: 9XXXXXXXX), asume siempre que es de Chile (+56).
+- **Horarios (NUEVO)**: Si el cliente dice una hora sin am/pm (ej: "a las 8"), usa el sentido común para una barbería. "A las 8" suele ser 8:00 o 20:00. Si tienes duda o es un horario de madrugada, pregunta para confirmar. **REGLA DE FORMATO**: Responde SIEMPRE usando el mismo formato horario que el cliente (si el cliente usa "las 8", dile "las 8:00 pm" o "las 20:30" según lo que él esté usando). Adapta tu estilo al del cliente.
 - Emojis Prohibidos: NUNCA uses el emoji 😊. Usa SOLO 💈, ✂️, 🧔.
 
 ## Señales de Sistema (HIDDEN)
@@ -176,6 +177,7 @@ Teléfono del cliente: ${metadata.phone || 'Desconocido'}
 Ventana Gratuita: Activa (El cliente inició el chat).
 Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas hecho en ese turno, llama a "consultar_mis_citas" para saber su estado actual. 
 Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
+Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 8" en la tarde es 20:00.
 `;
 
     const isAudioNote = metadata.isAudio || message.includes('[SISTEMA: TRANSCRIPCIÓN_AUDIO]');
@@ -205,7 +207,7 @@ Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza 
           parameters: {
             type: "object",
             properties: {
-              barbero_id: { type: "string", description: "ID del barbero." },
+              barbero_id: { type: "string", description: "ID único del barbero (ej: uuid). Asegúrate de usar exactament el nombre de campo 'barbero_id'." },
               fecha: { type: "string", description: "Fecha en formato YYYY-MM-DD." }
             },
             required: ["barbero_id", "fecha"]
@@ -220,7 +222,7 @@ Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza 
           parameters: {
             type: "object",
             properties: {
-              barbero_id: { type: "string", description: "ID del barbero." },
+              barbero_id: { type: "string", description: "ID único del barbero (ej: uuid). Asegúrate de usar exactament el nombre de campo 'barbero_id'." },
               servicio_id: { type: "string", description: "ID del servicio." },
               fecha: { type: "string", description: "Fecha YYYY-MM-DD." },
               hora: { type: "string", description: "Hora HH:mm." },
@@ -343,10 +345,18 @@ async function executeCheckAvailability(args: any) {
   if (!supabase) return { success: false, error: "DB connection failed" };
 
   try {
-    console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${args.barbero_id} en ${args.fecha}`);
+    // Manejo robusto de parámetros (evitar alucinaciones como barro_id)
+    const barberoIdStr = args.barbero_id || args.barro_id || args.barbero;
+
+    if (!barberoIdStr) {
+      console.error('[GUSTAVO-IA] ❌ Fallo: No se recibió barbero_id');
+      return { success: false, error: "Missing barbero_id" };
+    }
+
+    console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${barberoIdStr} en ${args.fecha}`);
 
     const { data, error } = await supabase.rpc('get_horarios_disponibles', {
-      barbero_id_param: args.barbero_id,
+      barbero_id_param: barberoIdStr,
       fecha_param: args.fecha,
       duracion_minutos_param: 30
     });
@@ -379,12 +389,20 @@ async function executeCreateAppointment(args: any) {
   }
 
   try {
-    console.log('[GUSTAVO-IA] 💾 Intentando insertar cita:', args);
+    // Manejo robusto de parámetros (evitar alucinaciones como barro_id)
+    const barberoIdStr = args.barbero_id || args.barro_id || args.barbero;
+
+    if (!barberoIdStr) {
+      console.error('[GUSTAVO-IA] ❌ Fallo: No se recibió barbero_id para crear cita');
+      return { success: false, error: "Missing barbero_id" };
+    }
+
+    console.log('[GUSTAVO-IA] 💾 Intentando insertar cita:', { ...args, barbero_id: barberoIdStr });
 
     const { data: nuevaCita, error: insertError } = await supabase
       .from('citas')
       .insert([{
-        barbero_id: args.barbero_id,
+        barbero_id: barberoIdStr,
         servicio_id: args.servicio_id,
         fecha: args.fecha,
         hora: args.hora,
@@ -406,7 +424,8 @@ async function executeCreateAppointment(args: any) {
 
     try {
       const { sendNotificationToBarber } = await import('./onesignal');
-      await sendNotificationToBarber(args.barbero_id, 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
+      const barberoIdStr = args.barbero_id || args.barro_id || args.barbero;
+      await sendNotificationToBarber(String(barberoIdStr), 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
     } catch (e) { }
 
     return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };
