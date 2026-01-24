@@ -300,42 +300,49 @@ Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 
         try {
           const errJSON = JSON.parse(errText);
           if (errJSON.failed_generation) {
-            console.log(`[GUSTAVO-IA] 🔍 Detectada 'failed_generation', intentando parseo heurístico...`);
-            const parsed = heuristicToolParser(errJSON.failed_generation);
+            console.log(`[GUSTAVO-IA] 🔍 Detectada 'failed_generation', intentando parseo heurístico avanzado...`);
+            const parsedResults = heuristicToolParser(errJSON.failed_generation);
 
-            if (parsed) {
-              console.log(`[GUSTAVO-IA] 🧠 Heurística exitosa: ${parsed.name}`, parsed.args);
-              // Inyectar mensaje manual de asistente con tool_calls simulado
-              const fakeToolCallId = `call_fallback_${Date.now()}`;
-              const assistantMessage = {
-                role: 'assistant',
-                tool_calls: [{
-                  id: fakeToolCallId,
-                  type: 'function',
-                  function: { name: parsed.name, arguments: JSON.stringify(parsed.args) }
-                }]
-              };
-              messages.push(assistantMessage);
+            if (parsedResults.length > 0) {
+              console.log(`[GUSTAVO-IA] 🧠 Heurística exitosa: ${parsedResults.length} herramientas detectadas`);
 
-              // Ejecutar la herramienta manualmente
-              let result;
-              if (parsed.name === 'verificar_disponibilidad') result = await executeCheckAvailability(parsed.args);
-              else if (parsed.name === 'crear_cita') result = await executeCreateAppointment(parsed.args);
-              else if (parsed.name === 'consultar_mis_citas') result = await executeListClientAppointments(parsed.args);
-              else if (parsed.name === 'confirmar_cita') result = await executeUpdateAppointmentStatus(parsed.args);
+              for (const parsed of parsedResults) {
+                console.log(`[GUSTAVO-IA] 🛠️  EJECUTANDO FALLBACK: ${parsed.name}`, JSON.stringify(parsed.args));
 
-              messages.push({
-                role: 'tool',
-                tool_call_id: fakeToolCallId,
-                name: parsed.name,
-                content: JSON.stringify(result)
-              });
+                // Generar ID único para este tool_call simulado
+                const fakeToolCallId = `call_fb_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
-              continue; // Reintentar con el resultado de la herramienta
+                const assistantMessage = {
+                  role: 'assistant',
+                  tool_calls: [{
+                    id: fakeToolCallId,
+                    type: 'function',
+                    function: { name: parsed.name, arguments: JSON.stringify(parsed.args) }
+                  }]
+                };
+                messages.push(assistantMessage);
+
+                let result;
+                if (parsed.name === 'verificar_disponibilidad') result = await executeCheckAvailability(parsed.args);
+                else if (parsed.name === 'crear_cita') result = await executeCreateAppointment(parsed.args);
+                else if (parsed.name === 'consultar_mis_citas') result = await executeListClientAppointments(parsed.args);
+                else if (parsed.name === 'confirmar_cita') result = await executeUpdateAppointmentStatus(parsed.args);
+
+                console.log(`[GUSTAVO-IA] ✅ RESULTADO FALLBACK ${parsed.name}:`, JSON.stringify(result));
+
+                messages.push({
+                  role: 'tool',
+                  tool_call_id: fakeToolCallId,
+                  name: parsed.name,
+                  content: JSON.stringify(result)
+                });
+              }
+
+              continue; // Reintentar con el historial de herramientas completo
             }
           }
         } catch (pe) {
-          console.error('[GUSTAVO-IA] ❌ Falló el parseo heurístico del error.');
+          console.error('[GUSTAVO-IA] ❌ Falló el parseo heurístico del error:', pe);
         }
 
         throw new Error(`Proxy Error ${response.status}: ${errText}`);
@@ -598,35 +605,66 @@ Texto: "${text}"`
 }
 
 /**
-   * Intento de parseo de strings como "verificar_disponibilidad(barnero_id=..., fecha=...)"
-   * generado por modelos que no siguen bien el formato JSON de herramientas.
-   */
-function heuristicToolParser(text: string) {
-  try {
-    const nameMatch = text.match(/^\s*(\w+)/);
-    if (!nameMatch) return null;
-    const name = nameMatch[1];
+ * Intento de parseo avanzado de strings generados por modelos que no siguen bien 
+ * el formato JSON de herramientas de OpenAI/Proxy.
+ * Soporta:
+ * 1. Formato func(arg=val)
+ * 2. Formato NDJSON (múltiples objetos JSON por línea)
+ * 3. Formato JSON-string (el que reporta el proxy en failed_generation)
+ */
+function heuristicToolParser(text: string): { name: string, args: any }[] {
+  const results: { name: string, args: any }[] = [];
+  if (!text) return results;
 
-    const args: any = {};
-    const openParen = text.indexOf('(');
-    const closeParen = text.lastIndexOf(')');
+  // Caso 1: Intentar separar por líneas y ver si son objetos JSON (frecuente en fallos del proxy)
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.startsWith('{') || l.includes('{"name"'));
 
-    if (openParen === -1 || closeParen === -1) return null;
+  for (const line of lines) {
+    try {
+      // Limpiar posibles prefijos como 'func1=' o similares si están pegados
+      const cleanLine = line.replace(/^[a-zA-Z0-9]+=/, '').trim();
+      const obj = JSON.parse(cleanLine);
 
-    const argsString = text.substring(openParen + 1, closeParen);
-    const pairs = argsString.split(',').map(p => p.trim());
-
-    for (const pair of pairs) {
-      const parts = pair.split('=');
-      if (parts.length < 2) continue;
-      const key = parts[0].trim();
-      const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
-      if (key && val) args[key] = val;
-    }
-
-    return { name, args };
-  } catch (e) {
-    return null;
+      if (obj.name && obj.arguments) {
+        results.push({
+          name: obj.name,
+          args: typeof obj.arguments === 'string' ? JSON.parse(obj.arguments) : obj.arguments
+        });
+      } else if (obj.name && obj.args) { // Variación común
+        results.push({ name: obj.name, args: obj.args });
+      }
+    } catch (e) { }
   }
+
+  // Si no se detectó nada como JSON, intentar el regex de funciones tradicional (ej: func(a=b))
+  if (results.length === 0) {
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+    for (const line of lines) {
+      const nameMatch = line.match(/^\s*(\w+)\(/);
+      if (nameMatch) {
+        const name = nameMatch[1];
+        const args: any = {};
+        const openParen = line.indexOf('(');
+        const closeParen = line.lastIndexOf(')');
+
+        if (openParen !== -1 && closeParen !== -1) {
+          const argsString = line.substring(openParen + 1, closeParen);
+          // Regex robusto para separar key=val con comillas
+          const pairs = argsString.split(/,(?=\w+=)/).map(p => p.trim());
+
+          for (const pair of pairs) {
+            const parts = pair.split('=');
+            if (parts.length < 2) continue;
+            const key = parts[0].trim();
+            const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+            if (key && val) args[key] = val;
+          }
+          results.push({ name, args });
+        }
+      }
+    }
+  }
+
+  return results;
 }
 
