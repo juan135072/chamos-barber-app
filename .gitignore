@@ -99,3 +99,6 @@ CREDENCIALES-ADMIN.md
 N8N_NEW_CREDENTIALS.txt
 **/credentials.json
 **/*-credentials.json
+
+# Local AI Proxy project
+api-agentes/

@@ -1,7 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { ChatMemory } from './redis';
 import { normalizePhone } from '../../lib/phone-utils';
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Helper para inicializar Supabase de forma segura
 const getSupabaseAdmin = () => {
