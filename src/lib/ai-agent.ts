@@ -295,12 +295,11 @@ Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 
 
       if (!response.ok) {
         const errText = await response.text();
-        console.error(`[GUSTAVO-IA] ⚠️  Proxy Error ${response.status}: ${errText}`);
 
         try {
           const errJSON = JSON.parse(errText);
           if (errJSON.failed_generation) {
-            console.log(`[GUSTAVO-IA] 🔍 Detectada 'failed_generation', intentando parseo heurístico avanzado...`);
+            console.log(`[GUSTAVO-IA] 🔄 Iniciando recuperación por 'failed_generation'...`);
             const parsedResults = heuristicToolParser(errJSON.failed_generation);
 
             if (parsedResults.length > 0) {
@@ -668,16 +667,26 @@ function heuristicToolParser(text: string): { name: string, args: any }[] {
 
         if (openParen !== -1 && closeParen !== -1) {
           const argsString = cleanLine.substring(openParen + 1, closeParen);
-          // Split robusto: corta en comas que preceden a un "key=" (con o sin espacio)
-          const pairs = argsString.split(/,\s*(?=\w+\s*=)/).map(p => p.trim());
 
-          for (const pair of pairs) {
-            const parts = pair.split('=');
-            if (parts.length < 2) continue;
-            const key = parts[0].trim();
-            const val = parts.slice(1).join('=').trim().replace(/^['"]|['"]$/g, '');
+          // Regex robusto para capturar pares key=val
+          // Captura el valor hasta la próxima coma o cierre de paréntesis
+          const pairRegex = /(\w+)\s*=\s*(.+?)(?=,\s*\w+\s*=|(?:\s*\)$))/g;
+          let match;
+          while ((match = pairRegex.exec(argsString + ',')) !== null) {
+            const key = match[1].trim();
+            const val = match[2].trim().replace(/^['"]|['"]$/g, '');
             if (key && val) args[key] = val;
           }
+
+          // Fallback si el regex anterior falla (caso de un solo argumento o formato simple)
+          if (Object.keys(args).length === 0 && argsString.includes('=')) {
+            const pairs = argsString.split(/,\s*(?=\w+\s*=)/).map(p => p.trim());
+            for (const pair of pairs) {
+              const [k, ...v] = pair.split('=');
+              if (k && v.length) args[k.trim()] = v.join('=').trim().replace(/^['"]|['"]$/g, '');
+            }
+          }
+
           results.push({ name, args });
         }
       }
