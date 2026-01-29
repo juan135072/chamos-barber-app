@@ -580,7 +580,7 @@ const ReservarPage: React.FC = () => {
                         Horarios:
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.8rem' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--bg-primary)', border: '1px solid var(--accent-color)' }}></div>
+                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}></div>
                             Disponible
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -693,7 +693,7 @@ const ReservarPage: React.FC = () => {
                                       ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.05)') // Fondo sutil dorado para disponibles
                                       : 'rgba(255, 255, 255, 0.05)',
                                     borderColor: isAvailable
-                                      ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.5)') // Borde dorado visible para coincidir con leyenda
+                                      ? (isSelected ? 'var(--accent-color)' : 'var(--border-color)') // Borde neutro para disponibles no seleccionados
                                       : 'transparent',
                                     transform: isAvailable && isSelected ? 'scale(1.05)' : 'scale(1)',
                                     pointerEvents: isAvailable ? 'auto' : 'none',
