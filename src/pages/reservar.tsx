@@ -707,6 +707,11 @@ const ReservarPage: React.FC = () => {
                                       marginLeft: '0.5rem'
                                     }}></i>
                                   )}
+                                  {isAvailable && !isSelected && (
+                                    <span style={{ fontSize: '0.6rem', display: 'block', marginTop: '2px', color: 'var(--text-secondary)', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                      Disponible
+                                    </span>
+                                  )}
                                   {!isAvailable && (
                                     <span style={{ fontSize: '0.65rem', display: 'block', marginTop: '2px', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
                                       {slot.motivo || 'No disponible'}
