@@ -15,6 +15,19 @@ interface CalendarViewProps {
   onDateSelect?: (date: Date) => void
 }
 
+// Helper para convertir hora HH:mm a minutos
+const timeToMinutes = (time: string) => {
+  const [hours, minutes] = time.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// Helper para convertir minutos a HH:mm
+const minutesToTime = (totalMinutes: number) => {
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+}
+
 const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) => {
   const supabase = useSupabaseClient<Database>()
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -107,14 +120,36 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
 
   const timeSlots = generateTimeSlots()
 
-  const getCitaForTime = (barberoId: string, timeSlot: string): Cita | null => {
+  const getCitaForTime = (barberoId: string, timeSlot: string): { cita: Cita; isStart: boolean; endTime: string } | null => {
     const citas = citasPorBarbero[barberoId] || []
-    // Buscar cita que coincida con esta hora
-    return citas.find(cita => {
-      const citaHour = cita.hora.substring(0, 5)
-      const slotHour = timeSlot.substring(0, 2)
-      return citaHour.startsWith(slotHour)
-    }) || null
+    const slotStartMin = timeToMinutes(timeSlot)
+    const slotEndMin = slotStartMin + 60
+
+    for (const cita of citas) {
+      const citaStartMin = timeToMinutes(cita.hora.substring(0, 5))
+
+      // Calcular duración total (del servicio principal o suma de items)
+      let duration = cita.servicios?.duracion_minutos || 30
+      if (cita.items && Array.isArray(cita.items)) {
+        const itemsDuration = cita.items.reduce((acc: number, item: any) => acc + (item.duracion || 0), 0)
+        if (itemsDuration > 0) duration = itemsDuration
+      }
+
+      const citaEndMin = citaStartMin + duration
+      const endTime = minutesToTime(citaEndMin)
+
+      // Caso 1: La cita empieza exactamente en este slot (o dentro de este slot de 1 hora)
+      if (citaStartMin >= slotStartMin && citaStartMin < slotEndMin) {
+        return { cita, isStart: true, endTime }
+      }
+
+      // Caso 2: El slot está dentro de la duración de una cita que empezó antes
+      if (slotStartMin >= citaStartMin && slotStartMin < citaEndMin) {
+        return { cita, isStart: false, endTime }
+      }
+    }
+
+    return null
   }
 
   const previousWeek = () => {
@@ -316,7 +351,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                   </div>
                 </td>
                 {barberos.map((barbero, colIdx) => {
-                  const cita = getCitaForTime(barbero.id, timeSlot)
+                  const citaData = getCitaForTime(barbero.id, timeSlot)
+                  const cita = citaData?.cita
+                  const isStart = citaData?.isStart
+                  const endTime = citaData?.endTime
+
                   return (
                     <td
                       key={barbero.id}
@@ -331,42 +370,49 @@ const CalendarView: React.FC<CalendarViewProps> = ({ barberos, onDateSelect }) =
                         <div
                           className="p-3 rounded-lg text-xs transition-all hover:scale-[1.03] hover:shadow-xl cursor-pointer"
                           style={{
-                            backgroundColor: `${getEstadoColor(cita.estado)}15`,
-                            borderLeft: `4px solid ${getEstadoColor(cita.estado)}`,
-                            border: '1px solid rgba(255, 255, 255, 0.08)'
+                            backgroundColor: isStart ? `${getEstadoColor(cita.estado)}15` : 'rgba(255, 255, 255, 0.03)',
+                            borderLeft: `4px solid ${isStart ? getEstadoColor(cita.estado) : 'rgba(255, 255, 255, 0.2)'}`,
+                            border: '1px solid rgba(255, 255, 255, 0.08)',
+                            opacity: isStart ? 1 : 0.7
                           }}
                           onClick={() => {
                             setSelectedCita(cita)
                             setIsModalOpen(true)
                           }}
                         >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-bold text-sm" style={{ color: '#FFF' }}>
-                              {cita.hora.substring(0, 5)}
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="font-bold text-sm" style={{ color: isStart ? '#FFF' : '#888' }}>
+                              {cita.hora.substring(0, 5)} - {endTime}
                             </span>
-                            <span
-                              className="text-[10px] px-2 py-0.5 rounded-full font-bold"
-                              style={{
-                                backgroundColor: getEstadoColor(cita.estado),
-                                color: '#FFF'
-                              }}
-                            >
-                              {cita.estado === 'confirmada' ? '✓' :
-                                cita.estado === 'pendiente' ? '⋯' :
-                                  cita.estado === 'cancelada' ? '×' : '✓'}
-                            </span>
+                            {isStart && (
+                              <span
+                                className="text-[10px] px-2 py-0.5 rounded-full font-bold"
+                                style={{
+                                  backgroundColor: getEstadoColor(cita.estado),
+                                  color: '#FFF'
+                                }}
+                              >
+                                {cita.estado === 'confirmada' ? '✓' :
+                                  cita.estado === 'pendiente' ? '⋯' :
+                                    cita.estado === 'cancelada' ? '×' : '✓'}
+                              </span>
+                            )}
                           </div>
-                          <p className="truncate font-semibold mb-1" style={{ color: '#FFF' }}>
-                            {cita.cliente_nombre}
+                          <p className="truncate font-semibold mb-1" style={{ color: isStart ? '#FFF' : '#AAA' }}>
+                            {isStart ? cita.cliente_nombre : `(Cont.) ${cita.cliente_nombre}`}
                           </p>
-                          {cita.items && cita.items.length > 0 ? (
-                            <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
-                              {cita.items.map((item: any) => `${item.cantidad > 1 ? `${item.cantidad}x ` : ''}${item.nombre}`).join(', ')}
-                            </p>
-                          ) : cita.servicios && (
-                            <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
-                              {cita.servicios.nombre}
-                            </p>
+                          {isStart && (
+                            <>
+                              {cita.items && cita.items.length > 0 ? (
+                                <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
+                                  {cita.items.map((item: any) => `${item.cantidad > 1 ? `${item.cantidad}x ` : ''}${item.nombre}`).join(', ')}
+                                </p>
+                              ) : cita.servicios && (
+                                <p className="text-[11px] truncate" style={{ color: '#AAA' }}>
+                                  {cita.servicios.nombre}
+                                </p>
+                              )}
+                            </>
                           )}
                         </div>
                       ) : (
