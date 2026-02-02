@@ -52,17 +52,21 @@ export function useCashRegister(usuario: any) {
         if (!usuario?.id) throw new Error('Usuario no identificado')
 
         try {
-            // 1. Preparar datos de sesión (Solo incluir comercio_id si lo tenemos)
+            console.log('🔄 Intentando abrir caja para usuario:', usuario.id)
+
+            // 1. Preparar datos de sesión
             const sessionPayload: any = {
                 usuario_id: usuario.id,
                 monto_inicial: montoInicial,
-                estado: 'abierta',
-                fecha_apertura: new Date().toISOString()
+                estado: 'abierta'
+                // Dejamos que la BD maneje fecha_apertura por defecto (now())
             }
 
             if (usuario.comercio_id) {
                 sessionPayload.comercio_id = usuario.comercio_id
             }
+
+            console.log('📤 Enviando payload de sesión:', sessionPayload)
 
             // Insertar nueva sesión
             const { data, error } = await (supabase
@@ -71,7 +75,12 @@ export function useCashRegister(usuario: any) {
                 .select()
                 .single()
 
-            if (error) throw error
+            if (error) {
+                console.error('❌ Error de Supabase al insertar sesión:', error)
+                throw error
+            }
+
+            console.log('✅ Sesión creada:', data)
 
             // 2. Registrar movimiento de apertura
             const movementPayload: any = {
@@ -85,12 +94,22 @@ export function useCashRegister(usuario: any) {
                 movementPayload.comercio_id = usuario.comercio_id
             }
 
-            await (supabase.from('movimientos_caja') as any).insert([movementPayload])
+            const { error: moveError } = await (supabase.from('movimientos_caja') as any).insert([movementPayload])
+
+            if (moveError) {
+                console.warn('⚠️ Sesión abierta pero error al registrar movimiento:', moveError)
+            }
 
             setSesion(data)
             return data
-        } catch (error) {
-            console.error('Error al abrir caja:', error)
+        } catch (error: any) {
+            console.error('💥 Error crítico en abrirCaja:', {
+                message: error.message,
+                details: error.details,
+                hint: error.hint,
+                code: error.code,
+                error
+            })
             throw error
         }
     }
@@ -145,6 +164,8 @@ export function useCashRegister(usuario: any) {
         }
 
         try {
+            console.log(`📝 Registrando venta de ${monto} en sesión ${sesion.id}`)
+
             // 1. Actualizar el monto esperado en la sesión
             const nuevoEsperado = (sesion.monto_final_esperado || 0) + monto
             await (supabase
@@ -152,7 +173,7 @@ export function useCashRegister(usuario: any) {
                 .update({ monto_final_esperado: nuevoEsperado })
                 .eq('id', sesion.id)
 
-            // 2. Registrar el movimiento
+            // 2. Registrar el movimiento en movimientos_caja
             const movementPayload: any = {
                 sesion_id: sesion.id,
                 tipo: 'venta',
@@ -167,8 +188,20 @@ export function useCashRegister(usuario: any) {
 
             await (supabase.from('movimientos_caja') as any).insert([movementPayload])
 
+            // 3. Vincular la factura con la sesión (Importante para reportes)
+            // Intentamos actualizar la columna cierre_caja_id en facturas
+            const { error: invoiceError } = await (supabase
+                .from('facturas') as any)
+                .update({ cierre_caja_id: sesion.id })
+                .eq('id', referenciaId)
+
+            if (invoiceError) {
+                console.warn('⚠️ Venta registrada pero no se pudo vincular con la factura:', invoiceError)
+            }
+
             // Actualizar estado local
             setSesion(prev => prev ? { ...prev, monto_final_esperado: nuevoEsperado } : null)
+            console.log('✅ Venta vinculada a la sesión correctamente')
         } catch (error) {
             console.error('Error al registrar venta en caja:', error)
         }
