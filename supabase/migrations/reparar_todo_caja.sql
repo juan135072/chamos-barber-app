@@ -63,6 +63,7 @@ SELECT
     au.email,
     au.nombre,
     au.rol,
+    au.activo,
     au.comercio_id,
     rp.permisos
 FROM public.admin_users au
