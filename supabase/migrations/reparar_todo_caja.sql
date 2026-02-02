@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS public.caja_sesiones (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     usuario_id uuid REFERENCES auth.users(id),
-    comercio_id uuid REFERENCES public.comercios(id),
+    comercio_id uuid REFERENCES public.comercios(id), -- Permitimos NULL temporalmente
     fecha_apertura timestamptz DEFAULT now(),
     fecha_cierre timestamptz,
     monto_inicial numeric DEFAULT 0,
@@ -16,10 +16,13 @@ CREATE TABLE IF NOT EXISTS public.caja_sesiones (
     estado text DEFAULT 'abierta' CHECK (estado IN ('abierta', 'cerrada'))
 );
 
+-- Asegurar que no sea obligatorio mientras se migra
+ALTER TABLE public.caja_sesiones ALTER COLUMN comercio_id DROP NOT NULL;
+
 CREATE TABLE IF NOT EXISTS public.movimientos_caja (
     id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
     sesion_id uuid REFERENCES public.caja_sesiones(id) ON DELETE CASCADE,
-    comercio_id uuid REFERENCES public.comercios(id),
+    comercio_id uuid REFERENCES public.comercios(id), -- Permitimos NULL temporalmente
     tipo text CHECK (tipo IN ('apertura', 'cierre', 'venta', 'gasto', 'ajuste')),
     monto numeric NOT NULL,
     metodo_pago text,
@@ -27,6 +30,9 @@ CREATE TABLE IF NOT EXISTS public.movimientos_caja (
     referencia_id text, -- ID de la factura o gasto relacionado
     created_at timestamptz DEFAULT now()
 );
+
+-- Asegurar que no sea obligatorio mientras se migra
+ALTER TABLE public.movimientos_caja ALTER COLUMN comercio_id DROP NOT NULL;
 
 -- 2. Vincular facturas con la sesión de caja
 -- Usamos 'cierre_caja_id' para compatibilidad con el código existente en ResumenDia
@@ -63,3 +69,14 @@ FROM public.admin_users au
 LEFT JOIN public.roles_permisos rp ON au.rol = rp.rol;
 
 GRANT SELECT ON public.usuarios_con_permisos TO authenticated, service_role;
+
+-- 6. ASIGNACIÓN AUTOMÁTICA (Opcional): Si solo hay un comercio, asignarlo a los usuarios sin comercio
+DO $$
+DECLARE
+    v_comercio_id uuid;
+BEGIN
+    SELECT id INTO v_comercio_id FROM public.comercios LIMIT 1;
+    IF v_comercio_id IS NOT NULL THEN
+        UPDATE public.admin_users SET comercio_id = v_comercio_id WHERE comercio_id IS NULL;
+    END IF;
+END $$;
