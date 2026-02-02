@@ -23,12 +23,17 @@ export function useCashRegister(usuario: any) {
 
         try {
             setLoading(true)
-            const { data, error } = await (supabase
-                .from('caja_sesiones') as any)
+            let query = (supabase.from('caja_sesiones') as any)
                 .select('*')
                 .eq('estado', 'abierta')
                 .eq('usuario_id', usuario.id)
-                .maybeSingle()
+
+            // Si tenemos el ID de comercio, lo usamos para filtrar (seguridad extra)
+            if (usuario.comercio_id) {
+                query = query.eq('comercio_id', usuario.comercio_id)
+            }
+
+            const { data, error } = await query.maybeSingle()
 
             if (error) throw error
             setSesion(data)
@@ -37,7 +42,7 @@ export function useCashRegister(usuario: any) {
         } finally {
             setLoading(false)
         }
-    }, [usuario?.id])
+    }, [usuario?.id, usuario?.comercio_id])
 
     useEffect(() => {
         checkActiveSession()
@@ -47,29 +52,40 @@ export function useCashRegister(usuario: any) {
         if (!usuario?.id) throw new Error('Usuario no identificado')
 
         try {
-            // 1. Insertar nueva sesión
+            // 1. Preparar datos de sesión (Solo incluir comercio_id si lo tenemos)
+            const sessionPayload: any = {
+                usuario_id: usuario.id,
+                monto_inicial: montoInicial,
+                estado: 'abierta',
+                fecha_apertura: new Date().toISOString()
+            }
+
+            if (usuario.comercio_id) {
+                sessionPayload.comercio_id = usuario.comercio_id
+            }
+
+            // Insertar nueva sesión
             const { data, error } = await (supabase
                 .from('caja_sesiones') as any)
-                .insert([{
-                    usuario_id: usuario.id,
-                    comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
-                    monto_inicial: montoInicial,
-                    estado: 'abierta',
-                    fecha_apertura: new Date().toISOString()
-                }])
+                .insert([sessionPayload])
                 .select()
                 .single()
 
             if (error) throw error
 
             // 2. Registrar movimiento de apertura
-            await (supabase.from('movimientos_caja') as any).insert({
+            const movementPayload: any = {
                 sesion_id: data.id,
-                comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                 tipo: 'apertura',
                 monto: montoInicial,
                 descripcion: 'Fondo inicial de caja'
-            })
+            }
+
+            if (usuario.comercio_id) {
+                movementPayload.comercio_id = usuario.comercio_id
+            }
+
+            await (supabase.from('movimientos_caja') as any).insert([movementPayload])
 
             setSesion(data)
             return data
@@ -101,13 +117,18 @@ export function useCashRegister(usuario: any) {
             if (error) throw error
 
             // Registrar movimiento de cierre
-            await (supabase.from('movimientos_caja') as any).insert({
+            const movementPayload: any = {
                 sesion_id: sesion.id,
-                comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                 tipo: 'cierre',
                 monto: montoFinalReal,
                 descripcion: `Cierre de caja. Notas: ${notas}`
-            })
+            }
+
+            if (usuario.comercio_id) {
+                movementPayload.comercio_id = usuario.comercio_id
+            }
+
+            await (supabase.from('movimientos_caja') as any).insert([movementPayload])
 
             setSesion(null)
             return data
@@ -132,14 +153,19 @@ export function useCashRegister(usuario: any) {
                 .eq('id', sesion.id)
 
             // 2. Registrar el movimiento
-            await (supabase.from('movimientos_caja') as any).insert({
+            const movementPayload: any = {
                 sesion_id: sesion.id,
-                comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                 tipo: 'venta',
                 monto: monto,
                 metodo_pago: metodoPago,
                 referencia_id: referenciaId
-            })
+            }
+
+            if (usuario.comercio_id) {
+                movementPayload.comercio_id = usuario.comercio_id
+            }
+
+            await (supabase.from('movimientos_caja') as any).insert([movementPayload])
 
             // Actualizar estado local
             setSesion(prev => prev ? { ...prev, monto_final_esperado: nuevoEsperado } : null)
