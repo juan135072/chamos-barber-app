@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
-import { getChileAhora, getChileHoy } from '@/lib/date-utils'
 
 export interface CajaSesion {
     id: string
@@ -53,6 +52,7 @@ export function useCashRegister(usuario: any) {
                 .from('caja_sesiones') as any)
                 .insert([{
                     usuario_id: usuario.id,
+                    comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                     monto_inicial: montoInicial,
                     estado: 'abierta',
                     fecha_apertura: new Date().toISOString()
@@ -123,7 +123,7 @@ export function useCashRegister(usuario: any) {
 
         try {
             // 1. Actualizar el monto esperado en la sesión
-            const nuevoEsperado = sesion.monto_final_esperado + monto
+            const nuevoEsperado = (sesion.monto_final_esperado || 0) + monto
             await (supabase
                 .from('caja_sesiones') as any)
                 .update({ monto_final_esperado: nuevoEsperado })
