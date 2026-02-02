@@ -10,8 +10,6 @@ type Servicio = Database['public']['Tables']['servicios']['Row']
 interface CobrarFormProps {
   usuario: UsuarioConPermisos
   onVentaCreada: () => void
-  sesionCaja?: any // Añadido para control de caja
-  registrarVentaCaja?: (monto: number, referenciaId: string, metodoPago: string) => Promise<void>
 }
 
 interface ItemCarrito {
@@ -22,7 +20,7 @@ interface ItemCarrito {
   subtotal: number
 }
 
-export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registrarVentaCaja }: CobrarFormProps) {
+export default function CobrarForm({ usuario, onVentaCreada }: CobrarFormProps) {
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [citasHoy, setCitasHoy] = useState<any[]>([])
@@ -238,11 +236,6 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         .single()
 
       if (facturaError) throw facturaError
-
-      // REGISTRAR VENTA EN LA SESIÓN DE CAJA
-      if (sesionCaja && registrarVentaCaja) {
-        await registrarVentaCaja(total, factura.id, metodoPago)
-      }
 
       // Éxito
       const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'

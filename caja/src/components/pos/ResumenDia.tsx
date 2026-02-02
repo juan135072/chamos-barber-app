@@ -8,8 +8,6 @@ import { getChileHoy } from '@/lib/date-utils'
 interface ResumenDiaProps {
   usuario: UsuarioConPermisos
   recargar: number
-  sesionCaja?: any
-  onCerrarCaja?: (montoFinalReal: number, notas?: string) => Promise<void>
 }
 
 interface ResumenData {
@@ -23,7 +21,7 @@ interface ResumenData {
   otros: number
 }
 
-export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja }: ResumenDiaProps) {
+export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
   const [resumen, setResumen] = useState<ResumenData>({
     totalVentas: 0,
     totalCobrado: 0,
@@ -123,49 +121,41 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
   }
 
   const handleCerrarCaja = async () => {
-    if (!montoRealEfectivo) return
-
     try {
       setGuardando(true)
+      const montoReal = parseFloat(montoRealEfectivo) || 0
 
-      if (onCerrarCaja) {
-        // Nuevo sistema de control de caja (Turnos)
-        await onCerrarCaja(parseFloat(montoRealEfectivo), notas)
-      } else {
-        // Sistema antiguo/legacy (Cierre diario por fecha)
-        const montoReal = parseFloat(montoRealEfectivo) || 0
-        const cierreData = {
-          fecha_inicio: fechaInicio,
-          fecha_fin: fechaFin,
-          cajero_id: usuario.id,
-          monto_esperado_efectivo: resumen.efectivo,
-          monto_real_efectivo: montoReal,
-          total_ventas: resumen.totalCobrado,
-          total_comisiones: resumen.totalComisiones,
-          total_casa: resumen.ingresoNetoCasa,
-          metodos_pago: {
-            efectivo: resumen.efectivo,
-            tarjeta: resumen.tarjeta,
-            transferencia: resumen.transferencia,
-            otros: resumen.otros
-          },
-          notas,
-          estado: 'cerrada'
-        }
-
-        const nuevoCierre = await chamosSupabase.crearCierreCaja(cierreData)
-
-        if (!nuevoCierre) {
-          throw new Error('No se pudo crear el registro de cierre de caja')
-        }
-
-        // VINCULAR FACTURAS AL CIERRE
-        if (facturasIdsPeriodo.length > 0) {
-          await chamosSupabase.vincularFacturasACierre(facturasIdsPeriodo, (nuevoCierre as any).id)
-        }
+      const cierreData = {
+        fecha_inicio: fechaInicio,
+        fecha_fin: fechaFin,
+        cajero_id: usuario.id,
+        monto_esperado_efectivo: resumen.efectivo,
+        monto_real_efectivo: montoReal,
+        total_ventas: resumen.totalCobrado,
+        total_comisiones: resumen.totalComisiones,
+        total_casa: resumen.ingresoNetoCasa,
+        metodos_pago: {
+          efectivo: resumen.efectivo,
+          tarjeta: resumen.tarjeta,
+          transferencia: resumen.transferencia,
+          otros: resumen.otros
+        },
+        notas,
+        estado: 'cerrada'
       }
 
-      alert('Caja cerrada exitosamente.')
+      const nuevoCierre = await chamosSupabase.crearCierreCaja(cierreData)
+
+      if (!nuevoCierre) {
+        throw new Error('No se pudo crear el registro de cierre de caja')
+      }
+
+      // VINCULAR FACTURAS AL CIERRE
+      if (facturasIdsPeriodo.length > 0) {
+        await chamosSupabase.vincularFacturasACierre(facturasIdsPeriodo, (nuevoCierre as any).id)
+      }
+
+      alert('Caja cerrada exitosamente. Las ventas han sido archivadas para este periodo.')
       setModalAbierto(false)
       cargarResumen()
     } catch (error: any) {
@@ -416,22 +406,24 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
       {/* Botón cerrar caja */}
       {(usuario.rol === 'admin' || usuario.rol === 'cajero') && tabActiva === 'resumen' && (
         <div className="pt-4 mt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
-          {sesionCaja?.estado === 'cerrada' || cierreExistente ? (
+          {cierreExistente ? (
             <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid #34d399' }}>
               <i className="fas fa-check-circle text-green-500 mr-2"></i>
               <span className="font-semibold text-green-500">Caja Cerrada</span>
               <p className="text-xs mt-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                Sesión finalizada.
+                Diferencia: {formatCurrency(cierreExistente.diferencia)}
               </p>
             </div>
           ) : (
             <button
               onClick={() => setModalAbierto(true)}
-              className="w-full px-4 py-3 rounded-lg font-semibold transition-all shadow-lg hover:scale-[1.02] active:scale-95"
+              className="w-full px-4 py-3 rounded-lg font-semibold transition-all"
               style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
             >
               <i className="fas fa-lock mr-2"></i>
-              Cerrar Caja del Turno
+              Cerrar Caja
             </button>
           )}
         </div>
@@ -458,12 +450,10 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
               <div className="grid grid-cols-2 gap-4">
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                   <div className="text-xs opacity-70" style={{ color: 'var(--text-primary)' }}>Efectivo Esperado</div>
-                  <div className="text-lg font-bold" style={{ color: 'var(--accent-color)' }}>
-                    {formatCurrency(sesionCaja ? sesionCaja.monto_final_esperado : resumen.efectivo)}
-                  </div>
+                  <div className="text-lg font-bold" style={{ color: 'var(--accent-color)' }}>{formatCurrency(resumen.efectivo)}</div>
                 </div>
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-                  <div className="text-xs opacity-70" style={{ color: 'var(--text-primary)' }}>Total Ventas</div>
+                  <div className="text-xs opacity-70" style={{ color: 'var(--text-primary)' }}>Total Periodo</div>
                   <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(resumen.totalCobrado)}</div>
                 </div>
               </div>

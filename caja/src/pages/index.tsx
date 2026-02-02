@@ -7,15 +7,11 @@ import CobrarForm from '@/components/pos/CobrarForm'
 import ResumenDia from '@/components/pos/ResumenDia'
 import ListaVentas from '@/components/pos/ListaVentas'
 import Logo from '@/components/shared/Logo'
-import { useCashRegister } from '@/hooks/useCashRegister'
-import OpenRegisterModal from '@/components/pos/OpenRegisterModal'
-import { formatCLP } from '@/lib/supabase-liquidaciones'
 
 export default function POSPage() {
   const router = useRouter()
   const { usuario, cargando, puedeAccederPOS, esAdmin, esCajero } = usePermissions()
   const [recargarVentas, setRecargarVentas] = useState(0)
-  const { sesion, loading: loadingCaja, abrirCaja, cerrarCaja, registrarVenta } = useCashRegister(usuario)
 
   useEffect(() => {
     if (cargando) return
@@ -62,12 +58,12 @@ export default function POSPage() {
     setRecargarVentas(prev => prev + 1)
   }
 
-  if (cargando || (loadingCaja && usuario)) {
+  if (cargando) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto" style={{ borderColor: 'var(--accent-color)' }}></div>
-          <p className="mt-4" style={{ color: 'var(--text-primary)' }}>Conectando con la caja...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Cargando...</p>
         </div>
       </div>
     )
@@ -108,24 +104,6 @@ export default function POSPage() {
                     month: 'long',
                     day: 'numeric'
                   })}
-                </div>
-
-                {/* Estado de Caja */}
-                <div className={`flex items-center space-x-3 px-4 py-2 rounded-lg border transition-all ${sesion ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
-                  <div className={`w-3 h-3 rounded-full animate-pulse ${sesion ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                  <div className="text-sm">
-                    <div className="font-bold flex items-center gap-2" style={{ color: sesion ? '#10b981' : '#ef4444' }}>
-                      {sesion ? 'CAJA ABIERTA' : 'CAJA CERRADA'}
-                      {sesion && (
-                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-500/20 font-medium">
-                          Fondo: {formatCLP(sesion.monto_inicial)}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] opacity-60" style={{ color: 'var(--text-primary)' }}>
-                      {sesion ? `Desde: ${new Date(sesion.fecha_apertura).toLocaleTimeString()}` : 'Sin turno activo'}
-                    </div>
-                  </div>
                 </div>
 
                 {/* Usuario */}
@@ -177,29 +155,6 @@ export default function POSPage() {
                 </button>
 
                 {/* Botones de navegación */}
-                {esAdmin && (
-                  <button
-                    onClick={handleVolverAdmin}
-                    className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
-                    style={{
-                      color: 'var(--text-primary)',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-color)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent-color)'
-                      e.currentTarget.style.color = 'var(--accent-color)'
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)'
-                      e.currentTarget.style.color = 'var(--text-primary)'
-                    }}
-                  >
-                    <i className="fas fa-arrow-left mr-2"></i>
-                    Admin Panel
-                  </button>
-                )}
-
                 <button
                   onClick={handleCerrarSesion}
                   className="px-4 py-2 text-sm font-medium rounded-lg transition-all"
@@ -219,7 +174,7 @@ export default function POSPage() {
         </header>
 
         {/* Main Content */}
-        <main className={`max-w-full px-4 sm:px-6 lg:px-8 py-6 transition-all ${!sesion ? 'blur-sm pointer-events-none grayscale' : ''}`}>
+        <main className="max-w-full px-4 sm:px-6 lg:px-8 py-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Área principal (70%) */}
             <div className="lg:col-span-2 space-y-6">
@@ -227,8 +182,6 @@ export default function POSPage() {
               <CobrarForm
                 usuario={usuario}
                 onVentaCreada={handleVentaCreada}
-                sesionCaja={sesion}
-                registrarVentaCaja={registrarVenta}
               />
 
               {/* Lista de ventas */}
@@ -243,20 +196,10 @@ export default function POSPage() {
               <ResumenDia
                 usuario={usuario}
                 recargar={recargarVentas}
-                sesionCaja={sesion}
-                onCerrarCaja={cerrarCaja}
               />
             </div>
           </div>
         </main>
-
-        {/* Modal de Apertura Forzada */}
-        {!sesion && !loadingCaja && (
-          <OpenRegisterModal
-            usuario={usuario}
-            onOpen={abrirCaja}
-          />
-        )}
       </div>
     </>
   )

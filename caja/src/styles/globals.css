@@ -1,0 +1,1391 @@
+/* === TAILWIND CSS === */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === VARIABLES GLOBALES === */
+:root {
+    --bg-primary: #121212;
+    --bg-secondary: #1A1A1A;
+    --text-primary: #EAEAEA;
+    --accent-color: #D4AF37;
+    --border-color: #2C2C2C;
+    --font-family: 'Inter', sans-serif;
+    --border-radius: 8px;
+    --transition: all 0.3s ease;
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* === RESET Y CONFIGURACIÓN BASE === */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    overflow-x: hidden;
+}
+
+/* === UTILIDADES === */
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.section-title {
+    text-align: center;
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 3rem;
+    color: var(--accent-color);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 15px 30px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    text-decoration: none;
+    transition: var(--transition);
+    cursor: pointer;
+    font-size: 1rem;
+}
+
+.btn-primary {
+    background-color: var(--accent-color);
+    color: var(--bg-primary);
+}
+
+.btn-primary:hover {
+    background-color: #B8941F;
+    transform: translateY(-2px);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    color: var(--accent-color);
+    border: 2px solid var(--accent-color);
+}
+
+.btn-secondary:hover {
+    background-color: var(--accent-color);
+    color: var(--bg-primary);
+}
+
+/* === NAVEGACIÓN === */
+.navbar {
+    background-color: var(--bg-secondary);
+    padding: 1rem 0;
+    position: fixed;
+    top: 0;
+    width: 100%;
+    z-index: 1000;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.nav-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+}
+
+.nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    text-decoration: none;
+}
+
+.nav-logo {
+    height: 45px;
+    width: auto;
+    object-fit: contain;
+}
+
+.nav-menu {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: var(--transition);
+    position: relative;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--accent-color);
+}
+
+.nav-link.active::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background-color: var(--accent-color);
+}
+
+.hamburger {
+    display: none;
+    flex-direction: column;
+    cursor: pointer;
+}
+
+.hamburger span {
+    width: 25px;
+    height: 3px;
+    background-color: var(--text-primary);
+    margin: 3px 0;
+    transition: var(--transition);
+}
+
+/* === HERO SECTION === */
+.hero {
+    height: 100vh;
+    background: linear-gradient(rgba(18, 18, 18, 0.7), rgba(18, 18, 18, 0.7)),
+        url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3') center/cover;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+}
+
+.hero-content {
+    z-index: 2;
+}
+
+.hero-title {
+    font-size: 4rem;
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(45deg, var(--accent-color), #F4E4A6);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.hero-subtitle {
+    font-size: 1.25rem;
+    margin-bottom: 2rem;
+    color: var(--text-primary);
+    opacity: 0.9;
+}
+
+.hero-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+/* === SERVICIOS === */
+.services {
+    padding: 6rem 0;
+    background-color: var(--bg-secondary);
+}
+
+.services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+}
+
+.service-card {
+    background-color: var(--bg-primary);
+    padding: 2.5rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    transition: var(--transition);
+    border: 1px solid var(--border-color);
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow);
+    border-color: var(--accent-color);
+}
+
+.service-icon {
+    font-size: 3rem;
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+}
+
+.service-card h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+.service-card p {
+    color: var(--text-primary);
+    opacity: 0.8;
+}
+
+/* === HORARIOS === */
+.schedule {
+    padding: 6rem 0;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+}
+
+.schedule-item {
+    background-color: var(--bg-secondary);
+    padding: 2rem;
+    border-radius: var(--border-radius);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.schedule-item:hover {
+    border-color: var(--accent-color);
+}
+
+.schedule-item .day {
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+.schedule-item .time {
+    color: var(--accent-color);
+    font-weight: 600;
+}
+
+/* === FOOTER === */
+.footer {
+    background-color: var(--bg-secondary);
+    padding: 3rem 0 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.footer-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.footer-section h3 {
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.footer-section p {
+    margin-bottom: 0.5rem;
+    opacity: 0.8;
+}
+
+.social-links {
+    display: flex;
+    gap: 1rem;
+}
+
+.social-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: var(--accent-color);
+    color: var(--bg-primary);
+    border-radius: 50%;
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.social-links a:hover {
+    transform: scale(1.1);
+    background-color: #B8941F;
+}
+
+.footer-bottom {
+    text-align: center;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+    opacity: 0.7;
+}
+
+.footer-links {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1rem;
+    flex-wrap: wrap;
+}
+
+.footer-links a {
+    color: var(--accent-color);
+    text-decoration: none;
+    transition: var(--transition);
+    font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+    color: #f0c952;
+    text-decoration: underline;
+}
+
+.footer-links .separator {
+    color: var(--accent-color);
+    opacity: 0.5;
+}
+
+/* === PÁGINAS INTERNAS === */
+.page-header {
+    padding: 8rem 0 4rem;
+    text-align: center;
+    background-color: var(--bg-secondary);
+}
+
+.page-title {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.page-subtitle {
+    font-size: 1.2rem;
+    opacity: 0.8;
+}
+
+/* === EQUIPO === */
+.team-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+    padding: 4rem 0;
+}
+
+.barber-card {
+    background-color: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    overflow: hidden;
+    transition: var(--transition);
+    border: 1px solid var(--border-color);
+    text-decoration: none;
+    color: inherit;
+    display: block;
+}
+
+.barber-card:hover {
+    transform: translateY(-10px);
+    box-shadow: var(--shadow);
+    border-color: var(--accent-color);
+}
+
+.barber-image {
+    width: 100%;
+    height: 300px;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.barber-overlay {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(transparent, rgba(18, 18, 18, 0.9));
+    padding: 2rem;
+    color: white;
+}
+
+.barber-info {
+    padding: 1.5rem;
+}
+
+.barber-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.barber-bio {
+    color: var(--text-primary);
+    opacity: 0.8;
+    line-height: 1.5;
+}
+
+/* === PERFIL BARBERO === */
+.barber-profile {
+    padding: 4rem 0;
+}
+
+.profile-header {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 3rem;
+    margin-bottom: 4rem;
+}
+
+.profile-image {
+    width: 100%;
+    height: 400px;
+    border-radius: var(--border-radius);
+    background-size: cover;
+    background-position: center;
+    border: 3px solid var(--accent-color);
+}
+
+.profile-details h1 {
+    font-size: 2.5rem;
+    color: var(--accent-color);
+    margin-bottom: 1rem;
+}
+
+.profile-bio {
+    font-size: 1.1rem;
+    line-height: 1.7;
+    opacity: 0.9;
+}
+
+.portfolio-section h2 {
+    font-size: 2rem;
+    color: var(--accent-color);
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.portfolio-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.portfolio-item {
+    height: 250px;
+    border-radius: var(--border-radius);
+    background-size: cover;
+    background-position: center;
+    transition: var(--transition);
+    cursor: pointer;
+    border: 2px solid transparent;
+}
+
+.portfolio-item:hover {
+    transform: scale(1.05);
+    border-color: var(--accent-color);
+}
+
+/* === FORMULARIO RESERVA === */
+.booking-form {
+    max-width: 800px;
+    margin: 4rem auto;
+    background-color: var(--bg-secondary);
+    padding: 3rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+}
+
+.step-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.step-title {
+    font-size: 1.8rem;
+    color: var(--accent-color);
+    margin-bottom: 0.5rem;
+}
+
+.step-subtitle {
+    opacity: 0.8;
+}
+
+.form-group {
+    margin-bottom: 2rem;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    color: var(--accent-color);
+}
+
+.form-select,
+.form-input {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: var(--transition);
+}
+
+.form-select:focus,
+.form-input:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2);
+}
+
+.barbers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.barber-option {
+    background-color: var(--bg-primary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.barber-option:hover,
+.barber-option.selected {
+    border-color: var(--accent-color);
+    background-color: rgba(212, 175, 55, 0.1);
+}
+
+.barber-option img {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    margin-bottom: 1rem;
+    object-fit: cover;
+}
+
+.calendar-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+}
+
+.date-picker {
+    background-color: var(--bg-primary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.time-slots {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+    gap: 1rem;
+}
+
+.time-slot {
+    padding: 12px;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius);
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.time-slot:hover,
+.time-slot.selected {
+    background-color: var(--accent-color);
+    color: var(--bg-primary);
+}
+
+.time-slot.unavailable {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.form-navigation {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.progress-bar {
+    height: 4px;
+    background-color: var(--border-color);
+    border-radius: 2px;
+    margin-bottom: 2rem;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+/* === CONSULTA CITAS === */
+.consultation-form {
+    max-width: 600px;
+    margin: 4rem auto;
+    background-color: var(--bg-secondary);
+    padding: 3rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+}
+
+.appointments-results {
+    margin-top: 2rem;
+}
+
+.appointments-section {
+    margin-bottom: 3rem;
+}
+
+.appointments-section h3 {
+    color: var(--accent-color);
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.appointment-card {
+    background-color: var(--bg-primary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    border: 1px solid var(--border-color);
+    margin-bottom: 1rem;
+}
+
+.appointment-date {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.appointment-details {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    opacity: 0.8;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+    .nav-menu {
+        position: fixed;
+        top: 70px;
+        left: -100%;
+        width: 100%;
+        background-color: var(--bg-secondary);
+        flex-direction: column;
+        padding: 2rem;
+        transition: var(--transition);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .nav-menu.active {
+        left: 0;
+    }
+
+    .hamburger {
+        display: flex;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .hero-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .section-title {
+        font-size: 2rem;
+    }
+
+    .profile-header {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .profile-image {
+        max-width: 300px;
+        margin: 0 auto;
+    }
+
+    .calendar-container {
+        grid-template-columns: 1fr;
+    }
+
+    .form-navigation {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .time-slots {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .barbers-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0 15px;
+    }
+
+    .booking-form,
+    .consultation-form {
+        padding: 2rem 1.5rem;
+        margin: 2rem 1rem;
+    }
+
+    .hero-title {
+        font-size: 2rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .time-slots {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* === ANIMACIONES === */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in {
+    animation: fadeIn 0.6s ease-out;
+}
+
+/* === ESTADOS DE CARGA === */
+.loading {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-top: 2px solid var(--accent-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* === ESTILOS PARA SUPABASE AUTH UI === */
+.supabase-auth-ui_ui-container {
+    width: 100% !important;
+}
+
+.supabase-auth-ui_ui-button {
+    background-color: var(--accent-color) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 12px 24px !important;
+    font-weight: 600 !important;
+    font-size: 16px !important;
+    transition: all 0.2s ease !important;
+    color: var(--bg-primary) !important;
+    cursor: pointer !important;
+}
+
+.supabase-auth-ui_ui-button:hover {
+    background-color: #B8941F !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(212, 175, 55, 0.4) !important;
+}
+
+.supabase-auth-ui_ui-button:active {
+    transform: translateY(0) !important;
+}
+
+.supabase-auth-ui_ui-input {
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    padding: 12px 16px !important;
+    font-size: 16px !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+    background-color: var(--bg-primary) !important;
+    color: var(--text-primary) !important;
+}
+
+.supabase-auth-ui_ui-input:focus {
+    outline: none !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1) !important;
+}
+
+.supabase-auth-ui_ui-label {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+    margin-bottom: 6px !important;
+}
+
+.supabase-auth-ui_ui-message {
+    padding: 12px !important;
+    border-radius: 8px !important;
+    margin-top: 12px !important;
+    font-size: 14px !important;
+}
+
+.supabase-auth-ui_ui-message[data-status="error"] {
+    background-color: rgba(220, 38, 38, 0.15) !important;
+    color: #fca5a5 !important;
+    border: 1px solid rgba(220, 38, 38, 0.3) !important;
+}
+
+.supabase-auth-ui_ui-message[data-status="success"] {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    color: #86efac !important;
+    border: 1px solid rgba(34, 197, 94, 0.3) !important;
+}
+
+.supabase-auth-ui_ui-anchor {
+    color: var(--accent-color) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+    transition: color 0.2s ease !important;
+}
+
+.supabase-auth-ui_ui-anchor:hover {
+    color: #B8941F !important;
+    text-decoration: underline !important;
+}
+
+.supabase-auth-ui_ui-divider {
+    margin: 24px 0 !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Estilos adicionales para formularios */
+form>div {
+    margin-bottom: 16px !important;
+}
+
+/* Ajuste de espaciado para inputs y labels */
+label+input {
+    margin-top: 4px !important;
+}
+
+/* Loading state para el botón */
+.supabase-auth-ui_ui-button:disabled {
+    opacity: 0.6 !important;
+    cursor: not-allowed !important;
+}
+
+/* === FIN ESTILOS SUPABASE AUTH UI === */
+
+/* === ESTILOS PARA ADMIN PANEL === */
+/* Inputs y formularios en modales */
+.admin-input,
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="number"],
+input[type="url"],
+textarea,
+select {
+    background-color: var(--bg-primary) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: var(--border-radius) !important;
+    color: var(--text-primary) !important;
+    padding: 12px 16px !important;
+    transition: var(--transition) !important;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="number"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+    outline: none !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1) !important;
+}
+
+/* Placeholders más visibles */
+input::placeholder,
+textarea::placeholder {
+    color: var(--text-primary) !important;
+    opacity: 0.7 !important;
+}
+
+input::-webkit-input-placeholder,
+textarea::-webkit-input-placeholder {
+    color: var(--text-primary) !important;
+    opacity: 0.7 !important;
+}
+
+input::-moz-placeholder,
+textarea::-moz-placeholder {
+    color: var(--text-primary) !important;
+    opacity: 0.7 !important;
+}
+
+/* Labels */
+label {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    margin-bottom: 8px !important;
+}
+
+/* Checkbox */
+input[type="checkbox"] {
+    width: auto !important;
+    padding: 0 !important;
+    accent-color: var(--accent-color) !important;
+}
+
+/* Select dropdown */
+select {
+    appearance: auto !important;
+    background-image: none !important;
+}
+
+/* Textarea */
+textarea {
+    min-height: 100px !important;
+    resize: vertical !important;
+}
+
+/* === FIN ESTILOS ADMIN PANEL === */
+
+/* === UTILITY CLASSES FOR RESPONSIVE === */
+@layer utilities {
+
+    /* Hide scrollbar for horizontal scrolling navigation */
+    .scrollbar-hide {
+        -ms-overflow-style: none;
+        /* IE and Edge */
+        scrollbar-width: none;
+        /* Firefox */
+    }
+
+    .scrollbar-hide::-webkit-scrollbar {
+        display: none;
+        /* Chrome, Safari, Opera */
+    }
+}
+
+/* === ESTILOS MEJORADOS PARA INPUT DATE === */
+/* Hacer más obvio que el input de fecha es clickeable */
+input[type="date"] {
+    cursor: pointer !important;
+    position: relative !important;
+    font-family: var(--font-family) !important;
+}
+
+/* Mejorar visibilidad del ícono del calendario en navegadores webkit */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    cursor: pointer !important;
+    font-size: 1.2rem !important;
+    padding: 0.5rem !important;
+    opacity: 1 !important;
+    filter: invert(1) !important;
+    /* Hace el ícono visible en tema oscuro */
+}
+
+/* Estilo hover para el input de fecha */
+input[type="date"]:hover {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 2px rgba(212, 175, 55, 0.2) !important;
+}
+
+/* Animación sutil al hacer hover */
+input[type="date"]:hover::-webkit-calendar-picker-indicator {
+    transform: scale(1.1);
+    transition: transform 0.2s ease;
+}
+
+/* Hacer que el placeholder sea más visible */
+input[type="date"]:not(:focus):invalid {
+    color: var(--text-primary) !important;
+    opacity: 0.7 !important;
+}
+
+/* === FIN ESTILOS INPUT DATE === */
+
+/* === MEJORAS UX CALENDARIO === */
+/* Animación de pulso para el icono de ayuda */
+@keyframes pulse {
+
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 0.8;
+    }
+}
+
+/* Wrapper del input de fecha con hover mejorado */
+.date-input-wrapper {
+    transition: all 0.3s ease;
+}
+
+.date-input-wrapper:hover {
+    box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.2) !important;
+    transform: translateY(-2px);
+}
+
+/* Hacer todo el campo clickeable visualmente */
+.date-input-wrapper input[type="date"] {
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.date-input-wrapper:hover input[type="date"] {
+    background-color: rgba(212, 175, 55, 0.05);
+}
+
+/* Ocultar el ícono blanco del calendario nativo */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    display: none;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Para Firefox */
+input[type="date"]::-moz-calendar-picker-indicator {
+    display: none;
+    opacity: 0;
+}
+
+/* Asegurar que el input sea fácil de identificar */
+input[type="date"]:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.3);
+}
+
+/* === FIN MEJORAS UX CALENDARIO === */
+
+/* === PWA STANDALONE MODE (NATIVE APP FEEL) === */
+@media (display-mode: standalone),
+(display-mode: fullscreen) {
+    body {
+        /* Previene el efecto "bounce" o "pull-to-refresh" del navegador */
+        overscroll-behavior-y: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+
+        /* Ajuste para Notch y áreas seguras */
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    /* Ocultar barra de navegación del sitio público en modo App */
+    /* (Se asume que la App es para gestión interna) */
+    .navbar {
+        display: none !important;
+    }
+
+    /* Ajustar headers internos para que no choquen con el Notch */
+    header {
+        padding-top: max(1rem, env(safe-area-inset-top)) !important;
+    }
+
+    /* Botones más grandes y fáciles de tocar */
+    .btn {
+        padding: 18px 30px;
+        min-height: 54px;
+    }
+
+    /* Scrollbars invisibles o minimalistas */
+    ::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
+}
+
+/* Soporte para iPhone con Notch */
+@supports (padding: env(safe-area-inset-top)) {
+    .safe-padding-top {
+        padding-top: env(safe-area-inset-top);
+    }
+
+    .safe-padding-bottom {
+        padding-bottom: env(safe-area-inset-bottom);
+    }
+}
+
+/* Glow Effect para elementos premium en el Panel de Barbero */
+.premium-glow {
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    border: 1px solid rgba(212, 175, 55, 0.4) !important;
+}
+
+/* Animación pwa-fade-in */
+@keyframes pwa-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pwa-content-enter {
+    animation: pwa-fade-in 0.4s ease-out;
+}
+
+
+/* === ANIMACIONES Y EFECTOS DINÁMICOS === */
+
+/* Keyframes */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes slowZoom {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.1);
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: -1000px 0;
+    }
+
+    100% {
+        background-position: 1000px 0;
+    }
+}
+
+/* Clases de Reveal (Intersection Observer) */
+.reveal {
+    opacity: 0;
+    transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+    will-change: opacity, transform;
+}
+
+/* Fallback si JS falla o tarda */
+.no-js .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+}
+
+.reveal-up {
+    transform: translateY(20px);
+}
+
+.reveal-left {
+    transform: translateX(-20px);
+}
+
+.reveal-right {
+    transform: translateX(20px);
+}
+
+.reveal-scale {
+    transform: scale(0.95);
+}
+
+.reveal.active {
+    opacity: 1;
+    transform: translate(0, 0) scale(1);
+}
+
+/* Retrasos progresivos (Staggered Children) */
+.reveal-delay-1 {
+    transition-delay: 0.1s;
+}
+
+.reveal-delay-2 {
+    transition-delay: 0.2s;
+}
+
+.reveal-delay-3 {
+    transition-delay: 0.3s;
+}
+
+.reveal-delay-4 {
+    transition-delay: 0.4s;
+}
+
+.reveal-delay-5 {
+    transition-delay: 0.5s;
+}
+
+/* Mejoras en Componentes */
+.hero {
+    overflow: hidden;
+}
+
+.hero-bg-anim {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(18, 18, 18, 0.6), rgba(18, 18, 18, 0.8)),
+        url('https://images.unsplash.com/photo-1585747860715-2ba37e788b70?ixlib=rb-4.0.3') center/cover;
+    animation: slowZoom 20s infinite alternate ease-in-out;
+    z-index: 1;
+}
+
+.hero-content {
+    animation: fadeInUp 1s ease-out forwards;
+}
+
+.service-card {
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right,
+            transparent,
+            rgba(212, 175, 55, 0.1),
+            transparent);
+    transform: skewX(-25deg);
+    transition: 0.5s;
+}
+
+.service-card:hover::after {
+    left: 150%;
+}
+
+.service-card:hover {
+    transform: translateY(-12px) scale(1.02);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.service-card img {
+    transition: transform 0.6s ease;
+}
+
+.service-card:hover img {
+    transform: scale(1.1);
+}
+
+/* Efecto Glassmorphism para Horarios */
+.schedule-item {
+    background: rgba(26, 26, 26, 0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(212, 175, 55, 0.1);
+}
+
+.schedule-item:hover {
+    background: rgba(212, 175, 55, 0.05);
+    border-color: var(--accent-color);
+    transform: scale(1.02);
+}
+
+/* Smooth Scroll Utility */
+.smooth-reveal {
+    animation: fadeInUp 0.8s ease-out forwards;
+}

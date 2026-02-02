@@ -7,45 +7,20 @@
  * Obtiene un objeto Date que representa el momento exacto en Santiago de Chile.
  */
 export const getChileAhora = (): Date => {
-    // Usamos Intl.DateTimeFormat para obtener los componentes de la fecha en Chile
-    // y evitar problemas de parsing de strings locales.
-    const now = new Date();
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Santiago',
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: 'numeric',
-        second: 'numeric',
-        hour12: false
-    });
-
-    const parts = formatter.formatToParts(now);
-    const p: any = {};
-    parts.forEach(part => p[part.type] = part.value);
-
-    // Creamos un objeto Date "falso" que tiene los números locales de Chile como si fueran UTC
-    // Esto es útil para los componentes que esperan un objeto Date y usan sus métodos locales.
-    return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
+    // Obtenemos el string formateado para Chile
+    const santiagoStr = new Date().toLocaleString("en-US", { timeZone: "America/Santiago" });
+    return new Date(santiagoStr);
 };
 
 /**
  * Obtiene la fecha actual en formato YYYY-MM-DD ajustada a la hora de Chile.
  */
 export const getChileHoy = (): string => {
-    const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Santiago',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit'
-    });
-
-    const parts = formatter.formatToParts(new Date());
-    const p: any = {};
-    parts.forEach(part => p[part.type] = part.value);
-
-    return `${p.year}-${p.month}-${p.day}`;
+    const ahora = getChileAhora();
+    const year = ahora.getFullYear();
+    const month = String(ahora.getMonth() + 1).padStart(2, '0');
+    const day = String(ahora.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 };
 
 /**
