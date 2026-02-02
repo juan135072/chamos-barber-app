@@ -7,6 +7,9 @@ GRANT USAGE ON SCHEMA public TO authenticated, anon, service_role;
 GRANT ALL ON TABLE public.caja_sesiones TO authenticated, service_role, postgres;
 GRANT ALL ON TABLE public.movimientos_caja TO authenticated, service_role, postgres;
 
+-- 2.1 Añadir comercio_id a movimientos_caja para RLS simplificado
+ALTER TABLE public.movimientos_caja ADD COLUMN IF NOT EXISTS comercio_id uuid REFERENCES public.comercios(id);
+
 -- 3. Actualizar la vista de usuarios con permisos para incluir comercio_id
 -- Esto es vital para que el frontend sepa a qué comercio pertenece el usuario
 CREATE OR REPLACE VIEW public.usuarios_con_permisos AS

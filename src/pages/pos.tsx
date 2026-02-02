@@ -103,6 +103,7 @@ export default function POSPage() {
                 <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
                   <i className="fas fa-calendar-alt mr-2"></i>
                   {new Date().toLocaleDateString('es-ES', {
+                    timeZone: 'America/Santiago',
                     weekday: 'long',
                     year: 'numeric',
                     month: 'long',

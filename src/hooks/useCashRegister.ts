@@ -65,6 +65,7 @@ export function useCashRegister(usuario: any) {
             // 2. Registrar movimiento de apertura
             await (supabase.from('movimientos_caja') as any).insert({
                 sesion_id: data.id,
+                comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                 tipo: 'apertura',
                 monto: montoInicial,
                 descripcion: 'Fondo inicial de caja'
@@ -102,6 +103,7 @@ export function useCashRegister(usuario: any) {
             // Registrar movimiento de cierre
             await (supabase.from('movimientos_caja') as any).insert({
                 sesion_id: sesion.id,
+                comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                 tipo: 'cierre',
                 monto: montoFinalReal,
                 descripcion: `Cierre de caja. Notas: ${notas}`
@@ -132,6 +134,7 @@ export function useCashRegister(usuario: any) {
             // 2. Registrar el movimiento
             await (supabase.from('movimientos_caja') as any).insert({
                 sesion_id: sesion.id,
+                comercio_id: (usuario as any).comercio_id, // Soporte multi-tenant
                 tipo: 'venta',
                 monto: monto,
                 metodo_pago: metodoPago,
