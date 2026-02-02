@@ -58,14 +58,7 @@ CREATE POLICY "Permitir todo movimientos" ON public.movimientos_caja FOR ALL TO 
 DROP VIEW IF EXISTS public.usuarios_con_permisos CASCADE;
 
 CREATE VIEW public.usuarios_con_permisos AS
-SELECT 
-    au.id,
-    au.email,
-    au.nombre,
-    au.rol,
-    au.activo,
-    au.comercio_id,
-    rp.permisos
+SELECT au.id, au.email, au.nombre, au.rol, au.activo, au.comercio_id, rp.permisos
 FROM public.admin_users au
 LEFT JOIN public.roles_permisos rp ON au.rol = rp.rol;
 
