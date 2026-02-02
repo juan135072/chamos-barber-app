@@ -54,7 +54,10 @@ DROP POLICY IF EXISTS "Permitir todo movimientos" ON public.movimientos_caja;
 CREATE POLICY "Permitir todo movimientos" ON public.movimientos_caja FOR ALL TO authenticated USING (true) WITH CHECK (true);
 
 -- 5. Actualizar vista de usuarios para asegurar que comercio_id esté disponible en el frontend
-CREATE OR REPLACE VIEW public.usuarios_con_permisos AS
+-- Usamos DROP para evitar "cannot drop columns from view" si la estructura cambia
+DROP VIEW IF EXISTS public.usuarios_con_permisos CASCADE;
+
+CREATE VIEW public.usuarios_con_permisos AS
 SELECT 
     au.id,
     au.email,
