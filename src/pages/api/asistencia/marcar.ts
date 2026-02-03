@@ -14,6 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         const { clave, latitud, longitud, ubicacion_id } = req.body
+        console.log('🧪 [API-MARCAR] Inicia proceso:', {
+            clave: clave?.substring(0, 3) + '...',
+            latitud,
+            longitud,
+            ubicacion_id
+        })
 
         if (!clave || typeof clave !== 'string') {
             return res.status(400).json({ error: 'Clave requerida' })
@@ -26,9 +32,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
         if (authError || !user) {
-            console.error('❌ [marcar-asistencia] Error de autenticación:', authError)
-            return res.status(401).json({ error: 'No autenticado' })
+            console.error('❌ [marcar-asistencia] No autenticado. Error:', authError)
+            // Debug de cookies
+            console.log('🧪 [API-MARCAR] Cookies recibidas:', req.headers.cookie ? 'SÍ' : 'NO')
+            return res.status(401).json({
+                error: 'No autenticado',
+                debug: authError?.message || 'Sin sesión'
+            })
         }
+
+        console.log('🧪 [API-MARCAR] Usuario autenticado:', user.email)
 
         const barberoId = user.id
 

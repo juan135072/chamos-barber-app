@@ -29,6 +29,7 @@ export default function MarcarAsistencia({ barberoId }: Props) {
     const [verificandoAsistencia, setVerificandoAsistencia] = useState(true)
     const [asistenciaHoy, setAsistenciaHoy] = useState<AsistenciaHoy | null>(null)
     const [ubicacionId, setUbicacionId] = useState<string | null>(null)
+    const [debugError, setDebugError] = useState<string | null>(null)
 
     // Al cargar el componente o cambiar el ID del barbero
     useEffect(() => {
@@ -119,6 +120,13 @@ export default function MarcarAsistencia({ barberoId }: Props) {
             toast.success('✓ Ubicación obtenida', { id: 'gps' })
 
             // 🔐 PASO 2: Enviar asistencia con ubicación
+            console.log('🧪 [DEBUG] Intentando marcar asistencia:', {
+                clave: clave.trim().toUpperCase(),
+                latitud,
+                longitud,
+                ubicacion_id: ubicacionId
+            })
+
             const response = await fetch('/api/asistencia/marcar', {
                 method: 'POST',
                 headers: {
@@ -132,12 +140,20 @@ export default function MarcarAsistencia({ barberoId }: Props) {
                 })
             })
 
+            console.log('🧪 [DEBUG] Status de respuesta:', response.status)
+
             const data = await response.json()
+            console.log('🧪 [DEBUG] Cuerpo de respuesta:', data)
 
             if (!response.ok) {
-                toast.error(data.error || 'Error al registrar asistencia')
+                const errorMsg = data.error || 'Error al registrar asistencia'
+                toast.error(errorMsg)
+                console.error('❌ [DEBUG] Error al marcar:', errorMsg)
+                setDebugError(`Status: ${response.status}. Error: ${errorMsg}. ${data.debug || ''}`)
                 return
             }
+
+            setDebugError(null)
 
             // Éxito
             toast.success(data.mensaje || '✅ Asistencia marcada')
@@ -335,6 +351,22 @@ export default function MarcarAsistencia({ barberoId }: Props) {
                     <li>Acepta los permisos de ubicación</li>
                 </ul>
             </div>
+
+            {debugError && (
+                <div style={{
+                    marginTop: '1rem',
+                    padding: '0.75rem',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid #ef4444',
+                    borderRadius: '8px',
+                    fontSize: '0.7rem',
+                    fontFamily: 'monospace',
+                    color: '#ef4444',
+                    wordBreak: 'break-all'
+                }}>
+                    <strong>DEBUG:</strong> {debugError}
+                </div>
+            )}
         </div>
     )
 }
