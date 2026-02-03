@@ -34,7 +34,7 @@ export default async function handler(
             .eq('id', user.id)
             .single()
 
-        if (adminError || !adminData || adminData.rol !== 'administrador') {
+        if (adminError || !adminData || !['admin', 'administrador'].includes(adminData.rol)) {
             return res.status(403).json({ error: 'No autorizado' })
         }
 

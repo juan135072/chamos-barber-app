@@ -35,7 +35,7 @@ export default async function handler(
             .eq('id', user.id)
             .single()
 
-        const esAdmin = adminData?.rol === 'administrador'
+        const esAdmin = adminData?.rol === 'administrador' || adminData?.rol === 'admin'
 
         // Obtener parámetros de query
         const { mes, barbero_id, limite = '30' } = req.query
