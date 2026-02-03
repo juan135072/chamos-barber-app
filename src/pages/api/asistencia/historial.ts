@@ -52,7 +52,8 @@ export default async function handler(
 
         // Si no es admin, solo ver sus asistencias
         if (!esAdmin) {
-            query = query.eq('barbero_id', user.id)
+            const barberoIdReal = adminData?.barbero_id || user.id
+            query = query.eq('barbero_id', barberoIdReal)
         }
         // Si es admin y especifica un barbero
         else if (barbero_id) {

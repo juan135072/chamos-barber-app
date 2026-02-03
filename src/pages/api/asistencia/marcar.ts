@@ -43,17 +43,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         console.log('🧪 [API-MARCAR] Usuario autenticado:', user.email)
 
-        const barberoId = user.id
+        const { data: adminData } = await supabase
+            .from('admin_users')
+            .select('barbero_id')
+            .eq('id', user.id)
+            .single()
+
+        const realBarberoId = adminData?.barbero_id || user.id
+        console.log('🧪 [API-MARCAR] ID resultante:', { authId: user.id, realBarberoId })
 
         // 2. Obtener información del barbero (para logs y verificación)
         const { data: barbero, error: barberoError } = await supabase
             .from('barberos')
             .select('nombre, apellido, activo')
-            .eq('id', barberoId)
+            .eq('id', realBarberoId)
             .single()
 
         if (barberoError || !barbero) {
-            return res.status(404).json({ error: 'Perfil de barbero no encontrado' })
+            console.error('❌ [API-MARCAR] Perfil no encontrado para ID:', realBarberoId)
+            return res.status(404).json({
+                error: 'Perfil de barbero no encontrado',
+                debug: `ID buscado: ${realBarberoId}`
+            })
         }
 
         if (!barbero.activo) {
@@ -65,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: asistenciaExistente } = await supabase
             .from('asistencias')
             .select('id, hora, estado')
-            .eq('barbero_id', barberoId)
+            .eq('barbero_id', realBarberoId)
             .eq('fecha', fechaActual)
             .maybeSingle()
 
@@ -150,7 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: nuevaAsistencia, error: insertError } = await supabase
             .from('asistencias')
             .insert({
-                barbero_id: barberoId,
+                barbero_id: realBarberoId,
                 fecha: fechaActual,
                 hora: horaActual,
                 clave_usada: clave.trim().toUpperCase(),
