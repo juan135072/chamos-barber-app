@@ -31,7 +31,7 @@ export default async function handler(
         // Verificar si es admin
         const { data: adminData } = await supabase
             .from('admin_users')
-            .select('rol')
+            .select('rol, barbero_id')
             .eq('id', user.id)
             .single()
 
