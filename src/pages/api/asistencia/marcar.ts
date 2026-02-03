@@ -88,12 +88,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 4. Validar Clave del Día
+        // Normalizar entrada: quitar guiones y espacios, pasar a mayúsculas
+        const claveNormalizada = clave.trim().replace(/-/g, '').toUpperCase()
+
+        // Buscar clave en BD (puede guardarse con o sin guion, la comparamos normalizada si fuera posible, 
+        // pero mejor buscamos la exacta o ambas. Como las generamos con guion, la buscamos tal cual o la normalizamos)
+
+        // Primero intentamos buscar la clave tal cual se generó (con guion)
+        // El formato es XXX-DDMM, así que reconstruimos el guion si no lo trae
+        let claveBuscada = claveNormalizada
+        if (claveNormalizada.length >= 3) {
+            claveBuscada = claveNormalizada.substring(0, 3) + '-' + claveNormalizada.substring(3)
+        }
+
         const { data: claveValida, error: claveError } = await supabase
             .from('claves_diarias')
             .select('clave')
             .eq('fecha', fechaActual)
             .eq('activa', true)
-            .eq('clave', clave.trim().toUpperCase())
+            .or(`clave.eq.${claveBuscada},clave.eq.${claveNormalizada}`)
             .maybeSingle()
 
         if (claveError || !claveValida) {

@@ -291,24 +291,30 @@ export default function MarcarAsistencia({ barberoId }: Props) {
                 <input
                     type="text"
                     value={clave}
-                    onChange={(e) => setClave(e.target.value.toUpperCase())}
+                    onChange={(e) => {
+                        let value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+                        if (value.length > 3) {
+                            value = value.substring(0, 3) + '-' + value.substring(3)
+                        }
+                        setClave(value)
+                    }}
                     onKeyPress={handleKeyPress}
-                    placeholder="Ej: B4R-2201"
+                    placeholder="Ej: ABC-1234"
                     disabled={loading}
                     style={{
                         padding: '1rem',
-                        fontSize: '1.25rem',
+                        fontSize: '1.5rem',
                         textAlign: 'center',
-                        letterSpacing: '0.1em',
+                        letterSpacing: '0.15em',
                         fontWeight: 'bold',
                         fontFamily: 'monospace',
-                        background: 'var(--input-background)',
-                        border: '2px solid var(--border-color)',
-                        borderRadius: '8px',
+                        background: 'rgba(255, 255, 255, 0.05)',
+                        border: '2px solid var(--accent-color)',
+                        borderRadius: '12px',
                         color: 'var(--text-primary)',
-                        textTransform: 'uppercase'
+                        boxShadow: '0 0 15px rgba(212, 175, 55, 0.1)'
                     }}
-                    maxLength={10}
+                    maxLength={8}
                 />
 
                 <button
