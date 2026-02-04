@@ -56,3 +56,18 @@ WITH CHECK (
     barbero_id = auth.uid() AND
     comercio_id = (SELECT comercio_id FROM barberos WHERE id = auth.uid())
 );
+
+-- 5. Permitir que usuarios vean su propia información de perfil
+ALTER TABLE public.admin_users ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Usuarios ven su propio perfil" ON public.admin_users;
+CREATE POLICY "Usuarios ven su propio perfil" 
+ON public.admin_users FOR SELECT 
+TO authenticated 
+USING (id = auth.uid());
+
+ALTER TABLE public.barberos ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Barberos ven su propio perfil" ON public.barberos;
+CREATE POLICY "Barberos ven su propio perfil" 
+ON public.barberos FOR SELECT 
+TO authenticated 
+USING (id = auth.uid());
