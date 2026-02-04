@@ -13,6 +13,11 @@ export default async function handler(
     req: NextApiRequest,
     res: NextApiResponse
 ) {
+    // 🔍 DIAGNÓSTICO RÁPIDO
+    if (req.query.ping === '1') {
+        return res.status(200).json({ status: 'pong', timestamp: new Date().toISOString() })
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método no permitido' })
     }
