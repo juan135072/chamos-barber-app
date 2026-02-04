@@ -135,14 +135,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 🌍 5. Validar Geolocalización (GPS)
-        // Se requiere que el frontend envíe latitud, longitud y ubicacion_id
+        // ⚠️ TEMPORALMENTE DESACTIVADO PARA PRUEBAS - REACTIVAR EN PRODUCCIÓN
+        /*
         if (!latitud || !longitud || !ubicacion_id) {
             return res.status(400).json({
                 error: 'Se requiere información de ubicación (GPS) para marcar asistencia'
             })
         }
 
-        // Llamar a la función RPC que calcula si está dentro del radio
         const { data: ubicacionValida, error: gpsError } = await supabase
             .rpc('ubicacion_es_valida', {
                 p_lat: latitud,
@@ -156,6 +156,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 error: 'No estás en la zona permitida de la barbería para marcar asistencia'
             })
         }
+        */
+        console.log('⚠️ [GPS] Validación GPS DESACTIVADA temporalmente para pruebas')
 
         // Obtener la distancia para registrarla (metadatos)
         const { data: infoDistancia } = await supabase
