@@ -217,14 +217,25 @@ const ConfiguracionTab: React.FC = () => {
                     boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
                   }}
                 >
-                  <option value="America/Santiago">Santiago, Chile (UTC-3/4)</option>
-                  <option value="America/Bogota">Bogotá, Colombia (UTC-5)</option>
-                  <option value="America/Mexico_City">Ciudad de México, México (UTC-6)</option>
-                  <option value="America/Lima">Lima, Perú (UTC-5)</option>
-                  <option value="America/Argentina/Buenos_Aires">Buenos Aires, Argentina (UTC-3)</option>
-                  <option value="America/Caracas">Caracas, Venezuela (UTC-4)</option>
-                  <option value="America/Guayaquil">Guayaquil, Ecuador (UTC-5)</option>
-                  <option value="America/Madrid">Madrid, España (UTC+1/2)</option>
+                  <optgroup label="🇺🇸 Estados Unidos">
+                    <option value="America/New_York">Nueva York (UTC-5/4)</option>
+                    <option value="America/Chicago">Chicago (UTC-6/5)</option>
+                    <option value="America/Denver">Denver (UTC-7/6)</option>
+                    <option value="America/Los_Angeles">Los Ángeles (UTC-8/7)</option>
+                    <option value="America/Miami">Miami (UTC-5/4)</option>
+                  </optgroup>
+                  <optgroup label="🌎 Latinoamérica">
+                    <option value="America/Santiago">Santiago, Chile (UTC-3/4)</option>
+                    <option value="America/Bogota">Bogotá, Colombia (UTC-5)</option>
+                    <option value="America/Mexico_City">Ciudad de México (UTC-6)</option>
+                    <option value="America/Lima">Lima, Perú (UTC-5)</option>
+                    <option value="America/Argentina/Buenos_Aires">Buenos Aires, Argentina (UTC-3)</option>
+                    <option value="America/Caracas">Caracas, Venezuela (UTC-4)</option>
+                    <option value="America/Guayaquil">Guayaquil, Ecuador (UTC-5)</option>
+                  </optgroup>
+                  <optgroup label="🇪🇺 Europa">
+                    <option value="Europe/Madrid">Madrid, España (UTC+1/2)</option>
+                  </optgroup>
                 </select>
                 <p className="text-xs mt-2" style={{ color: 'var(--text-primary)', opacity: 0.5 }}>
                   Esto afecta la generación automática de claves de asistencia y el registro de horas.
