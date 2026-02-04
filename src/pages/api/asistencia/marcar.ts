@@ -159,13 +159,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         */
         console.log('⚠️ [GPS] Validación GPS DESACTIVADA temporalmente para pruebas')
 
-        // Obtener la distancia para registrarla (metadatos)
-        const { data: infoDistancia } = await supabase
-            .rpc('calcular_distancia_metros', {
-                lat1: latitud,
-                lng1: longitud,
-                u_id: ubicacion_id
-            })
+        // Obtener la distancia para registrarla (metadatos) - solo si hay coordenadas
+        let infoDistancia = null
+        if (latitud && longitud && ubicacion_id) {
+            const { data: distData } = await supabase
+                .rpc('calcular_distancia_metros', {
+                    lat1: latitud,
+                    lng1: longitud,
+                    u_id: ubicacion_id
+                })
+            infoDistancia = distData
+        }
 
         // 6. Determinar Estado (Normal / Tarde) basado en la configuración
         // horaActual ya fue obtenida arriba usando la zona horaria correcta
@@ -204,10 +208,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 estado: estado,
                 dispositivo: dispositivo,
                 ip_address: typeof ipAddress === 'string' ? ipAddress : null,
-                latitud_registrada: latitud,
-                longitud_registrada: longitud,
+                latitud_registrada: latitud || null,
+                longitud_registrada: longitud || null,
                 distancia_metros: typeof infoDistancia === 'number' ? infoDistancia : null,
-                ubicacion_barberia_id: ubicacion_id
+                ubicacion_barberia_id: ubicacion_id || null
             })
             .select()
             .single()
