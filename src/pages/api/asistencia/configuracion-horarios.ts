@@ -26,14 +26,24 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        // Obtener configuración activa
+        // Obtener comercio_id del admin
+        const { data: adminUser } = await supabase
+            .from('admin_users')
+            .select('comercio_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!adminUser?.comercio_id) {
+            return res.status(403).json({ error: 'Usuario no asociado a un comercio' })
+        }
+
+        // Obtener configuración activa PARA ESTE COMERCIO
         const { data: config, error } = await supabase
             .from('configuracion_horarios')
             .select('*')
             .eq('activa', true)
-            .order('updated_at', { ascending: false })
-            .limit(1)
-            .single()
+            .eq('comercio_id', adminUser.comercio_id)
+            .maybeSingle()
 
         if (error) {
             // Si no existe configuración, retornar valores por defecto

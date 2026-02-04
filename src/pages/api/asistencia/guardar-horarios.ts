@@ -43,10 +43,10 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        // Verificar que es admin
+        // Verificar que es admin y obtener comercio_id
         const { data: adminUser } = await supabase
             .from('admin_users')
-            .select('role, rol')
+            .select('role, rol, comercio_id')
             .eq('id', user.id)
             .single()
 
@@ -54,13 +54,17 @@ export default async function handler(
             return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' })
         }
 
-        // Buscar configuración activa
+        if (!adminUser.comercio_id) {
+            return res.status(403).json({ error: 'Usuario no asociado a un comercio' })
+        }
+
+        // Buscar configuración activa PARA ESTE COMERCIO
         const { data: configExistente } = await supabase
             .from('configuracion_horarios')
             .select('id')
             .eq('activa', true)
-            .limit(1)
-            .single()
+            .eq('comercio_id', adminUser.comercio_id)
+            .maybeSingle()
 
         let result
 
@@ -89,6 +93,7 @@ export default async function handler(
                 .from('configuracion_horarios')
                 .insert({
                     nombre: 'Horario General',
+                    comercio_id: adminUser.comercio_id,
                     hora_entrada_puntual: hora_entrada_puntual + ':00',
                     hora_salida_minima: hora_salida_minima ? hora_salida_minima + ':00' : null,
                     activa: true

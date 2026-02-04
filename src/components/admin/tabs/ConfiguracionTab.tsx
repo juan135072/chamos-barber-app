@@ -15,13 +15,6 @@ const ConfiguracionTab: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [config, setConfig] = useState<Record<string, string>>({})
-  const [horarioGeneral, setHorarioGeneral] = useState<{
-    hora_entrada_puntual: string;
-    hora_salida_minima: string;
-  }>({
-    hora_entrada_puntual: '09:30:00',
-    hora_salida_minima: '18:00:00'
-  })
 
   const configItems: ConfigItem[] = [
     { clave: 'sitio_nombre', label: 'Nombre del Negocio', tipo: 'texto', placeholder: 'Chamos Barber Shop', icon: 'fas fa-store' },
@@ -52,15 +45,6 @@ const ConfiguracionTab: React.FC = () => {
         })
       }
       setConfig(configMap)
-
-      // Cargar Horario General
-      const horario = await chamosSupabase.getHorarioGeneral() as any
-      if (horario) {
-        setHorarioGeneral({
-          hora_entrada_puntual: horario.hora_entrada_puntual,
-          hora_salida_minima: horario.hora_salida_minima || '18:00:00'
-        })
-      }
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Error al cargar configuración')
@@ -71,10 +55,6 @@ const ConfiguracionTab: React.FC = () => {
 
   const handleChange = (clave: string, valor: string) => {
     setConfig(prev => ({ ...prev, [clave]: valor }))
-  }
-
-  const handleHorarioChange = (campo: string, valor: string) => {
-    setHorarioGeneral(prev => ({ ...prev, [campo]: valor }))
   }
 
   const handleSave = async () => {
@@ -90,9 +70,6 @@ const ConfiguracionTab: React.FC = () => {
       // Guardar Timezone (si se cambió)
       const timezone = config['sitio_timezone'] || 'America/Santiago'
       await chamosSupabase.updateConfiguracion('sitio_timezone', timezone)
-
-      // Guardar Horario General de Asistencia
-      await chamosSupabase.updateHorarioGeneral(horarioGeneral)
 
       toast.success('Configuración guardada exitosamente')
     } catch (error: any) {
@@ -252,50 +229,6 @@ const ConfiguracionTab: React.FC = () => {
                 <p className="text-xs mt-2" style={{ color: 'var(--text-primary)', opacity: 0.5 }}>
                   Esto afecta la generación automática de claves de asistencia y el registro de horas.
                 </p>
-              </div>
-
-              {/* Horarios de Puntualidad */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-color)]">
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                    <i className="fas fa-sign-in-alt mr-2" style={{ color: '#10B981' }}></i>
-                    Entrada Puntual
-                  </label>
-                  <input
-                    type="time"
-                    value={horarioGeneral.hora_entrada_puntual.substring(0, 5)}
-                    onChange={(e) => handleHorarioChange('hora_entrada_puntual', e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--border-color)'
-                    }}
-                  />
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--text-primary)', opacity: 0.4 }}>
-                    Límite para no marcar "Tarde"
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                    <i className="fas fa-sign-out-alt mr-2" style={{ color: '#EF4444' }}></i>
-                    Salida Mínima
-                  </label>
-                  <input
-                    type="time"
-                    value={horarioGeneral.hora_salida_minima?.substring(0, 5) || '18:00'}
-                    onChange={(e) => handleHorarioChange('hora_salida_minima', e.target.value)}
-                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
-                    style={{
-                      backgroundColor: 'var(--bg-primary)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--border-color)'
-                    }}
-                  />
-                  <p className="text-[10px] mt-1" style={{ color: 'var(--text-primary)', opacity: 0.4 }}>
-                    Hora base de cierre
-                  </p>
-                </div>
               </div>
 
               <div className="flex items-start p-3 rounded-lg mt-2" style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)', border: '1px dashed #3B82F6' }}>
