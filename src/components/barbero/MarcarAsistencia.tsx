@@ -95,31 +95,34 @@ export default function MarcarAsistencia({ barberoId }: Props) {
         setLoading(true)
 
         try {
-            // 🌍 PASO 1: Obtener ubicación GPS
-            if (!navigator.geolocation) {
-                toast.error('Tu dispositivo no soporta geolocalización')
-                setLoading(false)
-                return
+            // 🌍 PASO 1: Intentar obtener ubicación GPS (opcional durante pruebas)
+            let latitud: number | null = null
+            let longitud: number | null = null
+
+            if (navigator.geolocation) {
+                toast.loading('📍 Obteniendo tu ubicación...', { id: 'gps' })
+
+                try {
+                    const position = await new Promise<GeolocationPosition>((resolve, reject) => {
+                        navigator.geolocation.getCurrentPosition(resolve, reject, {
+                            enableHighAccuracy: true,
+                            timeout: 10000,
+                            maximumAge: 0
+                        })
+                    })
+
+                    latitud = position.coords.latitude
+                    longitud = position.coords.longitude
+                    toast.success('✓ Ubicación obtenida', { id: 'gps' })
+                } catch (gpsError) {
+                    // ⚠️ GPS falló pero continuamos (modo pruebas)
+                    console.warn('⚠️ GPS no disponible, continuando sin ubicación:', gpsError)
+                    toast.dismiss('gps')
+                    toast('⚠️ Continuando sin GPS (modo pruebas)', { icon: '📍' })
+                }
             }
 
-            toast.loading('📍 Obteniendo tu ubicación...', { id: 'gps' })
-
-            const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-                navigator.geolocation.getCurrentPosition(resolve, reject, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                })
-            }).catch(err => {
-                throw err
-            })
-
-            const latitud = position.coords.latitude
-            const longitud = position.coords.longitude
-
-            toast.success('✓ Ubicación obtenida', { id: 'gps' })
-
-            // 🔐 PASO 2: Enviar asistencia con ubicación
+            // 🔐 PASO 2: Enviar asistencia con ubicación (o sin ella)
             console.log('🧪 [DEBUG] Intentando marcar asistencia:', {
                 clave: clave.trim().toUpperCase(),
                 latitud,
