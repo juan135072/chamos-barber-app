@@ -74,6 +74,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const comercioId = barbero.comercio_id
 
+        if (!comercioId) {
+            console.error('❌ [API-MARCAR] El barbero no tiene un comercio_id asignado:', realBarberoId)
+            return res.status(403).json({ error: 'Configuración incompleta: Tu perfil de barbero no tiene un comercio asignado.' })
+        }
+
         // 3. Obtener zona horaria y fecha actual ESPECÍFICA para este comercio
         const { data: configTimezone } = await supabase
             .from('sitio_configuracion')

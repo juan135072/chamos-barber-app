@@ -42,6 +42,11 @@ export default async function handler(
 
         const comercioId = adminData.comercio_id
 
+        if (!comercioId) {
+            console.error('❌ [generar-clave] El administrador no tiene un comercio_id asignado')
+            return res.status(403).json({ error: 'Configuración de multitenant incompleta: Tu usuario no tiene un comercio asignado.' })
+        }
+
         // Obtener zona horaria configurada PARA ESTE COMERCIO
         const { data: configTimezone } = await supabase
             .from('sitio_configuracion')
