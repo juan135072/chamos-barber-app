@@ -53,9 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         console.log('🧪 [API-MARCAR] ID resultante:', { authId: user.id, realBarberoId })
 
         // 2. Obtener información del barbero (para logs y verificación)
+        // AHORA: También obtenemos comercio_id para el sistema multitenant
         const { data: barbero, error: barberoError } = await supabase
             .from('barberos')
-            .select('nombre, apellido, activo')
+            .select('nombre, apellido, activo, comercio_id')
             .eq('id', realBarberoId)
             .single()
 
@@ -71,13 +72,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(403).json({ error: 'Tu cuenta de barbero está inactivada' })
         }
 
-        // 3. Verificar si ya marcó hoy
-        const fechaActual = new Date().toISOString().split('T')[0]
+        const comercioId = barbero.comercio_id
+
+        // 3. Obtener zona horaria y fecha actual ESPECÍFICA para este comercio
+        const { data: configTimezone } = await supabase
+            .from('sitio_configuracion')
+            .select('valor')
+            .eq('clave', 'sitio_timezone')
+            .eq('comercio_id', comercioId)
+            .maybeSingle()
+
+        const timezone = configTimezone?.valor || 'America/Santiago'
+
+        const { getDynamicHoy, getDynamicHora } = await import('@/lib/date-utils')
+        const fechaActual = getDynamicHoy(timezone)
+        const horaActual = getDynamicHora(timezone)
+
+        console.log(`🧪 [API-MARCAR] Procesando para fecha: ${fechaActual}, hora: ${horaActual}, timezone: ${timezone}, comercio: ${comercioId}`)
+
+        // Verificar si ya registró asistencia hoy (en su comercio)
         const { data: asistenciaExistente } = await supabase
             .from('asistencias')
             .select('id, hora, estado')
             .eq('barbero_id', realBarberoId)
             .eq('fecha', fechaActual)
+            .eq('comercio_id', comercioId)
             .maybeSingle()
 
         if (asistenciaExistente) {
@@ -87,15 +106,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
         }
 
-        // 4. Validar Clave del Día
+        // 4. Validar Clave del Día (ESPECÍFICA para este comercio)
         // Normalizar entrada: quitar guiones y espacios, pasar a mayúsculas
         const claveNormalizada = clave.trim().replace(/-/g, '').toUpperCase()
 
-        // Buscar clave en BD (puede guardarse con o sin guion, la comparamos normalizada si fuera posible, 
-        // pero mejor buscamos la exacta o ambas. Como las generamos con guion, la buscamos tal cual o la normalizamos)
-
-        // Primero intentamos buscar la clave tal cual se generó (con guion)
-        // El formato es XXX-DDMM, así que reconstruimos el guion si no lo trae
+        // Reconstruir guion para búsqueda
         let claveBuscada = claveNormalizada
         if (claveNormalizada.length >= 3) {
             claveBuscada = claveNormalizada.substring(0, 3) + '-' + claveNormalizada.substring(3)
@@ -106,6 +121,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .select('clave')
             .eq('fecha', fechaActual)
             .eq('activa', true)
+            .eq('comercio_id', comercioId)
             .or(`clave.eq.${claveBuscada},clave.eq.${claveNormalizada}`)
             .maybeSingle()
 
@@ -145,16 +161,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             })
 
         // 6. Determinar Estado (Normal / Tarde) basado en la configuración
-        const ahora = new Date()
-        const horaActual = ahora.toLocaleTimeString('es-CL', { hour12: false, hour: '2-digit', minute: '2-digit' })
+        // horaActual ya fue obtenida arriba usando la zona horaria correcta
 
-        // Obtener configuración de horarios activa
+        // Obtener configuración de horarios activa PARA ESTE COMERCIO
         const { data: configuracion } = await supabase
             .from('configuracion_horarios')
             .select('hora_entrada_puntual')
             .eq('activa', true)
-            .limit(1)
-            .single()
+            .eq('comercio_id', comercioId)
+            .maybeSingle()
 
         const horaLimiteStr = configuracion?.hora_entrada_puntual || '09:30'
 
@@ -170,11 +185,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress
         const dispositivo = req.headers['user-agent'] || 'Desconocido'
 
-        // 7. Registrar Asistencia
+        // 7. Registrar Asistencia (CON comercio_id)
         const { data: nuevaAsistencia, error: insertError } = await supabase
             .from('asistencias')
             .insert({
                 barbero_id: realBarberoId,
+                comercio_id: comercioId, // MULTITENANT FIXED
                 fecha: fechaActual,
                 hora: horaActual,
                 clave_usada: clave.trim().toUpperCase(),

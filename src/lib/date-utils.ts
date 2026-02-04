@@ -4,14 +4,12 @@
  */
 
 /**
- * Obtiene un objeto Date que representa el momento exacto en Santiago de Chile.
+ * Obtiene un objeto Date que representa el momento exacto en la zona horaria especificada.
  */
-export const getChileAhora = (): Date => {
-    // Usamos Intl.DateTimeFormat para obtener los componentes de la fecha en Chile
-    // y evitar problemas de parsing de strings locales.
+export const getDynamicAhora = (timeZone: string = 'America/Santiago'): Date => {
     const now = new Date();
     const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Santiago',
+        timeZone,
         year: 'numeric',
         month: 'numeric',
         day: 'numeric',
@@ -25,17 +23,18 @@ export const getChileAhora = (): Date => {
     const p: any = {};
     parts.forEach(part => p[part.type] = part.value);
 
-    // Creamos un objeto Date "falso" que tiene los números locales de Chile como si fueran UTC
-    // Esto es útil para los componentes que esperan un objeto Date y usan sus métodos locales.
     return new Date(p.year, p.month - 1, p.day, p.hour, p.minute, p.second);
 };
 
+// Mantener compatibilidad con Chile para no romper código existente de inmediato
+export const getChileAhora = () => getDynamicAhora('America/Santiago');
+
 /**
- * Obtiene la fecha actual en formato YYYY-MM-DD ajustada a la hora de Chile.
+ * Obtiene la fecha actual en formato YYYY-MM-DD ajustada a la zona horaria.
  */
-export const getChileHoy = (): string => {
+export const getDynamicHoy = (timeZone: string = 'America/Santiago'): string => {
     const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Santiago',
+        timeZone,
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
@@ -48,38 +47,46 @@ export const getChileHoy = (): string => {
     return `${p.year}-${p.month}-${p.day}`;
 };
 
+export const getChileHoy = () => getDynamicHoy('America/Santiago');
+
 /**
- * Obtiene un objeto Date ajustado a la medianoche de Chile (inicio del día).
+ * Obtiene la hora actual en formato HH:mm ajustada a la zona horaria.
  */
-export const getChileInicioDia = (fechaStr?: string): Date => {
-    const fecha = fechaStr || getChileHoy();
-    // Interpretamos el string YYYY-MM-DD como medianoche en Chile
-    // Usamos el formato local de Chile para evitar desfases de offset manuales
-    const d = new Date(`${fecha}T00:00:00`);
-    const santiagoStr = d.toLocaleString("en-US", { timeZone: "America/Santiago" });
-    return new Date(santiagoStr);
+export const getDynamicHora = (timeZone: string = 'America/Santiago'): string => {
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false
+    });
+
+    const parts = formatter.formatToParts(new Date());
+    const p: any = {};
+    parts.forEach(part => p[part.type] = part.value);
+
+    return `${p.hour}:${p.minute}`;
 };
 
 /**
- * Formatea una fecha ISO o Date a string legible para Chile (ej: Lunes 18 de Enero).
- * Evita el bug de desfase de un día al procesar strings YYYY-MM-DD.
+ * Formatea una fecha a string legible según la zona horaria.
  */
-export const formatFechaChile = (date: string | Date): string => {
+export const formatFechaDynamic = (date: string | Date, timeZone: string = 'America/Santiago'): string => {
     let d: Date;
 
     if (typeof date === 'string' && date.includes('-') && !date.includes('T')) {
-        // Es un string YYYY-MM-DD. Le agregamos T12:00:00 para evitar que 
-        // el offset de Chile (UTC-3) lo mueva al día anterior.
+        // Es un string YYYY-MM-DD. Usamos T12:00:00 para evitar cambios de fecha inesperados
         d = new Date(`${date}T12:00:00`);
     } else {
         d = typeof date === 'string' ? new Date(date) : date;
     }
 
     return d.toLocaleDateString('es-CL', {
-        timeZone: 'America/Santiago',
+        timeZone,
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric'
     });
 };
+
+export const formatFechaChile = (date: string | Date) => formatFechaDynamic(date, 'America/Santiago');

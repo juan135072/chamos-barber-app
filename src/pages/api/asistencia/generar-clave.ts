@@ -28,31 +28,44 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        // Verificar que es administrador
+        // Verificar que es administrador y obtener su comercio_id
         const { data: adminData, error: adminError } = await supabase
             .from('admin_users')
-            .select('rol')
+            .select('rol, comercio_id')
             .eq('id', user.id)
             .single()
 
-        if (adminError || !adminData || !['admin', 'administrador'].includes(adminData.rol)) {
-            console.error('❌ [generar-clave] Usuario no es administrador')
+        if (adminError || !adminData || !['admin', 'administrador', 'cajero'].includes(adminData.rol)) {
+            console.error('❌ [generar-clave] Usuario no autorizado o sin rol:', adminData?.rol)
             return res.status(403).json({ error: 'No autorizado' })
         }
 
-        // Obtener fecha actual (Chile timezone)
-        const fechaActual = new Date().toISOString().split('T')[0] // YYYY-MM-DD
+        const comercioId = adminData.comercio_id
 
-        // Verificar si ya existe clave para hoy
+        // Obtener zona horaria configurada PARA ESTE COMERCIO
+        const { data: configTimezone } = await supabase
+            .from('sitio_configuracion')
+            .select('valor')
+            .eq('clave', 'sitio_timezone')
+            .eq('comercio_id', comercioId)
+            .maybeSingle()
+
+        const timezone = configTimezone?.valor || 'America/Santiago'
+
+        const { getDynamicHoy } = await import('@/lib/date-utils')
+        const fechaActual = getDynamicHoy(timezone)
+
+        // Verificar si ya existe clave para hoy EN ESTE COMERCIO
         const { data: claveExistente, error: buscarError } = await supabase
             .from('claves_diarias')
             .select('*')
             .eq('fecha', fechaActual)
             .eq('activa', true)
-            .single()
+            .eq('comercio_id', comercioId)
+            .maybeSingle()
 
         if (claveExistente) {
-            console.log('✅ [generar-clave] Clave ya existe para hoy:', claveExistente.clave)
+            console.log('✅ [generar-clave] Clave ya existe para este comercio hoy:', claveExistente.clave)
             return res.status(200).json({
                 success: true,
                 clave: claveExistente.clave,
@@ -61,19 +74,20 @@ export default async function handler(
             })
         }
 
-        // Generar nueva clave
-        const clave = generarClave()
+        // Generar nueva clave usando la fecha actual ajustada
+        const clave = generarClave(fechaActual)
 
-        console.log(`🔑 [generar-clave] Generando nueva clave para ${fechaActual}: ${clave}`)
+        console.log(`🔑 [generar-clave] Generando nueva clave para ${fechaActual} (Comercio ${comercioId}): ${clave}`)
 
-        // Insertar en base de datos
+        // Insertar en base de datos con comercio_id
         const { data: nuevaClave, error: insertError } = await supabase
             .from('claves_diarias')
             .insert({
                 clave: clave,
                 fecha: fechaActual,
                 activa: true,
-                creada_por: user.id
+                creada_por: user.id,
+                comercio_id: comercioId
             })
             .select()
             .single()
@@ -83,7 +97,7 @@ export default async function handler(
             return res.status(500).json({ error: 'Error al generar clave' })
         }
 
-        console.log('✅ [generar-clave] Clave generada exitosamente')
+        console.log('✅ [generar-clave] Clave generada exitosamente para comercio:', comercioId)
 
         return res.status(200).json({
             success: true,
@@ -103,11 +117,13 @@ export default async function handler(
  * Formato: XXX-DDMM
  * Ejemplo: B4R-2201 (22 de enero)
  */
-function generarClave(): string {
+function generarClave(fechaISO: string): string {
     const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789' // Sin O, I, 0, 1 para evitar confusión
-    const fecha = new Date()
-    const dia = String(fecha.getDate()).padStart(2, '0')
-    const mes = String(fecha.getMonth() + 1).padStart(2, '0')
+
+    // Parsear la fecha manual para asegurar que el DDMM coincida con el día de la clave
+    const [year, month, day] = fechaISO.split('-')
+    const diaClave = day
+    const mesClave = month
 
     // Generar 3 caracteres aleatorios
     let prefijo = ''
@@ -115,5 +131,5 @@ function generarClave(): string {
         prefijo += letras.charAt(Math.floor(Math.random() * letras.length))
     }
 
-    return `${prefijo}-${dia}${mes}`
+    return `${prefijo}-${diaClave}${mesClave}`
 }

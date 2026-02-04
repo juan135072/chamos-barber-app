@@ -15,6 +15,13 @@ const ConfiguracionTab: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [config, setConfig] = useState<Record<string, string>>({})
+  const [horarioGeneral, setHorarioGeneral] = useState<{
+    hora_entrada_puntual: string;
+    hora_salida_minima: string;
+  }>({
+    hora_entrada_puntual: '09:30:00',
+    hora_salida_minima: '18:00:00'
+  })
 
   const configItems: ConfigItem[] = [
     { clave: 'sitio_nombre', label: 'Nombre del Negocio', tipo: 'texto', placeholder: 'Chamos Barber Shop', icon: 'fas fa-store' },
@@ -29,12 +36,14 @@ const ConfiguracionTab: React.FC = () => {
   ]
 
   useEffect(() => {
-    loadConfig()
+    loadData()
   }, [])
 
-  const loadConfig = async () => {
+  const loadData = async () => {
     try {
       setLoading(true)
+
+      // Cargar Configuración General
       const data = await chamosSupabase.getConfiguracion()
       const configMap: Record<string, string> = {}
       if (Array.isArray(data)) {
@@ -43,8 +52,17 @@ const ConfiguracionTab: React.FC = () => {
         })
       }
       setConfig(configMap)
+
+      // Cargar Horario General
+      const horario = await chamosSupabase.getHorarioGeneral() as any
+      if (horario) {
+        setHorarioGeneral({
+          hora_entrada_puntual: horario.hora_entrada_puntual,
+          hora_salida_minima: horario.hora_salida_minima || '18:00:00'
+        })
+      }
     } catch (error) {
-      console.error('Error loading config:', error)
+      console.error('Error loading data:', error)
       toast.error('Error al cargar configuración')
     } finally {
       setLoading(false)
@@ -55,14 +73,26 @@ const ConfiguracionTab: React.FC = () => {
     setConfig(prev => ({ ...prev, [clave]: valor }))
   }
 
+  const handleHorarioChange = (campo: string, valor: string) => {
+    setHorarioGeneral(prev => ({ ...prev, [campo]: valor }))
+  }
+
   const handleSave = async () => {
     try {
       setSaving(true)
 
+      // Guardar Configuración General
       for (const item of configItems) {
         const valor = config[item.clave] || ''
         await chamosSupabase.updateConfiguracion(item.clave, valor)
       }
+
+      // Guardar Timezone (si se cambió)
+      const timezone = config['sitio_timezone'] || 'America/Santiago'
+      await chamosSupabase.updateConfiguracion('sitio_timezone', timezone)
+
+      // Guardar Horario General de Asistencia
+      await chamosSupabase.updateHorarioGeneral(horarioGeneral)
 
       toast.success('Configuración guardada exitosamente')
     } catch (error: any) {
@@ -158,24 +188,122 @@ const ConfiguracionTab: React.FC = () => {
           </div>
         </div>
 
-        {/* Seguridad del Punto de Venta */}
-        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--accent-color)' }} className="rounded-2xl p-6 shadow-xl border-l-4">
-          <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-color)' }}>
-              <i className="fas fa-shield-alt text-xl"></i>
+        {/* Seguridad y Sistema */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Seguridad del Punto de Venta */}
+          <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '4px solid var(--accent-color)' }} className="rounded-2xl p-6 shadow-xl border-l-4">
+            <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(245, 158, 11, 0.1)', color: 'var(--accent-color)' }}>
+                <i className="fas fa-shield-alt text-xl"></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Seguridad del Punto de Venta (POS)</h3>
+                <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Clave maestra para autorizar cambios críticos</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Seguridad del Punto de Venta (POS)</h3>
-              <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Clave maestra para autorizar cambios críticos</p>
+            <div className="grid grid-cols-1 gap-6">
+              {renderInput(configItems[8])}
+              <div className="flex items-center p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 175, 55, 0.05)', border: '1px dashed var(--accent-color)' }}>
+                <i className="fas fa-lightbulb mr-3" style={{ color: 'var(--accent-color)' }}></i>
+                <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                  Esta clave protege las ventas ya cobradas contra ediciones o anulaciones no autorizadas.
+                </p>
+              </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {renderInput(configItems[8])}
-            <div className="flex items-center p-4 rounded-lg" style={{ backgroundColor: 'rgba(212, 175, 55, 0.05)', border: '1px dashed var(--accent-color)' }}>
-              <i className="fas fa-lightbulb mr-3" style={{ color: 'var(--accent-color)' }}></i>
-              <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
-                Esta clave protege las ventas ya cobradas contra ediciones o anulaciones no autorizadas.
-              </p>
+
+          {/* Configuración de Sistema / Región */}
+          <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '4px solid #3B82F6' }} className="rounded-2xl p-6 shadow-xl border-l-4">
+            <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', color: '#3B82F6' }}>
+                <i className="fas fa-globe text-xl"></i>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Región y Horario</h3>
+                <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Configura la zona horaria del sistema</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 gap-6">
+              <div>
+                <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                  <i className="fas fa-clock mr-2" style={{ color: '#3B82F6' }}></i>
+                  Zona Horaria
+                </label>
+                <select
+                  value={config['sitio_timezone'] || 'America/Santiago'}
+                  onChange={(e) => handleChange('sitio_timezone', e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg focus:outline-none focus:ring-2 transition-all"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <option value="America/Santiago">Santiago, Chile (UTC-3/4)</option>
+                  <option value="America/Bogota">Bogotá, Colombia (UTC-5)</option>
+                  <option value="America/Mexico_City">Ciudad de México, México (UTC-6)</option>
+                  <option value="America/Lima">Lima, Perú (UTC-5)</option>
+                  <option value="America/Argentina/Buenos_Aires">Buenos Aires, Argentina (UTC-3)</option>
+                  <option value="America/Caracas">Caracas, Venezuela (UTC-4)</option>
+                  <option value="America/Guayaquil">Guayaquil, Ecuador (UTC-5)</option>
+                  <option value="America/Madrid">Madrid, España (UTC+1/2)</option>
+                </select>
+                <p className="text-xs mt-2" style={{ color: 'var(--text-primary)', opacity: 0.5 }}>
+                  Esto afecta la generación automática de claves de asistencia y el registro de horas.
+                </p>
+              </div>
+
+              {/* Horarios de Puntualidad */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-[var(--border-color)]">
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                    <i className="fas fa-sign-in-alt mr-2" style={{ color: '#10B981' }}></i>
+                    Entrada Puntual
+                  </label>
+                  <input
+                    type="time"
+                    value={horarioGeneral.hora_entrada_puntual.substring(0, 5)}
+                    onChange={(e) => handleHorarioChange('hora_entrada_puntual', e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  />
+                  <p className="text-[10px] mt-1" style={{ color: 'var(--text-primary)', opacity: 0.4 }}>
+                    Límite para no marcar "Tarde"
+                  </p>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                    <i className="fas fa-sign-out-alt mr-2" style={{ color: '#EF4444' }}></i>
+                    Salida Mínima
+                  </label>
+                  <input
+                    type="time"
+                    value={horarioGeneral.hora_salida_minima?.substring(0, 5) || '18:00'}
+                    onChange={(e) => handleHorarioChange('hora_salida_minima', e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg focus:outline-none focus:ring-2 transition-all"
+                    style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      border: '1px solid var(--border-color)'
+                    }}
+                  />
+                  <p className="text-[10px] mt-1" style={{ color: 'var(--text-primary)', opacity: 0.4 }}>
+                    Hora base de cierre
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-start p-3 rounded-lg mt-2" style={{ backgroundColor: 'rgba(59, 130, 246, 0.05)', border: '1px dashed #3B82F6' }}>
+                <i className="fas fa-info-circle mr-2 mt-0.5" style={{ color: '#3B82F6' }}></i>
+                <p className="text-[11px]" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                  <strong>Tip de Zona Horaria:</strong> Si cambias la zona horaria, las claves diarias se ajustarán automáticamente a la hora local seleccionada. Los barberos verán el horario de apertura basado en esta región.
+                </p>
+              </div>
             </div>
           </div>
         </div>

@@ -583,8 +583,9 @@ export const chamosSupabase = {
     if (error) throw error
   },
 
-  // Configuración del sitio
+  // Configuración del sitio (Multitenant Aware)
   getConfiguracion: async (clave?: string) => {
+    // La RLS se encarga del aislamiento por comercio_id si el usuario está logueado
     let query = supabase.from('sitio_configuracion').select('*')
 
     if (clave) {
@@ -598,14 +599,82 @@ export const chamosSupabase = {
   },
 
   updateConfiguracion: async (clave: string, valor: string) => {
+    // Obtenemos el comercio_id del usuario actual para el upsert
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuario no autenticado')
+
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('comercio_id')
+      .eq('id', user.id)
+      .single()
+
+    const comercio_id = adminUser?.comercio_id
+
     const { data, error } = await supabase
       .from('sitio_configuracion')
       .upsert({
         clave,
         valor,
+        comercio_id, // ESENCIAL para el índice único (clave, comercio_id)
         updated_at: new Date().toISOString()
       } as any, {
-        onConflict: 'clave'
+        onConflict: 'clave,comercio_id'
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Gestión de Horario General (Configuración de puntualidad)
+  getHorarioGeneral: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuario no autenticado')
+
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('comercio_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!adminUser?.comercio_id) throw new Error('Comercio no asociado al usuario')
+
+    const { data, error } = await supabase
+      .from('configuracion_horarios')
+      .select('*')
+      .eq('comercio_id', adminUser.comercio_id)
+      .eq('activa', true)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  },
+
+  updateHorarioGeneral: async (updates: { hora_entrada_puntual: string, hora_salida_minima?: string }) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuario no autenticado')
+
+    const { data: adminUser } = await supabase
+      .from('admin_users')
+      .select('comercio_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!adminUser?.comercio_id) throw new Error('Comercio no asociado al usuario')
+
+    const { data, error } = await supabase
+      .from('configuracion_horarios')
+      .upsert({
+        nombre: 'Horario General', // Nombre por defecto para la config del sitio
+        comercio_id: adminUser.comercio_id,
+        hora_entrada_puntual: updates.hora_entrada_puntual,
+        hora_salida_minima: updates.hora_salida_minima,
+        activa: true,
+        updated_at: new Date().toISOString()
+      } as any, {
+        onConflict: 'nombre,comercio_id'
       })
       .select()
       .single()
