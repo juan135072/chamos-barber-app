@@ -48,6 +48,7 @@ USING (
 
 -- 4. Asegurar que el barbero pueda insertar
 DROP POLICY IF EXISTS "Barbero registra su asistencia" ON public.asistencias;
+DROP POLICY IF EXISTS "Barbero registra su asistencia multitenant" ON public.asistencias;
 CREATE POLICY "Barbero registra su asistencia multitenant"
 ON public.asistencias
 FOR INSERT
