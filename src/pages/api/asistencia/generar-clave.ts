@@ -147,7 +147,12 @@ export default async function handler(
 
     } catch (error: any) {
         console.error('❌ [generar-clave] Error general:', error)
-        return res.status(500).json({ error: 'Error interno del servidor' })
+        return res.status(500).json({
+            error: 'Error interno del servidor',
+            message: error.message,
+            stack: error.stack,
+            debug: 'Catch block reached'
+        })
     }
 }
 
