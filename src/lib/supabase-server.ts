@@ -24,9 +24,13 @@ export function createPagesServerClient(req: NextApiRequest, res: NextApiRespons
         {
             cookies: {
                 getAll() {
-                    return parseCookieHeader(req.headers.cookie ?? '')
+                    // Mapear cookies asegurando que 'value' siempre sea string (no undefined)
+                    return parseCookieHeader(req.headers.cookie ?? '').map(c => ({
+                        name: c.name,
+                        value: c.value ?? '' // Garantiza string, no undefined
+                    }))
                 },
-                setAll(cookiesToSet) {
+                setAll(cookiesToSet: { name: string; value: string; options?: any }[]) {
                     const serialized = cookiesToSet.map(({ name, value, options }) =>
                         serializeCookieHeader(name, value, options)
                     )
