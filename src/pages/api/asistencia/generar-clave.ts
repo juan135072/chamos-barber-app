@@ -69,6 +69,15 @@ export default async function handler(
             .eq('comercio_id', comercioId)
             .maybeSingle()
 
+        if (buscarError) {
+            console.error('❌ [generar-clave] Error al buscar clave existente:', buscarError)
+            return res.status(500).json({
+                error: 'Error al verificar clave existente',
+                details: buscarError.message,
+                code: buscarError.code
+            })
+        }
+
         if (claveExistente) {
             console.log('✅ [generar-clave] Clave ya existe para este comercio hoy:', claveExistente.clave)
             return res.status(200).json({
@@ -99,7 +108,32 @@ export default async function handler(
 
         if (insertError) {
             console.error('❌ [generar-clave] Error al insertar:', insertError)
-            return res.status(500).json({ error: 'Error al generar clave' })
+
+            // Si el error es de duplicado (a pesar de nuestro select previo), significa que alguien la creó justo ahora o hay un tema de RLS
+            if (insertError.code === '23505') {
+                // Intentamos recuperar la que ya existe (aunque no la hayamos visto antes)
+                const { data: claveRecuperada } = await supabase
+                    .from('claves_diarias')
+                    .select('clave, fecha')
+                    .eq('fecha', fechaActual)
+                    .eq('comercio_id', comercioId)
+                    .maybeSingle()
+
+                if (claveRecuperada) {
+                    return res.status(200).json({
+                        success: true,
+                        clave: claveRecuperada.clave,
+                        fecha: claveRecuperada.fecha,
+                        yaExistia: true
+                    })
+                }
+            }
+
+            return res.status(500).json({
+                error: 'Error al generar clave',
+                details: insertError.message,
+                code: insertError.code
+            })
         }
 
         console.log('✅ [generar-clave] Clave generada exitosamente para comercio:', comercioId)

@@ -212,7 +212,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (insertError) {
             console.error('❌ Error al insertar asistencia:', insertError)
-            return res.status(500).json({ error: 'Error al registrar la asistencia en la base de datos' })
+            return res.status(500).json({
+                error: 'Error al registrar la asistencia en la base de datos',
+                details: insertError.message,
+                code: insertError.code
+            })
         }
 
         // 8. Respuesta Exitosa
