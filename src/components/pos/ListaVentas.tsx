@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { getChileHoy } from '@/lib/date-utils'
+import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import ModalCobrarCita from './ModalCobrarCita'
 import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
 
@@ -56,6 +57,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   const [citaAEditar, setCitaAEditar] = useState<any | null>(null)
   const [barberos, setBarberos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
+  const [reimprimiendo, setReimprimiendo] = useState<string | null>(null)
 
   useEffect(() => {
     cargarDatos()
@@ -202,6 +204,28 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
     } catch (error: any) {
       console.error('Error anulando venta:', error)
       alert('❌ ' + error.message)
+    }
+  }
+
+  const handleReimprimirFactura = async (facturaId: string, accion: 'imprimir' | 'descargar' = 'imprimir') => {
+    try {
+      setReimprimiendo(facturaId)
+      const datosFactura = await obtenerDatosFactura(facturaId, supabase)
+      if (!datosFactura) {
+        alert('❌ No se pudieron obtener los datos de la factura')
+        return
+      }
+      const exito = await generarEImprimirFactura(datosFactura, accion)
+      if (exito) {
+        console.log(`✅ Factura ${accion === 'imprimir' ? 'reimpresa' : 'descargada'} correctamente`)
+      } else {
+        alert('❌ Error al procesar la factura')
+      }
+    } catch (error: any) {
+      console.error('Error reimprimiendo factura:', error)
+      alert('❌ Error: ' + error.message)
+    } finally {
+      setReimprimiendo(null)
     }
   }
 
@@ -473,8 +497,39 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
                         <span>{getMetodoPagoIcon(venta.metodo_pago)}</span>
                         <span className="capitalize">{venta.metodo_pago}</span>
                       </div>
+                      {/* Botones de reimpresión - visibles para todos */}
+                      <div className="mt-2 flex space-x-2 justify-end">
+                        <button
+                          onClick={() => handleReimprimirFactura(venta.id, 'imprimir')}
+                          disabled={reimprimiendo === venta.id}
+                          className="px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-1"
+                          style={{
+                            color: '#10B981',
+                            borderColor: '#10B981',
+                            backgroundColor: 'transparent',
+                            opacity: reimprimiendo === venta.id ? 0.5 : 1
+                          }}
+                        >
+                          <i className={`fas ${reimprimiendo === venta.id ? 'fa-spinner fa-spin' : 'fa-print'}`}></i>
+                          <span>{reimprimiendo === venta.id ? '...' : 'Reimprimir'}</span>
+                        </button>
+                        <button
+                          onClick={() => handleReimprimirFactura(venta.id, 'descargar')}
+                          disabled={reimprimiendo === venta.id}
+                          className="px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-1"
+                          style={{
+                            color: '#3B82F6',
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'transparent',
+                            opacity: reimprimiendo === venta.id ? 0.5 : 1
+                          }}
+                        >
+                          <i className="fas fa-download"></i>
+                          <span>PDF</span>
+                        </button>
+                      </div>
                       {(usuario.rol === 'admin' || usuario.rol === 'cajero') && (
-                        <div className="mt-3 flex space-x-2 justify-end">
+                        <div className="mt-1 flex space-x-2 justify-end">
                           <button
                             onClick={() => setVentaAEditar(venta)}
                             className="px-3 py-1 rounded border hover:scale-105 transition-all text-sm flex items-center justify-center space-x-2"
