@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
+import { chamosSupabase } from '../../../../lib/supabase-helpers'
 
 type Producto = {
     id: string
@@ -44,6 +45,11 @@ export default function InventarioTab() {
     const [modalMovimiento, setModalMovimiento] = useState(false)
     const [productoEditando, setProductoEditando] = useState<Producto | null>(null)
     const [productoMovimiento, setProductoMovimiento] = useState<Producto | null>(null)
+
+    // Image upload states
+    const [selectedFile, setSelectedFile] = useState<File | null>(null)
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+    const [uploadingImage, setUploadingImage] = useState(false)
 
     // Form state
     const [form, setForm] = useState({
@@ -104,6 +110,30 @@ export default function InventarioTab() {
     // Categorías únicas
     const categorias = [...new Set(productos.map(p => p.categoria))].sort()
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0]
+        if (!file) return
+
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+        if (!validTypes.includes(file.type)) {
+            toast.error('Solo se permiten imágenes (JPG, PNG, WEBP, GIF)')
+            return
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('La imagen es muy grande. Máximo 5MB')
+            return
+        }
+
+        setSelectedFile(file)
+        setPreviewUrl(URL.createObjectURL(file))
+    }
+
+    const clearImage = () => {
+        setSelectedFile(null)
+        if (previewUrl) URL.revokeObjectURL(previewUrl)
+        setPreviewUrl(null)
+    }
+
     const abrirCrear = () => {
         setProductoEditando(null)
         setForm({
@@ -116,6 +146,7 @@ export default function InventarioTab() {
             categoria: 'General',
             codigo_barras: '',
         })
+        clearImage()
         setModalProducto(true)
     }
 
@@ -131,6 +162,10 @@ export default function InventarioTab() {
             categoria: p.categoria,
             codigo_barras: p.codigo_barras || '',
         })
+        clearImage()
+        if (p.imagen_url) {
+            setPreviewUrl(p.imagen_url)
+        }
         setModalProducto(true)
     }
 
@@ -145,7 +180,7 @@ export default function InventarioTab() {
         if (!form.precio_venta || Number(form.precio_venta) <= 0) return toast.error('Precio de venta inválido')
 
         try {
-            const body = {
+            const body: any = {
                 ...(productoEditando ? { id: productoEditando.id } : {}),
                 nombre: form.nombre.trim(),
                 descripcion: form.descripcion.trim() || null,
@@ -157,6 +192,7 @@ export default function InventarioTab() {
                 codigo_barras: form.codigo_barras.trim() || null,
             }
 
+            // Primero guardar el producto para obtener el ID
             const res = await fetch('/api/inventario/productos', {
                 method: productoEditando ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -168,11 +204,55 @@ export default function InventarioTab() {
                 throw new Error(err.error)
             }
 
+            const productoGuardado = await res.json()
+
+            // Subir imagen si hay un archivo seleccionado
+            if (selectedFile) {
+                try {
+                    setUploadingImage(true)
+                    toast.loading('Subiendo imagen...', { id: 'upload' })
+
+                    const { publicUrl } = await chamosSupabase.uploadProductoFoto(selectedFile, productoGuardado.id)
+
+                    // Actualizar el producto con la URL de la imagen
+                    await fetch('/api/inventario/productos', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: productoGuardado.id, imagen_url: publicUrl }),
+                    })
+
+                    toast.success('Imagen subida exitosamente', { id: 'upload' })
+                } catch (uploadError: any) {
+                    console.error('Error uploading image:', uploadError)
+                    toast.error(uploadError.message || 'Error al subir imagen', { id: 'upload' })
+                } finally {
+                    setUploadingImage(false)
+                }
+            }
+
             toast.success(productoEditando ? 'Producto actualizado' : 'Producto creado')
             setModalProducto(false)
+            clearImage()
             cargarProductos()
         } catch (error: any) {
             toast.error(error.message)
+        }
+    }
+
+    const eliminarImagen = async () => {
+        if (!productoEditando) return
+        try {
+            // Actualizar el producto para quitar la imagen_url
+            await fetch('/api/inventario/productos', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: productoEditando.id, imagen_url: null }),
+            })
+            setPreviewUrl(null)
+            setProductoEditando({ ...productoEditando, imagen_url: null })
+            toast.success('Imagen eliminada')
+        } catch (error: any) {
+            toast.error('Error eliminando imagen')
         }
     }
 
@@ -541,6 +621,91 @@ export default function InventarioTab() {
                         </h3>
 
                         <div className="space-y-4">
+                            {/* Imagen del producto */}
+                            <div>
+                                <label className="block text-xs font-medium mb-2" style={{ color: '#888' }}>Imagen del producto</label>
+                                <div
+                                    className="relative w-full rounded-xl overflow-hidden flex items-center justify-center"
+                                    style={{
+                                        backgroundColor: '#1A1A1A',
+                                        border: '2px dashed rgba(212,175,55,0.3)',
+                                        height: '160px',
+                                        cursor: 'pointer',
+                                    }}
+                                    onClick={() => document.getElementById('producto-img-upload')?.click()}
+                                >
+                                    {previewUrl ? (
+                                        <>
+                                            <img
+                                                src={previewUrl}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                            />
+                                            {/* Overlay con acciones */}
+                                            <div
+                                                className="absolute inset-0 flex items-center justify-center gap-3 opacity-0 hover:opacity-100 transition-opacity"
+                                                style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
+                                            >
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        document.getElementById('producto-img-upload')?.click()
+                                                    }}
+                                                    className="px-3 py-2 rounded-lg text-xs font-medium"
+                                                    style={{ backgroundColor: 'rgba(212,175,55,0.9)', color: '#000' }}
+                                                >
+                                                    <i className="fas fa-camera mr-1" />
+                                                    Cambiar
+                                                </button>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        if (productoEditando?.imagen_url && !selectedFile) {
+                                                            eliminarImagen()
+                                                        } else {
+                                                            clearImage()
+                                                        }
+                                                    }}
+                                                    className="px-3 py-2 rounded-lg text-xs font-medium"
+                                                    style={{ backgroundColor: 'rgba(239,68,68,0.9)', color: '#fff' }}
+                                                >
+                                                    <i className="fas fa-trash mr-1" />
+                                                    Quitar
+                                                </button>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="text-center">
+                                            <i className="fas fa-cloud-upload-alt text-3xl mb-2" style={{ color: '#D4AF37', opacity: 0.6 }} />
+                                            <p className="text-xs" style={{ color: '#666' }}>
+                                                Click para subir imagen
+                                            </p>
+                                            <p className="text-xs mt-1" style={{ color: '#444' }}>
+                                                JPG, PNG, WEBP • Máx 5MB
+                                            </p>
+                                        </div>
+                                    )}
+                                    {uploadingImage && (
+                                        <div
+                                            className="absolute inset-0 flex items-center justify-center"
+                                            style={{ backgroundColor: 'rgba(0,0,0,0.7)' }}
+                                        >
+                                            <div
+                                                className="w-8 h-8 rounded-full animate-spin"
+                                                style={{ border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#D4AF37' }}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                                <input
+                                    id="producto-img-upload"
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/webp,image/gif"
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+                            </div>
+
                             <div>
                                 <label className="block text-xs font-medium mb-1" style={{ color: '#888' }}>Nombre *</label>
                                 <input
@@ -642,12 +807,12 @@ export default function InventarioTab() {
                         </div>
 
                         <div className="flex gap-3 mt-6">
-                            <button onClick={() => setModalProducto(false)} style={btnSecondary} className="flex-1">
+                            <button onClick={() => { setModalProducto(false); clearImage() }} style={btnSecondary} className="flex-1">
                                 Cancelar
                             </button>
-                            <button onClick={guardarProducto} style={btnPrimary} className="flex-1">
+                            <button onClick={guardarProducto} style={btnPrimary} className="flex-1" disabled={uploadingImage}>
                                 <i className="fas fa-check mr-2" />
-                                {productoEditando ? 'Guardar cambios' : 'Crear producto'}
+                                {uploadingImage ? 'Subiendo...' : productoEditando ? 'Guardar cambios' : 'Crear producto'}
                             </button>
                         </div>
                     </div>

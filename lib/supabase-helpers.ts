@@ -843,6 +843,80 @@ export const chamosSupabase = {
     }
   },
 
+  // Storage - Subir imagen de producto
+  uploadProductoFoto: async (file: File, productoId: string) => {
+    try {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, WEBP, GIF)')
+      }
+
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        throw new Error('La imagen es muy grande. Tamaño máximo: 5MB')
+      }
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${productoId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      console.log('📤 [uploadProductoFoto] Subiendo archivo:', fileName)
+
+      const { data, error } = await supabase.storage
+        .from('productos-fotos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        console.error('❌ [uploadProductoFoto] Error subiendo:', error)
+        throw error
+      }
+
+      console.log('✅ [uploadProductoFoto] Archivo subido:', data.path)
+
+      const { data: urlData } = supabase.storage
+        .from('productos-fotos')
+        .getPublicUrl(data.path)
+
+      console.log('🔗 [uploadProductoFoto] URL pública:', urlData.publicUrl)
+
+      return {
+        path: data.path,
+        publicUrl: urlData.publicUrl
+      }
+    } catch (error: any) {
+      console.error('❌ [uploadProductoFoto] Error:', error)
+      throw error
+    }
+  },
+
+  // Storage - Eliminar imagen de producto
+  deleteProductoFoto: async (filePath: string) => {
+    try {
+      console.log('🗑️ [deleteProductoFoto] Eliminando archivo:', filePath)
+
+      const { error } = await supabase.storage
+        .from('productos-fotos')
+        .remove([filePath])
+
+      if (error) {
+        console.error('❌ [deleteProductoFoto] Error eliminando:', error)
+        throw error
+      }
+
+      console.log('✅ [deleteProductoFoto] Archivo eliminado')
+    } catch (error: any) {
+      console.error('❌ [deleteProductoFoto] Error:', error)
+      if (error.message?.includes('not found')) {
+        console.log('⚠️ [deleteProductoFoto] Archivo no encontrado, continuando...')
+        return
+      }
+      throw error
+    }
+  },
+
   // Storage - Subir foto de resultado de corte
   uploadCorteFoto: async (file: File, citaId: string) => {
     try {
