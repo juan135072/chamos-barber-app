@@ -194,6 +194,9 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         numeroFactura: numeroFactura
       })
 
+      // ✅ Refrescar POS inmediatamente (sin esperar cierre del modal)
+      onCobrado()
+
       setProcesando(false)
 
       // Imprimir automáticamente después de cobrar
@@ -221,26 +224,24 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     } catch (error: any) {
       console.error('❌ Error al cobrar cita:', error)
 
-      // Mostrar error más detallado
-      let errorMessage = 'Error al procesar el cobro. '
+      // Mapeo de errores técnicos a mensajes amigables
+      const rawMsg = (error.message || error.error_description || error.details || '').toLowerCase()
+      let errorMessage: string
 
-      if (error.message) {
-        errorMessage += error.message
-      } else if (error.error_description) {
-        errorMessage += error.error_description
-      } else if (error.details) {
-        errorMessage += error.details
-      } else {
-        errorMessage += 'Intenta nuevamente.'
-      }
-
-      // Errores comunes específicos
-      if (error.message?.includes('permission denied')) {
+      if (rawMsg.includes('permission denied') || rawMsg.includes('row-level security')) {
         errorMessage = 'No tienes permisos para realizar esta operación. Contacta al administrador.'
-      } else if (error.message?.includes('function') && error.message?.includes('does not exist')) {
-        errorMessage = 'Error de configuración: La función cobrar_cita() no existe en la base de datos. Contacta al administrador.'
-      } else if (error.message?.includes('violates foreign key constraint')) {
-        errorMessage = 'Error: Datos relacionados no encontrados. Verifica que el barbero y servicio existan.'
+      } else if (rawMsg.includes('duplicate key') || rawMsg.includes('unique constraint')) {
+        errorMessage = 'Esta factura ya fue registrada. Recarga la página para ver el estado actual.'
+      } else if (rawMsg.includes('foreign key')) {
+        errorMessage = 'Datos relacionados no encontrados. Verifica que el barbero y servicio existan.'
+      } else if (rawMsg.includes('function') && rawMsg.includes('does not exist')) {
+        errorMessage = 'Error de configuración del sistema. Contacta al administrador.'
+      } else if (rawMsg.includes('network') || rawMsg.includes('fetch') || rawMsg.includes('failed to fetch') || rawMsg.includes('load failed')) {
+        errorMessage = 'Error de conexión. Verifica tu internet e intenta nuevamente.'
+      } else if (rawMsg.includes('timeout') || rawMsg.includes('aborted')) {
+        errorMessage = 'La operación tardó demasiado. Intenta nuevamente.'
+      } else {
+        errorMessage = 'Ocurrió un error inesperado al procesar el cobro. Intenta nuevamente.'
       }
 
       alert(errorMessage)

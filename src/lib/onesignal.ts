@@ -11,18 +11,18 @@ const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY
 export async function sendNotificationToBarber(barberId: string, title: string, message: string) {
     // Diagnóstico inicial
     if (!ONESIGNAL_REST_API_KEY) {
-        console.error('❌ [OneSignal Service] ONESIGNAL_REST_API_KEY no configurado en el servidor (Check environment variables)')
-        return { success: false, error: 'API Key missing' }
+        console.warn('⚠️ [OneSignal] ONESIGNAL_REST_API_KEY no configurado. Configúralo en las variables de entorno del servidor.')
+        return { success: false, error: 'API Key missing', userMessage: 'Las notificaciones push no están configuradas en el servidor.' }
     }
 
     if (ONESIGNAL_REST_API_KEY === 'tu-rest-api-key-aqui') {
-        console.error('⚠️ [OneSignal Service] ONESIGNAL_REST_API_KEY tiene el valor por defecto (placeholder)')
-        return { success: false, error: 'API Key is placeholder' }
+        console.warn('⚠️ [OneSignal] ONESIGNAL_REST_API_KEY tiene el valor placeholder. Reemplázalo con la clave real.')
+        return { success: false, error: 'API Key is placeholder', userMessage: 'Las notificaciones push no están configuradas correctamente.' }
     }
 
     try {
         const cleanBarberId = barberId.trim()
-        console.log(`🔔 [OneSignal Service] Preparando notificación para barbero: ${cleanBarberId}`)
+        if (process.env.NODE_ENV === 'development') console.log(`🔔 [OneSignal] Preparando notificación para barbero: ${cleanBarberId}`)
 
         const payload: any = {
             app_id: ONESIGNAL_APP_ID,
@@ -64,7 +64,7 @@ export async function sendNotificationToBarber(barberId: string, title: string, 
             }
         }
 
-        console.log('✅ [OneSignal Service] Notificación enviada exitosamente:', data)
+        if (process.env.NODE_ENV === 'development') console.log('✅ [OneSignal] Notificación enviada:', data)
         return { success: true, data }
     } catch (error) {
         console.error('❌ [OneSignal Service] Error de red o ejecución:', error)

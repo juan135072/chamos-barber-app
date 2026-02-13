@@ -1,0 +1,462 @@
+[
+  {
+    "id": "TC001",
+    "title": "Successful Appointment Booking with Service and Barber Selection",
+    "description": "Verify that a customer can successfully book an appointment by selecting a service, a preferred barber, and a date/time slot, and receives a WhatsApp notification upon confirmation.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the booking page."
+      },
+      {
+        "type": "action",
+        "description": "Select a valid service from the service selection list."
+      },
+      {
+        "type": "action",
+        "description": "Select an available barber from the barber selection list."
+      },
+      {
+        "type": "action",
+        "description": "Pick an available date and time slot."
+      },
+      {
+        "type": "action",
+        "description": "Confirm the appointment booking."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the appointment is recorded with the correct service, barber, and time slot."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that a WhatsApp notification is sent to the customer confirming the appointment."
+      }
+    ]
+  },
+  {
+    "id": "TC002",
+    "title": "Booking Appointment with Unavailable Time Slot",
+    "description": "Verify the system prevents booking when the selected time slot is already fully booked or unavailable.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Navigate to the booking page."
+      },
+      {
+        "type": "action",
+        "description": "Select a valid service."
+      },
+      {
+        "type": "action",
+        "description": "Select a valid barber."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to select a fully booked or unavailable time slot."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to confirm the appointment."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the system displays an error message that the selected time slot is unavailable."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that the appointment is not created in the system."
+      }
+    ]
+  },
+  {
+    "id": "TC003",
+    "title": "POS System: Process Sale with Appointment",
+    "description": "Verify POS processes payment for an appointment-based sale accurately, generating the correct thermal receipt and updating cash flow.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the POS interface."
+      },
+      {
+        "type": "action",
+        "description": "Select an existing appointment for payment."
+      },
+      {
+        "type": "action",
+        "description": "Enter payment details and select a supported payment method."
+      },
+      {
+        "type": "action",
+        "description": "Confirm and process the payment."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment is processed successfully without errors."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a thermal receipt is generated with correct details matching the appointment."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cash flow is updated to reflect the processed payment."
+      }
+    ]
+  },
+  {
+    "id": "TC004",
+    "title": "POS System: Process Walk-in Sale and Receipt Generation",
+    "description": "Verify POS handles sales from walk-in customers accurately and generates a thermal receipt.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the POS interface."
+      },
+      {
+        "type": "action",
+        "description": "Select a service for a walk-in customer (no appointment)."
+      },
+      {
+        "type": "action",
+        "description": "Enter sale details and payment method."
+      },
+      {
+        "type": "action",
+        "description": "Process the payment."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify payment is completed successfully."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify a thermal receipt is generated with accurate sale details."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cash flow data is updated accordingly."
+      }
+    ]
+  },
+  {
+    "id": "TC005",
+    "title": "POS System: Handle Unsupported Payment Method",
+    "description": "Verify POS handles attempts to process sales with unsupported or invalid payment methods gracefully.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the POS interface."
+      },
+      {
+        "type": "action",
+        "description": "Enter sale details."
+      },
+      {
+        "type": "action",
+        "description": "Select an unsupported or invalid payment method."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to process the payment."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that an error message indicating unsupported payment method is displayed."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that payment is not processed and no changes are applied to cash flow."
+      }
+    ]
+  },
+  {
+    "id": "TC006",
+    "title": "Attendance System: Successful GPS-based Check-in and Check-out",
+    "description": "Verify barbers can successfully check in and check out using GPS-validated smartphone location and the times are logged correctly.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the attendance check-in interface on the barber's smartphone."
+      },
+      {
+        "type": "action",
+        "description": "Perform check-in near the barbershop location with valid GPS."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify check-in is accepted and timestamp and location are logged."
+      },
+      {
+        "type": "action",
+        "description": "Perform check-out at the end of the shift near the barbershop location."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify check-out is accepted and timestamp and location are logged."
+      }
+    ]
+  },
+  {
+    "id": "TC007",
+    "title": "Attendance System: Reject Check-in Outside Valid GPS Zone",
+    "description": "Verify that the system prevents barbers from checking in or out when GPS location is outside of allowed barbershop vicinity.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the attendance check-in interface."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to check in from an invalid GPS location far from barbershop."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify that check-in is rejected with an appropriate error message."
+      },
+      {
+        "type": "action",
+        "description": "Attempt to check out from an invalid GPS location."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify check-out is rejected with an appropriate error message."
+      }
+    ]
+  },
+  {
+    "id": "TC008",
+    "title": "Admin Dashboard: Real-Time Sales Analytics Display",
+    "description": "Verify that the admin dashboard displays real-time and accurate sales data including total sales, sales by service, and cash flow over time.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to the admin dashboard."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify sales analytics show correct total sales amount matching POS data."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify sales broken down by service type are accurate."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify cash flow graphs update in real-time with new sales."
+      }
+    ]
+  },
+  {
+    "id": "TC009",
+    "title": "Admin Dashboard: Staff Attendance and Shift Monitoring",
+    "description": "Verify that the admin dashboard displays accurate attendance records and shift details for all barbers including GPS-validated check-in/out times.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to the admin dashboard."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the attendance dashboard lists all barber check-ins and check-outs for the day."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify GPS location data is displayed and corresponds to valid check-in/out."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify shift schedules and holiday configurations are accurately reflected."
+      }
+    ]
+  },
+  {
+    "id": "TC010",
+    "title": "Admin Dashboard: Commission Calculation Accuracy",
+    "description": "Verify that commissions for barbers are calculated and displayed correctly based on sales data and configured commission rates.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to admin dashboard."
+      },
+      {
+        "type": "action",
+        "description": "Review commission reports for a specific time period."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify commission amounts match the expected calculation based on sales and commission settings."
+      }
+    ]
+  },
+  {
+    "id": "TC011",
+    "title": "Admin Dashboard: Pricing and Duration Management",
+    "description": "Verify that administrators can update service pricing and duration through the dashboard and changes reflect on booking and POS systems.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to the admin dashboard."
+      },
+      {
+        "type": "action",
+        "description": "Modify the price and duration of an existing service."
+      },
+      {
+        "type": "action",
+        "description": "Save the changes."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify changes are reflected in the booking service selection."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify updated service price and duration are shown in the POS system during sales."
+      }
+    ]
+  },
+  {
+    "id": "TC012",
+    "title": "AI Appointment Assistant: Successful Booking Guidance",
+    "description": "Verify the AI assistant correctly interacts with customers, understands their booking requests, and guides them through appointment scheduling.",
+    "category": "functional",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Open the AI Appointment Assistant interface."
+      },
+      {
+        "type": "action",
+        "description": "Request to book an appointment specifying service, barber, and date/time."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the AI assistant asks relevant questions to clarify booking details."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the AI confirms appointment availability and proceeds to finalize booking."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the booking is created correctly and confirmation is provided."
+      }
+    ]
+  },
+  {
+    "id": "TC013",
+    "title": "AI Appointment Assistant: Handle Invalid or Ambiguous Requests",
+    "description": "Verify the AI assistant gracefully handles invalid or ambiguous user inputs and requests for information it cannot process.",
+    "category": "error handling",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Interact with AI assistant giving incomplete or ambiguous booking requests."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the AI assistant requests clarification in a user-friendly manner."
+      },
+      {
+        "type": "action",
+        "description": "Ask AI assistant unsupported or unknown questions."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the AI responds politely with alternative suggestions or redirects to manual support."
+      }
+    ]
+  },
+  {
+    "id": "TC014",
+    "title": "Barber Portal: View Appointments and Earnings",
+    "description": "Verify that barbers can view their current and past appointments along with accurate earnings reports in their personalized portal.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to the barber portal."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify appointments list shows correct appointments with accurate times and customer info."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify earnings report reflects payments processed through POS linked to barber."
+      }
+    ]
+  },
+  {
+    "id": "TC015",
+    "title": "Booking System: Prevent Overlapping Appointments per Barber",
+    "description": "Verify the system does not allow appointment bookings that overlap with existing appointments for the same barber.",
+    "category": "error handling",
+    "priority": "High",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Attempt to book an appointment for a barber at a time slot overlapping an existing confirmed appointment."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the system prevents booking and displays an appropriate conflict error."
+      }
+    ]
+  },
+  {
+    "id": "TC016",
+    "title": "Admin Dashboard: Shift and Holiday Configuration Persistence",
+    "description": "Verify that shift schedules and holiday configurations set by admin are correctly saved and enforced during booking and attendance.",
+    "category": "functional",
+    "priority": "Medium",
+    "steps": [
+      {
+        "type": "action",
+        "description": "Log in to admin dashboard."
+      },
+      {
+        "type": "action",
+        "description": "Configure a new barber shift schedule and set upcoming holidays."
+      },
+      {
+        "type": "action",
+        "description": "Save the configurations."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify the new shift schedule is reflected in booking availability for barbers."
+      },
+      {
+        "type": "assertion",
+        "description": "Verify attendance check-in/out respects the configured shifts and holidays."
+      }
+    ]
+  }
+]

@@ -38,6 +38,8 @@ interface OneSignalProviderProps {
   enabled?: boolean
 }
 
+const isDev = process.env.NODE_ENV === 'development'
+
 export default function OneSignalProvider({
   children,
   appId = '63aa14ec-de8c-46b3-8949-e9fd221f8d70',
@@ -55,11 +57,11 @@ export default function OneSignalProvider({
 
     try {
       const finalAppId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || appId
-      console.log('🔔 Inicializando OneSignal...')
+      if (isDev) console.log('🔔 Inicializando OneSignal...')
 
       // 1. CARGA DINÁMICA DEL SDK
       if (!(window as any).OneSignal) {
-        console.log('📥 Cargando OneSignal SDK desde CDN...')
+        if (isDev) console.log('📥 Cargando OneSignal SDK desde CDN...')
         const script = document.createElement('script')
         script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
         script.async = true
@@ -87,12 +89,12 @@ export default function OneSignalProvider({
 
       // Evitar inicialización duplicada
       if (OneSignal.initialized) {
-        console.log('✅ [OneSignal] El SDK ya está inicializado')
+        if (isDev) console.log('✅ [OneSignal] El SDK ya está inicializado')
         setInitialized(true)
         return
       }
 
-      console.log('🔔 [OneSignal] Ejecutando OneSignal.init()...')
+      if (isDev) console.log('🔔 [OneSignal] Ejecutando OneSignal.init()...')
 
       await OneSignal.init({
         appId: finalAppId,
@@ -108,11 +110,11 @@ export default function OneSignalProvider({
         serviceWorkerPath: '/OneSignalSDKWorker.js'
       })
 
-      console.log('✅ [OneSignal] Inicializado correctamente')
+      if (isDev) console.log('✅ [OneSignal] Inicializado correctamente')
       setInitialized(true)
 
-      // Diagnóstico de Service Worker
-      if ('serviceWorker' in navigator) {
+      // Diagnóstico de Service Worker (solo en desarrollo)
+      if (isDev && 'serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistration().then(reg => {
           console.log('📡 [OneSignal SW Status]', reg ? {
             script: reg.active?.scriptURL,
@@ -128,7 +130,7 @@ export default function OneSignalProvider({
         const osPermission = OneSignal.Notifications?.permission
         const browserPermission = typeof Notification !== 'undefined' ? Notification.permission : 'default'
 
-        console.log('📊 [OneSignal Status]', {
+        if (isDev) console.log('📊 [OneSignal Status]', {
           osPermission,
           browserPermission,
           isStandalone: window.matchMedia('(display-mode: standalone)').matches
@@ -147,25 +149,26 @@ export default function OneSignalProvider({
           const subId = OneSignal.User?.PushSubscription?.id;
           const optedOut = OneSignal.User?.PushSubscription?.optedOut;
 
-          console.log('📊 [OneSignal Initial State]', {
-            permission: OneSignal.Notifications?.permission,
-            subscriptionId: subId,
-            optedOut: optedOut,
-            externalId: OneSignal.User?.externalId
-          });
+          if (isDev) {
+            console.log('📊 [OneSignal Initial State]', {
+              permission: OneSignal.Notifications?.permission,
+              subscriptionId: subId,
+              optedOut: optedOut,
+              externalId: OneSignal.User?.externalId
+            });
 
-          // 🔴 DEBUG DETALLADO PARA DIAGNÓSTICO
-          console.log('🔴 [DEBUG DETALLADO] Estado completo de OneSignal:', {
-            'Permisos del Navegador': browserPermission,
-            'Permisos de OneSignal': OneSignal.Notifications?.permission,
-            'Subscription ID': subId || '❌ NO HAY',
-            'External ID': OneSignal.User?.externalId || '❌ NO CONFIGURADO',
-            'Opted Out (Desuscrito)': optedOut === true ? '❌ SÍ (PROBLEMA DETECTADO)' : optedOut === false ? '✅ NO (OK)' : '⚠️ DESCONOCIDO',
-            'Service Worker': 'serviceWorker' in navigator ? '✅ Soportado' : '❌ No soportado'
-          });
+            console.log('🔴 [DEBUG] Estado completo de OneSignal:', {
+              'Permisos del Navegador': browserPermission,
+              'Permisos de OneSignal': OneSignal.Notifications?.permission,
+              'Subscription ID': subId || '❌ NO HAY',
+              'External ID': OneSignal.User?.externalId || '❌ NO CONFIGURADO',
+              'Opted Out': optedOut === true ? '❌ SÍ' : optedOut === false ? '✅ NO' : '⚠️ DESCONOCIDO',
+              'Service Worker': 'serviceWorker' in navigator ? '✅ Soportado' : '❌ No soportado'
+            });
+          }
 
           if (browserPermission === 'granted' && !subId && !optedOut) {
-            console.warn('⚠️ [OneSignal] Permisos concedidos pero sin suscripción activa. Intentando registrar...');
+            if (isDev) console.warn('⚠️ [OneSignal] Permisos concedidos pero sin suscripción activa. Intentando registrar...');
             try {
               // En v16, llamar a requestPermission() cuando ya hay permisos suele disparar el registro
               await OneSignal.Notifications.requestPermission();
@@ -177,18 +180,18 @@ export default function OneSignalProvider({
           // Auto-resucitar si está opted-out O si el estado es desconocido (undefined)
           if (browserPermission === 'granted' && (optedOut === true || optedOut === undefined)) {
             const reason = optedOut === true ? 'OPTED-OUT' : 'ESTADO DESCONOCIDO (undefined)';
-            console.warn(`🔄 [AUTOFIX] Usuario con permisos pero ${reason}. Intentando auto-resucitación...`);
+            if (isDev) console.warn(`🔄 [AUTOFIX] Usuario con permisos pero ${reason}. Intentando auto-resucitación...`);
             try {
               if (OneSignal.User?.PushSubscription?.optIn) {
                 await OneSignal.User.PushSubscription.optIn();
-                console.log('✅ [AUTOFIX] Llamada a optIn() exitosa. Verificando estado en 2s...');
+                if (isDev) console.log('✅ [AUTOFIX] Llamada a optIn() exitosa. Verificando estado en 2s...');
                 setTimeout(() => {
                   const newOptedOut = OneSignal.User?.PushSubscription?.optedOut;
                   const newSubId = OneSignal.User?.PushSubscription?.id;
-                  console.log('📊 [AUTOFIX] Estado después de auto-resucitación:', {
+                  if (isDev) console.log('📊 [AUTOFIX] Estado después de auto-resucitación:', {
                     optedOut: newOptedOut,
                     subscriptionId: newSubId,
-                    resultado: newOptedOut === false ? '✅ ÉXITO - Usuario re-suscrito' : '❌ FALLÓ - Estado sigue corrupto'
+                    resultado: newOptedOut === false ? '✅ ÉXITO' : '❌ FALLÓ'
                   });
 
                   // Si falló, recomendar Nuclear Reset
@@ -201,12 +204,12 @@ export default function OneSignalProvider({
               console.error('❌ [AUTOFIX] Error en auto-resucitación:', err);
             }
           } else if (browserPermission === 'granted' && optedOut === false) {
-            console.log('✅ [OneSignal] Estado correcto: Usuario suscrito (optedOut: false)');
+            if (isDev) console.log('✅ [OneSignal] Estado correcto: Usuario suscrito');
           }
         }, 3000);
 
         OneSignal.Notifications?.addEventListener('permissionChange', (granted: boolean) => {
-          console.log('🔔 [OneSignal] Permiso cambió:', granted ? 'concedido' : 'denegado')
+          if (isDev) console.log('🔔 [OneSignal] Permiso cambió:', granted ? 'concedido' : 'denegado')
           setPermissionStatus(granted ? 'granted' : 'denied')
           if (granted) setShowPrompt(false)
         })

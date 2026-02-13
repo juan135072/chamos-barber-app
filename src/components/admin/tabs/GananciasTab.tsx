@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
+import { getChileHoy } from '@/lib/date-utils'
 
 type Factura = Database['public']['Tables']['facturas']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -17,12 +18,8 @@ interface GananciaBarberoDia {
 export default function GananciasTab() {
   const [ganancias, setGanancias] = useState<GananciaBarberoDia[]>([])
   const [loading, setLoading] = useState(true)
-  const [fechaInicio, setFechaInicio] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
-  const [fechaFin, setFechaFin] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
+  const [fechaInicio, setFechaInicio] = useState<string>(getChileHoy())
+  const [fechaFin, setFechaFin] = useState<string>(getChileHoy())
   const [tipoFiltro, setTipoFiltro] = useState<'dia' | 'rango' | 'mes'>('dia')
 
   useEffect(() => {
@@ -49,14 +46,14 @@ export default function GananciasTab() {
         fin = fechaInicio
       }
 
-      // Crear fechas con hora para incluir todo el día
-      const fechaInicioCompleta = `${inicio}T00:00:00.000Z`
-      const fechaFinCompleta = `${fin}T23:59:59.999Z`
+      // Crear fechas con hora para incluir todo el día (sin Z para respetar timezone local)
+      const fechaInicioCompleta = `${inicio}T00:00:00`
+      const fechaFinCompleta = `${fin}T23:59:59`
 
       // Obtener facturas del rango de fechas (solo las no anuladas)
       const { data: facturas, error: errorFacturas } = await (supabase as any)
         .from('facturas')
-        .select('*')
+        .select('barbero_id, total, comision_barbero, ingreso_casa, porcentaje_comision')
         .gte('created_at', fechaInicioCompleta)
         .lte('created_at', fechaFinCompleta)
         .eq('anulada', false)
@@ -162,23 +159,23 @@ export default function GananciasTab() {
   }
 
   const setHoy = () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     setFechaInicio(hoy)
     setFechaFin(hoy)
     setTipoFiltro('dia')
   }
 
   const setAyer = () => {
-    const ayer = new Date()
-    ayer.setDate(ayer.getDate() - 1)
-    const fecha = ayer.toISOString().split('T')[0]
+    const hoy = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }))
+    hoy.setDate(hoy.getDate() - 1)
+    const fecha = hoy.toISOString().split('T')[0]
     setFechaInicio(fecha)
     setFechaFin(fecha)
     setTipoFiltro('dia')
   }
 
   const setMesActual = () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     setFechaInicio(hoy)
     setTipoFiltro('mes')
   }
