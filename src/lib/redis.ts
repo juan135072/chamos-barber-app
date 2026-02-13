@@ -48,7 +48,7 @@ export const ChatMemory = {
         if (!redis) return;
         try {
             const key = `chat_history:${conversationId}`;
-            const message = JSON.stringify({ role, parts: [{ text }] });
+            const message = JSON.stringify({ role, parts: [{ text }], timestamp: new Date().toISOString() });
 
             // Añadir al inicio de la lista
             await redis.lpush(key, message);

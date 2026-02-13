@@ -53,6 +53,7 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 # Reglas de Oro (Sagradas)
 - Identidad: Jamás menciones que eres una IA o un asistente virtual. Eres Gustavo, el dueño de Chamos Barber.
 - **Humanidad (CRÍTICO)**: Nunca menciones procesos internos como "dividir texto", "partes", "instrucciones" o "sistema". Responde directamente como una persona.
+- **Respuestas Limpias (CRÍTICO)**: JAMÁS incluyas código JSON, nombres de funciones, IDs técnicos (UUIDs), ni parámetros de herramientas en tus respuestas al cliente. Si necesitas usar una herramienta, hazlo silenciosamente a través del mecanismo de tool_call. El cliente SOLO debe ver lenguaje natural y humano. NUNCA escribas cosas como {"name": "crear_cita"...} en tu respuesta.
 - Protocolo: Si no sabes el nombre del usuario, lo primero es preguntárselo.
 - Mantenimiento: No hables de procesos internos.
 - Brevedad: Tus respuestas deben ser cortas y directas. Máximo 2 párrafos pequeños.
@@ -63,6 +64,14 @@ Eres venezolano, llevas más de 10 años en Chile y construiste este negocio con
 - **Teléfono (NUEVO)**: Si el cliente entrega un número de teléfono sin código de área (ej: 9XXXXXXXX), asume siempre que es de Chile (+56).
 - **Horarios (NUEVO)**: Si el cliente dice una hora sin am/pm (ej: "a las 8"), usa el sentido común para una barbería. "A las 8" suele ser 8:00 o 20:00. Si tienes duda o es un horario de madrugada, pregunta para confirmar. **REGLA DE FORMATO**: Responde SIEMPRE usando el mismo formato horario que el cliente (si el cliente usa "las 8", dile "las 8:00 pm" o "las 20:30" según lo que él esté usando). Adapta tu estilo al del cliente.
 - Emojis Prohibidos: NUNCA uses el emoji 😊. Usa SOLO 💈, ✂️, 🧔.
+
+## Consciencia Temporal (CRÍTICO)
+Cada mensaje del historial puede tener una marca de tiempo [fecha] al inicio.
+DEBES prestar atención a estas fechas:
+- Si un mensaje es de hace varios días o semanas, trátalo como una conversación PASADA. No uses esa información como si fuera de hoy.
+- NO asumas que la información de días anteriores sigue vigente hoy (ej: citas, horarios solicitados, disponibilidad).
+- Si el cliente pregunta algo HOY, responde basándote en la fecha y hora ACTUAL (ver [METADATA DE SESIÓN]), no en datos de conversaciones antiguas.
+- Si ves que la última conversación fue hace días, saluda como un reencuentro natural: "Hola de nuevo, amigo! ¿Cómo te fue la última vez?"
 
 ## Señales de Sistema (HIDDEN)
 Recibirás mensajes que empiezan con "[SISTEMA:]". Son instrucciones internas del motor de la barbería:
@@ -145,10 +154,20 @@ export async function generateChatResponse(
     if (conversationId) {
       const rawHistory = await ChatMemory.getHistory(conversationId).catch(() => []);
       if (Array.isArray(rawHistory)) {
-        messages = rawHistory.filter(item => item && item.role).map(h => ({
-          role: h.role === 'model' ? 'assistant' : 'user',
-          content: h.parts?.[0]?.text || h.content || ''
-        }));
+        messages = rawHistory.filter(item => item && item.role).map(h => {
+          const textContent = h.parts?.[0]?.text || h.content || '';
+          // Inyectar marca temporal si existe para que la IA sepa cuándo ocurrió cada mensaje
+          let prefix = '';
+          if (h.timestamp) {
+            try {
+              prefix = `[${new Date(h.timestamp).toLocaleDateString('es-CL', { timeZone: 'America/Santiago', weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}] `;
+            } catch { prefix = ''; }
+          }
+          return {
+            role: h.role === 'model' ? 'assistant' : 'user',
+            content: prefix + textContent
+          };
+        });
       }
     }
 
@@ -170,6 +189,7 @@ ${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.
       month: 'long',
       day: 'numeric',
       hour: '2-digit',
+      minute: '2-digit',
     });
 
     const isNewConversation = messages.length === 0;
@@ -184,6 +204,8 @@ Ventana Gratuita: Activa (El cliente inició el chat).
 Regla de Oro: SIEMPRE que veas el "Teléfono del cliente" arriba y no lo hayas hecho en ese turno, llama a "consultar_mis_citas" para saber su estado actual. 
 Regla de Ahorro: Solo confirmar si faltan <2h para la cita o <1h para que venza el chat.
 Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 8" en la tarde es 20:00.
+
+REGLA DE CITAS PASADAS (CRÍTICO): Cuando consultes las citas del cliente, COMPARA la fecha y hora de cada cita con la "Hora actual" de arriba. Si la fecha de la cita ya pasó, o si es HOY pero la hora de la cita ya pasó, esa cita YA OCURRIÓ o fue PERDIDA. NUNCA le digas al cliente "tienes una cita a las 19:00" si ya son las 23:00. En ese caso dile que esa cita ya pasó y pregúntale si quiere reagendar.
 `;
 
     const isAudioNote = metadata.isAudio || message.includes('[SISTEMA: TRANSCRIPCIÓN_AUDIO]');
@@ -385,6 +407,8 @@ Contexto Temporal: Para barbería, "las 8" en la mañana suele ser 08:00 y "las 
       }
 
       finalResponseText = assistantMessage.content || '';
+      // Sanitizar: eliminar JSON de tool_calls que el modelo incluyó como texto
+      finalResponseText = sanitizeToolCallLeaks(finalResponseText);
       break;
     }
 
@@ -608,6 +632,42 @@ Texto: "${text}"`
   } catch (e) {
     return [text];
   }
+}
+
+/**
+ * Sanitiza la respuesta del modelo eliminando JSON de tool_calls que se haya
+ * filtrado como texto plano. Esto ocurre cuando el LLM no genera un tool_call
+ * estructurado sino que escribe el JSON directamente en su respuesta.
+ */
+function sanitizeToolCallLeaks(text: string): string {
+  if (!text) return text;
+
+  // Patrón 1: Detectar bloques JSON completos de tool calls
+  // Ej: {"name": "crear_cita", "arguments": "{...}"}
+  const toolCallJsonRegex = /\{[\s\S]*?"name"\s*:\s*"(?:crear_cita|verificar_disponibilidad|consultar_mis_citas|confirmar_cita)"[\s\S]*?\}(?:\s*\))?/g;
+  let cleaned = text.replace(toolCallJsonRegex, '').trim();
+
+  // Patrón 2: Detectar llamadas en formato func(...) 
+  // Ej: crear_cita(barbero_id="...", fecha="...")
+  const funcCallRegex = /(?:crear_cita|verificar_disponibilidad|consultar_mis_citas|confirmar_cita)\s*\([^)]*\)/g;
+  cleaned = cleaned.replace(funcCallRegex, '').trim();
+
+  // Patrón 3: Limpiar UUIDs sueltos que no deberían estar en la respuesta
+  // Ej: "28fdc033-f8a0-4cf7-8ec7-4952fc98d27e"
+  const uuidRegex = /["']?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']?/gi;
+  // Solo limpiar UUIDs si están rodeados de contexto técnico (no limpiar IDs en texto normal)
+  const technicalUuidRegex = /(?:barbero_id|servicio_id|cita_id|id)\s*[:=]\s*["']?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}["']?/gi;
+  cleaned = cleaned.replace(technicalUuidRegex, '').trim();
+
+  // Limpiar puntuación redundante dejada por las eliminaciones
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').replace(/\.\s*\./g, '.').trim();
+
+  // Si después de limpiar queda vacío o muy corto, dar respuesta genérica
+  if (!cleaned || cleaned.length < 10) {
+    return 'Listo amigo, ya te dejé todo agendado en el sistema. Nos vemos en la silla! 💈';
+  }
+
+  return cleaned;
 }
 
 /**
