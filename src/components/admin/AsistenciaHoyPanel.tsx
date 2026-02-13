@@ -47,7 +47,8 @@ export default function AsistenciaHoyPanel() {
                 .order('nombre')
 
             // Cargar asistencias de hoy
-            const fechaHoy = new Date().toISOString().split('T')[0]
+            const { getChileHoy } = await import('@/lib/date-utils')
+            const fechaHoy = getChileHoy()
             const { data: asistenciasData } = await supabase
                 .from('asistencias')
                 .select(`

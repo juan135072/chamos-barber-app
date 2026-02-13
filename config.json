@@ -1,0 +1,18 @@
+{
+  "status": "commited",
+  "type": "frontend",
+  "scope": "codebase",
+  "localEndpoint": "https://chamosbarber.com",
+  "executionArgs": {
+    "projectName": "1.- Proyecto Chamos Barber",
+    "projectPath": "C:\\Users\\juanc\\Desktop\\Antigravity-Proyectos\\1.- Proyecto Chamos Barber",
+    "testIds": [
+      "TC003",
+      "TC008"
+    ],
+    "additionalInstruction": "Execute tests against production URL https://chamosbarber.com. \nAdmin credentials: \n- Email: contacto@chamosbarber.com\n- Password: ChamosBarber2025$\n\nSpecifically verify:\n1. TC003: After clicking 'Cobrar' in the receipt modal, the POS summary/list must update immediately (POS auto-refresh).\n2. TC008: Verify that daily earnings in the Admin Dashboard (Ganancias) are correctly filtered for the current day in Chile timezone.",
+    "envs": {
+      "API_KEY": "sk-user-UJlCQnp4r9akY39oPEbPIs0JAm8GCdNxnp2lw-qQ2zJSJd1cYy78DU-Zz7n_GDql9dqlQglBFxxA8XFBOEMcC8rj617l5svWywfHegoKdzkbjZRjMpXfOI73doO-JeRvrw4"
+    }
+  }
+}

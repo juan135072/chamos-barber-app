@@ -50,12 +50,20 @@ export default async function handler(
             .eq('id', user.id)
             .single()
 
-        if (!adminUser || (adminUser.role !== 'admin' && adminUser.rol !== 'admin')) {
-            return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' })
+        if (!adminUser) {
+            return res.status(403).json({ error: 'Usuario no encontrado en la tabla de administradores' })
+        }
+
+        const userRole = adminUser.rol || adminUser.role
+        if (userRole !== 'admin') {
+            return res.status(403).json({
+                error: 'Acceso denegado. Solo administradores pueden cambiar los horarios.',
+                rol_detectado: userRole
+            })
         }
 
         if (!adminUser.comercio_id) {
-            return res.status(403).json({ error: 'Usuario no asociado a un comercio' })
+            return res.status(403).json({ error: 'Configuración incompleta: No tienes un comercio asociado.' })
         }
 
         // Buscar configuración activa PARA ESTE COMERCIO

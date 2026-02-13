@@ -60,7 +60,8 @@ export default function MarcarAsistencia({ barberoId }: Props) {
 
         setVerificandoAsistencia(true)
         try {
-            const fechaHoy = new Date().toISOString().split('T')[0]
+            const { getChileHoy } = await import('@/lib/date-utils')
+            const fechaHoy = getChileHoy()
 
             const { data, error } = await supabase
                 .from('asistencias')
