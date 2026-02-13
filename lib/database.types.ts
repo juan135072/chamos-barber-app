@@ -883,6 +883,97 @@ export interface Database {
           updated_at?: string
         }
       }
+      productos: {
+        Row: {
+          id: string
+          nombre: string
+          descripcion: string | null
+          precio_venta: number
+          precio_costo: number
+          stock_actual: number
+          stock_minimo: number
+          categoria: string
+          imagen_url: string | null
+          codigo_barras: string | null
+          activo: boolean
+          comercio_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          nombre: string
+          descripcion?: string | null
+          precio_venta: number
+          precio_costo?: number
+          stock_actual?: number
+          stock_minimo?: number
+          categoria?: string
+          imagen_url?: string | null
+          codigo_barras?: string | null
+          activo?: boolean
+          comercio_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          nombre?: string
+          descripcion?: string | null
+          precio_venta?: number
+          precio_costo?: number
+          stock_actual?: number
+          stock_minimo?: number
+          categoria?: string
+          imagen_url?: string | null
+          codigo_barras?: string | null
+          activo?: boolean
+          comercio_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      inventario_movimientos: {
+        Row: {
+          id: string
+          producto_id: string
+          tipo: string
+          cantidad: number
+          stock_anterior: number
+          stock_nuevo: number
+          motivo: string | null
+          referencia_id: string | null
+          created_by: string | null
+          comercio_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          producto_id: string
+          tipo: string
+          cantidad: number
+          stock_anterior?: number
+          stock_nuevo?: number
+          motivo?: string | null
+          referencia_id?: string | null
+          created_by?: string | null
+          comercio_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          producto_id?: string
+          tipo?: string
+          cantidad?: number
+          stock_anterior?: number
+          stock_nuevo?: number
+          motivo?: string | null
+          referencia_id?: string | null
+          created_by?: string | null
+          comercio_id?: string | null
+          created_at?: string
+        }
+      }
     }
     Functions: {
       get_horarios_disponibles: {
@@ -958,12 +1049,17 @@ export interface Database {
 
 // Tipos extendidos para el sistema POS
 export interface FacturaItem {
-  servicio_id: string
+  servicio_id?: string
+  producto_id?: string
+  tipo: 'servicio' | 'producto'
   nombre: string
   precio: number
   cantidad: number
   subtotal: number
 }
+
+export type Producto = Database['public']['Tables']['productos']['Row']
+export type MovimientoInventario = Database['public']['Tables']['inventario_movimientos']['Row']
 
 export type Factura = Database['public']['Tables']['facturas']['Row'] & {
   items: FacturaItem[]

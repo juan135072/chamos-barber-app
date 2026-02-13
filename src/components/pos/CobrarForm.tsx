@@ -14,8 +14,19 @@ interface CobrarFormProps {
   registrarVentaCaja?: (monto: number, referenciaId: string, metodoPago: string) => Promise<void>
 }
 
+type ProductoPOS = {
+  id: string
+  nombre: string
+  precio_venta: number
+  stock_actual: number
+  categoria: string
+  imagen_url: string | null
+}
+
 interface ItemCarrito {
-  servicio_id: string
+  servicio_id?: string
+  producto_id?: string
+  tipo: 'servicio' | 'producto'
   nombre: string
   precio: number
   cantidad: number
@@ -25,8 +36,10 @@ interface ItemCarrito {
 export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registrarVentaCaja }: CobrarFormProps) {
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [servicios, setServicios] = useState<Servicio[]>([])
+  const [productos, setProductos] = useState<ProductoPOS[]>([])
   const [citasHoy, setCitasHoy] = useState<any[]>([])
   const [cargando, setCargando] = useState(true)
+  const [subPaso2, setSubPaso2] = useState<'servicios' | 'productos'>('servicios')
   const [guardando, setGuardando] = useState(false)
 
   // Wizard state
@@ -79,6 +92,17 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       setBarberos(barberosData || [])
       setServicios(serviciosData || [])
 
+      // Cargar productos activos con stock
+      try {
+        const resProd = await fetch('/api/inventario/productos?activo=true')
+        if (resProd.ok) {
+          const prodData = await resProd.json()
+          setProductos(prodData.filter((p: any) => p.stock_actual > 0))
+        }
+      } catch (e) {
+        console.warn('No se pudieron cargar productos:', e)
+      }
+
       // Cargar citas de hoy pendientes
       const citasData = await chamosSupabase.getCitasHoyPendientes()
       setCitasHoy(citasData || [])
@@ -130,7 +154,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     if (!servicio) return
 
     setCarrito(prev => {
-      const existeIndex = prev.findIndex(item => item.servicio_id === servicioId)
+      const existeIndex = prev.findIndex(item => item.servicio_id === servicioId && item.tipo === 'servicio')
       if (existeIndex >= 0) {
         const nuevoCarrito = [...prev]
         nuevoCarrito[existeIndex].cantidad += 1
@@ -139,10 +163,36 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       }
       return [...prev, {
         servicio_id: servicio.id,
+        tipo: 'servicio' as const,
         nombre: servicio.nombre,
         precio: parseFloat(servicio.precio.toString()),
         cantidad: 1,
         subtotal: parseFloat(servicio.precio.toString())
+      }]
+    })
+  }
+
+  const agregarProductoAlCarrito = (productoId: string) => {
+    const producto = productos.find(p => p.id === productoId)
+    if (!producto) return
+
+    setCarrito(prev => {
+      const existeIndex = prev.findIndex(item => item.producto_id === productoId && item.tipo === 'producto')
+      if (existeIndex >= 0) {
+        const nuevoCarrito = [...prev]
+        // No permitir más que el stock disponible
+        if (nuevoCarrito[existeIndex].cantidad >= producto.stock_actual) return prev
+        nuevoCarrito[existeIndex].cantidad += 1
+        nuevoCarrito[existeIndex].subtotal = nuevoCarrito[existeIndex].precio * nuevoCarrito[existeIndex].cantidad
+        return nuevoCarrito
+      }
+      return [...prev, {
+        producto_id: producto.id,
+        tipo: 'producto' as const,
+        nombre: producto.nombre,
+        precio: producto.precio_venta,
+        cantidad: 1,
+        subtotal: producto.precio_venta
       }]
     })
   }
@@ -170,6 +220,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     if (cita.items && cita.items.length > 0) {
       setCarrito(cita.items.map((item: any) => ({
         ...item,
+        tipo: item.tipo || 'servicio' as const,
         precio: parseFloat(item.precio.toString()),
         subtotal: parseFloat(item.subtotal.toString())
       })))
@@ -179,6 +230,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       if (servicio) {
         setCarrito([{
           servicio_id: servicio.id,
+          tipo: 'servicio' as const,
           nombre: servicio.nombre,
           precio: parseFloat(servicio.precio.toString()),
           cantidad: 1,
@@ -200,7 +252,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     }
 
     if (carrito.length === 0) {
-      alert('Agrega al menos un servicio')
+      alert('Agrega al menos un servicio o producto')
       return
     }
 
@@ -269,6 +321,25 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         }
       }
 
+      // Descontar stock de productos vendidos
+      const productosEnCarrito = carrito.filter(item => item.tipo === 'producto' && item.producto_id)
+      for (const item of productosEnCarrito) {
+        try {
+          await fetch('/api/inventario/movimientos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              producto_id: item.producto_id,
+              tipo: 'salida',
+              cantidad: item.cantidad,
+              motivo: `Venta POS - Factura ${factura.numero_factura}`,
+            }),
+          })
+        } catch (e) {
+          console.warn('Error descontando stock:', e)
+        }
+      }
+
       // Limpiar y resetear
       setClienteNombre('')
       setTipoDocumento('boleta')
@@ -279,11 +350,21 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       setMontoRecibido('')
       setCitaId(null)
       setPaso(1)
+      setSubPaso2('servicios')
       onVentaCreada()
 
       // Recargar citas hoy (por si hay más)
       const nuevasCitas = await chamosSupabase.getCitasHoyPendientes()
       setCitasHoy(nuevasCitas || [])
+
+      // Recargar productos (stock actualizado)
+      try {
+        const resProd = await fetch('/api/inventario/productos?activo=true')
+        if (resProd.ok) {
+          const prodData = await resProd.json()
+          setProductos(prodData.filter((p: any) => p.stock_actual > 0))
+        }
+      } catch (e) { }
 
     } catch (error) {
       console.error('Error al crear venta:', error)
@@ -474,13 +555,13 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
           </div>
         )}
 
-        {/* PASO 2: SERVICIOS */}
+        {/* PASO 2: SERVICIOS Y PRODUCTOS */}
         {paso === 2 && (
           <div className="animate-in fade-in slide-in-from-right-4 duration-300">
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold" style={{ color: 'var(--text-primary)' }}>
                 <i className="fas fa-cut mr-3 text-accent" style={{ color: 'var(--accent-color)' }}></i>
-                Seleccionar Servicios
+                Agregar Items
               </h3>
               <button
                 onClick={() => setPaso(1)}
@@ -490,45 +571,126 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '10px' }}>
-              {servicios.map((servicio) => (
-                <div
-                  key={servicio.id}
-                  onClick={() => agregarAlCarrito(servicio.id)}
-                  className="p-4 rounded-2xl cursor-pointer transition-all border-2 hover:border-accent group relative overflow-hidden"
-                  style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    borderColor: 'var(--border-color)'
-                  }}
-                >
-                  <div className="flex gap-4">
-                    {servicio.imagen_url && (
-                      <img
-                        src={servicio.imagen_url}
-                        className="w-20 h-20 rounded-xl object-cover border-2 border-gray-800 group-hover:border-accent transition-colors"
-                        alt={servicio.nombre}
-                      />
-                    )}
-                    <div className="flex-1 flex flex-col justify-between">
-                      <h4 className="font-bold text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>{servicio.nombre}</h4>
-                      <div className="flex justify-between items-center mt-2">
-                        <span className="font-black text-xl text-accent" style={{ color: 'var(--accent-color)' }}>
-                          ${servicio.precio.toLocaleString()}
-                        </span>
-                        <span className="text-xs font-bold uppercase tracking-wider bg-gray-900 border border-gray-800 px-2 py-1 rounded text-gray-500">
-                          {servicio.duracion_minutos} MIN
-                        </span>
+            {/* Toggle Servicios / Productos */}
+            <div className="flex gap-2 mb-6">
+              <button
+                onClick={() => setSubPaso2('servicios')}
+                className="flex-1 py-3 rounded-xl font-bold text-base transition-all"
+                style={{
+                  backgroundColor: subPaso2 === 'servicios' ? 'var(--accent-color)' : 'var(--bg-primary)',
+                  color: subPaso2 === 'servicios' ? '#1a1a1a' : 'var(--text-secondary)',
+                  border: `2px solid ${subPaso2 === 'servicios' ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                }}
+              >
+                <i className="fas fa-scissors mr-2"></i>
+                Servicios ({servicios.length})
+              </button>
+              <button
+                onClick={() => setSubPaso2('productos')}
+                className="flex-1 py-3 rounded-xl font-bold text-base transition-all"
+                style={{
+                  backgroundColor: subPaso2 === 'productos' ? 'var(--accent-color)' : 'var(--bg-primary)',
+                  color: subPaso2 === 'productos' ? '#1a1a1a' : 'var(--text-secondary)',
+                  border: `2px solid ${subPaso2 === 'productos' ? 'var(--accent-color)' : 'var(--border-color)'}`,
+                }}
+              >
+                <i className="fas fa-box mr-2"></i>
+                Productos ({productos.length})
+              </button>
+            </div>
+
+            {/* Grid de Servicios */}
+            {subPaso2 === 'servicios' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '10px' }}>
+                {servicios.map((servicio) => (
+                  <div
+                    key={servicio.id}
+                    onClick={() => agregarAlCarrito(servicio.id)}
+                    className="p-4 rounded-2xl cursor-pointer transition-all border-2 hover:border-accent group relative overflow-hidden"
+                    style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      borderColor: 'var(--border-color)'
+                    }}
+                  >
+                    <div className="flex gap-4">
+                      {servicio.imagen_url && (
+                        <img
+                          src={servicio.imagen_url}
+                          className="w-20 h-20 rounded-xl object-cover border-2 border-gray-800 group-hover:border-accent transition-colors"
+                          alt={servicio.nombre}
+                        />
+                      )}
+                      <div className="flex-1 flex flex-col justify-between">
+                        <h4 className="font-bold text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>{servicio.nombre}</h4>
+                        <div className="flex justify-between items-center mt-2">
+                          <span className="font-black text-xl text-accent" style={{ color: 'var(--accent-color)' }}>
+                            ${servicio.precio.toLocaleString()}
+                          </span>
+                          <span className="text-xs font-bold uppercase tracking-wider bg-gray-900 border border-gray-800 px-2 py-1 rounded text-gray-500">
+                            {servicio.duracion_minutos} MIN
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="bg-accent text-dark rounded-full w-8 h-8 flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)', color: '#1a1a1a' }}>
+                        <i className="fas fa-plus"></i>
                       </div>
                     </div>
                   </div>
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-accent text-dark rounded-full w-8 h-8 flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)', color: '#1a1a1a' }}>
-                      <i className="fas fa-plus"></i>
-                    </div>
+                ))}
+              </div>
+            )}
+
+            {/* Grid de Productos */}
+            {subPaso2 === 'productos' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-8" style={{ maxHeight: '480px', overflowY: 'auto', paddingRight: '10px' }}>
+                {productos.length === 0 ? (
+                  <div className="col-span-full text-center py-8">
+                    <i className="fas fa-box-open text-3xl mb-3" style={{ color: '#555' }}></i>
+                    <p style={{ color: '#666' }}>No hay productos disponibles</p>
                   </div>
-                </div>
-              ))}
-            </div>
+                ) : (
+                  productos.map((producto) => (
+                    <div
+                      key={producto.id}
+                      onClick={() => agregarProductoAlCarrito(producto.id)}
+                      className="p-4 rounded-2xl cursor-pointer transition-all border-2 hover:border-accent group relative overflow-hidden"
+                      style={{
+                        backgroundColor: 'var(--bg-primary)',
+                        borderColor: 'var(--border-color)'
+                      }}
+                    >
+                      <div className="flex gap-4">
+                        <div className="w-20 h-20 rounded-xl border-2 border-gray-800 group-hover:border-accent transition-colors flex items-center justify-center overflow-hidden" style={{ backgroundColor: '#1a1a1a' }}>
+                          {producto.imagen_url ? (
+                            <img src={producto.imagen_url} className="w-full h-full object-cover" alt={producto.nombre} />
+                          ) : (
+                            <i className="fas fa-box text-2xl" style={{ color: '#444' }}></i>
+                          )}
+                        </div>
+                        <div className="flex-1 flex flex-col justify-between">
+                          <h4 className="font-bold text-lg leading-tight" style={{ color: 'var(--text-primary)' }}>{producto.nombre}</h4>
+                          <div className="flex justify-between items-center mt-2">
+                            <span className="font-black text-xl text-accent" style={{ color: 'var(--accent-color)' }}>
+                              ${producto.precio_venta.toLocaleString()}
+                            </span>
+                            <span className="text-xs font-bold uppercase tracking-wider bg-gray-900 border border-gray-800 px-2 py-1 rounded" style={{ color: producto.stock_actual <= 3 ? '#EF4444' : '#666' }}>
+                              Stock: {producto.stock_actual}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="bg-accent text-dark rounded-full w-8 h-8 flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)', color: '#1a1a1a' }}>
+                          <i className="fas fa-plus"></i>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
 
             {carrito.length > 0 && (
               <div className="animate-in slide-in-from-bottom-6 mt-6 relative">

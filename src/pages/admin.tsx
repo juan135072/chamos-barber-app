@@ -15,6 +15,7 @@ import CategoriasTab from '../components/admin/tabs/CategoriasTab'
 import ClientesTab from '../components/admin/tabs/ClientesTab'
 import ComisionesTab from '../components/admin/tabs/ComisionesTab'
 import GananciasTab from '../components/admin/tabs/GananciasTab'
+import InventarioTab from '../components/admin/tabs/InventarioTab'
 import CalendarView from '../components/admin/dashboard/CalendarView'
 import WalkInClientsPanel from '../components/walkin/WalkInClientsPanel'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
@@ -168,6 +169,7 @@ export default function AdminPage() {
     { id: 'horarios', icon: 'fas fa-clock', label: 'Horarios' },
     { id: 'servicios', icon: 'fas fa-scissors', label: 'Servicios' },
     { id: 'categorias', icon: 'fas fa-tags', label: 'Categorías' },
+    { id: 'inventario', icon: 'fas fa-boxes-stacked', label: 'Inventario' },
     { id: 'ubicaciones', icon: 'fas fa-map-marker-alt', label: 'Ubicaciones GPS' },
     { id: 'comisiones', icon: 'fas fa-percentage', label: 'Comisiones' },
     { id: 'ganancias', icon: 'fas fa-chart-line', label: 'Ganancias' },
@@ -437,6 +439,7 @@ export default function AdminPage() {
             {activeTab === 'ganancias' && <GananciasTab />}
             {activeTab === 'servicios' && <ServiciosTab />}
             {activeTab === 'categorias' && <CategoriasTab />}
+            {activeTab === 'inventario' && <InventarioTab />}
             {activeTab === 'horarios' && <HorariosTab />}
             {activeTab === 'citas' && <CitasTab />}
             {activeTab === 'configuracion' && <ConfiguracionTab />}

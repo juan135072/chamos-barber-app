@@ -971,5 +971,122 @@ export const chamosSupabase = {
 
     if (error) throw error
     return data
+  },
+
+  // =====================================================
+  // INVENTARIO - Productos y Movimientos
+  // =====================================================
+
+  getProductos: async (soloActivos: boolean = true) => {
+    let query = supabase.from('productos').select('*').order('nombre')
+    if (soloActivos) query = query.eq('activo', true)
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+
+  getProducto: async (id: string) => {
+    const { data, error } = await supabase
+      .from('productos')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  createProducto: async (producto: any) => {
+    const { data, error } = await supabase
+      .from('productos')
+      .insert([producto])
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  updateProducto: async (id: string, updates: any) => {
+    const { data, error } = await supabase
+      .from('productos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  getProductosConStockBajo: async () => {
+    const { data, error } = await supabase
+      .from('productos')
+      .select('*')
+      .eq('activo', true)
+      .filter('stock_actual', 'lte', 'stock_minimo' as any)
+      .order('stock_actual')
+    if (error) throw error
+    return data || []
+  },
+
+  getMovimientosInventario: async (productoId?: string, limit: number = 50) => {
+    let query = supabase
+      .from('inventario_movimientos')
+      .select('*, productos(nombre)')
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (productoId) query = query.eq('producto_id', productoId)
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+
+  registrarMovimientoInventario: async (
+    productoId: string,
+    tipo: 'entrada' | 'salida' | 'ajuste',
+    cantidad: number,
+    motivo?: string,
+    referenciaId?: string,
+    createdBy?: string
+  ) => {
+    // Obtener stock actual
+    const { data: producto, error: fetchError } = await supabase
+      .from('productos')
+      .select('stock_actual')
+      .eq('id', productoId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    const stockAnterior = producto.stock_actual
+    let stockNuevo = stockAnterior
+
+    if (tipo === 'entrada') stockNuevo = stockAnterior + cantidad
+    else if (tipo === 'salida') stockNuevo = stockAnterior - cantidad
+    else stockNuevo = cantidad // ajuste = set directo
+
+    // Registrar movimiento
+    const { error: movError } = await supabase
+      .from('inventario_movimientos')
+      .insert([{
+        producto_id: productoId,
+        tipo,
+        cantidad,
+        stock_anterior: stockAnterior,
+        stock_nuevo: stockNuevo,
+        motivo: motivo || null,
+        referencia_id: referenciaId || null,
+        created_by: createdBy || null,
+      }])
+
+    if (movError) throw movError
+
+    // Actualizar stock del producto
+    const { error: updateError } = await supabase
+      .from('productos')
+      .update({ stock_actual: stockNuevo })
+      .eq('id', productoId)
+
+    if (updateError) throw updateError
+
+    return { stockAnterior, stockNuevo }
   }
 }
