@@ -6,7 +6,7 @@ interface ConfigItem {
   clave: string
   valor?: string | null
   label: string
-  tipo: 'texto' | 'url' | 'email' | 'tel'
+  tipo: 'texto' | 'url' | 'email' | 'tel' | 'time' | 'number'
   placeholder: string
   icon: string
 }
@@ -25,7 +25,10 @@ const ConfiguracionTab: React.FC = () => {
     { clave: 'facebook_url', label: 'Facebook URL', tipo: 'url', placeholder: 'https://facebook.com/chamosbarber', icon: 'fab fa-facebook' },
     { clave: 'instagram_url', label: 'Instagram URL', tipo: 'url', placeholder: 'https://instagram.com/chamosbarber', icon: 'fab fa-instagram' },
     { clave: 'whatsapp_numero', label: 'WhatsApp', tipo: 'tel', placeholder: '+56 9 1234 5678', icon: 'fab fa-whatsapp' },
-    { clave: 'pos_clave_seguridad', label: 'Clave de Seguridad POS (Anulaciones/Edición)', tipo: 'texto', placeholder: 'PIN o Contraseña', icon: 'fas fa-key' }
+    { clave: 'pos_clave_seguridad', label: 'Clave de Seguridad POS (Anulaciones/Edición)', tipo: 'texto', placeholder: 'PIN o Contraseña', icon: 'fas fa-key' },
+    { clave: 'horario_apertura', label: 'Hora Apertura Base', tipo: 'time', placeholder: '09:00', icon: 'fas fa-clock' },
+    { clave: 'horario_cierre', label: 'Hora Cierre Base', tipo: 'time', placeholder: '19:00', icon: 'fas fa-clock' },
+    { clave: 'intervalo_citas', label: 'Intervalo Citas (Minutos)', tipo: 'number', placeholder: '30', icon: 'fas fa-stopwatch' }
   ]
 
   useEffect(() => {
@@ -249,6 +252,28 @@ const ConfiguracionTab: React.FC = () => {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+
+        {/* Horario Base del Sistema */}
+        <div style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderLeft: '4px solid #10B981' }} className="rounded-2xl p-6 shadow-xl border-l-4">
+          <div className="flex items-center mb-6 border-b pb-4" style={{ borderColor: 'var(--border-color)' }}>
+            <div className="w-10 h-10 rounded-full flex items-center justify-center mr-4" style={{ backgroundColor: 'rgba(16, 185, 129, 0.1)', color: '#10B981' }}>
+              <i className="fas fa-calendar-alt text-xl"></i>
+            </div>
+            <div>
+              <h3 className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>Horario Base del Local</h3>
+              <p className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>Configura la apertura, cierre e intervalos generales</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {configItems.slice(9, 12).map(renderInput)}
+          </div>
+          <div className="flex items-start p-3 rounded-lg mt-6" style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', border: '1px dashed #10B981' }}>
+            <i className="fas fa-info-circle mr-2 mt-0.5" style={{ color: '#10B981' }}></i>
+            <p className="text-[11px]" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+              <strong>Nota sobre Horarios:</strong> El sistema de agendamiento permitirá reservas dentro de este rango base. Si un barbero tiene un horario de trabajo más acotado (ej. entra más tarde), prevalecerá el horario del barbero.
+            </p>
           </div>
         </div>
 
