@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesServerClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * =====================================================
@@ -26,19 +27,30 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        // Obtener comercio_id del admin
-        const { data: adminUser } = await supabase
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+
+        const userEmail = user.email || ''
+
+        // Obtener comercio_id del admin comprobando por ID o por Email
+        const { data: adminUser, error: adminQueryError } = await supabaseAdmin
             .from('admin_users')
             .select('comercio_id')
-            .eq('id', user.id)
+            .or(`id.eq.${user.id},email.eq.${userEmail}`)
             .single()
+
+        if (adminQueryError) {
+            console.error('❌ [configuracion-horarios] Error al consultar admin_users:', adminQueryError)
+        }
 
         if (!adminUser?.comercio_id) {
             return res.status(403).json({ error: 'Usuario no asociado a un comercio' })
         }
 
-        // Obtener configuración activa PARA ESTE COMERCIO
-        const { data: config, error } = await supabase
+        // Obtener configuración activa PARA ESTE COMERCIO usando admin para omitir RLS
+        const { data: config, error } = await supabaseAdmin
             .from('configuracion_horarios')
             .select('*')
             .eq('activa', true)

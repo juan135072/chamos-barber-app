@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesServerClient } from '@/lib/supabase-server'
+import { createClient } from '@supabase/supabase-js'
 
 /**
  * =====================================================
@@ -43,15 +44,21 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        // Verificar que es admin y obtener comercio_id
-        const { data: adminUser } = await supabase
+        const supabaseAdmin = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!
+        )
+
+        const userEmail = user.email || ''
+        const { data: adminUser, error: adminQueryError } = await supabaseAdmin
             .from('admin_users')
             .select('role, rol, comercio_id')
-            .eq('id', user.id)
+            .or(`id.eq.${user.id},email.eq.${userEmail}`)
             .single()
 
         if (!adminUser) {
-            return res.status(403).json({ error: 'Usuario no encontrado en la tabla de administradores' })
+            console.error('❌ [guardar-horarios] Admin query failed. Error:', adminQueryError, 'User ID:', user.id, 'User Email:', userEmail)
+            return res.status(403).json({ error: 'Usuario no encontrado en la tabla de administradores', db_error: adminQueryError?.message })
         }
 
         const userRole = adminUser.rol || adminUser.role
@@ -67,7 +74,7 @@ export default async function handler(
         }
 
         // Buscar configuración activa PARA ESTE COMERCIO
-        const { data: configExistente } = await supabase
+        const { data: configExistente } = await supabaseAdmin
             .from('configuracion_horarios')
             .select('id')
             .eq('activa', true)
@@ -78,7 +85,7 @@ export default async function handler(
 
         if (configExistente) {
             // Actualizar existente
-            const { data, error } = await supabase
+            const { data, error } = await supabaseAdmin
                 .from('configuracion_horarios')
                 .update({
                     hora_entrada_puntual: hora_entrada_puntual + ':00',
@@ -97,7 +104,7 @@ export default async function handler(
             result = data
         } else {
             // Crear nueva
-            const { data, error } = await supabase
+            const { data, error } = await supabaseAdmin
                 .from('configuracion_horarios')
                 .insert({
                     nombre: 'Horario General',
