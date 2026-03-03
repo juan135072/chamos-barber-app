@@ -10,6 +10,7 @@
 
 import React, { useEffect, useState, createContext, useContext, useCallback } from 'react'
 import { Bell, BellOff, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 interface OneSignalContextType {
   initialized: boolean
@@ -50,6 +51,8 @@ export default function OneSignalProvider({
   const [permissionStatus, setPermissionStatus] = useState<'default' | 'granted' | 'denied'>('default')
   const [showPrompt, setShowPrompt] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
+  const pathname = usePathname()
+  const isAdminRoute = pathname?.startsWith('/admin')
 
   // Función para inicializar OneSignal (definida a nivel de componente para ser accesible)
   const initOneSignal = useCallback(async () => {
@@ -217,9 +220,11 @@ export default function OneSignalProvider({
         console.warn('⚠️ Error en listeners de permisos', e)
       }
 
-      // Manejar autoPrompt
+      // Manejar autoPrompt (desactivado explícitamente en admin para evitar molestias)
       if (autoPrompt && OneSignal.Notifications && !OneSignal.Notifications.permission && Notification.permission !== 'denied') {
-        setTimeout(() => setShowPrompt(true), 2000)
+        if (!isAdminRoute) {
+          setTimeout(() => setShowPrompt(true), 2000)
+        }
       }
     } catch (error: any) {
       console.error('❌ Error inicializando OneSignal:', error)
@@ -520,8 +525,8 @@ export default function OneSignalProvider({
     }}>
       {children}
 
-      {/* Prompt personalizado de notificaciones */}
-      {showPrompt && (permissionStatus === 'default' || permissionStatus === 'denied') && (
+      {/* Prompt personalizado de notificaciones (Oculto en rutas Admin) */}
+      {showPrompt && !isAdminRoute && (permissionStatus === 'default' || permissionStatus === 'denied') && (
         <div className="onesignal-prompt-overlay">
           <div className="onesignal-prompt">
             <button
