@@ -18,7 +18,7 @@ import GananciasTab from '../components/admin/tabs/GananciasTab'
 import InventarioTab from '../components/admin/tabs/InventarioTab'
 import CalendarView from '../components/admin/dashboard/CalendarView'
 import WalkInClientsPanel from '../components/walkin/WalkInClientsPanel'
-import { useOneSignal } from '../components/providers/OneSignalProvider'
+
 import GestionUbicaciones from '../components/admin/GestionUbicaciones'
 import GeneradorClave from '../components/admin/GeneradorClave'
 import AsistenciaHoyPanel from '../components/admin/AsistenciaHoyPanel'
@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
-  const { triggerPrompt, setExternalId } = useOneSignal()
+
 
   // Cerrar sidebar en móvil al cambiar de tab
   const handleTabChange = (tabId: string) => {
@@ -110,11 +110,6 @@ export default function AdminPage() {
       setAdminUser(adminData)
       setLoading(false)
 
-      // 🔔 OneSignal: Vincular ID y mostrar prompt
-      setExternalId(adminData.id)
-      setTimeout(() => {
-        triggerPrompt()
-      }, 3000)
 
       // Si el acceso es correcto, cargar el resto de datos
       loadDashboardData()
