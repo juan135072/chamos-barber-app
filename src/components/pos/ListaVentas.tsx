@@ -4,6 +4,7 @@ import { getChileHoy } from '@/lib/date-utils'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import ModalCobrarCita from './ModalCobrarCita'
 import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 interface ListaVentasProps {
   usuario: UsuarioConPermisos
@@ -58,6 +59,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
   const [barberos, setBarberos] = useState<any[]>([])
   const [servicios, setServicios] = useState<any[]>([])
   const [reimprimiendo, setReimprimiendo] = useState<string | null>(null)
+  const formatCurrency = useFormatCurrency()
 
   useEffect(() => {
     cargarDatos()
@@ -229,12 +231,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+
 
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)

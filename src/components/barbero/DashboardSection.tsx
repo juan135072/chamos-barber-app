@@ -1,145 +1,141 @@
 import { useState, useEffect } from 'react'
 import { DollarSign, Calendar, TrendingUp, Clock, Scissors, Award, Star } from 'lucide-react'
 import { MetricasDiarias } from '@/types/barber-app'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 interface DashboardSectionProps {
-    barberoId: string
-    nombreBarbero: string
+  barberoId: string
+  nombreBarbero: string
 }
 
 export default function DashboardSection({ barberoId, nombreBarbero }: DashboardSectionProps) {
-    const [metricas, setMetricas] = useState<MetricasDiarias | null>(null)
-    const [loading, setLoading] = useState(true)
+  const [metricas, setMetricas] = useState<MetricasDiarias | null>(null)
+  const [loading, setLoading] = useState(true)
+  const formatCurrency = useFormatCurrency()
 
-    useEffect(() => {
-        if (barberoId) {
-            fetchMetricas()
-        }
-    }, [barberoId])
-
-    const fetchMetricas = async () => {
-        try {
-            setLoading(true)
-            // Usar la misma lógica que el mobile app
-            const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`)
-            const result = await response.json()
-            if (result.success) {
-                setMetricas(result.data)
-            } else {
-                // Fallback or manual fetch if API doesn't exist yet
-                // For now, let's assume we might need a direct call if API is missing
-            }
-        } catch (error) {
-            console.error('Error fetching dashboard metrics:', error)
-        } finally {
-            setLoading(false)
-        }
+  useEffect(() => {
+    if (barberoId) {
+      fetchMetricas()
     }
+  }, [barberoId])
 
-    const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('es-CL', {
-            style: 'currency',
-            currency: 'CLP',
-            minimumFractionDigits: 0
-        }).format(amount)
+  const fetchMetricas = async () => {
+    try {
+      setLoading(true)
+      // Usar la misma lógica que el mobile app
+      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`)
+      const result = await response.json()
+      if (result.success) {
+        setMetricas(result.data)
+      } else {
+        // Fallback or manual fetch if API doesn't exist yet
+        // For now, let's assume we might need a direct call if API is missing
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard metrics:', error)
+    } finally {
+      setLoading(false)
     }
+  }
 
-    return (
-        <div className="dashboard-container">
-            <div className="welcome-header">
-                <h1>¡Hola, {nombreBarbero}! 👋</h1>
-                <p>Este es el resumen de tu actividad y ganancias acumuladas.</p>
+
+
+  return (
+    <div className="dashboard-container">
+      <div className="welcome-header">
+        <h1>¡Hola, {nombreBarbero}! 👋</h1>
+        <p>Este es el resumen de tu actividad y ganancias acumuladas.</p>
+      </div>
+
+      {loading ? (
+        <div className="loading-state">Cargando métricas...</div>
+      ) : metricas ? (
+        <>
+          <div className="metrics-grid">
+            {/* Card Principal: Acumulado Mes */}
+            <div className="info-card premium-card tall">
+              <div className="card-header">
+                <TrendingUp className="icon gold" />
+                <span>Acumulado del Mes</span>
+              </div>
+              <div className="card-body">
+                <div className="main-value gold-text">{formatCurrency(metricas.mes.ganancia)}</div>
+                <div className="sub-value">{metricas.mes.total_servicios} servicios realizados</div>
+              </div>
+              <div className="card-footer">
+                <div className="stat">
+                  <span className="stat-label">Esta Semana</span>
+                  <span className="stat-val">{formatCurrency(metricas.semana.ganancia)}</span>
+                </div>
+              </div>
             </div>
 
-            {loading ? (
-                <div className="loading-state">Cargando métricas...</div>
-            ) : metricas ? (
-                <>
-                    <div className="metrics-grid">
-                        {/* Card Principal: Acumulado Mes */}
-                        <div className="info-card premium-card tall">
-                            <div className="card-header">
-                                <TrendingUp className="icon gold" />
-                                <span>Acumulado del Mes</span>
-                            </div>
-                            <div className="card-body">
-                                <div className="main-value gold-text">{formatCurrency(metricas.mes.ganancia)}</div>
-                                <div className="sub-value">{metricas.mes.total_servicios} servicios realizados</div>
-                            </div>
-                            <div className="card-footer">
-                                <div className="stat">
-                                    <span className="stat-label">Esta Semana</span>
-                                    <span className="stat-val">{formatCurrency(metricas.semana.ganancia)}</span>
-                                </div>
-                            </div>
-                        </div>
+            {/* Hoy */}
+            <div className="info-card">
+              <div className="card-header">
+                <DollarSign className="icon green" />
+                <span>Ganancia Hoy</span>
+              </div>
+              <div className="card-body">
+                <div className="main-value">{formatCurrency(metricas.hoy.ganancia)}</div>
+                <div className="sub-value">Realizado hoy</div>
+              </div>
+            </div>
 
-                        {/* Hoy */}
-                        <div className="info-card">
-                            <div className="card-header">
-                                <DollarSign className="icon green" />
-                                <span>Ganancia Hoy</span>
-                            </div>
-                            <div className="card-body">
-                                <div className="main-value">{formatCurrency(metricas.hoy.ganancia)}</div>
-                                <div className="sub-value">Realizado hoy</div>
-                            </div>
-                        </div>
+            {/* Agenda */}
+            <div className="info-card">
+              <div className="card-header">
+                <Calendar className="icon blue" />
+                <span>Citas Agendadas</span>
+              </div>
+              <div className="card-body">
+                <div className="main-value">{metricas.hoy.total_citas}</div>
+                <div className="sub-value">{metricas.hoy.pendientes} pendientes por atender</div>
+              </div>
+            </div>
 
-                        {/* Agenda */}
-                        <div className="info-card">
-                            <div className="card-header">
-                                <Calendar className="icon blue" />
-                                <span>Citas Agendadas</span>
-                            </div>
-                            <div className="card-body">
-                                <div className="main-value">{metricas.hoy.total_citas}</div>
-                                <div className="sub-value">{metricas.hoy.pendientes} pendientes por atender</div>
-                            </div>
-                        </div>
+            {/* Rating / Meta (Mock por ahora) */}
+            <div className="info-card">
+              <div className="card-header">
+                <Star className="icon yellow" />
+                <span>Tu Calificación</span>
+              </div>
+              <div className="card-body">
+                <div className="main-value">4.9/5.0</div>
+                <div className="sub-value">Basado en últimas reseñas</div>
+              </div>
+            </div>
+          </div>
 
-                        {/* Rating / Meta (Mock por ahora) */}
-                        <div className="info-card">
-                            <div className="card-header">
-                                <Star className="icon yellow" />
-                                <span>Tu Calificación</span>
-                            </div>
-                            <div className="card-body">
-                                <div className="main-value">4.9/5.0</div>
-                                <div className="sub-value">Basado en últimas reseñas</div>
-                            </div>
-                        </div>
-                    </div>
+          <div className="quick-stats-row">
+            <div className="quick-stat-card">
+              <Clock className="qs-icon" />
+              <div>
+                <strong>Próxima Cita</strong>
+                <p>En 25 minutos</p>
+              </div>
+            </div>
+            <div className="quick-stat-card">
+              <Scissors className="qs-icon" />
+              <div>
+                <strong>Servicio más pedido</strong>
+                <p>Corte Degradado</p>
+              </div>
+            </div>
+            <div className="quick-stat-card">
+              <Award className="qs-icon" />
+              <div>
+                <strong>Meta Mensual</strong>
+                <p>85% completado</p>
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="error-state">No se pudieron cargar las métricas.</div>
+      )}
 
-                    <div className="quick-stats-row">
-                        <div className="quick-stat-card">
-                            <Clock className="qs-icon" />
-                            <div>
-                                <strong>Próxima Cita</strong>
-                                <p>En 25 minutos</p>
-                            </div>
-                        </div>
-                        <div className="quick-stat-card">
-                            <Scissors className="qs-icon" />
-                            <div>
-                                <strong>Servicio más pedido</strong>
-                                <p>Corte Degradado</p>
-                            </div>
-                        </div>
-                        <div className="quick-stat-card">
-                            <Award className="qs-icon" />
-                            <div>
-                                <strong>Meta Mensual</strong>
-                                <p>85% completado</p>
-                            </div>
-                        </div>
-                    </div>
-                </>
-            ) : (
-                <div className="error-state">No se pudieron cargar las métricas.</div>
-            )}
-
-            <style jsx>{`
+      <style jsx>{`
         .dashboard-container {
           padding: 1rem 0;
         }
@@ -275,6 +271,6 @@ export default function DashboardSection({ barberoId, nombreBarbero }: Dashboard
           .quick-stats-row { grid-template-columns: 1fr; }
         }
       `}</style>
-        </div>
-    )
+    </div>
+  )
 }

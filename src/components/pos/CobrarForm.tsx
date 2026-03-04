@@ -3,6 +3,7 @@ import { supabase, UsuarioConPermisos, Database } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { Clock, User, Scissors } from 'lucide-react'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -41,6 +42,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
   const [cargando, setCargando] = useState(true)
   const [subPaso2, setSubPaso2] = useState<'servicios' | 'productos'>('servicios')
   const [guardando, setGuardando] = useState(false)
+  const formatCurrency = useFormatCurrency()
 
   // Wizard state
   const [paso, setPaso] = useState(1)
@@ -374,12 +376,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+
 
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
 

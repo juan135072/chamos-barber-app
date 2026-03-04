@@ -28,7 +28,8 @@ const ConfiguracionTab: React.FC = () => {
     { clave: 'pos_clave_seguridad', label: 'Clave de Seguridad POS (Anulaciones/Edición)', tipo: 'texto', placeholder: 'PIN o Contraseña', icon: 'fas fa-key' },
     { clave: 'horario_apertura', label: 'Hora Apertura Base', tipo: 'time', placeholder: '09:00', icon: 'fas fa-clock' },
     { clave: 'horario_cierre', label: 'Hora Cierre Base', tipo: 'time', placeholder: '19:00', icon: 'fas fa-clock' },
-    { clave: 'intervalo_citas', label: 'Intervalo Citas (Minutos)', tipo: 'number', placeholder: '30', icon: 'fas fa-stopwatch' }
+    { clave: 'intervalo_citas', label: 'Intervalo Citas (Minutos)', tipo: 'number', placeholder: '30', icon: 'fas fa-stopwatch' },
+    { clave: 'sitio_moneda', label: 'Moneda del Sistema (ej. CLP, USD)', tipo: 'texto', placeholder: 'CLP', icon: 'fas fa-money-bill' }
   ]
 
   useEffect(() => {

@@ -4,6 +4,7 @@ import { chamosSupabase } from '@/lib/supabase-helpers'
 import { getBarberosResumen, BarberoResumen, formatCLP } from '@/lib/supabase-liquidaciones'
 import { Users, DollarSign, Calculator, Clock } from 'lucide-react'
 import { getChileHoy } from '@/lib/date-utils'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 interface ResumenDiaProps {
   usuario: UsuarioConPermisos
@@ -43,6 +44,7 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
   const [tabActiva, setTabActiva] = useState<'resumen' | 'barberos'>('resumen')
   const [barberosResumen, setBarberosResumen] = useState<BarberoResumen[]>([])
   const [facturasIdsPeriodo, setFacturasIdsPeriodo] = useState<string[]>([])
+  const formatCurrency = useFormatCurrency()
 
   // Estados para el rango de fechas
   const [tipoRango, setTipoRango] = useState<'diario' | 'semanal' | 'personalizado'>('diario')
@@ -194,12 +196,7 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
     setTipoRango('diario')
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-VE', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount)
-  }
+
 
   if (cargando) {
     return (

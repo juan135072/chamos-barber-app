@@ -9,6 +9,7 @@ import OneSignalProvider from '../components/providers/OneSignalProvider'
 import OneSignalDebugPanel from '../components/debug/OneSignalDebugPanel'
 import OneSignalTestButton from '../components/debug/OneSignalTestButton'
 import WhatsAppButton from '../components/WhatsAppButton'
+import { ConfigProvider } from '../context/ConfigContext'
 import '../styles/globals.css'
 import '../styles/admin-minimal.css'
 
@@ -36,53 +37,55 @@ export default function App({ Component, pageProps }: AppProps) {
   const isBarberRoute = barberRoutes.some(route => router.pathname.startsWith(route))
 
   return (
-    <SessionContextProvider supabaseClient={supabase}>
-      <OneSignalProvider autoPrompt={false} enabled={isBarberRoute}>
-        <Head>
-          <meta charSet="UTF-8" />
-          <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <ConfigProvider>
+      <SessionContextProvider supabaseClient={supabase}>
+        <OneSignalProvider autoPrompt={false} enabled={isBarberRoute}>
+          <Head>
+            <meta charSet="UTF-8" />
+            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+            <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-          {/* Font Awesome */}
-          <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
-          />
+            {/* Font Awesome */}
+            <link
+              rel="stylesheet"
+              href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css"
+            />
 
-          {/* Google Fonts */}
-          <link
-            href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-          />
-          <link
-            href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
-            rel="stylesheet"
-          />
-        </Head>
-        <Component {...pageProps} />
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            duration: 3000,
-            style: {
-              background: '#363636',
-              color: '#fff',
-            },
-            success: {
+            {/* Google Fonts */}
+            <link
+              href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet"
+            />
+            <link
+              href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+              rel="stylesheet"
+            />
+          </Head>
+          <Component {...pageProps} />
+          <Toaster
+            position="top-right"
+            toastOptions={{
               duration: 3000,
-              iconTheme: {
-                primary: '#d97706',
-                secondary: '#fff',
+              style: {
+                background: '#363636',
+                color: '#fff',
               },
-            },
-          }}
-        />
-        {/* Componentes de debug de OneSignal (solo en desarrollo) */}
-        <OneSignalTestButton />
-        <OneSignalDebugPanel />
-        {/* WhatsApp button solo en páginas públicas (no en admin/barbero/pos) */}
-        {!isAdminRoute && <WhatsAppButton />}
-      </OneSignalProvider>
-    </SessionContextProvider>
+              success: {
+                duration: 3000,
+                iconTheme: {
+                  primary: '#d97706',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+          {/* Componentes de debug de OneSignal (solo en desarrollo) */}
+          <OneSignalTestButton />
+          <OneSignalDebugPanel />
+          {/* WhatsApp button solo en páginas públicas (no en admin/barbero/pos) */}
+          {!isAdminRoute && <WhatsAppButton />}
+        </OneSignalProvider>
+      </SessionContextProvider>
+    </ConfigProvider>
   )
 }

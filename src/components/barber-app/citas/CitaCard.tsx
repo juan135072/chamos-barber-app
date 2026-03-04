@@ -6,9 +6,11 @@
 import React, { useState } from 'react'
 import { Clock, User, Phone, Mail, DollarSign, CheckCircle, XCircle, AlertCircle } from 'lucide-react'
 import { CitaCardProps } from '../../../types/barber-app'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 export default function CitaCard({ cita, onCheckIn, onCompletar, onCancelar, loading }: CitaCardProps) {
   const [showActions, setShowActions] = useState(false)
+  const formatCurrency = useFormatCurrency()
 
   const formatHora = (fechaHora?: string) => {
     // Si no hay fecha_hora, usar la hora de la cita como fallback
@@ -28,13 +30,7 @@ export default function CitaCard({ cita, onCheckIn, onCompletar, onCancelar, loa
     }
   }
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
+
 
   const getEstadoColor = (estado: string) => {
     switch (estado) {

@@ -6,15 +6,11 @@
 import React from 'react'
 import { DollarSign, Calendar, TrendingUp, Clock } from 'lucide-react'
 import { MetricasRapidasProps } from '../../../types/barber-app'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 export default function MetricasRapidas({ metricas, loading }: MetricasRapidasProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('es-CL', {
-      style: 'currency',
-      currency: 'CLP',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
+  const formatCurrency = useFormatCurrency()
+
 
   if (loading) {
     return (

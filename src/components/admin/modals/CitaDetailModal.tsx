@@ -3,6 +3,7 @@ import Modal from '../shared/Modal'
 import type { Database } from '../../../../lib/database.types'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash, Save, Loader2 } from 'lucide-react'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 type Servicio = Database['public']['Tables']['servicios']['Row']
 type Cita = Database['public']['Tables']['citas']['Row'] & {
@@ -23,6 +24,7 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
     const [servicios, setServicios] = useState<Servicio[]>([])
     const [isSaving, setIsSaving] = useState(false)
     const [loadingServicios, setLoadingServicios] = useState(false)
+    const formatCurrency = useFormatCurrency()
 
     useEffect(() => {
         if (cita) {
@@ -75,10 +77,7 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
         }
     }
 
-    const formatCurrency = (amount: number | null) => {
-        if (amount === null) return '$0'
-        return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(amount)
-    }
+
 
     const agregarServicio = (servicio: Servicio) => {
         setItems(prev => {

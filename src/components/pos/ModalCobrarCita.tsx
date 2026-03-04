@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
+import { useFormatCurrency } from '@/context/ConfigContext'
 
 interface Cita {
   id: string
@@ -42,6 +43,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     numeroFactura: string
   } | null>(null)
   const [servicioImpresionOnline, setServicioImpresionOnline] = useState<boolean | null>(null)
+  const formatCurrency = useFormatCurrency()
 
   // Verificar estado del servicio local al abrir el modal
   useEffect(() => {
@@ -319,13 +321,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     onClose()
   }
 
-  const formatCurrency = (amount: number) => {
-    // Formatear sin decimales usando formato manual
-    // El locale 'es-VE' fuerza decimales, así que usamos formato manual
-    const valorEntero = Math.floor(amount)
-    const valorFormateado = valorEntero.toLocaleString('es-ES')
-    return `USD ${valorFormateado}`
-  }
+
 
   return (
     <div
