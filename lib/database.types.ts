@@ -688,6 +688,8 @@ export interface Database {
           hora_fin: string
           activo: boolean
           created_at: string
+          pausa_inicio: string | null
+          pausa_fin: string | null
         }
         Insert: {
           id?: string
@@ -697,6 +699,8 @@ export interface Database {
           hora_fin: string
           activo?: boolean
           created_at?: string
+          pausa_inicio?: string | null
+          pausa_fin?: string | null
         }
         Update: {
           id?: string
@@ -706,6 +710,8 @@ export interface Database {
           hora_fin?: string
           activo?: boolean
           created_at?: string
+          pausa_inicio?: string | null
+          pausa_fin?: string | null
         }
       }
       horarios_bloqueados: {

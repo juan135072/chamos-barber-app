@@ -26,11 +26,13 @@ const diasSemana = [
 const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId, onClose, onSuccess }) => {
   const supabase = useSupabaseClient<Database>()
   const [loading, setLoading] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     dia_semana: horario?.dia_semana ?? 1,
     hora_inicio: horario?.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
     hora_fin: horario?.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
+    pausa_inicio: horario?.pausa_inicio ? horario.pausa_inicio.substring(0, 5) : '',
+    pausa_fin: horario?.pausa_fin ? horario.pausa_fin.substring(0, 5) : '',
     activo: horario?.activo ?? true
   })
 
@@ -42,6 +44,8 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
         dia_semana: horario.dia_semana,
         hora_inicio: horario.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
         hora_fin: horario.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
+        pausa_inicio: horario.pausa_inicio ? horario.pausa_inicio.substring(0, 5) : '',
+        pausa_fin: horario.pausa_fin ? horario.pausa_fin.substring(0, 5) : '',
         activo: horario.activo
       })
     }
@@ -61,12 +65,39 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
     if (formData.hora_inicio && formData.hora_fin) {
       const inicio = formData.hora_inicio.split(':').map(Number)
       const fin = formData.hora_fin.split(':').map(Number)
-      
+
       const minutosInicio = inicio[0] * 60 + inicio[1]
       const minutosFin = fin[0] * 60 + fin[1]
 
       if (minutosFin <= minutosInicio) {
         newErrors.hora_fin = 'La hora de fin debe ser mayor a la hora de inicio'
+      }
+    }
+
+    if (formData.pausa_inicio || formData.pausa_fin) {
+      if (!formData.pausa_inicio) newErrors.pausa_inicio = 'Requerido si hay pausa'
+      if (!formData.pausa_fin) newErrors.pausa_fin = 'Requerido si hay pausa'
+
+      if (formData.pausa_inicio && formData.pausa_fin) {
+        const pInicio = formData.pausa_inicio.split(':').map(Number)
+        const pFin = formData.pausa_fin.split(':').map(Number)
+        const minPInicio = pInicio[0] * 60 + pInicio[1]
+        const minPFin = pFin[0] * 60 + pFin[1]
+
+        if (minPFin <= minPInicio) {
+          newErrors.pausa_fin = 'La pausa fin debe ser mayor al inicio'
+        }
+
+        if (formData.hora_inicio && formData.hora_fin) {
+          const inicio = formData.hora_inicio.split(':').map(Number)
+          const fin = formData.hora_fin.split(':').map(Number)
+          const minInicio = inicio[0] * 60 + inicio[1]
+          const minFin = fin[0] * 60 + fin[1]
+
+          if (minPInicio < minInicio || minPFin > minFin) {
+            newErrors.pausa_inicio = 'La pausa debe estar dentro del horario de atención'
+          }
+        }
       }
     }
 
@@ -90,6 +121,8 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
         dia_semana: formData.dia_semana,
         hora_inicio: `${formData.hora_inicio}:00`,
         hora_fin: `${formData.hora_fin}:00`,
+        pausa_inicio: formData.pausa_inicio ? `${formData.pausa_inicio}:00` : null,
+        pausa_fin: formData.pausa_fin ? `${formData.pausa_fin}:00` : null,
         activo: formData.activo
       }
 
@@ -126,14 +159,14 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
   if (!isOpen) return null
 
   return (
-    <div 
+    <div
       className="fixed inset-0 flex items-center justify-center z-50 p-4"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.75)' }}
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onClose()
       }}
     >
-      <div 
+      <div
         className="rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto"
         style={{
           backgroundColor: 'var(--bg-secondary)',
@@ -141,12 +174,12 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
         }}
       >
         {/* Header */}
-        <div 
+        <div
           className="px-6 py-4"
           style={{ borderBottom: '1px solid var(--border-color)' }}
         >
           <div className="flex items-center justify-between">
-            <h3 
+            <h3
               className="text-xl font-bold flex items-center gap-2"
               style={{ color: 'var(--accent-color)' }}
             >
@@ -157,7 +190,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
               onClick={onClose}
               disabled={loading}
               className="transition-all hover:scale-110"
-              style={{ 
+              style={{
                 color: 'var(--text-primary)',
                 opacity: loading ? 0.5 : 0.7
               }}
@@ -172,7 +205,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
           <div className="space-y-5">
             {/* Día de la semana */}
             <div>
-              <label 
+              <label
                 className="block text-sm font-medium mb-2"
                 style={{ color: 'var(--text-primary)' }}
               >
@@ -196,7 +229,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
                 ))}
               </select>
               {horario?.id && (
-                <p 
+                <p
                   className="mt-2 text-xs italic"
                   style={{ color: 'var(--text-primary)', opacity: 0.6 }}
                 >
@@ -208,7 +241,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
 
             {/* Hora de inicio */}
             <div>
-              <label 
+              <label
                 className="block text-sm font-medium mb-2"
                 style={{ color: 'var(--text-primary)' }}
               >
@@ -237,7 +270,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
 
             {/* Hora de fin */}
             <div>
-              <label 
+              <label
                 className="block text-sm font-medium mb-2"
                 style={{ color: 'var(--text-primary)' }}
               >
@@ -264,6 +297,65 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
               )}
             </div>
 
+            {/* Inactividad / Pausa (Opcional) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <i className="fas fa-coffee mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                  Inicio Descanso
+                </label>
+                <input
+                  type="time"
+                  value={formData.pausa_inicio}
+                  onChange={(e) => setFormData({ ...formData, pausa_inicio: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    border: errors.pausa_inicio ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                  }}
+                  disabled={loading}
+                />
+                {errors.pausa_inicio && (
+                  <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                    <i className="fas fa-exclamation-circle mr-1"></i>
+                    {errors.pausa_inicio}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label
+                  className="block text-sm font-medium mb-2"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <i className="fas fa-clock mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                  Fin Descanso
+                </label>
+                <input
+                  type="time"
+                  value={formData.pausa_fin}
+                  onChange={(e) => setFormData({ ...formData, pausa_fin: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-lg transition-all"
+                  style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    border: errors.pausa_fin ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                  }}
+                  disabled={loading}
+                />
+                {errors.pausa_fin && (
+                  <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                    <i className="fas fa-exclamation-circle mr-1"></i>
+                    {errors.pausa_fin}
+                  </p>
+                )}
+              </div>
+            </div>
+
             {/* Estado */}
             <div className="pt-2">
               <label className="flex items-center space-x-3 cursor-pointer group">
@@ -275,18 +367,18 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
                   style={{ accentColor: 'var(--accent-color)' }}
                   disabled={loading}
                 />
-                <span 
+                <span
                   className="text-sm font-medium"
                   style={{ color: 'var(--text-primary)' }}
                 >
-                  <i 
+                  <i
                     className={`fas ${formData.activo ? 'fa-toggle-on' : 'fa-toggle-off'} mr-2`}
                     style={{ color: formData.activo ? 'var(--accent-color)' : 'var(--text-primary)' }}
                   ></i>
                   Horario activo
                 </span>
               </label>
-              <p 
+              <p
                 className="mt-2 ml-8 text-xs italic"
                 style={{ color: 'var(--text-primary)', opacity: 0.6 }}
               >
@@ -295,7 +387,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
             </div>
 
             {/* Info Box */}
-            <div 
+            <div
               className="rounded-lg p-4"
               style={{
                 backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -306,11 +398,11 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
                 <div className="flex-shrink-0">
                   <i className="fas fa-info-circle" style={{ color: '#3B82F6' }}></i>
                 </div>
-                <p 
+                <p
                   className="text-xs leading-relaxed"
                   style={{ color: 'var(--text-primary)', opacity: 0.9 }}
                 >
-                  Los clientes podrán reservar citas en este rango horario los días seleccionados. 
+                  Los clientes podrán reservar citas en este rango horario los días seleccionados.
                   Puedes desactivar temporalmente un horario sin eliminarlo.
                 </p>
               </div>
@@ -319,11 +411,11 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
         </form>
 
         {/* Footer */}
-        <div 
+        <div
           className="px-6 py-4 flex justify-end gap-3"
-          style={{ 
+          style={{
             backgroundColor: 'var(--bg-primary)',
-            borderTop: '1px solid var(--border-color)' 
+            borderTop: '1px solid var(--border-color)'
           }}
         >
           <button

@@ -252,6 +252,8 @@ const HorariosTab: React.FC = () => {
           .update({
             hora_inicio: origenHorario.hora_inicio,
             hora_fin: origenHorario.hora_fin,
+            pausa_inicio: origenHorario.pausa_inicio,
+            pausa_fin: origenHorario.pausa_fin,
             activo: true, // Lo activamos por defecto al copiar
             updated_at: new Date().toISOString()
           })
@@ -267,6 +269,8 @@ const HorariosTab: React.FC = () => {
             dia_semana: destinoDia,
             hora_inicio: origenHorario.hora_inicio,
             hora_fin: origenHorario.hora_fin,
+            pausa_inicio: origenHorario.pausa_inicio,
+            pausa_fin: origenHorario.pausa_fin,
             activo: true
           })
 
@@ -603,6 +607,12 @@ const HorariosTab: React.FC = () => {
                                 <span className="text-minimal-caption" style={{ color: '#888' }}>
                                   {formatTime(horarioDelDia.hora_inicio)} - {formatTime(horarioDelDia.hora_fin)}
                                 </span>
+                                {horarioDelDia.pausa_inicio && horarioDelDia.pausa_fin && (
+                                  <span className="text-[11px] px-2 py-0.5 rounded flex items-center gap-1" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', color: '#EF4444' }}>
+                                    <i className="fas fa-coffee text-[10px]"></i>
+                                    {formatTime(horarioDelDia.pausa_inicio)} - {formatTime(horarioDelDia.pausa_fin)}
+                                  </span>
+                                )}
                                 <span className={`badge-minimal ${horarioDelDia.activo ? 'badge-success' : 'badge-error'}`}>
                                   {horarioDelDia.activo ? 'Activo' : 'Inactivo'}
                                 </span>
