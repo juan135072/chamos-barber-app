@@ -52,7 +52,7 @@ export default async function handler(
         const userEmail = user.email || ''
         const { data: adminUser, error: adminQueryError } = await supabaseAdmin
             .from('admin_users')
-            .select('role, rol, comercio_id')
+            .select('rol, comercio_id')
             .or(`id.eq.${user.id},email.eq.${userEmail}`)
             .single()
 
@@ -61,7 +61,7 @@ export default async function handler(
             return res.status(403).json({ error: 'Usuario no encontrado en la tabla de administradores', db_error: adminQueryError?.message })
         }
 
-        const userRole = adminUser.rol || adminUser.role
+        const userRole = adminUser.rol
         if (userRole !== 'admin') {
             return res.status(403).json({
                 error: 'Acceso denegado. Solo administradores pueden cambiar los horarios.',
