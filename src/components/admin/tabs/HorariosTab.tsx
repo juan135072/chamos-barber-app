@@ -691,24 +691,26 @@ const HorariosTab: React.FC = () => {
 
                           <button
                             onClick={() => handleToggleActivo(horarioDelDia.id, horarioDelDia.activo)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-10"
-                            style={{ color: horarioDelDia.activo ? '#10B981' : '#EF4444' }}
-                            title={horarioDelDia.activo ? 'Desactivar' : 'Activar'}
+                            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-medium border ${horarioDelDia.activo
+                                ? 'text-emerald-400 border-emerald-400/30 hover:bg-emerald-400/10'
+                                : 'text-red-400 border-red-400/30 hover:bg-red-400/10'
+                              }`}
                           >
-                            <i className="fas fa-power-off text-sm"></i>
+                            <i className="fas fa-power-off"></i>
+                            <span className="hidden sm:inline">{horarioDelDia.activo ? 'Activado' : 'Desactivado'}</span>
                           </button>
+
                           <button
                             onClick={() => handleEditHorario(horarioDelDia)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-10"
-                            style={{ color: '#666' }}
-                            title="Editar"
+                            className="px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all text-xs font-medium border border-[var(--accent-color)] text-[var(--accent-color)] hover:bg-[var(--accent-color)] hover:bg-opacity-10 bg-transparent"
                           >
-                            <i className="fas fa-pen text-sm"></i>
+                            <i className="fas fa-pen"></i>
+                            <span className="hidden sm:inline">Colación / Editar</span>
                           </button>
+
                           <button
                             onClick={() => handleDeleteHorario(horarioDelDia.id)}
-                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-white hover:bg-opacity-10"
-                            style={{ color: '#EF4444' }}
+                            className="w-8 h-8 rounded-lg flex items-center justify-center transition-all hover:bg-red-500/10 text-red-500"
                             title="Eliminar"
                           >
                             <i className="fas fa-trash text-sm"></i>

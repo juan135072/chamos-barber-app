@@ -31,6 +31,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
     dia_semana: horario?.dia_semana ?? 1,
     hora_inicio: horario?.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
     hora_fin: horario?.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
+    has_colacion: !!(horario?.pausa_inicio || horario?.pausa_fin),
     pausa_inicio: horario?.pausa_inicio ? horario.pausa_inicio.substring(0, 5) : '',
     pausa_fin: horario?.pausa_fin ? horario.pausa_fin.substring(0, 5) : '',
     activo: horario?.activo ?? true
@@ -44,6 +45,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
         dia_semana: horario.dia_semana,
         hora_inicio: horario.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
         hora_fin: horario.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
+        has_colacion: !!(horario.pausa_inicio || horario.pausa_fin),
         pausa_inicio: horario.pausa_inicio ? horario.pausa_inicio.substring(0, 5) : '',
         pausa_fin: horario.pausa_fin ? horario.pausa_fin.substring(0, 5) : '',
         activo: horario.activo
@@ -74,7 +76,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
       }
     }
 
-    if (formData.pausa_inicio || formData.pausa_fin) {
+    if (formData.has_colacion) {
       if (!formData.pausa_inicio) newErrors.pausa_inicio = 'Requerido si hay pausa'
       if (!formData.pausa_fin) newErrors.pausa_fin = 'Requerido si hay pausa'
 
@@ -121,8 +123,8 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
         dia_semana: formData.dia_semana,
         hora_inicio: `${formData.hora_inicio}:00`,
         hora_fin: `${formData.hora_fin}:00`,
-        pausa_inicio: formData.pausa_inicio ? `${formData.pausa_inicio}:00` : null,
-        pausa_fin: formData.pausa_fin ? `${formData.pausa_fin}:00` : null,
+        pausa_inicio: (formData.has_colacion && formData.pausa_inicio) ? `${formData.pausa_inicio}:00` : null,
+        pausa_fin: (formData.has_colacion && formData.pausa_fin) ? `${formData.pausa_fin}:00` : null,
         activo: formData.activo
       }
 
@@ -297,63 +299,88 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
               )}
             </div>
 
-            {/* Inactividad / Pausa (Opcional) */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  <i className="fas fa-coffee mr-2" style={{ color: 'var(--accent-color)' }}></i>
-                  Inicio Descanso
-                </label>
+            {/* Inactividad / Pausa (Colación) */}
+            <div className="pt-2 pb-2 border-t border-[var(--border-color)]">
+              <label className="flex items-center space-x-3 cursor-pointer group mb-4">
                 <input
-                  type="time"
-                  value={formData.pausa_inicio}
-                  onChange={(e) => setFormData({ ...formData, pausa_inicio: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg transition-all"
-                  style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    border: errors.pausa_inicio ? '1px solid #EF4444' : '1px solid var(--border-color)'
-                  }}
+                  type="checkbox"
+                  checked={formData.has_colacion}
+                  onChange={(e) => setFormData({ ...formData, has_colacion: e.target.checked })}
+                  className="w-5 h-5 rounded transition-all"
+                  style={{ accentColor: 'var(--accent-color)' }}
                   disabled={loading}
                 />
-                {errors.pausa_inicio && (
-                  <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
-                    <i className="fas fa-exclamation-circle mr-1"></i>
-                    {errors.pausa_inicio}
-                  </p>
-                )}
-              </div>
+                <span
+                  className="text-sm font-medium"
+                  style={{ color: 'var(--text-primary)' }}
+                >
+                  <i
+                    className={`fas ${formData.has_colacion ? 'fa-toggle-on' : 'fa-toggle-off'} mr-2`}
+                    style={{ color: formData.has_colacion ? 'var(--accent-color)' : 'var(--text-primary)' }}
+                  ></i>
+                  Tiene horario de Colación / Descanso
+                </span>
+              </label>
 
-              <div>
-                <label
-                  className="block text-sm font-medium mb-2"
-                  style={{ color: 'var(--text-primary)' }}
-                >
-                  <i className="fas fa-clock mr-2" style={{ color: 'var(--accent-color)' }}></i>
-                  Fin Descanso
-                </label>
-                <input
-                  type="time"
-                  value={formData.pausa_fin}
-                  onChange={(e) => setFormData({ ...formData, pausa_fin: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-lg transition-all"
-                  style={{
-                    backgroundColor: 'var(--bg-primary)',
-                    color: 'var(--text-primary)',
-                    border: errors.pausa_fin ? '1px solid #EF4444' : '1px solid var(--border-color)'
-                  }}
-                  disabled={loading}
-                />
-                {errors.pausa_fin && (
-                  <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
-                    <i className="fas fa-exclamation-circle mr-1"></i>
-                    {errors.pausa_fin}
-                  </p>
-                )}
-              </div>
+              {formData.has_colacion && (
+                <div className="grid grid-cols-2 gap-4 animate-fadeIn">
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      <i className="fas fa-coffee mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                      Inicio Colación
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.pausa_inicio}
+                      onChange={(e) => setFormData({ ...formData, pausa_inicio: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg transition-all"
+                      style={{
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        border: errors.pausa_inicio ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                      }}
+                      disabled={loading}
+                    />
+                    {errors.pausa_inicio && (
+                      <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                        <i className="fas fa-exclamation-circle mr-1"></i>
+                        {errors.pausa_inicio}
+                      </p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label
+                      className="block text-sm font-medium mb-2"
+                      style={{ color: 'var(--text-primary)' }}
+                    >
+                      <i className="fas fa-clock mr-2" style={{ color: 'var(--accent-color)' }}></i>
+                      Fin Colación
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.pausa_fin}
+                      onChange={(e) => setFormData({ ...formData, pausa_fin: e.target.value })}
+                      className="w-full px-4 py-2.5 rounded-lg transition-all"
+                      style={{
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        border: errors.pausa_fin ? '1px solid #EF4444' : '1px solid var(--border-color)'
+                      }}
+                      disabled={loading}
+                    />
+                    {errors.pausa_fin && (
+                      <p className="mt-2 text-xs" style={{ color: '#EF4444' }}>
+                        <i className="fas fa-exclamation-circle mr-1"></i>
+                        {errors.pausa_fin}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Estado */}
