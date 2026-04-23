@@ -196,8 +196,6 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
     setTipoRango('diario')
   }
 
-
-
   if (cargando) {
     return (
       <div className="bg-white rounded-lg shadow-md p-6">

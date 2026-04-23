@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { DollarSign, Calendar, TrendingUp, Clock, Scissors, Award, Star } from 'lucide-react'
 import { MetricasDiarias } from '@/types/barber-app'
 import { useFormatCurrency } from '@/context/ConfigContext'
+import toast from 'react-hot-toast'
 
 interface DashboardSectionProps {
   barberoId: string
@@ -28,17 +29,16 @@ export default function DashboardSection({ barberoId, nombreBarbero }: Dashboard
       if (result.success) {
         setMetricas(result.data)
       } else {
-        // Fallback or manual fetch if API doesn't exist yet
-        // For now, let's assume we might need a direct call if API is missing
+        console.error('[DashboardSection] API error:', result.error ?? result)
+        toast.error('No se pudieron cargar las métricas')
       }
     } catch (error) {
-      console.error('Error fetching dashboard metrics:', error)
+      console.error('[DashboardSection] Error fetching metrics:', error)
+      toast.error('Error de conexión al cargar métricas')
     } finally {
       setLoading(false)
     }
   }
-
-
 
   return (
     <div className="dashboard-container">

@@ -11,7 +11,6 @@ import { useFormatCurrency } from '@/context/ConfigContext'
 export default function MetricasRapidas({ metricas, loading }: MetricasRapidasProps) {
   const formatCurrency = useFormatCurrency()
 
-
   if (loading) {
     return (
       <div className="metricas-grid loading">

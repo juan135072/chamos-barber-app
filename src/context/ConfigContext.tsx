@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface ConfigContextType {
@@ -22,13 +22,14 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     .from('sitio_configuracion')
                     .select('valor')
                     .eq('clave', 'sitio_moneda')
-                    .single() as any;
+                    .single();
 
-                if (data && data.valor) {
+                if (error) console.error('[Config] Error fetching moneda:', error);
+                if (data?.valor) {
                     setMoneda(data.valor);
                 }
             } catch (err) {
-                console.error('Error fetching global config:', err);
+                console.error('[Config] Error fetching global config:', err);
             } finally {
                 setLoading(false);
             }
@@ -49,14 +50,21 @@ export const useConfig = () => useContext(ConfigContext);
 export const useFormatCurrency = () => {
     const { moneda } = useConfig();
 
-    return (amount: number | null | undefined): string => {
-        if (amount === null || amount === undefined) return '';
-
-        return new Intl.NumberFormat('es-CL', {
+    const formatter = useMemo(
+        () => new Intl.NumberFormat(undefined, {
             style: 'currency',
             currency: moneda || 'CLP',
             minimumFractionDigits: 0,
             maximumFractionDigits: 0,
-        }).format(amount);
-    };
+        }),
+        [moneda]
+    );
+
+    return useCallback(
+        (amount: number | null | undefined): string => {
+            if (amount == null) return '';
+            return formatter.format(amount);
+        },
+        [formatter]
+    );
 };

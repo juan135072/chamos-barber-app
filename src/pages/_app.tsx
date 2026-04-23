@@ -37,8 +37,8 @@ export default function App({ Component, pageProps }: AppProps) {
   const isBarberRoute = barberRoutes.some(route => router.pathname.startsWith(route))
 
   return (
-    <ConfigProvider>
-      <SessionContextProvider supabaseClient={supabase}>
+    <SessionContextProvider supabaseClient={supabase}>
+      <ConfigProvider>
         <OneSignalProvider autoPrompt={false} enabled={isBarberRoute}>
           <Head>
             <meta charSet="UTF-8" />
@@ -85,7 +85,7 @@ export default function App({ Component, pageProps }: AppProps) {
           {/* WhatsApp button solo en páginas públicas (no en admin/barbero/pos) */}
           {!isAdminRoute && <WhatsAppButton />}
         </OneSignalProvider>
-      </SessionContextProvider>
-    </ConfigProvider>
+      </ConfigProvider>
+    </SessionContextProvider>
   )
 }

@@ -23,34 +23,26 @@ const diasSemana = [
   { num: 0, nombre: 'Domingo' }
 ]
 
+const buildFormData = (horario?: HorarioAtencion | null) => ({
+  dia_semana: horario?.dia_semana ?? 1,
+  hora_inicio: horario?.hora_inicio?.substring(0, 5) ?? '09:00',
+  hora_fin: horario?.hora_fin?.substring(0, 5) ?? '19:00',
+  has_colacion: !!(horario?.pausa_inicio || horario?.pausa_fin),
+  pausa_inicio: horario?.pausa_inicio?.substring(0, 5) ?? '',
+  pausa_fin: horario?.pausa_fin?.substring(0, 5) ?? '',
+  activo: horario?.activo ?? true,
+})
+
 const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId, onClose, onSuccess }) => {
   const supabase = useSupabaseClient<Database>()
   const [loading, setLoading] = useState(false)
 
-  const [formData, setFormData] = useState({
-    dia_semana: horario?.dia_semana ?? 1,
-    hora_inicio: horario?.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
-    hora_fin: horario?.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
-    has_colacion: !!(horario?.pausa_inicio || horario?.pausa_fin),
-    pausa_inicio: horario?.pausa_inicio ? horario.pausa_inicio.substring(0, 5) : '',
-    pausa_fin: horario?.pausa_fin ? horario.pausa_fin.substring(0, 5) : '',
-    activo: horario?.activo ?? true
-  })
+  const [formData, setFormData] = useState(() => buildFormData(horario))
 
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   useEffect(() => {
-    if (horario) {
-      setFormData({
-        dia_semana: horario.dia_semana,
-        hora_inicio: horario.hora_inicio ? horario.hora_inicio.substring(0, 5) : '09:00',
-        hora_fin: horario.hora_fin ? horario.hora_fin.substring(0, 5) : '19:00',
-        has_colacion: !!(horario.pausa_inicio || horario.pausa_fin),
-        pausa_inicio: horario.pausa_inicio ? horario.pausa_inicio.substring(0, 5) : '',
-        pausa_fin: horario.pausa_fin ? horario.pausa_fin.substring(0, 5) : '',
-        activo: horario.activo
-      })
-    }
+    setFormData(buildFormData(horario))
   }, [horario])
 
   const validateForm = () => {
@@ -96,8 +88,11 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
           const minInicio = inicio[0] * 60 + inicio[1]
           const minFin = fin[0] * 60 + fin[1]
 
-          if (minPInicio < minInicio || minPFin > minFin) {
-            newErrors.pausa_inicio = 'La pausa debe estar dentro del horario de atención'
+          if (minPInicio < minInicio) {
+            newErrors.pausa_inicio = 'El inicio del descanso debe ser posterior al inicio del turno'
+          }
+          if (minPFin > minFin) {
+            newErrors.pausa_fin = 'El fin del descanso debe ser anterior al fin del turno'
           }
         }
       }
@@ -207,7 +202,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
           <div className="space-y-8 pt-2">
 
             {/* --- BLOQUE 1: HORARIO LABORAL --- */}
-            <div className="bg-[#111] p-5 rounded-xl border border-[var(--border-color)] relative pt-6 shadow-sm">
+            <div className="p-5 rounded-xl border border-[var(--border-color)] relative pt-6 shadow-sm" style={{ backgroundColor: 'var(--bg-primary)' }}>
               <div className="absolute -top-2.5 left-4 bg-[var(--bg-secondary)] px-2 text-[10px] font-bold text-[var(--accent-color)] uppercase tracking-wider rounded border border-[var(--border-color)]">
                 1. Horario Laboral
               </div>
@@ -315,7 +310,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
             </div>
 
             {/* --- BLOQUE 2: COLACIÓN / DESCANSO --- */}
-            <div className="bg-[#111] p-5 rounded-xl border border-[var(--border-color)] relative pt-6 shadow-sm">
+            <div className="p-5 rounded-xl border border-[var(--border-color)] relative pt-6 shadow-sm" style={{ backgroundColor: 'var(--bg-primary)' }}>
               <div className="absolute -top-2.5 left-4 bg-[var(--bg-secondary)] px-2 text-[10px] font-bold text-amber-500 uppercase tracking-wider rounded border border-[var(--border-color)]">
                 2. Colación / Descanso
               </div>
@@ -404,7 +399,7 @@ const HorarioModal: React.FC<HorarioModalProps> = ({ isOpen, horario, barberoId,
             </div>
 
             {/* --- BLOQUE 3: ESTADO GENERAL --- */}
-            <div className="bg-[#111] p-5 rounded-xl border border-[var(--border-color)] relative pt-6 shadow-sm flex items-start flex-col">
+            <div className="p-5 rounded-xl border border-[var(--border-color)] relative pt-6 shadow-sm flex items-start flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
               <div className="absolute -top-2.5 left-4 bg-[var(--bg-secondary)] px-2 text-[10px] font-bold text-emerald-500 uppercase tracking-wider rounded border border-[var(--border-color)]">
                 3. Estado General
               </div>

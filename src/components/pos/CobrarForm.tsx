@@ -376,8 +376,6 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     }
   }
 
-
-
   const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
 
   if (cargando) {

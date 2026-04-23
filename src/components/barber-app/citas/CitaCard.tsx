@@ -30,8 +30,6 @@ export default function CitaCard({ cita, onCheckIn, onCompletar, onCancelar, loa
     }
   }
 
-
-
   const getEstadoColor = (estado: string) => {
     switch (estado) {
       case 'pendiente':

@@ -231,8 +231,6 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
     }
   }
 
-
-
   const formatTime = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleTimeString('es-ES', {
