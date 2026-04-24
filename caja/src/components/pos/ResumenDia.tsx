@@ -81,15 +81,15 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
 
       // Calcular totales
       const totalVentas = facturas?.length || 0
-      const totalCobrado = facturas?.reduce((sum, f) => sum + parseFloat(f.total.toString()), 0) || 0
-      const totalComisiones = facturas?.reduce((sum, f) => sum + parseFloat((f.comision_barbero || 0).toString()), 0) || 0
-      const ingresoNetoCasa = facturas?.reduce((sum, f) => sum + parseFloat((f.ingreso_casa || 0).toString()), 0) || 0
+      const totalCobrado = facturas?.reduce((sum: number, f: any) => sum + parseFloat(f.total.toString()), 0) || 0
+      const totalComisiones = facturas?.reduce((sum: number, f: any) => sum + parseFloat((f.comision_barbero || 0).toString()), 0) || 0
+      const ingresoNetoCasa = facturas?.reduce((sum: number, f: any) => sum + parseFloat((f.ingreso_casa || 0).toString()), 0) || 0
 
       // Calcular por método de pago
-      const efectivo = facturas?.filter(f => f.metodo_pago === 'efectivo').reduce((sum, f) => sum + parseFloat(f.total.toString()), 0) || 0
-      const tarjeta = facturas?.filter(f => f.metodo_pago === 'tarjeta').reduce((sum, f) => sum + parseFloat(f.total.toString()), 0) || 0
-      const transferencia = facturas?.filter(f => f.metodo_pago === 'transferencia').reduce((sum, f) => sum + parseFloat(f.total.toString()), 0) || 0
-      const otros = facturas?.filter(f => !['efectivo', 'tarjeta', 'transferencia'].includes(f.metodo_pago)).reduce((sum, f) => sum + parseFloat(f.total.toString()), 0) || 0
+      const efectivo = facturas?.filter((f: any) => f.metodo_pago === 'efectivo').reduce((sum: number, f: any) => sum + parseFloat(f.total.toString()), 0) || 0
+      const tarjeta = facturas?.filter((f: any) => f.metodo_pago === 'tarjeta').reduce((sum: number, f: any) => sum + parseFloat(f.total.toString()), 0) || 0
+      const transferencia = facturas?.filter((f: any) => f.metodo_pago === 'transferencia').reduce((sum: number, f: any) => sum + parseFloat(f.total.toString()), 0) || 0
+      const otros = facturas?.filter((f: any) => !['efectivo', 'tarjeta', 'transferencia'].includes(f.metodo_pago)).reduce((sum: number, f: any) => sum + parseFloat(f.total.toString()), 0) || 0
 
       setResumen({
         totalVentas,
@@ -103,7 +103,7 @@ export default function ResumenDia({ usuario, recargar }: ResumenDiaProps) {
       })
 
       // Guardar IDs para vincular en el cierre
-      setFacturasIdsPeriodo(facturas?.map(f => f.id) || [])
+      setFacturasIdsPeriodo(facturas?.map((f: any) => f.id) || [])
     } catch (error) {
       console.error('Error cargando resumen:', error)
     } finally {
