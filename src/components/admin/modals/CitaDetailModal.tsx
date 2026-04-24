@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
 import Modal from '../shared/Modal'
-import type { Database } from '../../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 import { supabase } from '@/lib/supabase'
 import { Plus, Trash, Save, Loader2 } from 'lucide-react'
 import { useFormatCurrency } from '@/context/ConfigContext'
+import toast from 'react-hot-toast'
 
 type Servicio = Database['public']['Tables']['servicios']['Row']
 type Cita = Database['public']['Tables']['citas']['Row'] & {
@@ -123,7 +124,7 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
             onClose()
         } catch (error) {
             console.error('Error guardando cambios:', error)
-            alert('Error al guardar los cambios')
+            toast.error('Error al guardar los cambios')
         } finally {
             setIsSaving(false)
         }

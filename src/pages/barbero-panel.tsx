@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
@@ -8,23 +8,12 @@ import GananciasSection from '../components/barbero/GananciasSection'
 import ChangePasswordSection from '../components/barbero/ChangePasswordSection'
 import MarcarAsistencia from '../components/barbero/MarcarAsistencia'
 import HistorialAsistencia from '../components/barbero/HistorialAsistencia'
+import PerfilSection from '../components/barbero/PerfilSection'
 import { Bell, BellOff } from 'lucide-react'
 import DashboardSection from '../components/barbero/DashboardSection'
-import { chamosSupabase } from '../../lib/supabase-helpers'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
 import OneSignalResetButton from '../components/barbero/OneSignalResetButton'
-
-interface BarberoProfile {
-  id: string
-  nombre: string
-  apellido: string
-  email: string
-  telefono: string
-  instagram: string
-  descripcion: string
-  especialidades: string[] | null
-  imagen_url: string
-}
+import { BarberoProvider, type BarberoProfile } from '../context/BarberoContext'
 
 
 const BarberoPanelPage: React.FC = () => {
@@ -35,39 +24,18 @@ const BarberoPanelPage: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<BarberoProfile | null>(null)
   const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias' | 'seguridad' | 'dashboard' | 'asistencia'>('dashboard')
-  const [saving, setSaving] = useState(false)
-  const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [imagePreview, setImagePreview] = useState<string | null>(null)
-  const [uploadingImage, setUploadingImage] = useState(false)
   const [isStandalone, setIsStandalone] = useState(false)
 
   const { triggerPrompt, setExternalId } = useOneSignal()
 
-  useEffect(() => {
-    // Detectar si está instalado (PWA)
-    if (typeof window !== 'undefined') {
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone ||
-        document.referrer.includes('android-app://')
-      setIsStandalone(isPWA)
-    }
-
-    if (!session) {
-      router.push('/chamos-acceso')
-      return
-    }
-    loadBarberoData()
-  }, [session])
-
-  const loadBarberoData = async () => {
+  const loadBarberoData = useCallback(async () => {
+    if (!session?.user?.id) return
     try {
       setLoading(true)
-
-      // Obtener perfil del barbero
       const { data: adminUser, error: adminError } = await supabase
         .from('admin_users')
         .select('barbero_id, rol')
-        .eq('id', session?.user?.id)
+        .eq('id', session.user.id)
         .single()
 
       if (adminError || !adminUser || adminUser.rol !== 'barbero') {
@@ -76,7 +44,6 @@ const BarberoPanelPage: React.FC = () => {
         return
       }
 
-      // Cargar datos del barbero
       const { data: barbero, error: barberoError } = await supabase
         .from('barberos')
         .select('*')
@@ -85,31 +52,30 @@ const BarberoPanelPage: React.FC = () => {
 
       if (barberoError) throw barberoError
 
-      console.log('🔍 [Barbero Panel] Perfil cargado:', {
-        id: barbero.id,
-        nombre: barbero.nombre,
-        descripcion: barbero.descripcion,
-        descripcion_length: barbero.descripcion?.length || 0
-      })
-
       setProfile(barbero)
-
-      // 🔔 OneSignal: Vincular ID y mostrar prompt
       setExternalId(barbero.id)
-
-      // Intentar disparar el prompt después de un delay
-      setTimeout(() => {
-        console.log('🔄 [Barbero Panel] Intentando auto-trigger de OneSignal...')
-        triggerPrompt()
-      }, 5000)
-
+      setTimeout(() => triggerPrompt(), 5000)
     } catch (error) {
       console.error('Error loading data:', error)
       toast.error('Error al cargar tus datos')
     } finally {
       setLoading(false)
     }
-  }
+  }, [session?.user?.id])
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone ||
+        document.referrer.includes('android-app://')
+      setIsStandalone(isPWA)
+    }
+    if (!session) {
+      router.push('/chamos-acceso')
+      return
+    }
+    loadBarberoData()
+  }, [session])
 
   // Obtener estado de OneSignal
   const { permissionStatus, triggerPrompt: osTriggerPrompt, repairSubscription } = useOneSignal()
@@ -146,111 +112,6 @@ const BarberoPanelPage: React.FC = () => {
     )
   }
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    // Validar tipo de archivo
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
-    if (!validTypes.includes(file.type)) {
-      toast.error('Tipo de archivo no válido. Usa JPG, PNG, WEBP o GIF')
-      return
-    }
-
-    // Validar tamaño (5MB máximo)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('El archivo es demasiado grande. Máximo 5MB')
-      return
-    }
-
-    setSelectedFile(file)
-
-    // Crear preview
-    const reader = new FileReader()
-    reader.onloadend = () => {
-      setImagePreview(reader.result as string)
-    }
-    reader.readAsDataURL(file)
-  }
-
-  const handleClearImage = () => {
-    setSelectedFile(null)
-    setImagePreview(null)
-  }
-
-  const handleUpdateProfile = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!profile) return
-
-    try {
-      setSaving(true)
-      let newImageUrl = profile.imagen_url
-
-      // Si hay una nueva imagen seleccionada, subirla primero
-      if (selectedFile) {
-        setUploadingImage(true)
-        toast.loading('Subiendo imagen...')
-
-        try {
-          // Eliminar imagen anterior si existe
-          if (profile.imagen_url) {
-            const oldPath = profile.imagen_url.split('/').pop()
-            if (oldPath) {
-              await chamosSupabase.deleteBarberoFoto(oldPath)
-            }
-          }
-
-          // Subir nueva imagen
-          const uploadResult = await chamosSupabase.uploadBarberoFoto(selectedFile, profile.id)
-          newImageUrl = uploadResult.publicUrl
-          toast.dismiss()
-          toast.success('Imagen subida exitosamente')
-        } catch (uploadError) {
-          console.error('Error uploading image:', uploadError)
-          toast.dismiss()
-          toast.error('Error al subir la imagen')
-          setUploadingImage(false)
-          setSaving(false)
-          return
-        } finally {
-          setUploadingImage(false)
-        }
-      }
-
-      // Actualizar perfil usando chamosSupabase (bypassa RLS)
-      console.log('💾 [Barbero Panel] Guardando perfil:', {
-        telefono: profile.telefono,
-        instagram: profile.instagram,
-        descripcion: profile.descripcion,
-        descripcion_length: profile.descripcion?.length || 0,
-        imagen_url: newImageUrl
-      })
-
-      await chamosSupabase.updateBarbero(profile.id, {
-        telefono: profile.telefono,
-        instagram: profile.instagram,
-        descripcion: profile.descripcion,
-        imagen_url: newImageUrl
-      })
-
-      console.log('✅ [Barbero Panel] Perfil actualizado exitosamente')
-
-      // Actualizar estado local
-      setProfile({ ...profile, imagen_url: newImageUrl })
-      setSelectedFile(null)
-      setImagePreview(null)
-
-      toast.success('Perfil actualizado exitosamente')
-
-      // Recargar datos del barbero para confirmar cambios
-      await loadBarberoData()
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      toast.error('Error al actualizar el perfil')
-    } finally {
-      setSaving(false)
-    }
-  }
 
   const handleLogout = async () => {
     try {
@@ -317,6 +178,7 @@ const BarberoPanelPage: React.FC = () => {
   }
 
   return (
+    <BarberoProvider value={{ profile, barberoId: profile.id, refetchProfile: loadBarberoData, handleLogout }}>
     <>
       <Head>
         <title>{`Panel de ${profile.nombre} - Chamos Barber`}</title>
@@ -556,268 +418,7 @@ const BarberoPanelPage: React.FC = () => {
             </div>
           )}
 
-          {activeTab === 'perfil' && (
-            <div style={{
-              maxWidth: '800px',
-              margin: '0 auto',
-              background: 'var(--bg-secondary)',
-              padding: '2rem',
-              borderRadius: 'var(--border-radius)',
-              border: '1px solid var(--border-color)'
-            }}>
-              <h2 style={{ marginBottom: '2rem', color: 'var(--accent-color)' }}>
-                <i className="fas fa-edit"></i> Actualizar Información
-              </h2>
-
-              <form onSubmit={handleUpdateProfile}>
-                {/* Información no editable */}
-                <div style={{
-                  marginBottom: '2rem',
-                  padding: '1rem',
-                  background: 'rgba(212, 175, 55, 0.1)',
-                  borderRadius: 'var(--border-radius)',
-                  border: '1px solid rgba(212, 175, 55, 0.3)'
-                }}>
-                  <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    <strong>Nombre:</strong> {profile.nombre} {profile.apellido}
-                  </p>
-                  <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-                    <strong>Email:</strong> {profile.email}
-                  </p>
-                  <p style={{ fontSize: '0.9rem', marginBottom: '0' }}>
-                    <strong>Especialidades:</strong> {profile.especialidades?.join(', ') || 'N/A'}
-                  </p>
-                  <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.7 }}>
-                    <i className="fas fa-info-circle"></i> Contacta al administrador para cambiar estos datos
-                  </p>
-                </div>
-
-                {/* Campos editables */}
-
-                {/* Foto de Perfil */}
-                <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                  <label className="form-label" style={{
-                    display: 'block',
-                    marginBottom: '0.75rem',
-                    color: 'var(--text-primary)',
-                    opacity: 0.9
-                  }}>
-                    <i className="fas fa-camera"></i> Foto de Perfil
-                  </label>
-
-                  {/* Imagen actual o preview */}
-                  {(imagePreview || profile.imagen_url) && (
-                    <div style={{
-                      marginBottom: '1rem',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '1rem'
-                    }}>
-                      <img
-                        src={imagePreview || profile.imagen_url}
-                        alt="Preview"
-                        style={{
-                          width: '120px',
-                          height: '120px',
-                          borderRadius: '50%',
-                          objectFit: 'cover',
-                          border: '3px solid var(--accent-color)'
-                        }}
-                      />
-                      {imagePreview && (
-                        <button
-                          type="button"
-                          onClick={handleClearImage}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            background: 'rgba(220, 38, 38, 0.15)',
-                            color: '#fca5a5',
-                            border: '1px solid rgba(220, 38, 38, 0.3)',
-                            borderRadius: 'var(--border-radius)',
-                            cursor: 'pointer',
-                            fontSize: '0.9rem',
-                            transition: 'all 0.3s'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.25)'
-                          }}
-                          onMouseLeave={(e) => {
-                            e.currentTarget.style.background = 'rgba(220, 38, 38, 0.15)'
-                          }}
-                        >
-                          <i className="fas fa-times"></i> Quitar nueva imagen
-                        </button>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Área de drag & drop */}
-                  <div
-                    style={{
-                      border: '2px dashed var(--border-color)',
-                      borderRadius: 'var(--border-radius)',
-                      padding: '2rem',
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s',
-                      backgroundColor: 'rgba(212, 175, 55, 0.03)'
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault()
-                      e.currentTarget.style.borderColor = 'var(--accent-color)'
-                      e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.1)'
-                    }}
-                    onDragLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)'
-                      e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.03)'
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault()
-                      e.currentTarget.style.borderColor = 'var(--border-color)'
-                      e.currentTarget.style.backgroundColor = 'rgba(212, 175, 55, 0.03)'
-                      const file = e.dataTransfer.files[0]
-                      if (file) {
-                        const input = document.createElement('input')
-                        input.type = 'file'
-                        const dt = new DataTransfer()
-                        dt.items.add(file)
-                        input.files = dt.files
-                        handleFileSelect({ target: input } as any)
-                      }
-                    }}
-                  >
-                    <i
-                      className="fas fa-cloud-upload-alt"
-                      style={{
-                        fontSize: '3rem',
-                        color: 'var(--accent-color)',
-                        marginBottom: '1rem',
-                        opacity: 0.7,
-                        display: 'block'
-                      }}
-                    ></i>
-                    <p style={{
-                      marginBottom: '0.5rem',
-                      color: 'var(--text-primary)',
-                      opacity: 0.9
-                    }}>
-                      Arrastra una imagen aquí o{' '}
-                      <label style={{
-                        color: 'var(--accent-color)',
-                        cursor: 'pointer',
-                        textDecoration: 'underline'
-                      }}>
-                        selecciona un archivo
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-                          onChange={handleFileSelect}
-                          style={{ display: 'none' }}
-                        />
-                      </label>
-                    </p>
-                    <p style={{
-                      fontSize: '0.85rem',
-                      color: 'var(--text-primary)',
-                      opacity: 0.6,
-                      margin: 0
-                    }}>
-                      PNG, JPG, WEBP, GIF hasta 5MB
-                    </p>
-                  </div>
-                </div>
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="fas fa-phone"></i> Teléfono / WhatsApp
-                  </label>
-                  <input
-                    type="tel"
-                    className="form-input"
-                    value={profile.telefono || ''}
-                    onChange={(e) => setProfile({ ...profile, telefono: e.target.value })}
-                    placeholder="+56 9 1234 5678"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="fab fa-instagram"></i> Instagram
-                  </label>
-                  <input
-                    type="text"
-                    className="form-input"
-                    value={profile.instagram || ''}
-                    onChange={(e) => setProfile({ ...profile, instagram: e.target.value })}
-                    placeholder="@tu_instagram"
-                  />
-                  <small style={{ opacity: 0.7, fontSize: '0.85rem' }}>
-                    Usa @ o la URL completa de tu perfil
-                  </small>
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">
-                    <i className="fas fa-align-left"></i> Descripción / Biografía
-                  </label>
-                  <textarea
-                    className="form-input"
-                    value={profile.descripcion || ''}
-                    onChange={(e) => setProfile({ ...profile, descripcion: e.target.value })}
-                    rows={5}
-                    placeholder="Cuéntale a tus clientes sobre ti, tu experiencia y estilo..."
-                    style={{ resize: 'vertical' }}
-                  />
-                  <small style={{ opacity: 0.7, fontSize: '0.85rem' }}>
-                    {profile.descripcion?.length || 0} caracteres
-                  </small>
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={saving || uploadingImage}
-                  style={{ width: '100%', marginTop: '1rem' }}
-                >
-                  {uploadingImage ? (
-                    <>
-                      <div className="spinner"></div>
-                      Subiendo imagen...
-                    </>
-                  ) : saving ? (
-                    <>
-                      <div className="spinner"></div>
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <i className="fas fa-save"></i>
-                      Guardar Cambios
-                    </>
-                  )}
-                </button>
-
-                <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-                  <button
-                    type="button"
-                    onClick={handleLogout}
-                    className="btn"
-                    style={{
-                      width: '100%',
-                      backgroundColor: 'rgba(220, 38, 38, 0.1)',
-                      color: '#EF4444',
-                      border: '1px solid rgba(220, 38, 38, 0.3)',
-                      transition: 'var(--transition)'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.2)'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(220, 38, 38, 0.1)'}
-                  >
-                    <i className="fas fa-sign-out-alt mr-2"></i>
-                    Cerrar Sesión Corriente
-                  </button>
-                </div>
-              </form>
-            </div>
-          )}
+          {activeTab === 'perfil' && <PerfilSection />}
 
         </div>
 
@@ -955,6 +556,7 @@ const BarberoPanelPage: React.FC = () => {
         <OneSignalResetButton />
       </div>
     </>
+    </BarberoProvider>
   )
 }
 

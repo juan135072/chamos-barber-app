@@ -10,6 +10,7 @@ import Logo from '@/components/shared/Logo'
 import { useCashRegister } from '@/hooks/useCashRegister'
 import OpenRegisterModal from '@/components/pos/OpenRegisterModal'
 import { formatCLP } from '@/lib/supabase-liquidaciones'
+import toast from 'react-hot-toast'
 
 export default function POSPage() {
   const router = useRouter()
@@ -26,7 +27,7 @@ export default function POSPage() {
     }
 
     if (!puedeAccederPOS()) {
-      alert('No tienes permisos para acceder al punto de venta')
+      toast.error('No tienes permisos para acceder al punto de venta')
       router.push('/')
       return
     }
@@ -155,12 +156,12 @@ export default function POSPage() {
                       clearTimeout(timeoutId)
 
                       if (response.ok) {
-                        alert('✅ Cajón abierto correctamente')
+                        toast.success('Cajón abierto correctamente')
                       } else {
                         throw new Error('Error al abrir cajón')
                       }
                     } catch (e) {
-                      alert('⚠️ No se pudo conectar con la impresora local para abrir el cajón.\n\nVerifica que el servicio de impresión esté ejecutándose en el puerto 3001.')
+                      toast.error('No se pudo conectar con la impresora local (puerto 3001).')
                     }
                   }}
                   className="px-4 py-2 text-sm font-medium rounded-lg transition-all"

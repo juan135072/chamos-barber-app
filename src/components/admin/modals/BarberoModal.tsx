@@ -3,9 +3,9 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Modal from '../shared/Modal'
-import { supabase } from '../../../../lib/initSupabase'
-import { chamosSupabase } from '../../../../lib/supabase-helpers'
-import type { Database } from '../../../../lib/database.types'
+import { supabase } from '@/lib/supabase'
+import { chamosSupabase } from '@/lib/supabase-helpers'
+import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']

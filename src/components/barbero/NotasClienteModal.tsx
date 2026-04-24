@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import type { Database } from '../../../lib/database.types'
-import { chamosSupabase } from '../../../lib/supabase-helpers'
+import type { Database } from '@/lib/database.types'
+import { chamosSupabase } from '@/lib/supabase-helpers'
 import toast from 'react-hot-toast'
 
 type NotaCliente = Database['public']['Tables']['notas_clientes']['Row']

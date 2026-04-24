@@ -2,8 +2,8 @@ import { lazy, Suspense, useEffect, useState } from 'react'
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { chamosSupabase } from '../../lib/supabase-helpers'
-import type { Database } from '../../lib/database.types'
+import { chamosSupabase } from '@/lib/supabase-helpers'
+import type { Database } from '@/lib/database.types'
 import Logo from '../components/shared/Logo'
 
 // Tabs cargadas bajo demanda — solo se descarga el bundle cuando la tab está activa

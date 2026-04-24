@@ -1,7 +1,7 @@
 
 import { createServerClient, parseCookieHeader, serializeCookieHeader } from '@supabase/auth-helpers-nextjs'
 import type { NextApiRequest, NextApiResponse } from 'next'
-import type { Database } from '../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 
 /**
  * Crea un cliente de Supabase para su uso en API Routes (Pages Router)

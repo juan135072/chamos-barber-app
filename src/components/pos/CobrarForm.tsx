@@ -4,6 +4,9 @@ import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { Clock, User, Scissors } from 'lucide-react'
 import { useFormatCurrency } from '@/context/ConfigContext'
+import toast from 'react-hot-toast'
+import { useBarberos } from '@/hooks/useBarberos'
+import { useServicios } from '@/hooks/useServicios'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -104,11 +107,12 @@ function carritoReducer(state: ItemCarrito[], action: CarritoAction): ItemCarrit
 }
 
 export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registrarVentaCaja }: CobrarFormProps) {
-  const [barberos, setBarberos] = useState<Barbero[]>([])
-  const [servicios, setServicios] = useState<Servicio[]>([])
+  const { barberos, loading: cargandoBarberos } = useBarberos({ soloActivos: true })
+  const { servicios, loading: cargandoServicios } = useServicios({ soloActivos: true })
   const [productos, setProductos] = useState<ProductoPOS[]>([])
   const [citasHoy, setCitasHoy] = useState<any[]>([])
-  const [cargando, setCargando] = useState(true)
+  const [cargandoAdicional, setCargandoAdicional] = useState(true)
+  const cargando = cargandoBarberos || cargandoServicios || cargandoAdicional
   const [subPaso2, setSubPaso2] = useState<'servicios' | 'productos'>('servicios')
   const [guardando, setGuardando] = useState(false)
   const formatCurrency = useFormatCurrency()
@@ -140,23 +144,11 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
   const cargarDatos = async () => {
     try {
-      setCargando(true)
+      setCargandoAdicional(true)
 
-      const [
-        { data: barberosData, error: barberosError },
-        { data: serviciosData, error: serviciosError },
-        citasData,
-      ] = await Promise.all([
-        supabase.from('barberos').select('*').eq('activo', true).order('nombre'),
-        supabase.from('servicios').select('*').eq('activo', true).order('categoria, nombre'),
+      const [citasData] = await Promise.all([
         chamosSupabase.getCitasHoyPendientes(),
       ])
-
-      if (barberosError) throw barberosError
-      if (serviciosError) throw serviciosError
-
-      setBarberos(barberosData || [])
-      setServicios(serviciosData || [])
       setCitasHoy(citasData || [])
 
       try {
@@ -169,10 +161,10 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         console.warn('No se pudieron cargar productos:', e)
       }
     } catch (error) {
-      console.error('Error cargando datos:', error)
-      alert('Error al cargar barberos y servicios')
+      console.error('Error cargando datos POS:', error)
+      toast.error('Error al cargar datos del POS')
     } finally {
-      setCargando(false)
+      setCargandoAdicional(false)
     }
   }
 
@@ -250,17 +242,17 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
   const handleCobrar = async () => {
     // Validaciones
     if (!barberoId) {
-      alert('Selecciona un barbero')
+      toast.error('Selecciona un barbero')
       return
     }
 
     if (carrito.length === 0) {
-      alert('Agrega al menos un servicio o producto')
+      toast.error('Agrega al menos un servicio o producto')
       return
     }
 
     if (tipoDocumento === 'factura' && !rut.trim()) {
-      alert('Para emitir factura, ingresa el RUT del cliente')
+      toast.error('Para emitir factura, ingresa el RUT del cliente')
       return
     }
 
@@ -313,7 +305,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       }
 
       if (impresionExitosa) {
-        alert(`¡Venta registrada y ticket impreso!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}`)
+        toast.success(`¡Venta registrada y ticket impreso! ${tipoDoc} #${factura.numero_factura}`)
       } else {
         const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}\n\n¿Deseas imprimir la factura?`)
         if (confirmar) {
@@ -371,7 +363,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
     } catch (error) {
       console.error('Error al crear venta:', error)
-      alert('Error al registrar la venta.')
+      toast.error('Error al registrar la venta.')
     } finally {
       setGuardando(false)
     }

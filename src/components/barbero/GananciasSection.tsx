@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
+import toast from 'react-hot-toast'
 
 type Factura = Database['public']['Tables']['facturas']['Row']
 
@@ -117,7 +118,7 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
       }
     } catch (error) {
       console.error('Error cargando ganancias:', error)
-      alert('Error al cargar las ganancias')
+      toast.error('Error al cargar las ganancias')
     } finally {
       setLoading(false)
     }

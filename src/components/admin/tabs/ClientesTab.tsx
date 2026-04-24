@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import type { Database } from '../../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 import { calcularCategoriaCliente, DATA_RETENTION_POLICY, type ClienteCategoria } from '../../../../lib/data-retention-policy'
 import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'

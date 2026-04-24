@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import type { Database } from '../../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
 import HorarioModal from '../modals/HorarioModal'
 import BloqueoModal from '../modals/BloqueoModal'
 import CrearBloqueoModal from '../modals/CrearBloqueoModal'
 import AgendaVisual from '../agenda/AgendaVisual'
+import { useBarberos } from '@/hooks/useBarberos'
+import { useHorariosAtencion } from '@/hooks/useHorariosAtencion'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type HorarioAtencion = Database['public']['Tables']['horarios_atencion']['Row']
@@ -28,10 +30,10 @@ const HorariosTab: React.FC = () => {
   const supabase = useSupabaseClient<Database>()
   const [activeView, setActiveView] = useState<'atencion' | 'bloqueados'>('atencion')
 
-  // Estado para horarios de atención
-  const [barberos, setBarberos] = useState<Barbero[]>([])
+  // Hooks centralizados
+  const { barberos, loading: loadingBarberos } = useBarberos({ soloActivos: true })
   const [selectedBarbero, setSelectedBarbero] = useState<string>('')
-  const [horariosAtencion, setHorariosAtencion] = useState<HorarioAtencion[]>([])
+  const { horarios: horariosAtencion, refetch: refetchHorarios } = useHorariosAtencion(selectedBarbero)
 
   // Estado para visualización de reservas
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
@@ -42,8 +44,7 @@ const HorariosTab: React.FC = () => {
   const [horariosBloqueados, setHorariosBloqueados] = useState<HorarioBloqueado[]>([])
   const [bloqueosDelDia, setBloqueosDelDia] = useState<HorarioBloqueado[]>([])
 
-  // Estado general
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false)
   const [showHorarioModal, setShowHorarioModal] = useState(false)
   const [showBloqueoModal, setShowBloqueoModal] = useState(false)
   const [showCrearBloqueoModal, setShowCrearBloqueoModal] = useState(false)
@@ -51,22 +52,32 @@ const HorariosTab: React.FC = () => {
   const [editingHorario, setEditingHorario] = useState<HorarioAtencion | null>(null)
   const [editingBloqueo, setEditingBloqueo] = useState<HorarioBloqueado | null>(null)
 
+  // Auto-seleccionar primer barbero cuando carguen
   useEffect(() => {
-    loadBarberos()
-  }, [])
-
-  useEffect(() => {
-    if (selectedBarbero) {
-      loadHorariosAtencion()
-      if (activeView === 'bloqueados') {
-        loadHorariosBloqueados()
-      }
-      // Cargar citas si estamos en la vista de atención (para ver agenda del día)
-      if (activeView === 'atencion' && selectedDate) {
-        loadCitasDelDia()
-        loadBloqueosDelDia()
-      }
+    if (barberos.length > 0 && !selectedBarbero) {
+      setSelectedBarbero(barberos[0].id)
     }
+  }, [barberos, selectedBarbero])
+
+  // Cargar datos en paralelo cuando cambia barbero, vista o fecha
+  useEffect(() => {
+    if (!selectedBarbero) return
+
+    const loadParallel = async () => {
+      const tasks: Promise<void>[] = []
+
+      if (activeView === 'bloqueados') {
+        tasks.push(loadHorariosBloqueados())
+      }
+
+      if (activeView === 'atencion' && selectedDate) {
+        tasks.push(loadCitasDelDia(), loadBloqueosDelDia())
+      }
+
+      await Promise.all(tasks)
+    }
+
+    loadParallel()
   }, [selectedBarbero, activeView, selectedDate])
 
   const loadBloqueosDelDia = async () => {
@@ -198,7 +209,10 @@ const HorariosTab: React.FC = () => {
     return `${monday.toLocaleDateString('es-CL', options)} - ${sunday.toLocaleDateString('es-CL', options)}`
   }
 
-  const loadBarberos = async () => {
+  // loadBarberos eliminado — useBarberos hook lo maneja.
+
+  // Placeholder para compatibilidad con referencias existentes
+  const loadBarberos_UNUSED = async () => {
     try {
       const { data, error } = await supabase
         .from('barberos')
@@ -208,7 +222,6 @@ const HorariosTab: React.FC = () => {
 
       if (error) throw error
 
-      setBarberos(data || [])
       if (data && data.length > 0) {
         setSelectedBarbero(data[0].id)
       }
@@ -220,24 +233,8 @@ const HorariosTab: React.FC = () => {
     }
   }
 
-  const loadHorariosAtencion = async () => {
-    if (!selectedBarbero) return
-
-    try {
-      const { data, error } = await supabase
-        .from('horarios_atencion')
-        .select('*')
-        .eq('barbero_id', selectedBarbero)
-        .order('dia_semana')
-
-      if (error) throw error
-
-      setHorariosAtencion(data || [])
-    } catch (error) {
-      console.error('Error loading horarios atención:', error)
-      toast.error('Error al cargar horarios de atención')
-    }
-  }
+  // loadHorariosAtencion eliminado — useHorariosAtencion hook lo maneja.
+  const loadHorariosAtencion = refetchHorarios
 
   // Función para replicar el horario de un día a otro
   const handleReplicarHorario = async (origenHorario: HorarioAtencion, destinoDia: number) => {

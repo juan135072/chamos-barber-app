@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { COUNTRIES, normalizePhone, formatPhoneInput, getPhonePlaceholder, type CountryCode } from '../../lib/phone-utils'
+import { COUNTRIES, normalizePhone, formatPhoneInput, getPhonePlaceholder, type CountryCode } from '@/lib/phone-utils'
 
 interface PhoneInputProps {
     value: string

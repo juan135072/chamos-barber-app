@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
-import type { Database } from '../../../lib/database.types'
-import { formatFechaChile } from '../../lib/date-utils'
+import type { Database } from '@/lib/database.types'
+import { formatFechaChile } from '@/lib/date-utils'
 import NotasClienteModal from './NotasClienteModal'
+import toast from 'react-hot-toast'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   servicios?: { nombre: string; precio: number }
@@ -36,6 +37,32 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       loadNotasCount()
     }
   }, [barberoId])
+
+  // Suscripción Realtime: recarga citas cuando llega una nueva reserva o cambia el estado
+  useEffect(() => {
+    if (!barberoId) return
+
+    const channel = supabase
+      .channel(`citas-barbero-panel-${barberoId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'citas', filter: `barbero_id=eq.${barberoId}` },
+        (payload) => {
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('[CitasSection] Realtime cita change:', payload.eventType)
+          }
+          loadCitas()
+          if (payload.eventType === 'INSERT') {
+            toast('Nueva cita reservada', { icon: '🔔' })
+          }
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [barberoId, supabase])
 
   const loadCitas = async () => {
     try {
@@ -113,10 +140,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       if (error) throw error
 
       await loadCitas()
-      alert('Estado actualizado correctamente')
+      toast.success('Estado actualizado correctamente')
     } catch (error) {
       console.error('Error updating estado:', error)
-      alert('Error al actualizar el estado')
+      toast.error('Error al actualizar el estado')
     }
   }
 
@@ -133,10 +160,10 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       if (error) throw error
 
       await loadCitas()
-      alert('Cita eliminada correctamente')
+      toast.success('Cita eliminada correctamente')
     } catch (error) {
       console.error('Error deleting cita:', error)
-      alert('Error al eliminar la cita')
+      toast.error('Error al eliminar la cita')
     }
   }
 

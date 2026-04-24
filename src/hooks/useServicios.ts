@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { chamosSupabase } from '@/lib/supabase-helpers'
-import type { Database } from '../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 
 type Servicio = Database['public']['Tables']['servicios']['Row']
 

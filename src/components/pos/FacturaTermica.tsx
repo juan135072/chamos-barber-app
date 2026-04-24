@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf'
+import toast from 'react-hot-toast'
 
 interface ItemFactura {
   servicio_id: string
@@ -404,7 +405,7 @@ export class FacturaTermica {
       }
     } else {
       // Si el popup está bloqueado, mostrar alert
-      alert('Por favor, permite ventanas emergentes para imprimir boletas.')
+      toast.error('Por favor, permite ventanas emergentes para imprimir boletas.')
       URL.revokeObjectURL(pdfUrl)
     }
   }

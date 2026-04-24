@@ -5,6 +5,7 @@
 
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { createPagesServerClient } from '@/lib/supabase-server'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -12,9 +13,14 @@ const supabase = createClient(
 )
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  // Solo permitir POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' })
+  }
+
+  const supabaseAuth = createPagesServerClient(req, res)
+  const { data: { session } } = await supabaseAuth.auth.getSession()
+  if (!session) {
+    return res.status(401).json({ error: 'No autorizado' })
   }
 
   try {

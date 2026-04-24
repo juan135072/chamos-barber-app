@@ -1,5 +1,5 @@
 import React from 'react'
-import type { Database } from '../../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   servicios: { nombre: string; duracion_minutos: number } | null

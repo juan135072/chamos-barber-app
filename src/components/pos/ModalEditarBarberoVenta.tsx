@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import toast from 'react-hot-toast'
 
 interface Barbero {
     id: string
@@ -74,7 +75,7 @@ export default function ModalEditarBarberoVenta({
 
     const handleGuardar = async () => {
         if (!nuevoBarberoId) {
-            alert('Por favor selecciona un barbero')
+            toast.error('Por favor selecciona un barbero')
             return
         }
 
@@ -102,7 +103,7 @@ export default function ModalEditarBarberoVenta({
 
                 if (error) throw error
 
-                alert('✅ Datos de la cita actualizados')
+                toast.success('Datos de la cita actualizados')
                 onSuccess()
                 onClose()
             } else {
@@ -124,7 +125,7 @@ export default function ModalEditarBarberoVenta({
                 const result = await response.json()
 
                 if (response.ok && result.success) {
-                    alert('✅ Venta actualizada correctamente')
+                    toast.success('Venta actualizada correctamente')
                     onSuccess()
                     onClose()
                 } else {
@@ -133,7 +134,7 @@ export default function ModalEditarBarberoVenta({
             }
         } catch (error: any) {
             console.error('Error actualizando venta:', error)
-            alert('❌ ' + error.message)
+            toast.error(error.message)
         } finally {
             setProcesando(false)
         }

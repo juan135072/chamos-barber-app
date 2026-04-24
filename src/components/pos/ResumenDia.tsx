@@ -5,6 +5,7 @@ import { getBarberosResumen, BarberoResumen, formatCLP } from '@/lib/supabase-li
 import { Users, DollarSign, Calculator, Clock } from 'lucide-react'
 import { getChileHoy } from '@/lib/date-utils'
 import { useFormatCurrency } from '@/context/ConfigContext'
+import toast from 'react-hot-toast'
 
 interface ResumenDiaProps {
   usuario: UsuarioConPermisos
@@ -170,12 +171,12 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
         }
       }
 
-      alert('Caja cerrada exitosamente.')
+      toast.success('Caja cerrada exitosamente.')
       setModalAbierto(false)
       cargarResumen()
     } catch (error: any) {
       console.error('Error al cerrar caja:', error)
-      alert('Error al cerrar caja: ' + error.message)
+      toast.error('Error al cerrar caja: ' + error.message)
     } finally {
       setGuardando(false)
     }

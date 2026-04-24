@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
 import { getChileHoy } from '@/lib/date-utils'
+import toast from 'react-hot-toast'
 
 type Factura = Database['public']['Tables']['facturas']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -127,7 +128,7 @@ export default function GananciasTab() {
       setGanancias(gananciasArray)
     } catch (error) {
       console.error('Error cargando ganancias:', error)
-      alert('Error al cargar las ganancias')
+      toast.error('Error al cargar las ganancias')
     } finally {
       setLoading(false)
     }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import type { Database } from '../../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
 import CategoriaModal from '../modals/CategoriaModal'
 import ConfirmDialog from '../shared/ConfirmDialog'

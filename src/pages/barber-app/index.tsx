@@ -10,13 +10,14 @@ import { useBarberAppAuth } from '../../hooks/useBarberAppAuth'
 import { useCitasRealtime } from '../../hooks/useCitasRealtime'
 import { useMetricasDiarias } from '../../hooks/useMetricasDiarias'
 import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
-import { chamosSupabase } from '../../../lib/supabase-helpers'
+import { chamosSupabase } from '@/lib/supabase-helpers'
 import { useOneSignal } from '../../components/providers/OneSignalProvider'
 import MetricasRapidas from '../../components/barber-app/dashboard/MetricasRapidas'
 import ProximaCitaCard from '../../components/barber-app/dashboard/ProximaCitaCard'
 import CitasList from '../../components/barber-app/citas/CitasList'
 import LoadingSpinner from '../../components/barber-app/shared/LoadingSpinner'
 import ModalCobro from '../../components/barber-app/cobro/ModalCobro'
+import toast from 'react-hot-toast'
 
 export default function BarberAppPage() {
   const router = useRouter()
@@ -70,7 +71,7 @@ export default function BarberAppPage() {
     if (result.success) {
       console.log('✅ Check-in realizado')
     } else {
-      alert('Error al realizar check-in')
+      toast.error('Error al realizar check-in')
     }
   }
 
@@ -78,7 +79,7 @@ export default function BarberAppPage() {
     // Buscar la cita para abrir el modal de cobro
     const cita = citas.find(c => c.id === citaId)
     if (!cita) {
-      alert('Cita no encontrada')
+      toast.error('Cita no encontrada')
       return
     }
 
@@ -117,7 +118,7 @@ export default function BarberAppPage() {
       await refresh()
 
       console.log('✅ Cita completada y cobro registrado')
-      alert('✅ Cobro procesado exitosamente')
+      toast.success('Cobro procesado exitosamente')
     } catch (error: any) {
       console.error('Error al confirmar cobro:', error)
       throw error
@@ -130,7 +131,7 @@ export default function BarberAppPage() {
       if (result.success) {
         console.log('✅ Cita cancelada')
       } else {
-        alert('Error al cancelar cita')
+        toast.error('Error al cancelar cita')
       }
     }
   }

@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
-import { chamosSupabase } from '../../lib/supabase-helpers'
-import type { Database } from '../../lib/database.types'
-import { getChileHoy, getChileAhora } from '../lib/date-utils'
+import toast from 'react-hot-toast'
+import { chamosSupabase } from '@/lib/supabase-helpers'
+import type { Database } from '@/lib/database.types'
+import { getChileHoy, getChileAhora } from '@/lib/date-utils'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -200,18 +201,14 @@ export function useReservaWizard() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Error al crear la cita')
 
-      alert(result.message || '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
+      toast.success(result.message || '¡Cita reservada! Te contactaremos pronto para confirmar.')
 
       setServiciosSeleccionados([])
       setFormData(INITIAL_FORM)
       setCurrentStep(1)
     } catch (error) {
       console.error('[useReservaWizard] Error en handleSubmit:', error)
-      if (error instanceof Error) {
-        alert(`Error: ${error.message}`)
-      } else {
-        alert('Error al reservar la cita. Por favor, inténtalo de nuevo.')
-      }
+      toast.error(error instanceof Error ? error.message : 'Error al reservar la cita. Por favor, inténtalo de nuevo.')
     } finally {
       setLoading(false)
     }

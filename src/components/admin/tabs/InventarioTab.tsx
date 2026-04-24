@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
-import { chamosSupabase } from '../../../../lib/supabase-helpers'
+import { chamosSupabase } from '@/lib/supabase-helpers'
 
 type Producto = {
     id: string

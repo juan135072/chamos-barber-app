@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 import Layout from '../components/Layout'
-import { formatPhoneInput, normalizePhone, isValidPhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
+import { formatPhoneInput, normalizePhone, isValidPhone, getPhonePlaceholder, getPhoneHint } from '@/lib/phone-utils'
 import PhoneInput from '../components/PhoneInput'
 import { useReservaWizard } from '../hooks/useReservaWizard'
 

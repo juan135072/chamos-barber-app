@@ -6,8 +6,9 @@ import { useRouter } from 'next/router'
 import { useEffect } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import type { Database } from '../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
+import toast from 'react-hot-toast'
 
 function Login() {
   const session = useSession()
@@ -40,7 +41,7 @@ function Login() {
 
       if (error) {
         console.error('❌ Error checking user access:', error)
-        alert(`No tienes permisos para acceder. Error: ${error.message}\nContacta al administrador.`)
+        toast.error(`Sin permisos de acceso. Contacta al administrador.`)
         await supabase.auth.signOut()
         return
       }
@@ -59,18 +60,18 @@ function Login() {
           console.log('➡️ Redirigiendo a /barbero-panel')
           router.push('/barbero-panel')
         } else {
-          alert('Rol no reconocido. Contacta al administrador.')
+          toast.error('Rol no reconocido. Contacta al administrador.')
           await supabase.auth.signOut()
         }
       } else {
         // Si no existe en admin_users, cerrar sesión
         console.log('⚠️ Usuario no encontrado en admin_users')
-        alert('Usuario no autorizado. Contacta al administrador.')
+        toast.error('Usuario no autorizado. Contacta al administrador.')
         await supabase.auth.signOut()
       }
     } catch (error) {
       console.error('💥 Error checking access:', error)
-      alert('Error al verificar permisos. Intenta nuevamente.')
+      toast.error('Error al verificar permisos. Intenta nuevamente.')
       await supabase.auth.signOut()
     }
   }

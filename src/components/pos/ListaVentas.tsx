@@ -4,6 +4,7 @@ import { getChileHoy } from '@/lib/date-utils'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import ModalCobrarCita from './ModalCobrarCita'
 import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
+import toast from 'react-hot-toast'
 import { useFormatCurrency } from '@/context/ConfigContext'
 
 interface ListaVentasProps {
@@ -198,14 +199,14 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        alert('✅ Venta anulada exitosamente')
+        toast.success('Venta anulada exitosamente')
         cargarDatos()
       } else {
         throw new Error(result.message || 'Error al anular venta')
       }
     } catch (error: any) {
       console.error('Error anulando venta:', error)
-      alert('❌ ' + error.message)
+      toast.error(error.message)
     }
   }
 
@@ -214,18 +215,18 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       setReimprimiendo(facturaId)
       const datosFactura = await obtenerDatosFactura(facturaId, supabase)
       if (!datosFactura) {
-        alert('❌ No se pudieron obtener los datos de la factura')
+        toast.error('No se pudieron obtener los datos de la factura')
         return
       }
       const exito = await generarEImprimirFactura(datosFactura, accion)
       if (exito) {
         console.log(`✅ Factura ${accion === 'imprimir' ? 'reimpresa' : 'descargada'} correctamente`)
       } else {
-        alert('❌ Error al procesar la factura')
+        toast.error('Error al procesar la factura')
       }
     } catch (error: any) {
       console.error('Error reimprimiendo factura:', error)
-      alert('❌ Error: ' + error.message)
+      toast.error('Error: ' + error.message)
     } finally {
       setReimprimiendo(null)
     }

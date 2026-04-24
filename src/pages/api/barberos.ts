@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '../../../lib/initSupabase'
-import type { Database } from '../../../lib/database.types'
+import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 

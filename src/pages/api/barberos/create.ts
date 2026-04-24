@@ -1,15 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
+import { createPagesServerClient } from '@/lib/supabase-server'
 
-// API Route para crear barbero
-// Usa service_role key para bypasear RLS
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  // Solo permitir POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })
+  }
+
+  const supabaseAuth = createPagesServerClient(req, res)
+  const { data: { session } } = await supabaseAuth.auth.getSession()
+  if (!session) {
+    return res.status(401).json({ error: 'No autorizado' })
   }
 
   try {

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Head from 'next/head'
-import { supabase } from '../../lib/initSupabase'
+import { supabase } from '@/lib/supabase'
 
 export default function DiagnosticoPage() {
   const [diagnostico, setDiagnostico] = useState<any>({

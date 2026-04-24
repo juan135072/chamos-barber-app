@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import { useFormatCurrency } from '@/context/ConfigContext'
+import toast from 'react-hot-toast'
 
 interface Cita {
   id: string
@@ -92,7 +93,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
 
       // Validar monto a cobrar
       if (!montoCobrar || parseFloat(montoCobrar) <= 0) {
-        alert('El monto a cobrar debe ser mayor a $0')
+        toast.error('El monto a cobrar debe ser mayor a $0')
         setProcesando(false)
         return
       }
@@ -219,8 +220,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       }
 
       if (!impresionExitosa) {
-        // Fallback manual si falla la automática
-        alert('📦 Venta registrada en BD, pero NO se pudo conectar con el servicio de impresora local (Puerto 3001). \n\n⚠️ El cajón no abrirá automáticamente. Se usará el método de impresión del navegador.')
+        toast('Venta registrada. Impresora local no disponible — usa el botón de imprimir.', { icon: '📦' })
       }
 
     } catch (error: any) {
@@ -246,7 +246,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         errorMessage = 'Ocurrió un error inesperado al procesar el cobro. Intenta nuevamente.'
       }
 
-      alert(errorMessage)
+      toast.error(errorMessage)
 
       // Dejar el modal abierto para que el usuario pueda intentar de nuevo
     } finally {
@@ -264,7 +264,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       }
     } catch (error) {
       console.error('Error descargando PDF:', error)
-      alert('Error al descargar el PDF')
+      toast.error('Error al descargar el PDF')
     }
   }
 
@@ -274,7 +274,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     try {
       const datosFactura = await obtenerDatosFactura(cobroExitoso.facturaId, supabase)
       if (!datosFactura) {
-        alert('Error: No se pudieron obtener los datos de la factura')
+        toast.error('No se pudieron obtener los datos de la factura')
         return
       }
 
@@ -294,7 +294,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
           const result = await response.json()
           if (result.success) {
             console.log('✅ Impresión directa exitosa')
-            alert('✅ Factura impresa correctamente en impresora térmica')
+            toast.success('Factura impresa correctamente en impresora térmica')
             return
           }
         }
@@ -312,7 +312,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
 
     } catch (error) {
       console.error('Error imprimiendo PDF:', error)
-      alert('Error al imprimir el PDF: ' + (error as Error).message)
+      toast.error('Error al imprimir el PDF: ' + (error as Error).message)
     }
   }
 
@@ -629,12 +629,12 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
                     clearTimeout(timeoutId)
 
                     if (response.ok) {
-                      alert('✅ Cajón abierto')
+                      toast.success('Cajón abierto')
                     } else {
                       throw new Error('Error al abrir cajón')
                     }
                   } catch (e) {
-                    alert('⚠️ No se pudo conectar con la impresora local para abrir el cajón.')
+                    toast.error('No se pudo conectar con la impresora local para abrir el cajón.')
                   }
                 }}
                 type="button"

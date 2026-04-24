@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 interface OpenRegisterModalProps {
     onOpen: (monto: number) => Promise<void>
@@ -13,7 +14,7 @@ export default function OpenRegisterModal({ onOpen, usuario }: OpenRegisterModal
         e.preventDefault()
         const montoNum = parseFloat(monto)
         if (isNaN(montoNum) || montoNum < 0) {
-            alert('Por favor ingresa un monto válido')
+            toast.error('Por favor ingresa un monto válido')
             return
         }
 
@@ -21,7 +22,7 @@ export default function OpenRegisterModal({ onOpen, usuario }: OpenRegisterModal
             setLoading(true)
             await onOpen(montoNum)
         } catch (error) {
-            alert('Error al abrir la caja')
+            toast.error('Error al abrir la caja')
         } finally {
             setLoading(false)
         }

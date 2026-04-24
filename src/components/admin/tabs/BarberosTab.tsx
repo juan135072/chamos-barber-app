@@ -1,72 +1,31 @@
-import React, { useState, useEffect } from 'react'
-import { chamosSupabase } from '../../../../lib/supabase-helpers'
-import { supabase } from '../../../../lib/initSupabase'
-import type { Database } from '../../../../lib/database.types'
+import React, { useState } from 'react'
+import { chamosSupabase } from '@/lib/supabase-helpers'
+import { supabase } from '@/lib/supabase'
+import type { Database } from '@/lib/database.types'
 import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
 import BarberoModal from '../modals/BarberoModal'
 import PermanentDeleteModal from '../modals/PermanentDeleteModal'
 import toast from 'react-hot-toast'
+import { useBarberos } from '@/hooks/useBarberos'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 
 const BarberosTab: React.FC = () => {
-  const [barberos, setBarberos] = useState<Barbero[]>([])
-  const [loading, setLoading] = useState(true)
+  // Sin soloActivos → devuelve todos (activos e inactivos) para gestión admin
+  const { barberos, loading, refetch: loadBarberos } = useBarberos()
   const [selectedBarbero, setSelectedBarbero] = useState<Barbero | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [showPermanentDeleteModal, setShowPermanentDeleteModal] = useState(false)
   const [barberoToDelete, setBarberoToDelete] = useState<Barbero | null>(null)
   const [deleting, setDeleting] = useState(false)
-  
+
   // Estados para Reset Password
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [barberoToReset, setBarberoToReset] = useState<Barbero | null>(null)
   const [resettingPassword, setResettingPassword] = useState(false)
   const [newPassword, setNewPassword] = useState<string | null>(null)
-
-  useEffect(() => {
-    loadBarberos()
-  }, [])
-
-  const loadBarberos = async () => {
-    try {
-      setLoading(true)
-      console.log('🔄 Cargando TODOS los barberos (activos e inactivos)...')
-      
-      // IMPORTANTE: Hacer query directa para obtener TODOS sin filtrar
-      const { data, error } = await supabase
-        .from('barberos')
-        .select('*')
-        .order('nombre')
-      
-      if (error) {
-        console.error('❌ Error cargando barberos:', error)
-        throw error
-      }
-      
-      const barberos = data as Barbero[]
-      
-      console.log('📊 Barberos cargados:', {
-        total: barberos?.length || 0,
-        activos: barberos?.filter(b => b.activo).length || 0,
-        inactivos: barberos?.filter(b => !b.activo).length || 0,
-        lista: barberos?.map(b => ({ 
-          nombre: b.nombre, 
-          apellido: b.apellido, 
-          activo: b.activo 
-        }))
-      })
-      
-      setBarberos(barberos || [])
-    } catch (error) {
-      console.error('Error loading barberos:', error)
-      toast.error('Error al cargar barberos')
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const handleCreate = () => {
     setSelectedBarbero(null)

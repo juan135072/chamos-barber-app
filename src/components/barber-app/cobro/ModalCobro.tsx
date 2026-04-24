@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { DollarSign, CreditCard, Banknote, X } from 'lucide-react'
+import toast from 'react-hot-toast'
 
 interface ModalCobroProps {
   cita: {
@@ -39,7 +40,7 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
 
   const handleSubmit = async () => {
     if (montoCobrado <= 0) {
-      alert('El monto debe ser mayor a $0')
+      toast.error('El monto debe ser mayor a $0')
       return
     }
 
@@ -49,7 +50,7 @@ export default function ModalCobro({ cita, isOpen, onClose, onConfirmar }: Modal
       onClose()
     } catch (error) {
       console.error('Error al procesar cobro:', error)
-      alert('Error al procesar el cobro. Intenta nuevamente.')
+      toast.error('Error al procesar el cobro. Intenta nuevamente.')
     } finally {
       setProcessing(false)
     }

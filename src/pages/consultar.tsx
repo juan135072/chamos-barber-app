@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import Layout from '../components/Layout'
-import { formatPhoneInput, normalizePhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
+import { formatPhoneInput, normalizePhone, getPhonePlaceholder, getPhoneHint } from '@/lib/phone-utils'
 import PhoneInput from '../components/PhoneInput'
+import toast from 'react-hot-toast'
 
 // Build Version: 2025-11-09-v6 - Multiple services with individual prices and duration
 interface Cita {
@@ -86,7 +87,7 @@ const ConsultarPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!telefono.trim()) {
-      alert('Por favor, ingresa tu número de teléfono')
+      toast.error('Por favor, ingresa tu número de teléfono')
       return
     }
 
@@ -115,14 +116,14 @@ const ConsultarPage: React.FC = () => {
       } else {
         const errorData = await response.json()
         console.error('❌ [consultar] Error consulting appointments:', errorData)
-        alert(`Error al consultar citas: ${errorData.error || 'Error desconocido'}`)
+        toast.error(`Error al consultar citas: ${errorData.error || 'Error desconocido'}`)
         setCitas([])
         setTotalCitas(0)
         setCitasPendientes(0)
       }
     } catch (error) {
       console.error('❌ [consultar] Error completo:', error)
-      alert('Error al consultar citas. Por favor, inténtalo de nuevo.')
+      toast.error('Error al consultar citas. Por favor, inténtalo de nuevo.')
       setCitas([])
       setTotalCitas(0)
       setCitasPendientes(0)

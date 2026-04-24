@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from '../../../lib/database.types'
-import { RESERVATION_LIMITS, validateReservationLimits } from '../../../lib/reservations-config'
+import type { Database } from '@/lib/database.types'
+import { RESERVATION_LIMITS, validateReservationLimits } from '@/lib/reservations-config'
 import { sendNotificationToBarber } from '../../lib/onesignal'
 
 type CitaInsert = Database['public']['Tables']['citas']['Insert']

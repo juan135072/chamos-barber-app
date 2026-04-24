@@ -4,7 +4,7 @@ import Head from 'next/head'
 import Link from 'next/link'
 import Layout from '../components/Layout'
 import Preloader from '../components/Preloader'
-import { chamosSupabase } from '../../lib/supabase-helpers'
+import { chamosSupabase } from '@/lib/supabase-helpers'
 import { getServiceImage } from '../lib/service-utils'
 
 interface Service {

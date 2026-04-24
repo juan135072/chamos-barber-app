@@ -27,6 +27,7 @@ import {
   type WalkInClient
 } from '@/lib/supabase-walkin'
 import RegistrarWalkInModal from './RegistrarWalkInModal'
+import toast from 'react-hot-toast'
 
 export default function WalkInClientsPanel() {
   const [clientes, setClientes] = useState<WalkInClient[]>([])
@@ -76,7 +77,7 @@ export default function WalkInClientsPanel() {
       await loadData()
     } catch (err) {
       console.error('Error deleting walk-in client:', err)
-      alert('Error al eliminar cliente')
+      toast.error('Error al eliminar cliente')
     }
   }
 

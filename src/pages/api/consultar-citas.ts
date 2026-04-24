@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient } from '@supabase/supabase-js'
-import type { Database } from '../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
 
 // Build Version: 2025-12-11-v6 - Security improvements (rate limiting ready, inline implementation)
 

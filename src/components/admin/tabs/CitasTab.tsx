@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@supabase/auth-helpers-react'
-import type { Database } from '../../../../lib/database.types'
+import type { Database } from '@/lib/database.types'
+import toast from 'react-hot-toast'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   barberos?: { nombre: string; apellido: string }
@@ -55,10 +56,10 @@ export default function CitasTab() {
 
       // Recargar citas
       await loadCitas()
-      alert('Estado actualizado correctamente')
+      toast.success('Estado actualizado correctamente')
     } catch (error) {
       console.error('Error updating estado:', error)
-      alert('Error al actualizar el estado')
+      toast.error('Error al actualizar el estado')
     }
   }
 
@@ -74,10 +75,10 @@ export default function CitasTab() {
       if (error) throw error
 
       await loadCitas()
-      alert('Cita eliminada correctamente')
+      toast.success('Cita eliminada correctamente')
     } catch (error) {
       console.error('Error deleting cita:', error)
-      alert('Error al eliminar la cita')
+      toast.error('Error al eliminar la cita')
     }
   }
 

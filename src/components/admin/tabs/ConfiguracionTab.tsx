@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { chamosSupabase } from '../../../../lib/supabase-helpers'
+import { chamosSupabase } from '@/lib/supabase-helpers'
 import toast from 'react-hot-toast'
 
 interface ConfigItem {

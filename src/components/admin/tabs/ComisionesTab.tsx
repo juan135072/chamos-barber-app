@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
+import toast from 'react-hot-toast'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type ConfiguracionComision = Database['public']['Tables']['configuracion_comisiones']['Row']
@@ -45,7 +46,7 @@ export default function ComisionesTab() {
       setBarberos(barberosConComision)
     } catch (error) {
       console.error('Error cargando barberos:', error)
-      alert('Error al cargar los barberos')
+      toast.error('Error al cargar los barberos')
     } finally {
       setLoading(false)
     }
@@ -69,7 +70,7 @@ export default function ComisionesTab() {
 
       // Validar porcentaje
       if (isNaN(porcentaje) || porcentaje < 0 || porcentaje > 100) {
-        alert('El porcentaje debe estar entre 0 y 100')
+        toast.error('El porcentaje debe estar entre 0 y 100')
         return
       }
 
@@ -84,12 +85,12 @@ export default function ComisionesTab() {
 
       if (error) throw error
 
-      alert('Comisión actualizada exitosamente')
+      toast.success('Comisión actualizada exitosamente')
       await cargarBarberos()
       cancelarEdicion()
     } catch (error) {
       console.error('Error guardando comisión:', error)
-      alert('Error al guardar la comisión')
+      toast.error('Error al guardar la comisión')
     } finally {
       setGuardando(false)
     }

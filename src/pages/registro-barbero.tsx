@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { supabase } from '../../lib/initSupabase'
+import { supabase } from '@/lib/supabase'
 import Logo from '@/components/shared/Logo'
 
 export default function RegistroBarbero() {
