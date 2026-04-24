@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import Layout from '../components/Layout'
+import TeamMarquee from '../components/ui/TeamMarquee'
 
 interface Barbero {
   id: string
@@ -8,6 +9,7 @@ interface Barbero {
   nombre: string
   biografia: string
   foto_url: string
+  imagen_url?: string
   especialidades: string[]
   experiencia_anos: number
   telefono?: string
@@ -45,7 +47,7 @@ const EquipoPage: React.FC = () => {
   }
 
   return (
-    <Layout 
+    <Layout
       title="Nuestro Equipo - Chamos Barber"
       description="Conoce a nuestro equipo de barberos venezolanos y chilenos. Experiencia, profesionalismo y pasión por el oficio."
     >
@@ -57,9 +59,13 @@ const EquipoPage: React.FC = () => {
         </div>
       </section>
 
-      {/* Equipo Section */}
+      {/* ── Marquee Team Section ── */}
+      <TeamMarquee members={barberos} loading={loading} />
+
+      {/* ── Equipo Grid (detalle) ── */}
       <section className="team-section">
         <div className="container">
+          <h2 className="section-title">Conoce a cada uno</h2>
           <div className="team-grid">
             {loading ? (
               <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '4rem 0' }}>
@@ -72,12 +78,12 @@ const EquipoPage: React.FC = () => {
               </div>
             ) : (
               barberos.map((barbero) => (
-                <Link 
-                  key={barbero.id} 
-                  href={`/barbero/${barbero.slug || barbero.id}`} 
+                <Link
+                  key={barbero.id}
+                  href={`/barbero/${barbero.slug || barbero.id}`}
                   className="barber-card"
                 >
-                  <div 
+                  <div
                     className="barber-image"
                     style={{ backgroundImage: `url(${getImageUrl(barbero.foto_url)})` }}
                   >
@@ -93,15 +99,15 @@ const EquipoPage: React.FC = () => {
                   <div className="barber-info">
                     <div className="barber-name">{barbero.nombre}</div>
                     <p className="barber-bio">
-                      {barbero.biografia.length > 120 
-                        ? `${barbero.biografia.substring(0, 120)}...` 
+                      {barbero.biografia.length > 120
+                        ? `${barbero.biografia.substring(0, 120)}...`
                         : barbero.biografia
                       }
                     </p>
                     {barbero.experiencia_anos && (
-                      <p style={{ 
-                        color: 'var(--accent-color)', 
-                        fontWeight: '600', 
+                      <p style={{
+                        color: 'var(--accent-color)',
+                        fontWeight: '600',
                         marginTop: '1rem',
                         fontSize: '0.9rem'
                       }}>
