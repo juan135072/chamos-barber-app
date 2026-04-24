@@ -50,24 +50,25 @@ export default function GananciasTab() {
       const fechaInicioCompleta = `${inicio}T00:00:00`
       const fechaFinCompleta = `${fin}T23:59:59`
 
-      // Obtener facturas del rango de fechas (solo las no anuladas)
-      const { data: facturas, error: errorFacturas } = await (supabase as any)
-        .from('facturas')
-        .select('barbero_id, total, comision_barbero, ingreso_casa, porcentaje_comision')
-        .gte('created_at', fechaInicioCompleta)
-        .lte('created_at', fechaFinCompleta)
-        .eq('anulada', false)
-        .order('created_at', { ascending: false })
+      const [
+        { data: facturas, error: errorFacturas },
+        { data: barberos, error: errorBarberos }
+      ] = await Promise.all([
+        (supabase as any)
+          .from('facturas')
+          .select('barbero_id, total, comision_barbero, ingreso_casa, porcentaje_comision')
+          .gte('created_at', fechaInicioCompleta)
+          .lte('created_at', fechaFinCompleta)
+          .eq('anulada', false)
+          .order('created_at', { ascending: false }),
+        (supabase as any)
+          .from('barberos')
+          .select('*')
+          .eq('activo', true)
+          .order('nombre')
+      ])
 
       if (errorFacturas) throw errorFacturas
-
-      // Obtener todos los barberos
-      const { data: barberos, error: errorBarberos } = await (supabase as any)
-        .from('barberos')
-        .select('*')
-        .eq('activo', true)
-        .order('nombre')
-
       if (errorBarberos) throw errorBarberos
 
       // Agrupar facturas por barbero y calcular totales

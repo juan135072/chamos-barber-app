@@ -70,8 +70,8 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
 
       // Si es un solo día, mostrar resumen del día
       if (tipoFiltro === 'dia') {
-        const totalVentas = facturas?.reduce((sum, f) => sum + f.total, 0) || 0
-        const totalComision = facturas?.reduce((sum, f) => sum + f.comision_barbero, 0) || 0
+        const totalVentas = facturas?.reduce((sum: number, f: any) => sum + f.total, 0) ?? 0
+        const totalComision = facturas?.reduce((sum: number, f: any) => sum + (f.comision_barbero ?? 0), 0) ?? 0
         const numServicios = facturas?.length || 0
 
         setGanancias([

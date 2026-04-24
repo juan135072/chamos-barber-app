@@ -4,23 +4,18 @@ import type { Database } from '../../../lib/database.types'
 import { RESERVATION_LIMITS, validateReservationLimits } from '../../../lib/reservations-config'
 import { sendNotificationToBarber } from '../../lib/onesignal'
 
-// Build Version: 2025-12-11-v6 - Security improvements (rate limiting ready, inline implementation)
-
 type CitaInsert = Database['public']['Tables']['citas']['Insert']
 
-/**
- * API Route para crear citas usando SERVICE_ROLE_KEY
- * Bypassa las políticas RLS para permitir INSERT público
- * 
- * Esta solución es necesaria porque las políticas RLS actuales
- * no permiten INSERT con ANON_KEY
- */
+const devLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args)
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
   const clientIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown'
-  console.log('🔵 [crear-cita] Request received:', req.method, 'from IP:', clientIp)
+  devLog('🔵 [crear-cita] Request received:', req.method, 'from IP:', clientIp)
 
   // Solo permitir POST
   if (req.method !== 'POST') {
@@ -35,57 +30,36 @@ export default async function handler(
   // if (!rateLimitResult.allowed) return
 
   try {
-    console.log('🔵 [crear-cita] Creating Supabase client...')
+    devLog('🔵 [crear-cita] Creating Supabase client...')
 
-    // Verificar variables de entorno
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.error('❌ [crear-cita] NEXT_PUBLIC_SUPABASE_URL not found')
       return res.status(500).json({ error: 'Configuración de Supabase no encontrada' })
     }
 
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ [crear-cita] SUPABASE_SERVICE_ROLE_KEY not found')
       return res.status(500).json({ error: 'Clave de servicio de Supabase no encontrada' })
     }
 
-    // Crear cliente Supabase con SERVICE_ROLE_KEY
-    // Esto bypassa todas las políticas RLS
     const supabase = createClient<Database>(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
+      { auth: { autoRefreshToken: false, persistSession: false } }
     )
 
-    console.log('✅ [crear-cita] Supabase client created')
-
-    // 🛡️ STEP 2: Validación mejorada
     const citaData: any = req.body
-    console.log('🔵 [crear-cita] Request data:', JSON.stringify(citaData, null, 2))
+    devLog('🔵 [crear-cita] Request data:', JSON.stringify(citaData, null, 2))
 
-    // Extraer servicios_ids (nuevo formato) o servicio_id (legacy)
     const serviciosIds: string[] = citaData.servicios_ids || (citaData.servicio_id ? [citaData.servicio_id] : [])
 
-    console.log('🔵 [crear-cita] Services to book:', serviciosIds)
-
-    // VALIDACIÓN 1: Verificar que tenemos todos los campos requeridos
     if (serviciosIds.length === 0 || !citaData.barbero_id || !citaData.fecha ||
       !citaData.hora || !citaData.cliente_nombre || !citaData.cliente_telefono) {
-      console.log('❌ [crear-cita] Missing required fields')
       return res.status(400).json({
         error: 'Faltan campos requeridos',
         details: 'servicio(s), barbero_id, fecha, hora, cliente_nombre y cliente_telefono son obligatorios'
       })
     }
 
-    // VALIDACIÓN 2: Verificar límite de citas FUTURAS activas (sistema inteligente)
-    // Solo cuenta citas pendientes/confirmadas que aún no han pasado
-    // Esto permite a clientes frecuentes seguir reservando después de completar sus citas
-    console.log('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
+    devLog('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
 
     // Obtener fecha y hora actual en Santiago de Chile
     const { getChileAhora, getChileHoy } = await import('../../lib/date-utils');
@@ -104,18 +78,13 @@ export default async function handler(
     if (errorActivas) {
       console.error('❌ [crear-cita] Error checking active appointments:', errorActivas)
     } else {
-      console.log('✅ [crear-cita] Active future appointments:', citasActivasFuturas?.length || 0)
-      // @ts-ignore - Detailed logging for debugging
-      if (citasActivasFuturas && citasActivasFuturas.length > 0) {
-        console.log('📊 [crear-cita] Appointments details:', JSON.stringify(citasActivasFuturas))
-      }
+      devLog('✅ [crear-cita] Active future appointments:', citasActivasFuturas?.length || 0)
     }
 
-    // Validar límites usando la función helper
     const validationResult = validateReservationLimits(citasActivasFuturas?.length || 0)
 
     if (!validationResult.allowed) {
-      console.log('⚠️ [crear-cita] Appointment limit reached:', validationResult)
+      devLog('⚠️ [crear-cita] Appointment limit reached:', validationResult)
       return res.status(400).json({
         error: validationResult.reason,
         code: 'LIMITE_CITAS_ALCANZADO',
@@ -182,7 +151,7 @@ export default async function handler(
     const totalMinutosInicio = hStart * 60 + mStart
     const totalMinutosFin = totalMinutosInicio + duracionNuevaCita
 
-    console.log(`⏱️ [crear-cita] Validando rango: ${citaData.hora} (${totalMinutosInicio}m) -> Serv: ${totalServiciosMinutos}m + Buff: ${tiempoBuffer}m -> Final: (${totalMinutosFin}m)`)
+    devLog(`⏱️ [crear-cita] Validando rango: ${citaData.hora} (${totalMinutosInicio}m) -> Serv: ${totalServiciosMinutos}m + Buff: ${tiempoBuffer}m -> Final: (${totalMinutosFin}m)`)
 
     // 4. Verificar Horario de Atención (horarios_atencion)
     const diaSemana = new Date(citaData.fecha + 'T12:00:00').getDay()
@@ -327,9 +296,7 @@ export default async function handler(
       precio_final: citaData.precio_final || totalCalculado
     }
 
-    // INSERTAR LA CITA
-    // Usando SERVICE_ROLE_KEY, esto bypassa RLS
-    console.log('💾 [crear-cita] Inserting appointment...')
+    devLog('💾 [crear-cita] Inserting appointment...')
     const { data: nuevaCita, error: insertError } = await supabase
       .from('citas')
       // @ts-ignore - Bypass strict type checking for insert operation in build environment
@@ -354,23 +321,17 @@ export default async function handler(
       })
     }
 
-    // ÉXITO
-    // @ts-ignore - nuevaCita is guaranteed to exist here if no insertError
-    console.log('✅ [crear-cita] Appointment created successfully:', nuevaCita.id)
+    devLog('✅ [crear-cita] Appointment created successfully:', (nuevaCita as any)?.id)
 
-    // 🔔 Enviar notificación push al barbero
     try {
       const { formatFechaChile } = await import('../../lib/date-utils');
       const barberoNombre = (barbero as any)?.nombre || 'Barbero'
       const fechaLegible = formatFechaChile(citaData.fecha);
-
-      console.log(`🔔 [crear-cita] Intentando notificar a barbero ${citaData.barbero_id} (${barberoNombre})`)
-      const pushResult = await sendNotificationToBarber(
+      await sendNotificationToBarber(
         citaData.barbero_id,
         'Nueva Reserva ✂️',
         `Hola ${barberoNombre}, tienes una nueva reserva de ${citaData.cliente_nombre} para el ${fechaLegible} a las ${citaData.hora}.`
       )
-      console.log('📊 [crear-cita] Resultado OneSignal:', JSON.stringify(pushResult))
     } catch (pushError) {
       console.error('⚠️ [crear-cita] Error al enviar notificación push:', pushError)
     }

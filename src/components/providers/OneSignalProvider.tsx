@@ -463,7 +463,7 @@ export default function OneSignalProvider({
               // También verificar estado de suscripción aquí durante el login
               if (optedOut && OneSignal.User?.PushSubscription?.optIn) {
                 console.log('🔄 [OneSignal] Detectado optedOut durante login. Intentando optIn...');
-                await OneSignal.User.PushSubscription.optIn().catch(e => console.error('Error auto-optin:', e));
+                await OneSignal.User.PushSubscription.optIn().catch((e: unknown) => console.error('Error auto-optin:', e));
               }
             }, 1000)
           } catch (loginError) {

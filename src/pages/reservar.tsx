@@ -1,295 +1,35 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import React, { useRef } from 'react'
 import Layout from '../components/Layout'
-import { chamosSupabase } from '../../lib/supabase-helpers'
-import type { Database } from '../../lib/database.types'
 import { formatPhoneInput, normalizePhone, isValidPhone, getPhonePlaceholder, getPhoneHint } from '../../lib/phone-utils'
 import PhoneInput from '../components/PhoneInput'
-import { getChileHoy, getChileAhora } from '../lib/date-utils'
-
-type Barbero = Database['public']['Tables']['barberos']['Row']
-type Servicio = Database['public']['Tables']['servicios']['Row']
+import { useReservaWizard } from '../hooks/useReservaWizard'
 
 const ReservarPage: React.FC = () => {
-  const supabase = useSupabaseClient<Database>()
-  const [currentStep, setCurrentStep] = useState(1)
-  const [barberos, setBarberos] = useState<Barbero[]>([])
-  const [servicios, setServicios] = useState<Servicio[]>([])
-  const [serviciosSeleccionados, setServiciosSeleccionados] = useState<string[]>([])
-  const [formData, setFormData] = useState({
-    barbero_id: '',
-    fecha: '',
-    hora: '',
-    cliente_nombre: '',
-    cliente_telefono: '',
-    cliente_email: '',
-    notas: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [availableSlots, setAvailableSlots] = useState<{ hora: string, disponible: boolean, motivo?: string }[]>([])
+  const {
+    currentStep,
+    totalSteps,
+    nextStep,
+    prevStep,
+    barberos,
+    servicios,
+    serviciosSeleccionados,
+    setServiciosSeleccionados,
+    formData,
+    handleInputChange,
+    availableSlots,
+    sugerenciaParcial,
+    loading,
+    toggleServicio,
+    actualizarCantidadServicio,
+    calcularTotales,
+    calculateEndTime,
+    handleSubmit,
+    getImageUrl,
+    getMinDate,
+    getMaxDate,
+  } = useReservaWizard()
 
-  // Ref para el input de fecha
   const dateInputRef = useRef<HTMLInputElement>(null)
-
-  const totalSteps = 5
-
-  useEffect(() => {
-    loadBarberosYServicios()
-  }, [])
-
-  const [sugerenciaParcial, setSugerenciaParcial] = useState<{
-    servicio: Servicio,
-    horarios: { hora: string, disponible: boolean }[]
-  } | null>(null)
-
-  useEffect(() => {
-    if (formData.fecha && formData.barbero_id) {
-      loadAvailableSlots()
-    }
-  }, [formData.fecha, formData.barbero_id, serviciosSeleccionados]) // Recargar si cambian servicios
-
-  const loadBarberosYServicios = async () => {
-    try {
-      // Cargar barberos usando helper de Supabase
-      const barberosData = await chamosSupabase.getBarberos(true)
-      setBarberos(barberosData || [])
-
-      // Cargar servicios usando helper de Supabase
-      const serviciosData = await chamosSupabase.getServicios(true)
-      setServicios(serviciosData || [])
-    } catch (error) {
-      console.error('Error loading data:', error)
-    }
-  }
-
-  const loadAvailableSlots = async () => {
-    try {
-      setSugerenciaParcial(null) // Reset sugerencia
-
-      const { duracionTotal, serviciosInfo } = calcularTotales()
-      const duracionSolicitada = duracionTotal > 0 ? duracionTotal : 30
-
-      console.log('🔍 Cargando horarios disponibles para:', {
-        barbero_id: formData.barbero_id,
-        fecha: formData.fecha,
-        duracion: duracionSolicitada
-      })
-
-      const data: { hora: string, disponible: boolean, motivo?: string }[] | null = await chamosSupabase.getHorariosDisponibles(
-        formData.barbero_id,
-        formData.fecha,
-        duracionSolicitada
-      )
-
-      const slots = (Array.isArray(data) ? data : []) as { hora: string, disponible: boolean, motivo?: string }[]
-
-      if (slots.length > 0 && slots.some((s) => s.disponible)) {
-        setAvailableSlots(slots)
-      } else {
-        setAvailableSlots(slots)
-
-        // LÓGICA DE SUGERENCIA PARCIAL
-        // Si no hay cupo total y hay múltiples servicios, intentar buscar cupo para uno solo
-        if (serviciosInfo.length > 1) {
-          // Ordenar servicios por duración (ascendente) para encontrar el que más fácil encaje
-          const servicioAlternativo = [...serviciosInfo].sort((a, b) => a.duracion_minutos - b.duracion_minutos)[0]
-
-          if (servicioAlternativo) {
-            console.log('💡 Buscando alternativa parcial para:', servicioAlternativo.nombre)
-            const dataAlternativa = await chamosSupabase.getHorariosDisponibles(
-              formData.barbero_id,
-              formData.fecha,
-              servicioAlternativo.duracion_minutos
-            )
-
-            // Fix: Cast to appropriate type to avoid "never" inference issue
-            const slotsAlternativos = (dataAlternativa || []) as { hora: string; disponible: boolean; motivo?: string }[];
-
-            if (slotsAlternativos.length > 0 && slotsAlternativos.some((s) => s.disponible)) {
-              setSugerenciaParcial({
-                servicio: servicioAlternativo,
-                horarios: slotsAlternativos
-              })
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('❌ Error loading available slots:', error)
-      setAvailableSlots([])
-    }
-  }
-
-  const nextStep = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1)
-    }
-  }
-
-  const prevStep = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1)
-    }
-  }
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }))
-  }
-
-  const toggleServicio = (servicioId: string) => {
-    setServiciosSeleccionados(prev => {
-      if (prev.includes(servicioId)) {
-        return prev.filter(id => id !== servicioId)
-      } else {
-        return [...prev, servicioId]
-      }
-    })
-  }
-
-  const actualizarCantidadServicio = (servicioId: string, delta: number) => {
-    setServiciosSeleccionados(prev => {
-      if (delta > 0) {
-        return [...prev, servicioId];
-      } else {
-        const index = prev.lastIndexOf(servicioId);
-        if (index !== -1) {
-          const next = [...prev];
-          next.splice(index, 1);
-          return next;
-        }
-        return prev;
-      }
-    });
-  }
-
-  const calcularTotales = () => {
-    // Agrupar por ID para contar cantidades
-    const counts = serviciosSeleccionados.reduce((acc, id) => {
-      acc[id] = (acc[id] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    const serviciosInfo = Object.entries(counts).map(([id, quantity]) => {
-      const s = servicios.find(srv => srv.id === id);
-      if (!s) return null;
-      return { ...s, quantity };
-    }).filter(Boolean) as (Servicio & { quantity: number; tiempo_buffer?: number })[];
-
-    const duracionServicios = serviciosInfo.reduce((sum, s) => sum + (s.duracion_minutos * s.quantity), 0)
-    // El buffer que bloqueamos es el máximo de los servicios elegidos (limpieza final)
-    const maxBuffer = serviciosInfo.reduce((max, s) => Math.max(max, s.tiempo_buffer || 5), 0)
-
-    const duracionTotal = duracionServicios + (serviciosInfo.length > 0 ? maxBuffer : 0)
-    const precioTotal = serviciosInfo.reduce((sum, s) => sum + (s.precio * s.quantity), 0)
-
-    return { duracionTotal, duracionServicios, precioTotal, serviciosInfo }
-  }
-
-  const calculateEndTime = (startTime: string) => {
-    if (!startTime) return ''
-    const { duracionServicios } = calcularTotales()
-    const [hours, minutes] = startTime.split(':').map(Number)
-    const date = getChileAhora()
-    date.setHours(hours)
-    date.setMinutes(minutes + (duracionServicios || 30))
-    // Formato HH:mm
-    return date.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Santiago' }).substring(0, 5)
-  }
-
-  const handleSubmit = async () => {
-    setLoading(true)
-    try {
-      console.log('📤 Enviando solicitud de cita...')
-
-      // Usar API route en vez de helper directo
-      // Esto bypassa el problema de RLS usando SERVICE_ROLE_KEY en el backend
-      const { serviciosInfo } = calcularTotales();
-      const items = serviciosInfo.map(s => ({
-        servicio_id: s.id,
-        nombre: s.nombre,
-        precio: s.precio,
-        cantidad: s.quantity,
-        subtotal: s.precio * s.quantity
-      }));
-
-      const response = await fetch('/api/crear-cita', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          servicio_id: items[0]?.servicio_id, // Primer servicio (para compatibilidad)
-          servicios_ids: serviciosSeleccionados, // Array completo de servicios (incluyendo duplicados para que el API sume tiempos)
-          items: items, // Objeto estructurado
-          precio_final: calcularTotales().precioTotal,
-          barbero_id: formData.barbero_id,
-          fecha: formData.fecha,
-          hora: formData.hora,
-          cliente_nombre: formData.cliente_nombre,
-          cliente_telefono: formData.cliente_telefono, // Ya viene normalizado
-          cliente_email: formData.cliente_email || null,
-          notas: formData.notas || null,
-          estado: 'pendiente'
-        })
-      })
-
-      console.log('📥 Respuesta recibida:', response.status, response.statusText)
-
-      // Verificar si la respuesta es JSON válido
-      const contentType = response.headers.get('content-type')
-      if (!contentType || !contentType.includes('application/json')) {
-        console.error('❌ Respuesta no es JSON:', contentType)
-        throw new Error(`Error del servidor: ${response.status} ${response.statusText}. La respuesta no es JSON. Esto puede indicar un problema con el servidor o la configuración de Coolify.`)
-      }
-
-      const result = await response.json()
-      console.log('📋 Resultado:', result)
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Error al crear la cita')
-      }
-
-      alert(result.message || '¡Cita reservada exitosamente! Te contactaremos pronto para confirmar.')
-
-      // Reset form
-      setServiciosSeleccionados([])
-      setFormData({
-        barbero_id: '',
-        fecha: '',
-        hora: '',
-        cliente_nombre: '',
-        cliente_telefono: '',
-        cliente_email: '',
-        notas: ''
-      })
-      setCurrentStep(1)
-    } catch (error) {
-      console.error('❌ Error completo:', error)
-      if (error instanceof Error) {
-        alert(`Error: ${error.message}`)
-      } else {
-        alert('Error al reservar la cita. Por favor, inténtalo de nuevo.')
-      }
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const getImageUrl = (imagen_url: string | null) => {
-    if (!imagen_url) return 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=100&h=100&q=80'
-    if (imagen_url.startsWith('http')) return imagen_url
-    return `/images/barberos/${imagen_url}`
-  }
-
-  const getMinDate = () => {
-    return getChileHoy()
-  }
-
-  const getMaxDate = () => {
-    const maxDate = new Date()
-    maxDate.setDate(maxDate.getDate() + 30) // Máximo 30 días
-    return maxDate.toISOString().split('T')[0]
-  }
 
   return (
     <Layout

@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 
+const devLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args)
+}
+
 export interface CajaSesion {
     id: string
     usuario_id: string
@@ -52,7 +56,7 @@ export function useCashRegister(usuario: any) {
         if (!usuario?.id) throw new Error('Usuario no identificado')
 
         try {
-            console.log('🔄 Intentando abrir caja para usuario:', usuario.id)
+            devLog('🔄 Intentando abrir caja para usuario:', usuario.id)
 
             // 1. Preparar datos de sesión
             const sessionPayload: any = {
@@ -66,7 +70,7 @@ export function useCashRegister(usuario: any) {
                 sessionPayload.comercio_id = usuario.comercio_id
             }
 
-            console.log('📤 Enviando payload de sesión:', sessionPayload)
+            devLog('📤 Enviando payload de sesión:', sessionPayload)
 
             // Insertar nueva sesión
             const { data, error } = await (supabase
@@ -80,7 +84,7 @@ export function useCashRegister(usuario: any) {
                 throw error
             }
 
-            console.log('✅ Sesión creada:', data)
+            devLog('✅ Sesión creada:', data)
 
             // 2. Registrar movimiento de apertura
             const movementPayload: any = {
@@ -164,7 +168,7 @@ export function useCashRegister(usuario: any) {
         }
 
         try {
-            console.log(`📝 Registrando venta de ${monto} en sesión ${sesion.id}`)
+            devLog(`📝 Registrando venta de ${monto} en sesión ${sesion.id}`)
 
             // 1. Actualizar el monto esperado en la sesión
             const nuevoEsperado = (sesion.monto_final_esperado || 0) + monto
@@ -201,7 +205,7 @@ export function useCashRegister(usuario: any) {
 
             // Actualizar estado local
             setSesion(prev => prev ? { ...prev, monto_final_esperado: nuevoEsperado } : null)
-            console.log('✅ Venta vinculada a la sesión correctamente')
+            devLog('✅ Venta vinculada a la sesión correctamente')
         } catch (error) {
             console.error('Error al registrar venta en caja:', error)
         }

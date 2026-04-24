@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useReducer } from 'react'
 import { supabase, UsuarioConPermisos, Database } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import { chamosSupabase } from '@/lib/supabase-helpers'
@@ -11,7 +11,7 @@ type Servicio = Database['public']['Tables']['servicios']['Row']
 interface CobrarFormProps {
   usuario: UsuarioConPermisos
   onVentaCreada: () => void
-  sesionCaja?: any // Añadido para control de caja
+  sesionCaja?: any
   registrarVentaCaja?: (monto: number, referenciaId: string, metodoPago: string) => Promise<void>
 }
 
@@ -32,6 +32,75 @@ interface ItemCarrito {
   precio: number
   cantidad: number
   subtotal: number
+}
+
+// ─── Carrito Reducer ────────────────────────────────────────────────────────
+type CarritoAction =
+  | { type: 'ADD_SERVICIO'; servicio: Servicio }
+  | { type: 'ADD_PRODUCTO'; producto: ProductoPOS }
+  | { type: 'UPDATE_CANTIDAD'; index: number; delta: number; stockMax?: number }
+  | { type: 'REMOVE'; index: number }
+  | { type: 'RESET' }
+  | { type: 'LOAD_FROM_CITA'; items: ItemCarrito[] }
+
+function carritoReducer(state: ItemCarrito[], action: CarritoAction): ItemCarrito[] {
+  switch (action.type) {
+    case 'ADD_SERVICIO': {
+      const idx = state.findIndex(i => i.servicio_id === action.servicio.id && i.tipo === 'servicio')
+      if (idx >= 0) {
+        return state.map((item, i) =>
+          i === idx ? { ...item, cantidad: item.cantidad + 1, subtotal: item.precio * (item.cantidad + 1) } : item
+        )
+      }
+      return [...state, {
+        servicio_id: action.servicio.id,
+        tipo: 'servicio',
+        nombre: action.servicio.nombre,
+        precio: parseFloat(action.servicio.precio.toString()),
+        cantidad: 1,
+        subtotal: parseFloat(action.servicio.precio.toString()),
+      }]
+    }
+    case 'ADD_PRODUCTO': {
+      const idx = state.findIndex(i => i.producto_id === action.producto.id && i.tipo === 'producto')
+      if (idx >= 0) {
+        const item = state[idx]
+        if (item.cantidad >= action.producto.stock_actual) return state
+        return state.map((it, i) =>
+          i === idx ? { ...it, cantidad: it.cantidad + 1, subtotal: it.precio * (it.cantidad + 1) } : it
+        )
+      }
+      return [...state, {
+        producto_id: action.producto.id,
+        tipo: 'producto',
+        nombre: action.producto.nombre,
+        precio: action.producto.precio_venta,
+        cantidad: 1,
+        subtotal: action.producto.precio_venta,
+      }]
+    }
+    case 'UPDATE_CANTIDAD': {
+      return state.map((item, i) => {
+        if (i !== action.index) return item
+        const nuevaCantidad = Math.max(1, item.cantidad + action.delta)
+        const limitado = action.stockMax ? Math.min(nuevaCantidad, action.stockMax) : nuevaCantidad
+        return { ...item, cantidad: limitado, subtotal: item.precio * limitado }
+      })
+    }
+    case 'REMOVE':
+      return state.filter((_, i) => i !== action.index)
+    case 'RESET':
+      return []
+    case 'LOAD_FROM_CITA':
+      return action.items.map(item => ({
+        ...item,
+        tipo: item.tipo ?? ('servicio' as const),
+        precio: parseFloat(item.precio.toString()),
+        subtotal: parseFloat(item.subtotal.toString()),
+      }))
+    default:
+      return state
+  }
 }
 
 export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registrarVentaCaja }: CobrarFormProps) {
@@ -55,7 +124,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
   const [barberoId, setBarberoId] = useState('')
   const [metodoPago, setMetodoPago] = useState('efectivo')
   const [montoRecibido, setMontoRecibido] = useState('')
-  const [carrito, setCarrito] = useState<ItemCarrito[]>([])
+  const [carrito, dispatch] = useReducer(carritoReducer, [])
   const [citaId, setCitaId] = useState<string | null>(null)
   const [comisionInfo, setComisionInfo] = useState({ porcentaje: 50, comisionBarbero: 0, ingresoCasa: 0 })
 
@@ -73,28 +142,23 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     try {
       setCargando(true)
 
-      // Cargar barberos activos
-      const { data: barberosData, error: barberosError } = await supabase
-        .from('barberos')
-        .select('*')
-        .eq('activo', true)
-        .order('nombre')
+      const [
+        { data: barberosData, error: barberosError },
+        { data: serviciosData, error: serviciosError },
+        citasData,
+      ] = await Promise.all([
+        supabase.from('barberos').select('*').eq('activo', true).order('nombre'),
+        supabase.from('servicios').select('*').eq('activo', true).order('categoria, nombre'),
+        chamosSupabase.getCitasHoyPendientes(),
+      ])
 
       if (barberosError) throw barberosError
-
-      // Cargar servicios activos
-      const { data: serviciosData, error: serviciosError } = await supabase
-        .from('servicios')
-        .select('*')
-        .eq('activo', true)
-        .order('categoria, nombre')
-
       if (serviciosError) throw serviciosError
 
       setBarberos(barberosData || [])
       setServicios(serviciosData || [])
+      setCitasHoy(citasData || [])
 
-      // Cargar productos activos con stock
       try {
         const resProd = await fetch('/api/inventario/productos?activo=true')
         if (resProd.ok) {
@@ -104,10 +168,6 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       } catch (e) {
         console.warn('No se pudieron cargar productos:', e)
       }
-
-      // Cargar citas de hoy pendientes
-      const citasData = await chamosSupabase.getCitasHoyPendientes()
-      setCitasHoy(citasData || [])
     } catch (error) {
       console.error('Error cargando datos:', error)
       alert('Error al cargar barberos y servicios')
@@ -153,95 +213,36 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
   const agregarAlCarrito = (servicioId: string) => {
     const servicio = servicios.find(s => s.id === servicioId)
-    if (!servicio) return
-
-    setCarrito(prev => {
-      const existeIndex = prev.findIndex(item => item.servicio_id === servicioId && item.tipo === 'servicio')
-      if (existeIndex >= 0) {
-        const nuevoCarrito = [...prev]
-        nuevoCarrito[existeIndex].cantidad += 1
-        nuevoCarrito[existeIndex].subtotal = nuevoCarrito[existeIndex].precio * nuevoCarrito[existeIndex].cantidad
-        return nuevoCarrito
-      }
-      return [...prev, {
-        servicio_id: servicio.id,
-        tipo: 'servicio' as const,
-        nombre: servicio.nombre,
-        precio: parseFloat(servicio.precio.toString()),
-        cantidad: 1,
-        subtotal: parseFloat(servicio.precio.toString())
-      }]
-    })
+    if (servicio) dispatch({ type: 'ADD_SERVICIO', servicio })
   }
 
   const agregarProductoAlCarrito = (productoId: string) => {
     const producto = productos.find(p => p.id === productoId)
-    if (!producto) return
-
-    setCarrito(prev => {
-      const existeIndex = prev.findIndex(item => item.producto_id === productoId && item.tipo === 'producto')
-      if (existeIndex >= 0) {
-        const nuevoCarrito = [...prev]
-        // No permitir más que el stock disponible
-        if (nuevoCarrito[existeIndex].cantidad >= producto.stock_actual) return prev
-        nuevoCarrito[existeIndex].cantidad += 1
-        nuevoCarrito[existeIndex].subtotal = nuevoCarrito[existeIndex].precio * nuevoCarrito[existeIndex].cantidad
-        return nuevoCarrito
-      }
-      return [...prev, {
-        producto_id: producto.id,
-        tipo: 'producto' as const,
-        nombre: producto.nombre,
-        precio: producto.precio_venta,
-        cantidad: 1,
-        subtotal: producto.precio_venta
-      }]
-    })
+    if (producto) dispatch({ type: 'ADD_PRODUCTO', producto })
   }
 
   const actualizarCantidad = (index: number, delta: number) => {
-    setCarrito(prev => {
-      const nuevoCarrito = [...prev]
-      const nuevaCantidad = Math.max(1, nuevoCarrito[index].cantidad + delta)
-      nuevoCarrito[index].cantidad = nuevaCantidad
-      nuevoCarrito[index].subtotal = nuevoCarrito[index].precio * nuevaCantidad
-      return nuevoCarrito
-    })
+    const item = carrito[index]
+    const stockMax = item?.tipo === 'producto'
+      ? productos.find(p => p.id === item.producto_id)?.stock_actual
+      : undefined
+    dispatch({ type: 'UPDATE_CANTIDAD', index, delta, stockMax })
   }
 
-  const removerDelCarrito = (index: number) => {
-    setCarrito(carrito.filter((_, i) => i !== index))
-  }
+  const removerDelCarrito = (index: number) => dispatch({ type: 'REMOVE', index })
 
   const handleSeleccionarCita = (cita: any) => {
     setBarberoId(cita.barbero_id)
     setClienteNombre(cita.cliente_nombre || '')
     setCitaId(cita.id)
 
-    // Si la cita tiene items (múltiples servicios), usarlos
     if (cita.items && cita.items.length > 0) {
-      setCarrito(cita.items.map((item: any) => ({
-        ...item,
-        tipo: item.tipo || 'servicio' as const,
-        precio: parseFloat(item.precio.toString()),
-        subtotal: parseFloat(item.subtotal.toString())
-      })))
+      dispatch({ type: 'LOAD_FROM_CITA', items: cita.items })
     } else if (cita.servicio_id) {
-      // Fallback: si solo tiene el servicio_id original
       const servicio = servicios.find(s => s.id === cita.servicio_id)
-      if (servicio) {
-        setCarrito([{
-          servicio_id: servicio.id,
-          tipo: 'servicio' as const,
-          nombre: servicio.nombre,
-          precio: parseFloat(servicio.precio.toString()),
-          cantidad: 1,
-          subtotal: parseFloat(servicio.precio.toString())
-        }])
-      }
+      if (servicio) dispatch({ type: 'ADD_SERVICIO', servicio })
     }
 
-    // Avanzar a servicios pero con la cita linkeada
     setPaso(2)
   }
 
@@ -347,7 +348,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       setTipoDocumento('boleta')
       setRut('')
       setBarberoId('')
-      setCarrito([])
+      dispatch({ type: 'RESET' })
       setMetodoPago('efectivo')
       setMontoRecibido('')
       setCitaId(null)

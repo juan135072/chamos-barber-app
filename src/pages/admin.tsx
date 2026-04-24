@@ -1,28 +1,29 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { chamosSupabase } from '../../lib/supabase-helpers'
 import type { Database } from '../../lib/database.types'
 import Logo from '../components/shared/Logo'
-import BarberosTab from '../components/admin/tabs/BarberosTab'
-import ServiciosTab from '../components/admin/tabs/ServiciosTab'
-import HorariosTab from '../components/admin/tabs/HorariosTab'
-import ConfiguracionTab from '../components/admin/tabs/ConfiguracionTab'
-import CitasTab from '../components/admin/tabs/CitasTab'
-import SolicitudesTab from '../components/admin/tabs/SolicitudesTab'
-import CategoriasTab from '../components/admin/tabs/CategoriasTab'
-import ClientesTab from '../components/admin/tabs/ClientesTab'
-import ComisionesTab from '../components/admin/tabs/ComisionesTab'
-import GananciasTab from '../components/admin/tabs/GananciasTab'
-import InventarioTab from '../components/admin/tabs/InventarioTab'
-import CalendarView from '../components/admin/dashboard/CalendarView'
-import WalkInClientsPanel from '../components/walkin/WalkInClientsPanel'
 
-import GestionUbicaciones from '../components/admin/GestionUbicaciones'
-import GeneradorClave from '../components/admin/GeneradorClave'
-import AsistenciaHoyPanel from '../components/admin/AsistenciaHoyPanel'
-import ConfiguradorHorarios from '../components/admin/ConfiguradorHorarios'
+// Tabs cargadas bajo demanda — solo se descarga el bundle cuando la tab está activa
+const BarberosTab = lazy(() => import('../components/admin/tabs/BarberosTab'))
+const ServiciosTab = lazy(() => import('../components/admin/tabs/ServiciosTab'))
+const HorariosTab = lazy(() => import('../components/admin/tabs/HorariosTab'))
+const ConfiguracionTab = lazy(() => import('../components/admin/tabs/ConfiguracionTab'))
+const CitasTab = lazy(() => import('../components/admin/tabs/CitasTab'))
+const SolicitudesTab = lazy(() => import('../components/admin/tabs/SolicitudesTab'))
+const CategoriasTab = lazy(() => import('../components/admin/tabs/CategoriasTab'))
+const ClientesTab = lazy(() => import('../components/admin/tabs/ClientesTab'))
+const ComisionesTab = lazy(() => import('../components/admin/tabs/ComisionesTab'))
+const GananciasTab = lazy(() => import('../components/admin/tabs/GananciasTab'))
+const InventarioTab = lazy(() => import('../components/admin/tabs/InventarioTab'))
+const CalendarView = lazy(() => import('../components/admin/dashboard/CalendarView'))
+const WalkInClientsPanel = lazy(() => import('../components/walkin/WalkInClientsPanel'))
+const GestionUbicaciones = lazy(() => import('../components/admin/GestionUbicaciones'))
+const GeneradorClave = lazy(() => import('../components/admin/GeneradorClave'))
+const AsistenciaHoyPanel = lazy(() => import('../components/admin/AsistenciaHoyPanel'))
+const ConfiguradorHorarios = lazy(() => import('../components/admin/ConfiguradorHorarios'))
 
 type AdminUser = Database['public']['Tables']['admin_users']['Row']
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -95,18 +96,18 @@ export default function AdminPage() {
     if (!session?.user?.email) return
 
     try {
-      console.log('[Admin] Verificando acceso para email:', session.user.email)
+      if (process.env.NODE_ENV !== 'production') console.log('[Admin] Verificando acceso para email:', session.user.email)
       const adminData = await chamosSupabase.getAdminUser(session.user.email)
-      console.log('[Admin] Datos obtenidos:', { email: adminData?.email, rol: adminData?.rol, activo: adminData?.activo })
+      if (process.env.NODE_ENV !== 'production') console.log('[Admin] Datos obtenidos:', { email: adminData?.email, rol: adminData?.rol })
 
       if (!adminData || adminData.rol !== 'admin') {
-        console.error('[Admin] ❌ ACCESO DENEGADO - Rol:', adminData?.rol)
+        console.error('[Admin] ACCESO DENEGADO')
         await supabase.auth.signOut()
         router.push('/chamos-acceso')
         return
       }
 
-      console.log('[Admin] ✅ ACCESO CONCEDIDO')
+      if (process.env.NODE_ENV !== 'production') console.log('[Admin] ✅ ACCESO CONCEDIDO')
       setAdminUser(adminData)
       setLoading(false)
 
@@ -124,24 +125,23 @@ export default function AdminPage() {
 
   const loadDashboardData = async () => {
     try {
-      const barberosData = await chamosSupabase.getBarberos()
-      setBarberos(barberosData)
+      const [barberosData, serviciosData, citasData] = await Promise.all([
+        chamosSupabase.getBarberos(),
+        chamosSupabase.getServicios(),
+        chamosSupabase.getCitas(),
+      ])
 
-      const serviciosData = await chamosSupabase.getServicios()
+      setBarberos(barberosData)
       setServicios(serviciosData)
 
-      const citasData = await chamosSupabase.getCitas()
       const citasArray = (citasData || []) as Cita[]
       setCitas(citasArray)
 
       const today = new Date().toISOString().split('T')[0]
-      const citasHoy = citasArray.filter((c: Cita) => c.fecha === today).length || 0
-      const citasPendientes = citasArray.filter((c: Cita) => c.estado === 'pendiente').length || 0
-
       setStats({
-        totalCitas: citasArray.length || 0,
-        citasHoy,
-        citasPendientes,
+        totalCitas: citasArray.length,
+        citasHoy: citasArray.filter((c: Cita) => c.fecha === today).length,
+        citasPendientes: citasArray.filter((c: Cita) => c.estado === 'pendiente').length,
         ingresosMes: 0
       })
     } catch (error) {
@@ -344,7 +344,12 @@ export default function AdminPage() {
           </header >
 
           {/* Content Area */}
-          < div className="p-6 lg:p-8" >
+          <div className="p-6 lg:p-8">
+          <Suspense fallback={
+            <div className="flex items-center justify-center py-20">
+              <div className="w-8 h-8 rounded-full animate-spin" style={{ border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#D4AF37' }} />
+            </div>
+          }>
             {/* Dashboard */}
             {
               activeTab === 'dashboard' && (
@@ -418,7 +423,7 @@ export default function AdminPage() {
                       barberos={barberos}
                       onDateSelect={(date) => {
                         // Opcionalmente abrir el tab de Citas con la fecha seleccionada
-                        console.log('Fecha seleccionada:', date)
+                        if (process.env.NODE_ENV !== 'production') console.log('Fecha seleccionada:', date)
                       }}
                     />
                   </div>
@@ -461,7 +466,8 @@ export default function AdminPage() {
 
             {/* Ubicaciones GPS Tab */}
             {activeTab === 'ubicaciones' && <GestionUbicaciones />}
-          </div >
+          </Suspense>
+          </div>
         </main >
 
         {/* Mobile Sidebar Overlay */}

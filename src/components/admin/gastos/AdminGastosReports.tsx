@@ -56,7 +56,7 @@ export default function AdminGastosReports() {
         doc.text(`Generado: ${new Date().toLocaleString()}`, 14, 33)
 
         // Table
-        const tableData = data.map(item => [
+        const tableData = data.map((item: any) => [
             format(new Date(item.fecha), 'dd/MM/yyyy'),
             item.descripcion,
             item.categoria?.nombre || '-',
@@ -64,8 +64,8 @@ export default function AdminGastosReports() {
             `$${Number(item.monto).toLocaleString()}`
         ])
 
-        const totalGastos = data.filter(d => d.tipo === 'GASTO').reduce((acc, curr) => acc + Number(curr.monto), 0)
-        const totalCostos = data.filter(d => d.tipo === 'COSTO').reduce((acc, curr) => acc + Number(curr.monto), 0)
+        const totalGastos = data.filter((d: any) => d.tipo === 'GASTO').reduce((acc: number, curr: any) => acc + Number(curr.monto), 0)
+        const totalCostos = data.filter((d: any) => d.tipo === 'COSTO').reduce((acc: number, curr: any) => acc + Number(curr.monto), 0)
 
         autoTable(doc, {
             startY: 40,
@@ -95,7 +95,7 @@ export default function AdminGastosReports() {
             return
         }
 
-        const excelData = data.map(item => ({
+        const excelData = data.map((item: any) => ({
             Fecha: item.fecha,
             Descripción: item.descripcion,
             Categoría: item.categoria?.nombre || '-',

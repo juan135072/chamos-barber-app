@@ -304,7 +304,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
 
       } catch (printerServiceError) {
         console.warn('⚠️ Servicio de impresión no disponible, usando método del navegador')
-        console.warn('Error:', printerServiceError.message)
+        console.warn('Error:', printerServiceError instanceof Error ? printerServiceError.message : printerServiceError)
 
         // Fallback: Usar ventana de impresión del navegador
         await generarEImprimirFactura(datosFactura, 'imprimir')

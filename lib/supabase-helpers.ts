@@ -1,6 +1,14 @@
-// @ts-nocheck
 import { supabase } from './initSupabase'
 import type { Database } from './database.types'
+
+const devLog = (...args: unknown[]) => {
+  if (process.env.NODE_ENV !== 'production') console.log(...args)
+}
+
+// Alias sin tipo estricto para operaciones sobre tablas no presentes en los tipos
+// generados (cierres_caja, caja_sesiones, movimientos_caja) o RPCs no tipados.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any
 
 // Tipos de base de datos
 type Barbero = Database['public']['Tables']['barberos']['Row']
@@ -13,11 +21,10 @@ type PortfolioItem = Database['public']['Tables']['barbero_portfolio']['Row']
 export const chamosSupabase = {
   // Barberos
   getBarberos: async (activo?: boolean) => {
-    const query = supabase.from('barberos').select('*')
+    let query = supabase.from('barberos').select('*')
 
-    // Solo filtrar por activo si se especifica explícitamente
     if (activo !== undefined && activo !== null) {
-      query.eq('activo', activo)
+      query = query.eq('activo', activo)
     }
 
     const { data, error } = await query.order('nombre')
@@ -146,11 +153,10 @@ export const chamosSupabase = {
 
   // Servicios
   getServicios: async (activo?: boolean) => {
-    const query = supabase.from('servicios').select('*')
+    let query = supabase.from('servicios').select('*')
 
-    // Solo filtrar por activo si se proporciona explícitamente
     if (activo !== undefined) {
-      query.eq('activo', activo)
+      query = query.eq('activo', activo)
     }
 
     const { data, error } = await query.order('nombre')
@@ -171,9 +177,9 @@ export const chamosSupabase = {
   },
 
   createServicio: async (servicio: Database['public']['Tables']['servicios']['Insert']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('servicios')
-      .insert([servicio] as any)
+      .insert([servicio])
       .select()
       .single()
 
@@ -182,9 +188,9 @@ export const chamosSupabase = {
   },
 
   updateServicio: async (id: string, updates: Database['public']['Tables']['servicios']['Update']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('servicios')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single()
@@ -270,10 +276,10 @@ export const chamosSupabase = {
     const { data: existingCitas } = await supabase
       .from('citas')
       .select('id, cliente_nombre')
-      .eq('barbero_id', cita.barbero_id)
-      .eq('fecha', cita.fecha)
-      .eq('hora', cita.hora)
-      .in('estado', ['pendiente', 'confirmada']) // Solo considerar activas
+      .eq('barbero_id', cita.barbero_id ?? '')
+      .eq('fecha', cita.fecha ?? '')
+      .eq('hora', cita.hora ?? '')
+      .in('estado', ['pendiente', 'confirmada'])
 
     if (existingCitas && existingCitas.length > 0) {
       throw new Error('⚠️ Lo sentimos, este horario acaba de ser reservado por otro cliente. Por favor selecciona otro horario.')
@@ -291,9 +297,9 @@ export const chamosSupabase = {
     }
 
     // VALIDACIÓN 3: Intentar insertar con manejo de race conditions
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('citas')
-      .insert([cita] as any)
+      .insert([cita])
       .select()
       .single()
 
@@ -309,9 +315,9 @@ export const chamosSupabase = {
   },
 
   updateCita: async (id: string, updates: Database['public']['Tables']['citas']['Update']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('citas')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single()
@@ -332,7 +338,7 @@ export const chamosSupabase = {
   // Horarios disponibles
   getHorariosDisponibles: async (barbero_id: string, fecha: string, duracion_minutos: number = 30): Promise<{ hora: string, disponible: boolean, motivo?: string }[] | null> => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .rpc('get_horarios_disponibles', {
           barbero_id_param: barbero_id,
           fecha_param: fecha,
@@ -372,9 +378,9 @@ export const chamosSupabase = {
   },
 
   createHorarioAtencion: async (horario: Database['public']['Tables']['horarios_atencion']['Insert']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('horarios_atencion')
-      .insert([horario] as any)
+      .insert([horario])
       .select()
       .single()
 
@@ -383,9 +389,9 @@ export const chamosSupabase = {
   },
 
   updateHorarioAtencion: async (id: string, updates: Database['public']['Tables']['horarios_atencion']['Update']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('horarios_atencion')
-      .update(updates as any)
+      .update(updates)
       .eq('id', id)
       .select()
       .single()
@@ -423,9 +429,9 @@ export const chamosSupabase = {
   },
 
   createHorarioBloqueado: async (bloqueo: Database['public']['Tables']['horarios_bloqueados']['Insert']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('horarios_bloqueados')
-      .insert([bloqueo] as any)
+      .insert([bloqueo])
       .select()
       .single()
 
@@ -434,9 +440,9 @@ export const chamosSupabase = {
   },
 
   updateHorarioBloqueado: async (id: string, updates: Database['public']['Tables']['horarios_bloqueados']['Update']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('horarios_bloqueados')
-      .update(updates as any)
+      .update(updates)
       .eq('id', id)
       .select()
       .single()
@@ -497,9 +503,9 @@ export const chamosSupabase = {
   },
 
   createPortfolioItem: async (item: Database['public']['Tables']['barbero_portfolio']['Insert']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('barbero_portfolio')
-      .insert([item] as any)
+      .insert([item])
       .select()
       .single()
 
@@ -508,9 +514,9 @@ export const chamosSupabase = {
   },
 
   updatePortfolioItem: async (id: string, updates: Database['public']['Tables']['barbero_portfolio']['Update']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('barbero_portfolio')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single()
@@ -552,9 +558,9 @@ export const chamosSupabase = {
   },
 
   createAdminUser: async (user: Database['public']['Tables']['admin_users']['Insert']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('admin_users')
-      .insert([user] as any)
+      .insert([user])
       .select('id, email, nombre, rol, activo, created_at')
       .single()
 
@@ -563,9 +569,9 @@ export const chamosSupabase = {
   },
 
   updateAdminUser: async (id: string, updates: Database['public']['Tables']['admin_users']['Update']) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('admin_users')
-      .update({ ...updates, updated_at: new Date().toISOString() } as any)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('id, email, nombre, rol, activo, created_at')
       .single()
@@ -585,25 +591,30 @@ export const chamosSupabase = {
 
   // Configuración del sitio (Multitenant Aware)
   getConfiguracion: async (clave?: string) => {
-    // La RLS se encarga del aislamiento por comercio_id si el usuario está logueado
-    let query = supabase.from('sitio_configuracion').select('*')
-
     if (clave) {
-      query = query.eq('clave', clave).single()
+      const { data, error } = await supabase
+        .from('sitio_configuracion')
+        .select('*')
+        .eq('clave', clave)
+        .single()
+      if (error) throw error
+      return data
     }
 
-    const { data, error } = await query.order('clave')
+    const { data, error } = await supabase
+      .from('sitio_configuracion')
+      .select('*')
+      .order('clave')
 
     if (error) throw error
     return data
   },
 
   updateConfiguracion: async (clave: string, valor: string) => {
-    // Obtenemos el comercio_id del usuario actual para el upsert
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Usuario no autenticado')
 
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await db
       .from('admin_users')
       .select('comercio_id')
       .eq('id', user.id)
@@ -611,14 +622,9 @@ export const chamosSupabase = {
 
     const comercio_id = adminUser?.comercio_id
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('sitio_configuracion')
-      .upsert({
-        clave,
-        valor,
-        comercio_id, // ESENCIAL para el índice único (clave, comercio_id)
-        updated_at: new Date().toISOString()
-      } as any, {
+      .upsert({ clave, valor, comercio_id, updated_at: new Date().toISOString() }, {
         onConflict: 'clave,comercio_id'
       })
       .select()
@@ -633,7 +639,7 @@ export const chamosSupabase = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Usuario no autenticado')
 
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await db
       .from('admin_users')
       .select('comercio_id')
       .eq('id', user.id)
@@ -641,7 +647,7 @@ export const chamosSupabase = {
 
     if (!adminUser?.comercio_id) throw new Error('Comercio no asociado al usuario')
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('configuracion_horarios')
       .select('*')
       .eq('comercio_id', adminUser.comercio_id)
@@ -656,7 +662,7 @@ export const chamosSupabase = {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) throw new Error('Usuario no autenticado')
 
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await db
       .from('admin_users')
       .select('comercio_id')
       .eq('id', user.id)
@@ -664,16 +670,16 @@ export const chamosSupabase = {
 
     if (!adminUser?.comercio_id) throw new Error('Comercio no asociado al usuario')
 
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('configuracion_horarios')
       .upsert({
-        nombre: 'Horario General', // Nombre por defecto para la config del sitio
+        nombre: 'Horario General',
         comercio_id: adminUser.comercio_id,
         hora_entrada_puntual: updates.hora_entrada_puntual,
         hora_salida_minima: updates.hora_salida_minima,
         activa: true,
         updated_at: new Date().toISOString()
-      } as any, {
+      }, {
         onConflict: 'nombre,comercio_id'
       })
       .select()
@@ -703,7 +709,7 @@ export const chamosSupabase = {
       const fileName = `${barberoId}-${Date.now()}.${fileExt}`
       const filePath = `${fileName}`
 
-      console.log('📤 [uploadBarberoFoto] Subiendo archivo:', fileName)
+      devLog('📤 [uploadBarberoFoto] Subiendo archivo:', fileName)
 
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
@@ -718,14 +724,14 @@ export const chamosSupabase = {
         throw error
       }
 
-      console.log('✅ [uploadBarberoFoto] Archivo subido:', data.path)
+      devLog('✅ [uploadBarberoFoto] Archivo subido:', data.path)
 
       // Obtener URL pública
       const { data: urlData } = supabase.storage
         .from('barberos-fotos')
         .getPublicUrl(data.path)
 
-      console.log('🔗 [uploadBarberoFoto] URL pública:', urlData.publicUrl)
+      devLog('🔗 [uploadBarberoFoto] URL pública:', urlData.publicUrl)
 
       return {
         path: data.path,
@@ -740,7 +746,7 @@ export const chamosSupabase = {
   // Storage - Eliminar imagen de barbero
   deleteBarberoFoto: async (filePath: string) => {
     try {
-      console.log('🗑️ [deleteBarberoFoto] Eliminando archivo:', filePath)
+      devLog('🗑️ [deleteBarberoFoto] Eliminando archivo:', filePath)
 
       const { error } = await supabase.storage
         .from('barberos-fotos')
@@ -751,12 +757,12 @@ export const chamosSupabase = {
         throw error
       }
 
-      console.log('✅ [deleteBarberoFoto] Archivo eliminado')
+      devLog('✅ [deleteBarberoFoto] Archivo eliminado')
     } catch (error: any) {
       console.error('❌ [deleteBarberoFoto] Error:', error)
       // No lanzar error si el archivo no existe
       if (error.message?.includes('not found')) {
-        console.log('⚠️ [deleteBarberoFoto] Archivo no encontrado, continuando...')
+        devLog('⚠️ [deleteBarberoFoto] Archivo no encontrado, continuando...')
         return
       }
       throw error
@@ -783,7 +789,7 @@ export const chamosSupabase = {
       const fileName = `${servicioId}-${Date.now()}.${fileExt}`
       const filePath = `${fileName}`
 
-      console.log('📤 [uploadServicioFoto] Subiendo archivo:', fileName)
+      devLog('📤 [uploadServicioFoto] Subiendo archivo:', fileName)
 
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
@@ -798,14 +804,14 @@ export const chamosSupabase = {
         throw error
       }
 
-      console.log('✅ [uploadServicioFoto] Archivo subido:', data.path)
+      devLog('✅ [uploadServicioFoto] Archivo subido:', data.path)
 
       // Obtener URL pública
       const { data: urlData } = supabase.storage
         .from('servicios-fotos')
         .getPublicUrl(data.path)
 
-      console.log('🔗 [uploadServicioFoto] URL pública:', urlData.publicUrl)
+      devLog('🔗 [uploadServicioFoto] URL pública:', urlData.publicUrl)
 
       return {
         path: data.path,
@@ -820,7 +826,7 @@ export const chamosSupabase = {
   // Storage - Eliminar imagen de servicio
   deleteServicioFoto: async (filePath: string) => {
     try {
-      console.log('🗑️ [deleteServicioFoto] Eliminando archivo:', filePath)
+      devLog('🗑️ [deleteServicioFoto] Eliminando archivo:', filePath)
 
       const { error } = await supabase.storage
         .from('servicios-fotos')
@@ -831,12 +837,12 @@ export const chamosSupabase = {
         throw error
       }
 
-      console.log('✅ [deleteServicioFoto] Archivo eliminado')
+      devLog('✅ [deleteServicioFoto] Archivo eliminado')
     } catch (error: any) {
       console.error('❌ [deleteServicioFoto] Error:', error)
       // No lanzar error si el archivo no existe
       if (error.message?.includes('not found')) {
-        console.log('⚠️ [deleteServicioFoto] Archivo no encontrado, continuando...')
+        devLog('⚠️ [deleteServicioFoto] Archivo no encontrado, continuando...')
         return
       }
       throw error
@@ -860,7 +866,7 @@ export const chamosSupabase = {
       const fileName = `${productoId}-${Date.now()}.${fileExt}`
       const filePath = `${fileName}`
 
-      console.log('📤 [uploadProductoFoto] Subiendo archivo:', fileName)
+      devLog('📤 [uploadProductoFoto] Subiendo archivo:', fileName)
 
       const { data, error } = await supabase.storage
         .from('productos-fotos')
@@ -874,13 +880,13 @@ export const chamosSupabase = {
         throw error
       }
 
-      console.log('✅ [uploadProductoFoto] Archivo subido:', data.path)
+      devLog('✅ [uploadProductoFoto] Archivo subido:', data.path)
 
       const { data: urlData } = supabase.storage
         .from('productos-fotos')
         .getPublicUrl(data.path)
 
-      console.log('🔗 [uploadProductoFoto] URL pública:', urlData.publicUrl)
+      devLog('🔗 [uploadProductoFoto] URL pública:', urlData.publicUrl)
 
       return {
         path: data.path,
@@ -895,7 +901,7 @@ export const chamosSupabase = {
   // Storage - Eliminar imagen de producto
   deleteProductoFoto: async (filePath: string) => {
     try {
-      console.log('🗑️ [deleteProductoFoto] Eliminando archivo:', filePath)
+      devLog('🗑️ [deleteProductoFoto] Eliminando archivo:', filePath)
 
       const { error } = await supabase.storage
         .from('productos-fotos')
@@ -906,11 +912,11 @@ export const chamosSupabase = {
         throw error
       }
 
-      console.log('✅ [deleteProductoFoto] Archivo eliminado')
+      devLog('✅ [deleteProductoFoto] Archivo eliminado')
     } catch (error: any) {
       console.error('❌ [deleteProductoFoto] Error:', error)
       if (error.message?.includes('not found')) {
-        console.log('⚠️ [deleteProductoFoto] Archivo no encontrado, continuando...')
+        devLog('⚠️ [deleteProductoFoto] Archivo no encontrado, continuando...')
         return
       }
       throw error
@@ -974,7 +980,7 @@ export const chamosSupabase = {
   },
 
   crearCierreCaja: async (cierre: any) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('cierres_caja')
       .insert([cierre])
       .select()
@@ -985,7 +991,7 @@ export const chamosSupabase = {
   },
 
   updateCierreCaja: async (id: string, updates: any) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('cierres_caja')
       .update(updates)
       .eq('id', id)
@@ -1037,7 +1043,7 @@ export const chamosSupabase = {
   },
 
   vincularFacturasACierre: async (facturaIds: string[], cierreCajaId: string) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('facturas')
       .update({ cierre_caja_id: cierreCajaId })
       .in('id', facturaIds)
@@ -1070,7 +1076,7 @@ export const chamosSupabase = {
   },
 
   createProducto: async (producto: any) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('productos')
       .insert([producto])
       .select()
@@ -1080,7 +1086,7 @@ export const chamosSupabase = {
   },
 
   updateProducto: async (id: string, updates: any) => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('productos')
       .update(updates)
       .eq('id', id)
@@ -1091,18 +1097,18 @@ export const chamosSupabase = {
   },
 
   getProductosConStockBajo: async () => {
-    const { data, error } = await supabase
+    const { data, error } = await db
       .from('productos')
       .select('*')
       .eq('activo', true)
-      .filter('stock_actual', 'lte', 'stock_minimo' as any)
+      .filter('stock_actual', 'lte', 'stock_minimo')
       .order('stock_actual')
     if (error) throw error
     return data || []
   },
 
   getMovimientosInventario: async (productoId?: string, limit: number = 50) => {
-    let query = supabase
+    let query = db
       .from('inventario_movimientos')
       .select('*, productos(nombre)')
       .order('created_at', { ascending: false })
@@ -1121,8 +1127,7 @@ export const chamosSupabase = {
     referenciaId?: string,
     createdBy?: string
   ) => {
-    // Obtener stock actual
-    const { data: producto, error: fetchError } = await supabase
+    const { data: producto, error: fetchError } = await db
       .from('productos')
       .select('stock_actual')
       .eq('id', productoId)
@@ -1135,10 +1140,9 @@ export const chamosSupabase = {
 
     if (tipo === 'entrada') stockNuevo = stockAnterior + cantidad
     else if (tipo === 'salida') stockNuevo = stockAnterior - cantidad
-    else stockNuevo = cantidad // ajuste = set directo
+    else stockNuevo = cantidad
 
-    // Registrar movimiento
-    const { error: movError } = await supabase
+    const { error: movError } = await db
       .from('inventario_movimientos')
       .insert([{
         producto_id: productoId,
@@ -1153,8 +1157,7 @@ export const chamosSupabase = {
 
     if (movError) throw movError
 
-    // Actualizar stock del producto
-    const { error: updateError } = await supabase
+    const { error: updateError } = await db
       .from('productos')
       .update({ stock_actual: stockNuevo })
       .eq('id', productoId)

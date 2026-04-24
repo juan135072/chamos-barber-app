@@ -48,8 +48,10 @@ export default async function handler(
       return res.status(response.status).json(data);
     }
 
-    // Configurar headers CORS
-    res.setHeader('Access-Control-Allow-Origin', '*');
+    const allowedOrigin = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL || 'chamosbarber.cl'}`
+      : 'http://localhost:3000'
+    res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
