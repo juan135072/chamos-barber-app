@@ -94,7 +94,7 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
             </svg>
           </div>
 
-          <h2 className="relative mb-4 font-bold text-4xl tracking-tight sm:text-5xl text-[#EAEAEA]">
+          <h1 className="relative mb-4 font-bold text-4xl tracking-tight sm:text-5xl text-[#EAEAEA]">
             Nuestros Barberos
             {/* Decorative zigzag behind the title */}
             <svg
@@ -114,7 +114,7 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
                 strokeWidth="28"
               />
             </svg>
-          </h2>
+          </h1>
 
           <p className="max-w-2xl text-[#EAEAEA]/70">
             Barberos venezolanos y chilenos con pasión por el oficio. Cada uno aporta
@@ -141,7 +141,7 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
               <Link
                 href={`/barbero/${member.slug || member.id}`}
                 key={member.id}
-                className="group flex w-56 shrink-0 flex-col no-underline"
+                className="group/card flex w-56 shrink-0 flex-col no-underline"
               >
                 <div className="relative overflow-hidden rounded-2xl bg-[#1A1A1A]"
                   style={{ height: '336px' }}>
@@ -149,7 +149,7 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
                     alt={member.nombre}
                     src={getImageUrl(member.imagen_url || member.foto_url)}
                     fill
-                    className="object-cover grayscale transition-all duration-500 group-hover:grayscale-0 group-hover:scale-105"
+                    className="object-cover grayscale transition-all duration-500 group-hover/card:grayscale-0 group-hover/card:scale-105"
                     sizes="224px"
                   />
                   {/* Info overlay at the bottom */}

@@ -40,87 +40,14 @@ const EquipoPage: React.FC = () => {
     }
   }
 
-  const getImageUrl = (foto_url: string) => {
-    if (!foto_url) return 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300&q=80'
-    if (foto_url.startsWith('http')) return foto_url
-    return `/images/barberos/${foto_url}`
-  }
 
   return (
     <Layout
       title="Nuestro Equipo - Chamos Barber"
       description="Conoce a nuestro equipo de barberos venezolanos y chilenos. Experiencia, profesionalismo y pasión por el oficio."
     >
-      {/* Page Header */}
-      <section className="page-header">
-        <div className="container">
-          <h1 className="page-title">Nuestro Equipo</h1>
-          <p className="page-subtitle">Conoce a nuestro equipo de barberos venezolanos y chilenos</p>
-        </div>
-      </section>
-
       {/* ── Marquee Team Section ── */}
       <TeamMarquee members={barberos} loading={loading} />
-
-      {/* ── Equipo Grid (detalle) ── */}
-      <section className="team-section">
-        <div className="container">
-          <h2 className="section-title">Conoce a cada uno</h2>
-          <div className="team-grid">
-            {loading ? (
-              <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '4rem 0' }}>
-                <div className="spinner"></div>
-                <p>Cargando equipo...</p>
-              </div>
-            ) : barberos.length === 0 ? (
-              <div style={{ textAlign: 'center', gridColumn: '1 / -1', padding: '4rem 0' }}>
-                <p>No hay barberos registrados en este momento.</p>
-              </div>
-            ) : (
-              barberos.map((barbero) => (
-                <Link
-                  key={barbero.id}
-                  href={`/barbero/${barbero.slug || barbero.id}`}
-                  className="barber-card"
-                >
-                  <div
-                    className="barber-image"
-                    style={{ backgroundImage: `url(${getImageUrl(barbero.foto_url)})` }}
-                  >
-                    <div className="barber-overlay">
-                      <h3 className="barber-name">{barbero.nombre}</h3>
-                      {barbero.especialidades && barbero.especialidades.length > 0 && (
-                        <p style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                          {barbero.especialidades.slice(0, 2).join(' • ')}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="barber-info">
-                    <div className="barber-name">{barbero.nombre}</div>
-                    <p className="barber-bio">
-                      {barbero.biografia.length > 120
-                        ? `${barbero.biografia.substring(0, 120)}...`
-                        : barbero.biografia
-                      }
-                    </p>
-                    {barbero.experiencia_anos && (
-                      <p style={{
-                        color: 'var(--accent-color)',
-                        fontWeight: '600',
-                        marginTop: '1rem',
-                        fontSize: '0.9rem'
-                      }}>
-                        <i className="fas fa-star"></i> {barbero.experiencia_anos} años de experiencia
-                      </p>
-                    )}
-                  </div>
-                </Link>
-              ))
-            )}
-          </div>
-        </div>
-      </section>
 
       {/* Información adicional */}
       <section className="team-info" style={{ padding: '4rem 0', backgroundColor: 'var(--bg-secondary)' }}>
