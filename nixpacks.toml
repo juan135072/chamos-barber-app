@@ -1,5 +1,6 @@
 [variables]
 NODE_OPTIONS = '--max-old-space-size=4096'
+HOSTNAME = '0.0.0.0'
 
 [phases.install]
 cmds = ['npm ci']
