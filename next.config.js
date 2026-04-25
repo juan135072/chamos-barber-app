@@ -43,9 +43,9 @@ const nextConfig = {
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'chamos-barber-secret-key-development-only',
   },
 
-  // Configuración para VPS
+  // Configuración para VPS / contenedor Docker (Coolify)
   trailingSlash: false,
-  // output: 'standalone', // Comentado para permitir carga correcta de CSS
+  output: 'standalone',
 
   // 🔒 Headers de seguridad mejorados
   async headers() {
