@@ -84,7 +84,7 @@ export default function Hero() {
             <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl opacity-20" />
             <div className="w-full h-full border border-white/5 rounded-3xl bg-neutral-900/40 relative overflow-hidden group">
               <SplineScene 
-                scene="https://prod.spline.design/p7YYyOhpFX9Wm2ZH/scene.splinecode" 
+                scene="https://prod.spline.design/3Xi3HTcxP-AAGbbw/scene.splinecode"
                 onLoad={(spline: any) => {
                   setTimeout(() => {
                     try {
