@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Facebook, Instagram, Twitter, Music2, Scissors, MapPin, Phone, Mail } from 'lucide-react'
+import { Share2, Camera, Music2, Scissors, MapPin, Phone, Mail } from 'lucide-react'
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
@@ -47,22 +47,12 @@ const Footer: React.FC = () => {
             <div className="flex gap-4">
               {socialLinks.facebook && (
                 <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
-                  <Facebook className="w-4 h-4" />
+                  <Share2 className="w-4 h-4" />
                 </a>
               )}
               {socialLinks.instagram && (
                 <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
-                  <Instagram className="w-4 h-4" />
-                </a>
-              )}
-              {socialLinks.twitter && (
-                <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
-                  <Twitter className="w-4 h-4" />
-                </a>
-              )}
-              {socialLinks.youtube && (
-                <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
-                  <Youtube className="w-4 h-4" />
+                  <Camera className="w-4 h-4" />
                 </a>
               )}
               {socialLinks.tiktok && (

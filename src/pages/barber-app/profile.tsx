@@ -6,7 +6,7 @@
 import React from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
-import { Mail, Phone, Instagram, LogOut, User, Calendar, DollarSign } from 'lucide-react'
+import { Mail, Phone, Camera, LogOut, User, Calendar, DollarSign } from 'lucide-react'
 import { useBarberAppAuth } from '../../hooks/useBarberAppAuth'
 import { useDisponibilidad } from '../../hooks/useDisponibilidad'
 import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
@@ -140,7 +140,7 @@ export default function ProfilePage() {
               )}
               {barbero.instagram && (
                 <div className="contact-item">
-                  <Instagram size={20} />
+                  <Camera size={20} />
                   <span>@{barbero.instagram}</span>
                 </div>
               )}
