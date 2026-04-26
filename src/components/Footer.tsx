@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Facebook, Instagram, Twitter, Youtube, Music2, Scissors, MapPin, Phone, Mail } from 'lucide-react'
+import { Facebook, Instagram, Twitter, Music2, Scissors, MapPin, Phone, Mail } from 'lucide-react'
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
