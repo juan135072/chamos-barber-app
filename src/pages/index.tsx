@@ -66,41 +66,57 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
   useGSAP(() => {
     if (showPreloader) return
 
-    const split = new SplitText(heroTitleRef.current, { type: 'lines' })
+    const split = heroTitleRef.current ? new SplitText(heroTitleRef.current, { type: 'lines' }) : null
 
     const tl = gsap.timeline({ delay: 0.15 })
 
-    tl.fromTo(
-      heroEyebrowRef.current,
-      { opacity: 0, y: 16 },
-      { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }
-    )
-    tl.fromTo(
-      split.lines,
-      { opacity: 0, y: 48 },
-      { opacity: 1, y: 0, duration: 1, stagger: 0.1, ease: 'expo.out' },
-      '-=0.4'
-    )
-    tl.fromTo(
-      heroLineRef.current,
-      { scaleX: 0 },
-      { scaleX: 1, duration: 0.9, ease: 'expo.out', transformOrigin: 'left center' },
-      '-=0.5'
-    )
-    tl.fromTo(
-      heroSubRef.current,
-      { opacity: 0, y: 14 },
-      { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' },
-      '-=0.5'
-    )
-    tl.fromTo(
-      heroCtaRef.current,
-      { opacity: 0, y: 18 },
-      { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
-      '-=0.45'
-    )
+    if (heroEyebrowRef.current) {
+      tl.fromTo(
+        heroEyebrowRef.current,
+        { opacity: 0, y: 16 },
+        { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' }
+      )
+    }
+    
+    if (split) {
+      tl.fromTo(
+        split.lines,
+        { opacity: 0, y: 48 },
+        { opacity: 1, y: 0, duration: 1, stagger: 0.1, ease: 'expo.out' },
+        '-=0.4'
+      )
+    }
+    
+    if (heroLineRef.current) {
+      tl.fromTo(
+        heroLineRef.current,
+        { scaleX: 0 },
+        { scaleX: 1, duration: 0.9, ease: 'expo.out', transformOrigin: 'left center' },
+        '-=0.5'
+      )
+    }
+    
+    if (heroSubRef.current) {
+      tl.fromTo(
+        heroSubRef.current,
+        { opacity: 0, y: 14 },
+        { opacity: 1, y: 0, duration: 0.7, ease: 'power2.out' },
+        '-=0.5'
+      )
+    }
+    
+    if (heroCtaRef.current) {
+      tl.fromTo(
+        heroCtaRef.current,
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, duration: 0.6, ease: 'power2.out' },
+        '-=0.45'
+      )
+    }
 
-    return () => split.revert()
+    return () => {
+      if (split) split.revert()
+    }
   }, { dependencies: [showPreloader], scope: containerRef })
 
   // Services scroll reveal
@@ -182,29 +198,29 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
           <div className="hv2-hero-gradient" aria-hidden="true" />
           
           <div className="hv2-hero-spline">
-            <SplineScene scene="https://prod.spline.design/p7YYyOhpFX9Wm2ZH/scene.splinecode" />
+            <SplineScene 
+              scene="https://prod.spline.design/p7YYyOhpFX9Wm2ZH/scene.splinecode" 
+              onLoad={(spline: any) => {
+                // Intentamos sobreescribir el texto dinámicamente si Spline lo permite
+                try {
+                  const objs = spline.getObjects();
+                  objs.forEach((o: any) => {
+                    if (o.name && o.name.toLowerCase().includes('text')) {
+                      if (o.text !== undefined) o.text = 'MAESTRÍA\nEN CADA\nCORTE';
+                      if (o.content !== undefined) o.content = 'MAESTRÍA\nEN CADA\nCORTE';
+                    }
+                  });
+                } catch(e) {}
+              }}
+            />
           </div>
 
-          <div className="hv2-hero-content">
-            <div ref={heroEyebrowRef} className="hv2-eyebrow">
-              <span className="hv2-eyebrow-dash" />
-              <span>Barbería Premium · San Fernando, Chile</span>
-            </div>
+          {/* Contenido reposicionado para no solapar el 3D, manteniendo accesibilidad */}
+          <div className="hv2-hero-content" style={{ pointerEvents: 'none', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', paddingBottom: '15vh' }}>
+            <h1 className="sr-only">Maestría en cada corte</h1>
+            <p className="sr-only">Donde la tradición y el estilo convergen. Tu barbería de confianza desde el primer día.</p>
 
-            <h1 ref={heroTitleRef} className="hv2-hero-title">
-              Maestría<br />
-              en cada<br />
-              <em>corte</em>
-            </h1>
-
-            <div ref={heroLineRef} className="hv2-hero-line" />
-
-            <p ref={heroSubRef} className="hv2-hero-sub">
-              Donde la tradición y el estilo convergen.<br />
-              Tu barbería de confianza desde el primer día.
-            </p>
-
-            <div ref={heroCtaRef} className="hv2-hero-cta">
+            <div ref={heroCtaRef} className="hv2-hero-cta" style={{ pointerEvents: 'auto', justifyContent: 'center' }}>
               <Link href="/reservar" className="hv2-btn-gold">
                 Reservar Cita
               </Link>

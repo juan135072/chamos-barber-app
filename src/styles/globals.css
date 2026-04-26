@@ -1424,6 +1424,12 @@ input[type="date"]:focus {
   height: 100% !important;
 }
 
+/* Ocultar la marca de agua "Built with Spline" */
+.hv2-hero-spline a,
+.hv2-hero-spline div[style*="absolute"] {
+  display: none !important;
+}
+
 .hv2-hero-noise {
   position: absolute;
   inset: 0;
