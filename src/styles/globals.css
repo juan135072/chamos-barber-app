@@ -1389,3 +1389,617 @@ input[type="date"]:focus {
 .smooth-reveal {
     animation: fadeInUp 0.8s ease-out forwards;
 }
+
+/* ================================================================
+   HOME V2 — Rediseño 2025
+   Paleta: #121212 bg · #1A1A1A secondary · #EAEAEA text · #D4AF37 gold
+   ================================================================ */
+
+/* ── HERO ─────────────────────────────────────────────────────── */
+.hv2-hero {
+  position: relative;
+  height: 100vh;
+  min-height: 680px;
+  background: #0c0c0c;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.hv2-hero-noise {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+  background-size: 300px;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hv2-hero-gradient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 60% at 65% 45%, rgba(212,175,55,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 50% at 20% 80%, rgba(212,175,55,0.04) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hv2-hero-content {
+  position: relative;
+  z-index: 2;
+  padding: 0 7vw;
+  max-width: 960px;
+}
+
+.hv2-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2.25rem;
+  opacity: 0;
+}
+
+.hv2-eyebrow-dash {
+  display: block;
+  width: 36px;
+  height: 1px;
+  background: var(--accent-color);
+  flex-shrink: 0;
+}
+
+.hv2-eyebrow span:last-child {
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  color: var(--accent-color);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.hv2-hero-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(4.5rem, 11vw, 11rem);
+  font-weight: 600;
+  line-height: 0.92;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: -0.025em;
+  margin: 0 0 2rem 0;
+}
+
+.hv2-hero-title em {
+  font-style: italic;
+  color: var(--accent-color);
+}
+
+.hv2-hero-line {
+  width: 72px;
+  height: 2px;
+  background: var(--accent-color);
+  margin-bottom: 2rem;
+}
+
+.hv2-hero-sub {
+  font-size: clamp(0.9rem, 1.4vw, 1.1rem);
+  color: rgba(234,234,234,0.55);
+  line-height: 1.75;
+  margin: 0 0 3rem 0;
+  opacity: 0;
+}
+
+.hv2-hero-cta {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  opacity: 0;
+}
+
+/* Scroll hint */
+.hv2-scroll-hint {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 7vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  z-index: 2;
+}
+
+.hv2-scroll-hint span {
+  font-size: 0.6rem;
+  letter-spacing: 0.22em;
+  color: rgba(234,234,234,0.3);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+}
+
+.hv2-scroll-bar {
+  width: 1px;
+  height: 56px;
+  background: linear-gradient(to bottom, var(--accent-color), transparent);
+  animation: hv2ScrollPulse 2s ease-in-out infinite;
+}
+
+@keyframes hv2ScrollPulse {
+  0%, 100% { opacity: 0.25; transform: scaleY(1); }
+  50%       { opacity: 0.9;  transform: scaleY(0.65); }
+}
+
+/* ── BUTTONS ──────────────────────────────────────────────────── */
+.hv2-btn-gold {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.95rem 2.5rem;
+  background: var(--accent-color);
+  color: #0c0c0c;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid var(--accent-color);
+  cursor: pointer;
+  transition: background 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  will-change: transform;
+}
+
+.hv2-btn-gold:hover {
+  background: #e8c444;
+  border-color: #e8c444;
+  color: #0c0c0c;
+  transform: translateY(-2px);
+}
+
+.hv2-btn-gold--lg {
+  padding: 1.15rem 3.25rem;
+  font-size: 0.8rem;
+}
+
+.hv2-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.95rem 2.5rem;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+  border: 2px solid rgba(234,234,234,0.25);
+  cursor: pointer;
+  transition: border-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+  will-change: transform;
+}
+
+.hv2-btn-outline:hover {
+  border-color: var(--accent-color);
+  color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+/* ── MARQUEE ──────────────────────────────────────────────────── */
+.hv2-marquee {
+  overflow: hidden;
+  padding: 1.1rem 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hv2-marquee-track {
+  display: flex;
+  width: max-content;
+  animation: hv2Marquee 32s linear infinite;
+}
+
+.hv2-marquee-row {
+  display: flex;
+  align-items: center;
+  gap: 1.75rem;
+  padding-right: 1.75rem;
+  white-space: nowrap;
+}
+
+.hv2-marquee-item {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+  color: rgba(234,234,234,0.38);
+}
+
+.hv2-marquee-dot {
+  color: var(--accent-color);
+  font-size: 0.7rem;
+}
+
+@keyframes hv2Marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* ── SERVICES ─────────────────────────────────────────────────── */
+.hv2-services {
+  padding: 9rem 0;
+  background: var(--bg-primary);
+}
+
+.hv2-section-header {
+  padding: 0 7vw;
+  margin-bottom: 4.5rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
+  gap: 0.4rem 2rem;
+  align-items: end;
+}
+
+.hv2-label {
+  grid-column: 1 / -1;
+  font-size: 0.62rem;
+  letter-spacing: 0.28em;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 0.8rem;
+  display: block;
+}
+
+.hv2-section-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2.8rem, 5.5vw, 5.5rem);
+  font-weight: 600;
+  line-height: 1.0;
+  text-transform: uppercase;
+  letter-spacing: -0.015em;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.hv2-section-title em {
+  font-style: italic;
+  color: var(--accent-color);
+}
+
+.hv2-header-link {
+  color: rgba(234,234,234,0.42);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+  align-self: end;
+  padding-bottom: 0.2rem;
+  transition: color 0.2s ease;
+}
+
+.hv2-header-link:hover {
+  color: var(--accent-color);
+}
+
+.hv2-services-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.hv2-service-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border-top: 1px solid var(--border-color);
+  transition: background 0.3s ease;
+}
+
+.hv2-service-card:last-child {
+  border-bottom: 1px solid var(--border-color);
+}
+
+.hv2-service-card:hover {
+  background: rgba(255,255,255,0.02);
+}
+
+.hv2-service-inner {
+  display: grid;
+  grid-template-columns: 55% 45%;
+  min-height: 440px;
+}
+
+.hv2-service-inner.reversed {
+  direction: rtl;
+}
+
+.hv2-service-inner.reversed > * {
+  direction: ltr;
+}
+
+.hv2-service-img-wrap {
+  overflow: hidden;
+  position: relative;
+}
+
+.hv2-service-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.65s ease;
+}
+
+.hv2-service-card:hover .hv2-service-img {
+  transform: scale(1.05);
+}
+
+.hv2-service-text {
+  padding: 4rem 5vw;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.1rem;
+}
+
+.hv2-service-num {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 5.5rem;
+  font-weight: 300;
+  line-height: 1;
+  color: rgba(212,175,55,0.18);
+  display: block;
+  letter-spacing: -0.04em;
+}
+
+.hv2-service-name {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2rem, 3.2vw, 3.2rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  margin: 0;
+  line-height: 1.05;
+}
+
+.hv2-service-desc {
+  font-size: 0.93rem;
+  color: rgba(234,234,234,0.5);
+  line-height: 1.75;
+  margin: 0;
+  max-width: 360px;
+}
+
+.hv2-service-action {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  display: inline-block;
+  transition: letter-spacing 0.25s ease;
+  margin-top: 0.5rem;
+}
+
+.hv2-service-card:hover .hv2-service-action {
+  letter-spacing: 0.22em;
+}
+
+/* ── CTA BAND ─────────────────────────────────────────────────── */
+.hv2-cta-band {
+  position: relative;
+  background: var(--bg-secondary);
+  padding: 11rem 7vw;
+  text-align: center;
+  overflow: hidden;
+  border-top: 1px solid var(--border-color);
+}
+
+.hv2-cta-bg-word {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(9rem, 24vw, 24rem);
+  font-weight: 700;
+  color: rgba(212,175,55,0.035);
+  letter-spacing: -0.05em;
+  text-transform: uppercase;
+  pointer-events: none;
+  white-space: nowrap;
+  user-select: none;
+  line-height: 1;
+}
+
+.hv2-cta-inner {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+}
+
+.hv2-cta-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(3rem, 6.5vw, 6.5rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  line-height: 1.0;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.hv2-cta-title em {
+  font-style: italic;
+  color: var(--accent-color);
+}
+
+.hv2-cta-sub {
+  font-size: 1rem;
+  color: rgba(234,234,234,0.42);
+  margin: 0;
+  letter-spacing: 0.02em;
+}
+
+/* ── SCHEDULE ─────────────────────────────────────────────────── */
+.hv2-schedule {
+  background: var(--bg-primary);
+  padding: 9rem 0;
+  border-top: 1px solid var(--border-color);
+}
+
+.hv2-schedule-inner {
+  padding: 0 7vw;
+  display: grid;
+  grid-template-columns: 1fr 1.8fr;
+  gap: 5rem;
+  align-items: start;
+}
+
+.hv2-schedule-head {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 6rem;
+}
+
+.hv2-schedule-grid {
+  display: flex;
+  flex-direction: column;
+}
+
+.schedule-v2-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 2rem 0;
+  border-bottom: 1px solid var(--border-color);
+  opacity: 0;
+}
+
+.schedule-v2-item:first-child {
+  border-top: 1px solid var(--border-color);
+}
+
+.sv2-day {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.sv2-divider {
+  display: block;
+  height: 1px;
+  background: var(--border-color);
+  width: 100%;
+}
+
+.sv2-time {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: var(--accent-color);
+  white-space: nowrap;
+}
+
+.sv2--closed .sv2-time {
+  color: rgba(234,234,234,0.28);
+  font-weight: 500;
+}
+
+/* ── LOCATION ─────────────────────────────────────────────────── */
+.hv2-location {
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-color);
+}
+
+.hv2-location-head {
+  padding: 7rem 7vw 3.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.hv2-location-addr {
+  font-size: 0.85rem;
+  color: rgba(234,234,234,0.4);
+  letter-spacing: 0.06em;
+  margin: 0;
+}
+
+.hv2-map-wrap {
+  height: 500px;
+  width: 100%;
+}
+
+/* ── RESPONSIVE ───────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .hv2-service-inner {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .hv2-service-inner.reversed {
+    direction: ltr;
+  }
+
+  .hv2-service-img-wrap {
+    height: 280px;
+  }
+
+  .hv2-service-text {
+    padding: 2.5rem 6vw;
+  }
+
+  .hv2-service-num {
+    font-size: 4rem;
+  }
+
+  .hv2-schedule-inner {
+    grid-template-columns: 1fr;
+    gap: 3rem;
+  }
+
+  .hv2-schedule-head {
+    position: static;
+  }
+}
+
+@media (max-width: 640px) {
+  .hv2-hero-content {
+    padding: 0 6vw;
+  }
+
+  .hv2-hero-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hv2-section-header {
+    grid-template-columns: 1fr;
+  }
+
+  .hv2-header-link {
+    align-self: start;
+    margin-top: 0.5rem;
+  }
+
+  .hv2-cta-band {
+    padding: 7rem 6vw;
+  }
+
+  .hv2-map-wrap {
+    height: 340px;
+  }
+
+  .sv2-day {
+    font-size: 1.2rem;
+  }
+}
