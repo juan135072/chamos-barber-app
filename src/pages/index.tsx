@@ -9,6 +9,12 @@ import Layout from '../components/Layout'
 import Preloader from '../components/Preloader'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { getServiceImage } from '../lib/service-utils'
+import dynamic from 'next/dynamic'
+
+const SplineScene = dynamic(() => import('@splinetool/react-spline'), {
+  ssr: false,
+  loading: () => <div style={{ opacity: 0 }} />
+})
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
@@ -174,6 +180,10 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
         <section className="hv2-hero">
           <div className="hv2-hero-noise" aria-hidden="true" />
           <div className="hv2-hero-gradient" aria-hidden="true" />
+          
+          <div className="hv2-hero-spline">
+            <SplineScene scene="https://prod.spline.design/p7YYyOhpFX9Wm2ZH/scene.splinecode" />
+          </div>
 
           <div className="hv2-hero-content">
             <div ref={heroEyebrowRef} className="hv2-eyebrow">
