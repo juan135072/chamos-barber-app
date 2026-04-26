@@ -1411,9 +1411,17 @@ input[type="date"]:focus {
   inset: 0;
   width: 100%;
   height: 100%;
-  z-index: 1;
+  z-index: 0;
   opacity: 0;
   animation: fadeIn 2s ease-out forwards;
+  pointer-events: none;
+}
+
+/* Spline canvas fill */
+.hv2-hero-spline canvas,
+.hv2-hero-spline > div {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 .hv2-hero-noise {

@@ -83,11 +83,11 @@ const nextConfig = {
             key: 'Content-Security-Policy',
             value: [
               "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://kit.fontawesome.com https://static.cloudflareinsights.com https://cdn.onesignal.com https://api.onesignal.com https://onesignal.com",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net https://kit.fontawesome.com https://static.cloudflareinsights.com https://cdn.onesignal.com https://api.onesignal.com https://onesignal.com https://unpkg.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com https://onesignal.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com https://onesignal.com https://*.onesignal.com http://localhost:3001",
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com https://onesignal.com https://*.onesignal.com http://localhost:3001 https://*.spline.design https://prod.spline.design https://drafts.spline.design",
               "frame-src 'self' https://www.google.com https://*.google.com https://*.google-analytics.com",
               "object-src 'none'",
               "base-uri 'self'",
