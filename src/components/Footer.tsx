@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { Facebook, Instagram, Twitter, Youtube, Music2, Scissors, MapPin, Phone, Mail } from 'lucide-react'
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
@@ -30,97 +31,100 @@ const Footer: React.FC = () => {
   }, [])
 
   return (
-    <footer className="footer">
-      <div className="container">
-        <div className="footer-content">
-          <div className="footer-section">
-            <h3>Chamos Barber</h3>
-            <p>La mejor experiencia de barbería en San Fernando, Chile</p>
-            <p>Estilo, calidad y tradición en cada corte</p>
-          </div>
-
-          <div className="footer-section">
-            <h3>Contacto</h3>
-            <p><i className="fas fa-map-marker-alt"></i> San Fernando, Chile</p>
-            <p><i className="fas fa-phone"></i> +56 9 8358 8553</p>
-            <p>
-              <i className="fas fa-envelope"></i>{' '}
-              <a href="mailto:contacto@chamosbarber.com" style={{ color: 'inherit', textDecoration: 'none' }}>
-                contacto@chamosbarber.com
-              </a>
+    <footer className="bg-charcoal pt-24 pb-12 border-t border-white/5">
+      <div className="container mx-auto px-6">
+        <div className="grid lg:grid-cols-4 gap-12 mb-20">
+          <div className="lg:col-span-2">
+            <div className="flex items-center gap-2 mb-8">
+              <div className="w-8 h-8 bg-gold rounded flex items-center justify-center text-dark">
+                <Scissors className="w-5 h-5" />
+              </div>
+              <span className="text-2xl font-black tracking-widest text-white">CHAMOS<span className="text-gold">.</span></span>
+            </div>
+            <p className="text-white/30 max-w-sm mb-8 leading-relaxed text-xs uppercase tracking-wider">
+              La mejor experiencia de barbería en San Fernando, Chile. Estilo, calidad y tradición en cada corte.
             </p>
-          </div>
-
-          <div className="footer-section">
-            <h3>Horarios</h3>
-            <p>Lunes - Viernes: 10:00 - 20:30</p>
-            <p>Sábado: 10:00 - 21:00</p>
-            <p>Domingo: Cerrado</p>
-          </div>
-
-          <div className="footer-section">
-            <h3>Síguenos</h3>
-            <div className="social-links">
+            <div className="flex gap-4">
               {socialLinks.facebook && (
-                <a 
-                  href={socialLinks.facebook} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  aria-label="Facebook"
-                >
-                  <i className="fab fa-facebook-f"></i>
+                <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
+                  <Facebook className="w-4 h-4" />
                 </a>
               )}
               {socialLinks.instagram && (
-                <a 
-                  href={socialLinks.instagram} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                >
-                  <i className="fab fa-instagram"></i>
+                <a href={socialLinks.instagram} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
+                  <Instagram className="w-4 h-4" />
                 </a>
               )}
               {socialLinks.twitter && (
-                <a 
-                  href={socialLinks.twitter} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  aria-label="Twitter"
-                >
-                  <i className="fab fa-twitter"></i>
+                <a href={socialLinks.twitter} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
+                  <Twitter className="w-4 h-4" />
                 </a>
               )}
               {socialLinks.youtube && (
-                <a 
-                  href={socialLinks.youtube} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  aria-label="YouTube"
-                >
-                  <i className="fab fa-youtube"></i>
+                <a href={socialLinks.youtube} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
+                  <Youtube className="w-4 h-4" />
                 </a>
               )}
               {socialLinks.tiktok && (
-                <a 
-                  href={socialLinks.tiktok} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  aria-label="TikTok"
-                >
-                  <i className="fab fa-tiktok"></i>
+                <a href={socialLinks.tiktok} target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
+                  <Music2 className="w-4 h-4" />
                 </a>
               )}
             </div>
           </div>
+
+          <div>
+            <h4 className="text-[10px] tracking-ultra text-gold mb-8 uppercase">Contacto</h4>
+            <ul className="space-y-4">
+              <li>
+                <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest">
+                  <MapPin className="w-4 h-4 text-gold" />
+                  San Fernando, Chile
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest">
+                  <Phone className="w-4 h-4 text-gold" />
+                  +56 9 8358 8553
+                </div>
+              </li>
+              <li>
+                <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest hover:text-gold transition-colors">
+                  <Mail className="w-4 h-4 text-gold" />
+                  <a href="mailto:contacto@chamosbarber.com">contacto@chamosbarber.com</a>
+                </div>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="text-[10px] tracking-ultra text-gold mb-8 uppercase">Horarios del Estudio</h4>
+            <ul className="space-y-4 text-[10px] tracking-widest uppercase font-bold">
+              <li className="flex justify-between border-b border-white/5 pb-2">
+                <span className="text-white/20">Lun — Vie</span>
+                <span className="text-white">10:00 — 20:30</span>
+              </li>
+              <li className="flex justify-between border-b border-white/5 pb-2">
+                <span className="text-white/20">Sábado</span>
+                <span className="text-white">10:00 — 21:00</span>
+              </li>
+              <li className="flex justify-between border-b border-white/5 pb-2">
+                <span className="text-white/20">Domingo</span>
+                <span className="text-gold italic">Cerrado</span>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div className="footer-bottom">
-          <p>&copy; 2025 Chamos Barber. Creado por Juan Díaz. Todos los derechos reservados.</p>
-          <div className="footer-links">
-            <Link href="/politicas-privacidad">Políticas de Privacidad</Link>
-            <span className="separator">•</span>
-            <Link href="/terminos-condiciones">Términos y Condiciones</Link>
+        <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">
+          <p>© 2025 Chamos Barber. Creado por Juan Díaz. Todos los derechos reservados.</p>
+          <div className="flex gap-8">
+            <Link href="/politicas-privacidad" passHref>
+              <span className="hover:text-gold transition-colors cursor-pointer">Políticas de Privacidad</span>
+            </Link>
+            <Link href="/terminos-condiciones" passHref>
+              <span className="hover:text-gold transition-colors cursor-pointer">Términos y Condiciones</span>
+            </Link>
           </div>
         </div>
       </div>

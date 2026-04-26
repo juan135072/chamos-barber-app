@@ -1,14 +1,44 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
 /* === TAILWIND CSS === */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* === VARIABLES GLOBALES === */
+/* === INSPIRAR UTILITIES === */
+@layer base {
+  body {
+    @apply bg-dark text-white antialiased overflow-x-hidden;
+  }
+}
+
+.glass-nav {
+  @apply bg-dark/80 backdrop-blur-xl border-b border-white/5;
+}
+
+.text-gold-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-gold to-zinc-500;
+}
+
+.tracking-ultra {
+  @apply tracking-[0.3em] uppercase font-bold;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* === VARIABLES GLOBALES PREVIAS (Mantenidas por retrocompatibilidad) === */
 :root {
-    --bg-primary: #121212;
-    --bg-secondary: #1A1A1A;
+    --bg-primary: #080808; /* Updated to dark */
+    --bg-secondary: #111111; /* Updated to charcoal */
     --text-primary: #EAEAEA;
-    --accent-color: #D4AF37;
+    --accent-color: #C5A059; /* Updated to gold */
     --border-color: #2C2C2C;
     --font-family: 'Inter', sans-serif;
     --border-radius: 8px;
@@ -25,14 +55,6 @@
 
 html {
     scroll-behavior: smooth;
-}
-
-body {
-    font-family: var(--font-family);
-    background-color: var(--bg-primary);
-    color: var(--text-primary);
-    line-height: 1.6;
-    overflow-x: hidden;
 }
 
 /* === UTILIDADES === */

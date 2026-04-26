@@ -8,6 +8,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
+        gold: {
+          DEFAULT: '#C5A059',
+          muted: '#A68545'
+        },
+        dark: {
+          DEFAULT: '#080808'
+        },
+        charcoal: {
+          DEFAULT: '#111111'
+        },
         amber: {
           50: '#fffbeb',
           100: '#fef3c7',
@@ -22,7 +32,9 @@ module.exports = {
         },
       },
       fontFamily: {
-        sans: ['Inter', 'sans-serif'],
+        sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        serif: ['Playfair Display', 'serif'],
+        mono: ['JetBrains Mono', 'ui-monospace', 'monospace'],
       },
       animation: {
         'spin-slow': 'spin 3s linear infinite',
