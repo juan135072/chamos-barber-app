@@ -201,16 +201,31 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
             <SplineScene 
               scene="https://prod.spline.design/p7YYyOhpFX9Wm2ZH/scene.splinecode" 
               onLoad={(spline: any) => {
-                // Intentamos sobreescribir el texto dinámicamente si Spline lo permite
-                try {
-                  const objs = spline.getObjects();
-                  objs.forEach((o: any) => {
-                    if (o.name && o.name.toLowerCase().includes('text')) {
-                      if (o.text !== undefined) o.text = 'MAESTRÍA\nEN CADA\nCORTE';
-                      if (o.content !== undefined) o.content = 'MAESTRÍA\nEN CADA\nCORTE';
+                // Remove the Spline logo if it's injected inside the container
+                setTimeout(() => {
+                  try {
+                    // 1. Shadow DOM check (Spline often uses this)
+                    const splineWrapper = document.querySelector('.hv2-hero-spline > div');
+                    if (splineWrapper && splineWrapper.shadowRoot) {
+                      const logoContainer = splineWrapper.shadowRoot.querySelector('#logo') || splineWrapper.shadowRoot.querySelector('a');
+                      if (logoContainer) (logoContainer as HTMLElement).style.display = 'none';
                     }
-                  });
-                } catch(e) {}
+
+                    // 2. Regular DOM sibling check
+                    const canvas = document.querySelector('.hv2-hero-spline canvas');
+                    if (canvas && canvas.nextElementSibling) {
+                      const logo = canvas.nextElementSibling as HTMLElement;
+                      if (logo && logo.tagName === 'A') logo.style.display = 'none';
+                    }
+                    
+                    // 3. Fallback global search
+                    document.querySelectorAll('a').forEach(a => {
+                      if (a.href && a.href.includes('spline.design')) {
+                        a.style.display = 'none';
+                      }
+                    });
+                  } catch(e) {}
+                }, 100);
               }}
             />
           </div>
