@@ -61,6 +61,12 @@
     ".next/dev/types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "Inspirar",
+    "tmp_claude_mem",
+    "caja",
+    ".next",
+    "scripts",
+    "🌍 Spline Skill"
   ]
 }

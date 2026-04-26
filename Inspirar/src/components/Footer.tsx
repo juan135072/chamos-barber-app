@@ -1,4 +1,4 @@
-import { Facebook, Instagram, Twitter, Scissors } from "lucide-react";
+import { Camera, Globe, MessageCircle, Scissors } from "lucide-react";
 
 export default function Footer() {
   return (
@@ -16,7 +16,7 @@ export default function Footer() {
               Elevando el estándar del cuidado de alta gama desde 2011. Nuestro compromiso con la precisión artística y el servicio premium permanece inalterable.
             </p>
             <div className="flex gap-4">
-              {[Instagram, Facebook, Twitter].map((Icon, i) => (
+              {[Camera, Globe, MessageCircle].map((Icon, i) => (
                 <a key={i} href="#" className="w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all">
                   <Icon className="w-4 h-4" />
                 </a>
