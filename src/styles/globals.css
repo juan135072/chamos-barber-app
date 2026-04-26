@@ -1414,7 +1414,7 @@ input[type="date"]:focus {
   z-index: 0;
   opacity: 0;
   animation: fadeIn 2s ease-out forwards;
-  pointer-events: none;
+  /* Eliminamos pointer-events: none para que la escena pueda detectar el mouse */
 }
 
 /* Spline canvas fill */
