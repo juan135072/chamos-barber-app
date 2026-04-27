@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Share2, Camera, Music2, Scissors, MapPin, Phone, Mail } from 'lucide-react'
+import { Share2, Camera, Music2, MapPin, Phone, Mail } from 'lucide-react'
+import { Logo } from './shared/Logo'
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
@@ -35,11 +36,8 @@ const Footer: React.FC = () => {
       <div className="container mx-auto px-6">
         <div className="grid lg:grid-cols-4 gap-12 mb-20">
           <div className="lg:col-span-2">
-            <div className="flex items-center gap-2 mb-8">
-              <div className="w-8 h-8 bg-gold rounded flex items-center justify-center text-dark">
-                <Scissors className="w-5 h-5" />
-              </div>
-              <span className="text-2xl font-black tracking-widest text-white">CHAMOS<span className="text-gold">.</span></span>
+            <div className="mb-8">
+              <Logo size="md" withText={true} />
             </div>
             <p className="text-white/30 max-w-sm mb-8 leading-relaxed text-xs uppercase tracking-wider">
               La mejor experiencia de barbería en San Fernando, Chile. Estilo, calidad y tradición en cada corte.
