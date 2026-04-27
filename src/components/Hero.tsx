@@ -1,15 +1,41 @@
-import React, { useRef } from 'react'
+import React from 'react'
 import Link from 'next/link'
-import { motion } from 'motion/react'
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react'
 import { ArrowRight, PlayCircle } from 'lucide-react'
-import dynamic from 'next/dynamic'
-
-const SplineScene = dynamic(() => import('@splinetool/react-spline'), {
-  ssr: false,
-  loading: () => <div style={{ opacity: 0 }} />
-})
 
 export default function Hero() {
+  // Parallax/Tilt setup
+  const x = useMotionValue(0)
+  const y = useMotionValue(0)
+
+  // Smooth springs for mouse movement
+  const mouseXSpring = useSpring(x, { stiffness: 100, damping: 30 })
+  const mouseYSpring = useSpring(y, { stiffness: 100, damping: 30 })
+
+  // 3D Rotations
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["15deg", "-15deg"])
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-15deg", "15deg"])
+  
+  // Z-axis parallax for depth
+  const zGlow = useTransform(mouseXSpring, [-0.5, 0.5], [-20, 20])
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const width = rect.width
+    const height = rect.height
+    const mouseX = e.clientX - rect.left
+    const mouseY = e.clientY - rect.top
+    const xPct = mouseX / width - 0.5
+    const yPct = mouseY / height - 0.5
+    x.set(xPct)
+    y.set(yPct)
+  }
+
+  const handleMouseLeave = () => {
+    x.set(0)
+    y.set(0)
+  }
+
   return (
     <section className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden">
       {/* Background Decorative Elements */}
@@ -18,6 +44,7 @@ export default function Hero() {
       
       <div className="container mx-auto px-6 relative z-10">
         <div className="grid lg:grid-cols-2 gap-12 items-center">
+          {/* Left Text Content */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -74,47 +101,75 @@ export default function Hero() {
             </div>
           </motion.div>
 
+          {/* Right Immersive 3D Parallax Logo Section */}
           <motion.div 
             initial={{ opacity: 0, scale: 0.8, rotateY: 20 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 1.2, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="hidden lg:block relative aspect-square"
+            className="hidden lg:flex relative aspect-square items-center justify-center perspective-[1200px]"
           >
-            {/* The 3D Asset Placeholder replaced by SplineScene */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl opacity-20" />
-            <div className="w-full h-full border border-white/5 rounded-3xl bg-neutral-900/40 relative overflow-hidden group">
-              <SplineScene 
-                scene="https://prod.spline.design/3Xi3HTcxP-AAGbbw/scene.splinecode"
-                onLoad={(spline: any) => {
-                  setTimeout(() => {
-                    try {
-                      const splineWrapper = document.querySelector('.spline-container > div');
-                      if (splineWrapper && splineWrapper.shadowRoot) {
-                        const logoContainer = splineWrapper.shadowRoot.querySelector('#logo') || splineWrapper.shadowRoot.querySelector('a');
-                        if (logoContainer) (logoContainer as HTMLElement).style.display = 'none';
-                      }
-                      const canvas = document.querySelector('.spline-container canvas');
-                      if (canvas && canvas.nextElementSibling) {
-                        const logo = canvas.nextElementSibling as HTMLElement;
-                        if (logo && logo.tagName === 'A') logo.style.display = 'none';
-                      }
-                      document.querySelectorAll('a').forEach(a => {
-                        if (a.href && a.href.includes('spline.design')) {
-                          a.style.display = 'none';
-                        }
-                      });
-                    } catch(e) {}
-                  }, 100);
-                }}
+            {/* The 3D Container tracking mouse */}
+            <motion.div
+              onMouseMove={handleMouseMove}
+              onMouseLeave={handleMouseLeave}
+              style={{
+                rotateX,
+                rotateY,
+                transformStyle: "preserve-3d",
+              }}
+              className="w-full h-full relative flex items-center justify-center group cursor-crosshair"
+            >
+              {/* Back glowing aura */}
+              <motion.div 
+                style={{ z: zGlow }}
+                className="absolute inset-0 bg-gradient-to-br from-gold/20 to-transparent rounded-full blur-[80px] opacity-30 group-hover:opacity-60 transition-opacity duration-700" 
               />
               
-              {/* Corner Accents */}
-              <div className="absolute top-8 left-8 w-4 h-4 border-t-2 border-l-2 border-gold/20 pointer-events-none" />
-              <div className="absolute top-8 right-8 w-4 h-4 border-t-2 border-r-2 border-gold/20 pointer-events-none" />
-              <div className="absolute bottom-8 left-8 w-4 h-4 border-b-2 border-l-2 border-gold/20 pointer-events-none" />
-              <div className="absolute bottom-8 right-8 w-4 h-4 border-b-2 border-r-2 border-gold/20 pointer-events-none" />
-            </div>
+              {/* Glassmorphic backdrop floating */}
+              <motion.div 
+                style={{ z: -30 }}
+                className="absolute w-3/4 h-3/4 border border-white/5 rounded-full bg-gradient-to-tr from-neutral-900/60 to-black/20 backdrop-blur-sm overflow-hidden"
+              >
+                {/* Internal lighting effect */}
+                <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent opacity-50" />
+                
+                {/* Animated light sweep */}
+                <motion.div 
+                  animate={{ 
+                    rotate: [0, 360],
+                  }}
+                  transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+                  className="absolute -inset-1/2 bg-gradient-to-r from-transparent via-gold/10 to-transparent"
+                />
+              </motion.div>
+              
+              {/* Floating Logo Image */}
+              <motion.div
+                animate={{ y: [0, -15, 0] }}
+                transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }}
+                style={{ z: 80 }}
+                className="relative w-[55%] h-[55%] z-20"
+              >
+                <img 
+                  src="/chamos-logo.png" 
+                  alt="Chamos Barber Logo" 
+                  className="w-full h-full object-contain drop-shadow-[0_25px_35px_rgba(0,0,0,0.8)] filter brightness-110 contrast-125"
+                />
+              </motion.div>
+              
+              {/* Dynamic Particles floating around */}
+              <motion.div style={{ z: 120 }} className="absolute top-[20%] right-[20%] w-3 h-3 rounded-full bg-gold/80 blur-[2px]" />
+              <motion.div style={{ z: 60 }} className="absolute bottom-[25%] left-[25%] w-2 h-2 rounded-full bg-white/60 blur-[1px]" />
+              <motion.div style={{ z: 150 }} className="absolute top-[60%] left-[15%] w-1.5 h-1.5 rounded-full bg-gold/90 blur-[1px]" />
+              
+              {/* Corner Accents - 3D offset */}
+              <motion.div style={{ z: 40 }} className="absolute top-12 left-12 w-6 h-6 border-t-2 border-l-2 border-gold/40 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <motion.div style={{ z: 40 }} className="absolute top-12 right-12 w-6 h-6 border-t-2 border-r-2 border-gold/40 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <motion.div style={{ z: 40 }} className="absolute bottom-12 left-12 w-6 h-6 border-b-2 border-l-2 border-gold/40 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              <motion.div style={{ z: 40 }} className="absolute bottom-12 right-12 w-6 h-6 border-b-2 border-r-2 border-gold/40 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+            </motion.div>
           </motion.div>
+
         </div>
       </div>
     </section>
