@@ -66,10 +66,10 @@ export default function Hero() {
           </motion.div>
           
           <div className="relative z-10">
-            <h1 className="text-6xl md:text-[110px] font-black leading-[0.8] tracking-tighter uppercase mb-12">
-              Maestría en<br/>
-              <span className="text-gold italic">Cortes</span><br/>
-              <span className="outline-text">Legendarios</span>
+            <h1 className="text-5xl md:text-[90px] font-black leading-[0.9] tracking-tighter uppercase mb-12">
+              Forjando tu<br/>
+              <span className="text-gold italic">Mejor Versión</span><br/>
+              <span className="outline-text text-4xl md:text-[70px]">Desde el primer detalle</span>
             </h1>
             
             <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-16 leading-relaxed font-medium tracking-wide">
