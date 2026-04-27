@@ -22,7 +22,7 @@ export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                     .from('sitio_configuracion')
                     .select('valor')
                     .eq('clave', 'sitio_moneda')
-                    .single() as { data: { valor: string } | null; error: unknown };
+                    .maybeSingle() as { data: { valor: string } | null; error: unknown };
 
                 if (error) console.error('[Config] Error fetching moneda:', error);
                 if (data?.valor) {
