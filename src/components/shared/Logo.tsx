@@ -26,7 +26,7 @@ export const Logo: React.FC<LogoProps> = ({
   const logoContent = (
     <div className={`flex items-center gap-3 ${className}`}>
       <img 
-        src="/chamos-logo.png" 
+        src="/chamos-icon-gold.png" 
         alt="Chamos Barber Logo" 
         className={`${sizes.img} object-contain`}
         style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}

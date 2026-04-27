@@ -58,7 +58,7 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           <div className="logo-flex flex-col items-center gap-6">
             <div className="logo-image-container">
               <Image 
-                src="/chamos-logo.png" 
+                src="/chamos-icon-gold.png" 
                 alt="Chamos Barber" 
                 width={120} 
                 height={120}
@@ -193,9 +193,7 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
         }
 
         .logo-image {
-          /* Filtros para convertir el amarillo viejo (#D4AF37) al nuevo dorado (#C5A059) */
-          /* Hue shift de -10deg, reducir saturación y ligeramente ajustar brillo */
-          filter: hue-rotate(-10deg) saturate(0.65) brightness(1.05);
+          /* Imagen ya recoloreada físicamente a #C5A059 */
           object-fit: contain;
         }
 

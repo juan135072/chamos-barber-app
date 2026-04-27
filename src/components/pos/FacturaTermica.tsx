@@ -53,7 +53,7 @@ export class FacturaTermica {
 
   private async loadLogo(): Promise<void> {
     try {
-      const response = await fetch('/chamos-logo.png')
+      const response = await fetch('/chamos-logo-gold.png')
       const blob = await response.blob()
 
       return new Promise((resolve, reject) => {

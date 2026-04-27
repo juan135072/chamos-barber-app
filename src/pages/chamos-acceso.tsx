@@ -107,7 +107,7 @@ function Login() {
 
             <div className="flex items-center space-x-3">
               <img
-                src="/chamos-logo.png"
+                src="/chamos-logo-gold.png"
                 alt="Chamos Barber Shop Logo"
                 className="h-12 w-auto"
                 style={{ objectFit: 'contain' }}
@@ -127,7 +127,7 @@ function Login() {
               <div className="text-center mb-8">
                 <div className="flex items-center justify-center mx-auto mb-4 login-logo-container">
                   <img
-                    src="/chamos-logo.png"
+                    src="/chamos-logo-gold.png"
                     alt="Chamos Barber Shop Logo"
                     className="h-20 w-auto"
                     style={{ objectFit: 'contain' }}
