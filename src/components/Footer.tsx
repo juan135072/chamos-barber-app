@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Share2, Camera, Music2, MapPin, Phone, Mail } from 'lucide-react'
 import { Logo } from './shared/Logo'
+import { chamosSupabase } from '@/lib/supabase-helpers'
+
+interface Horarios {
+  semana: string
+  sabado: string
+  domingo: string
+}
 
 const Footer: React.FC = () => {
   const [socialLinks, setSocialLinks] = useState({
@@ -11,24 +18,47 @@ const Footer: React.FC = () => {
     youtube: '',
     tiktok: ''
   })
+  const [horarios, setHorarios] = useState<Horarios>({
+    semana: '10:00 — 20:30',
+    sabado: '10:00 — 21:00',
+    domingo: '',
+  })
 
   useEffect(() => {
-    // Cargar configuración de redes sociales
-    const loadSocialLinks = async () => {
+    const loadConfig = async () => {
       try {
-        const response = await fetch('/api/sitio-configuracion')
-        if (response.ok) {
-          const data = await response.json()
-          if (data.length > 0) {
-            setSocialLinks(data[0])
-          }
-        }
+        const data = await chamosSupabase.getConfiguracion()
+        if (!Array.isArray(data)) return
+
+        const cfg: Record<string, string> = {}
+        data.forEach((item: any) => { cfg[item.clave] = item.valor || '' })
+
+        // Redes sociales
+        setSocialLinks(prev => ({
+          ...prev,
+          facebook: cfg.facebook_url || prev.facebook,
+          instagram: cfg.instagram_url || prev.instagram,
+          tiktok: cfg.tiktok_url || prev.tiktok,
+        }))
+
+        // Horarios dinámicos
+        const apertura = cfg.horario_apertura || '10:00'
+        const cierre   = cfg.horario_cierre   || '20:30'
+        const sabAper  = cfg.horario_sabado_apertura || apertura
+        const sabCier  = cfg.horario_sabado_cierre   || cierre
+        const domingo  = cfg.horario_domingo || ''
+
+        setHorarios({
+          semana: `${apertura} — ${cierre}`,
+          sabado: `${sabAper} — ${sabCier}`,
+          domingo,
+        })
       } catch (error) {
-        console.error('Error loading social links:', error)
+        console.error('Error loading footer config:', error)
       }
     }
 
-    loadSocialLinks()
+    loadConfig()
   }, [])
 
   return (
@@ -90,15 +120,18 @@ const Footer: React.FC = () => {
             <ul className="space-y-4 text-[10px] tracking-widest uppercase font-bold">
               <li className="flex justify-between border-b border-white/5 pb-2">
                 <span className="text-white/20">Lun — Vie</span>
-                <span className="text-white">10:00 — 20:30</span>
+                <span className="text-white">{horarios.semana}</span>
               </li>
               <li className="flex justify-between border-b border-white/5 pb-2">
                 <span className="text-white/20">Sábado</span>
-                <span className="text-white">10:00 — 21:00</span>
+                <span className="text-white">{horarios.sabado}</span>
               </li>
               <li className="flex justify-between border-b border-white/5 pb-2">
                 <span className="text-white/20">Domingo</span>
-                <span className="text-gold italic">Cerrado</span>
+                {horarios.domingo
+                  ? <span className="text-white">{horarios.domingo}</span>
+                  : <span className="text-gold italic">Cerrado</span>
+                }
               </li>
             </ul>
           </div>
