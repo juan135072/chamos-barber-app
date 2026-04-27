@@ -103,28 +103,28 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
       ref={containerRef}
       style={{ position: 'fixed', inset: 0, zIndex: 9999, overflow: 'hidden' }}
     >
-      {/* ── Split-exit panels ── */}
+      {/* ── Background ── */}
+      <div style={{ position: 'absolute', inset: 0, background: '#080808', zIndex: 0 }} />
+
+      {/* ── Split-exit panels (below content, animate away on exit) ── */}
       <div
         ref={panel1Ref}
         style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          height: '51%', background: '#080808', zIndex: 4,
+          height: '51%', background: '#080808', zIndex: 1,
         }}
       />
       <div
         ref={panel2Ref}
         style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: '51%', background: '#080808', zIndex: 4,
+          height: '51%', background: '#080808', zIndex: 1,
         }}
       />
 
-      {/* ── Background ── */}
-      <div style={{ position: 'absolute', inset: 0, background: '#080808', zIndex: 0 }} />
-
-      {/* ── Content ── */}
+      {/* ── Content (above panels) ── */}
       <div style={{
-        position: 'relative', zIndex: 1,
+        position: 'relative', zIndex: 3,
         height: '100%',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
