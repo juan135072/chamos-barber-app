@@ -1,340 +1,229 @@
-import { useEffect, useState } from 'react'
+import { useRef, useState } from 'react'
 import Image from 'next/image'
+import { useGSAP } from '@gsap/react'
+import gsap from 'gsap'
 
 interface PreloaderProps {
   onComplete?: () => void
-  duration?: number // Duración en milisegundos
+  duration?: number
 }
 
-export default function Preloader({ onComplete, duration = 3000 }: PreloaderProps) {
-  const [progress, setProgress] = useState(0)
-  const [isVisible, setIsVisible] = useState(true)
+export default function Preloader({ onComplete, duration = 3200 }: PreloaderProps) {
+  const [mounted, setMounted] = useState(true)
 
-  useEffect(() => {
-    // Simular carga progresiva
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 100) {
-          clearInterval(interval)
-          return 100
+  const containerRef  = useRef<HTMLDivElement>(null)
+  const logoRef       = useRef<HTMLDivElement>(null)
+  const scanLineRef   = useRef<HTMLDivElement>(null)
+  const counterRef    = useRef<HTMLSpanElement>(null)
+  const progressRef   = useRef<HTMLDivElement>(null)
+  const panel1Ref     = useRef<HTMLDivElement>(null)
+  const panel2Ref     = useRef<HTMLDivElement>(null)
+  const bottomRef     = useRef<HTMLDivElement>(null)
+
+  useGSAP(() => {
+    const fillDuration = Math.max((duration / 1000) - 2.2, 0.6)
+
+    // ── Initial states ──────────────────────────────────────
+    gsap.set(logoRef.current,     { clipPath: 'inset(0 100% 0 0)' })
+    gsap.set(scanLineRef.current, { left: '-2px', opacity: 0 })
+    gsap.set(counterRef.current,  { opacity: 0 })
+    gsap.set(progressRef.current, { scaleX: 0, transformOrigin: 'left center' })
+    gsap.set(bottomRef.current,   { opacity: 0, y: 10 })
+
+    // ── Main timeline ───────────────────────────────────────
+    const tl = gsap.timeline()
+
+    // 1. Scan line appears
+    tl.to(scanLineRef.current, { opacity: 1, duration: 0.15, ease: 'none' })
+
+    // 2. Logo draws + scan line sweeps in sync
+    tl.to(logoRef.current, {
+      clipPath: 'inset(0 0% 0 0)',
+      duration: 1.1,
+      ease: 'power2.inOut',
+    })
+    tl.to(scanLineRef.current, {
+      left: '100%',
+      duration: 1.1,
+      ease: 'power2.inOut',
+    }, '<')
+
+    // 3. Scan line fades, bottom section slides in
+    tl.to(scanLineRef.current, { opacity: 0, duration: 0.25 })
+    tl.to(bottomRef.current,   { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }, '-=0.1')
+    tl.to(counterRef.current,  { opacity: 1, duration: 0.3 }, '<')
+
+    // 4. Progress fills over remaining time
+    tl.to(progressRef.current, {
+      scaleX: 1,
+      duration: fillDuration,
+      ease: 'power1.inOut',
+    })
+
+    // 5. Exit — split panels open
+    tl.to([logoRef.current, bottomRef.current], {
+      opacity: 0,
+      duration: 0.35,
+      ease: 'power2.out',
+    })
+    tl.to(panel1Ref.current, {
+      yPercent: -100,
+      duration: 0.75,
+      ease: 'expo.inOut',
+    }, '-=0.1')
+    tl.to(panel2Ref.current, {
+      yPercent: 100,
+      duration: 0.75,
+      ease: 'expo.inOut',
+      onComplete: () => {
+        setMounted(false)
+        onComplete?.()
+      },
+    }, '<')
+
+    // ── Counter (parallel) ─────────────────────────────────
+    const obj = { val: 0 }
+    gsap.to(obj, {
+      val: 100,
+      duration: fillDuration,
+      delay: 1.5,
+      ease: 'power1.inOut',
+      onUpdate: () => {
+        if (counterRef.current) {
+          counterRef.current.textContent = String(Math.round(obj.val))
         }
-        return prev + 2
-      })
-    }, duration / 50)
+      },
+    })
+  }, { scope: containerRef, dependencies: [] })
 
-    // Ocultar después de completar
-    const timeout = setTimeout(() => {
-      setIsVisible(false)
-      if (onComplete) {
-        setTimeout(onComplete, 500) // Esperar animación de salida
-      }
-    }, duration)
-
-    return () => {
-      clearInterval(interval)
-      clearTimeout(timeout)
-    }
-  }, [duration, onComplete])
-
-  if (!isVisible) return null
+  if (!mounted) return null
 
   return (
     <div
-      className="preloader-container"
-      style={{
-        opacity: progress >= 100 ? 0 : 1,
-        transition: 'opacity 0.5s ease-out'
-      }}
+      ref={containerRef}
+      style={{ position: 'fixed', inset: 0, zIndex: 9999, overflow: 'hidden' }}
     >
-      {/* Fondo oscuro liso (nuevo estilo Inspirar) */}
-      <div className="preloader-background" />
+      {/* ── Split-exit panels ── */}
+      <div
+        ref={panel1Ref}
+        style={{
+          position: 'absolute', top: 0, left: 0, right: 0,
+          height: '51%', background: '#080808', zIndex: 4,
+        }}
+      />
+      <div
+        ref={panel2Ref}
+        style={{
+          position: 'absolute', bottom: 0, left: 0, right: 0,
+          height: '51%', background: '#080808', zIndex: 4,
+        }}
+      />
 
-      {/* Contenedor principal */}
-      <div className="preloader-content">
-        
-        {/* Nuevo Logo tipográfico construido con CSS y la imagen de la marca */}
-        <div className="logo-section">
-          <div className="logo-glow" />
-            <div className="logo-image-container">
-              <Image 
-                src="/chamos-logo-gold.png" 
-                alt="Chamos Barber Shop" 
-                width={300} 
-                height={300}
-                priority
-                className="logo-image"
-              />
-            </div>
-        </div>
+      {/* ── Background ── */}
+      <div style={{ position: 'absolute', inset: 0, background: '#080808', zIndex: 0 }} />
 
-        {/* Barra de progreso */}
-        <div className="progress-container">
-          <div className="progress-bar">
-            <div
-              className="progress-fill"
-              style={{ width: `${progress}%` }}
+      {/* ── Content ── */}
+      <div style={{
+        position: 'relative', zIndex: 1,
+        height: '100%',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center',
+        gap: '52px',
+      }}>
+
+        {/* Logo + scan line */}
+        <div style={{ position: 'relative', display: 'inline-block' }}>
+          {/* Vertical scan line */}
+          <div
+            ref={scanLineRef}
+            style={{
+              position: 'absolute',
+              top: '-12%',
+              height: '124%',
+              width: '2px',
+              background: 'linear-gradient(to bottom, transparent 0%, #C5A059 40%, #C5A059 60%, transparent 100%)',
+              boxShadow: '0 0 18px rgba(197,160,89,0.9), 0 0 40px rgba(197,160,89,0.3)',
+              zIndex: 10,
+              transform: 'translateX(-50%)',
+              pointerEvents: 'none',
+            }}
+          />
+          {/* Logo with clip reveal */}
+          <div ref={logoRef}>
+            <Image
+              src="/chamos-logo-gold.png"
+              alt="Chamos Barber"
+              width={210}
+              height={210}
+              priority
+              style={{ objectFit: 'contain', display: 'block' }}
             />
           </div>
-          <p className="progress-text">{Math.round(progress)}%</p>
         </div>
 
-        {/* Mensaje de carga */}
-        <div className="loading-message">
-          <span className="dot">•</span>
-          <span className="dot">•</span>
-          <span className="dot">•</span>
+        {/* Counter + progress */}
+        <div
+          ref={bottomRef}
+          style={{
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: '16px',
+            width: '240px',
+          }}
+        >
+          {/* Percentage counter */}
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+            <span
+              ref={counterRef}
+              style={{
+                fontFamily: "'Cormorant Garamond', Georgia, serif",
+                fontSize: '3.2rem',
+                fontWeight: 300,
+                color: '#C5A059',
+                lineHeight: 1,
+                letterSpacing: '-0.03em',
+                minWidth: '3ch',
+                textAlign: 'right',
+              }}
+            >
+              0
+            </span>
+            <span style={{
+              fontSize: '0.65rem',
+              letterSpacing: '0.2em',
+              color: 'rgba(197,160,89,0.4)',
+              fontWeight: 700,
+              textTransform: 'uppercase',
+            }}>%</span>
+          </div>
+
+          {/* Progress bar */}
+          <div style={{
+            width: '100%',
+            height: '1px',
+            background: 'rgba(197,160,89,0.1)',
+            overflow: 'hidden',
+          }}>
+            <div
+              ref={progressRef}
+              style={{
+                height: '100%',
+                background: 'linear-gradient(to right, #C5A059, #e0c050)',
+                boxShadow: '0 0 10px rgba(197,160,89,0.7)',
+              }}
+            />
+          </div>
+
+          <span style={{
+            fontSize: '0.5rem',
+            letterSpacing: '0.35em',
+            color: 'rgba(197,160,89,0.25)',
+            textTransform: 'uppercase',
+            fontWeight: 700,
+          }}>
+            Cargando
+          </span>
         </div>
       </div>
-
-      <style jsx>{`
-        .preloader-container {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          z-index: 9999;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          overflow: hidden;
-        }
-
-        .preloader-background {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: #080808; /* Color Dark de Inspirar */
-        }
-
-        .preloader-content {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 50px;
-          animation: fadeInUp 0.8s ease-out;
-        }
-
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .logo-section {
-          position: relative;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
-        }
-
-        .logo-glow {
-          position: absolute;
-          top: 50%;
-          left: 50%;
-          transform: translate(-50%, -50%);
-          width: 250px;
-          height: 150px;
-          background: radial-gradient(ellipse, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
-          animation: glowPulse 2s ease-in-out infinite;
-          filter: blur(20px);
-          pointer-events: none;
-        }
-
-        @keyframes glowPulse {
-          0%, 100% {
-            opacity: 0.5;
-            transform: translate(-50%, -50%) scale(1);
-          }
-          50% {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1.1);
-          }
-        }
-
-        .logo-flex {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          position: relative;
-          z-index: 1;
-          animation: pulse 3s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.02);
-          }
-        }
-
-        .logo-image-container {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          filter: drop-shadow(0 4px 20px rgba(197, 160, 89, 0.2));
-        }
-
-        .logo-image {
-          /* Imagen ya recoloreada físicamente a #C5A059 */
-          object-fit: contain;
-        }
-
-        .brand-name {
-          font-size: 3rem;
-          font-weight: 900;
-          letter-spacing: 0.1em;
-          color: #FFFFFF;
-          margin: 0;
-        }
-
-        .text-gold {
-          color: #C5A059;
-        }
-
-        .tagline {
-          color: #C5A059;
-          font-size: 0.9rem;
-          margin: 0;
-          letter-spacing: 0.4em;
-          font-weight: 500;
-          animation: fadeIn 1s ease-out 0.5s both;
-        }
-
-        @keyframes fadeIn {
-          from {
-            opacity: 0;
-          }
-          to {
-            opacity: 1;
-          }
-        }
-
-        .progress-container {
-          width: 300px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
-          animation: slideUp 1s ease-out 0.6s both;
-        }
-
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        .progress-bar {
-          width: 100%;
-          height: 2px;
-          background: rgba(197, 160, 89, 0.15);
-          border-radius: 2px;
-          overflow: hidden;
-        }
-
-        .progress-fill {
-          height: 100%;
-          background: #C5A059;
-          border-radius: 2px;
-          transition: width 0.3s ease;
-          box-shadow: 0 0 10px rgba(197, 160, 89, 0.5);
-        }
-
-        .progress-text {
-          color: #C5A059;
-          font-size: 0.85rem;
-          font-weight: 500;
-          margin: 0;
-          letter-spacing: 0.1em;
-        }
-
-        .loading-message {
-          display: flex;
-          gap: 8px;
-          animation: fadeIn 1s ease-out 0.8s both;
-        }
-
-        .dot {
-          color: #C5A059;
-          font-size: 1.5rem;
-          animation: dotBounce 1.4s ease-in-out infinite;
-        }
-
-        .dot:nth-child(1) {
-          animation-delay: 0s;
-        }
-
-        .dot:nth-child(2) {
-          animation-delay: 0.2s;
-        }
-
-        .dot:nth-child(3) {
-          animation-delay: 0.4s;
-        }
-
-        @keyframes dotBounce {
-          0%, 80%, 100% {
-            transform: scale(1);
-            opacity: 0.3;
-          }
-          40% {
-            transform: scale(1.3);
-            opacity: 1;
-          }
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-          .brand-name {
-            font-size: 2.2rem;
-          }
-
-          .logo-image-container {
-            transform: scale(0.8);
-          }
-
-          .tagline {
-            font-size: 0.8rem;
-            letter-spacing: 0.3em;
-          }
-
-          .progress-container {
-            width: 250px;
-          }
-        }
-
-        @media (max-width: 480px) {
-          .brand-name {
-            font-size: 1.8rem;
-          }
-
-          .logo-image-container {
-            transform: scale(0.65);
-          }
-
-          .progress-container {
-            width: 200px;
-          }
-        }
-      `}</style>
     </div>
   )
 }
