@@ -2,12 +2,6 @@ import React, { useRef } from 'react'
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight, PlayCircle } from 'lucide-react'
-import dynamic from 'next/dynamic'
-
-const SplineScene = dynamic(() => import('@splinetool/react-spline'), {
-  ssr: false,
-  loading: () => <div style={{ opacity: 0 }} />
-})
 
 export default function Hero() {
   const containerRef = useRef(null);
@@ -71,50 +65,40 @@ export default function Hero() {
             <div className="h-[1px] w-8 bg-gold/50" />
           </motion.div>
           
-          <div className="relative">
-            {/* Spline Integration - Floating behind text or next to it */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-40 pointer-events-none z-0">
-               <SplineScene 
-                scene="https://prod.spline.design/3Xi3HTcxP-AAGbbw/scene.splinecode"
-                className="w-full h-full"
-              />
-            </div>
-
-            <div className="relative z-10">
-              <h1 className="text-6xl md:text-[110px] font-black leading-[0.8] tracking-tighter uppercase mb-12">
-                Maestría en<br/>
-                <span className="text-gold italic">Cortes</span><br/>
-                <span className="outline-text">Legendarios</span>
-              </h1>
+          <div className="relative z-10">
+            <h1 className="text-6xl md:text-[110px] font-black leading-[0.8] tracking-tighter uppercase mb-12">
+              Maestría en<br/>
+              <span className="text-gold italic">Cortes</span><br/>
+              <span className="outline-text">Legendarios</span>
+            </h1>
+            
+            <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-16 leading-relaxed font-medium tracking-wide">
+              Donde la tradición y el estilo convergen. Tu barbería de confianza desde el primer día, brindando excelencia en San Fernando.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
+              <Link href="/reservar" passHref>
+                <motion.a 
+                  whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(197, 160, 89, 0.4)" }}
+                  whileTap={{ scale: 0.95 }}
+                  className="bg-gold text-dark px-14 py-6 font-black text-xs tracking-ultra hover:brightness-110 transition-all flex items-center gap-4 group relative overflow-hidden"
+                >
+                  <span className="relative z-10">Reservar Experiencia</span>
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
+                  <motion.div 
+                    className="absolute inset-0 bg-white/30 translate-x-[-100%]"
+                    whileHover={{ translateX: "100%" }}
+                    transition={{ duration: 0.6 }}
+                  />
+                </motion.a>
+              </Link>
               
-              <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-16 leading-relaxed font-medium tracking-wide">
-                Donde la tradición y el estilo convergen. Tu barbería de confianza desde el primer día, brindando excelencia en San Fernando.
-              </p>
-              
-              <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
-                <Link href="/reservar" passHref>
-                  <motion.a 
-                    whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(197, 160, 89, 0.4)" }}
-                    whileTap={{ scale: 0.95 }}
-                    className="bg-gold text-dark px-14 py-6 font-black text-xs tracking-ultra hover:brightness-110 transition-all flex items-center gap-4 group relative overflow-hidden"
-                  >
-                    <span className="relative z-10">Reservar Experiencia</span>
-                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
-                    <motion.div 
-                      className="absolute inset-0 bg-white/30 translate-x-[-100%]"
-                      whileHover={{ translateX: "100%" }}
-                      transition={{ duration: 0.6 }}
-                    />
-                  </motion.a>
-                </Link>
-                
-                <Link href="/equipo" passHref>
-                  <button className="flex items-center justify-center gap-4 text-white/40 hover:text-white transition-all group px-8 py-6 text-[10px] tracking-ultra border border-white/10 bg-dark/40 backdrop-blur-md">
-                    <PlayCircle className="w-6 h-6 group-hover:text-gold transition-colors" />
-                    <span>Ver Film de Marca</span>
-                  </button>
-                </Link>
-              </div>
+              <Link href="/equipo" passHref>
+                <button className="flex items-center justify-center gap-4 text-white/40 hover:text-white transition-all group px-8 py-6 text-[10px] tracking-ultra border border-white/10 bg-dark/40 backdrop-blur-md">
+                  <PlayCircle className="w-6 h-6 group-hover:text-gold transition-colors" />
+                  <span>Ver Film de Marca</span>
+                </button>
+              </Link>
             </div>
           </div>
 
