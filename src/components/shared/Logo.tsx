@@ -34,20 +34,20 @@ export const Logo: React.FC<LogoProps> = ({
       {withText && (
         <div className="flex flex-col">
           <span 
-            className={`${sizes.text} font-bold leading-tight`}
+            className={`${sizes.text} font-bold leading-tight uppercase`}
             style={{ color: 'var(--accent-color)' }}
           >
             CHAMOS
           </span>
           <span 
-            className="text-xs font-medium tracking-wider"
+            className="text-[10px] font-black tracking-[0.3em] uppercase"
             style={{ 
               color: 'var(--text-primary)',
-              opacity: 0.7,
-              marginTop: '-2px'
+              opacity: 0.5,
+              marginTop: '-4px'
             }}
           >
-            BARBER
+            BARBER SHOP
           </span>
         </div>
       )}

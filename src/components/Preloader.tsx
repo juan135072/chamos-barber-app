@@ -55,21 +55,16 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
         {/* Nuevo Logo tipográfico construido con CSS y la imagen de la marca */}
         <div className="logo-section">
           <div className="logo-glow" />
-          <div className="logo-flex flex-col items-center gap-6">
             <div className="logo-image-container">
               <Image 
-                src="/chamos-icon-gold.png" 
-                alt="Chamos Barber" 
-                width={120} 
-                height={120}
+                src="/chamos-logo-gold.png" 
+                alt="Chamos Barber Shop" 
+                width={300} 
+                height={300}
                 priority
                 className="logo-image"
               />
             </div>
-            <h1 className="brand-name">
-              CHAMOS<span className="text-gold">.</span>
-            </h1>
-          </div>
         </div>
 
         {/* Barra de progreso */}
