@@ -33,7 +33,7 @@ export default function Navbar() {
         </motion.div>
 
         {/* Desktop Menu */}
-        <div className="hidden md:flex items-center gap-12">
+        <div className="hidden md:flex items-center gap-16">
           {navLinks.map((link, i) => (
             <motion.a
               key={link.name}

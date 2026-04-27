@@ -1,6 +1,6 @@
 import React, { useRef } from 'react'
 import Link from 'next/link'
-import { motion } from 'motion/react'
+import { motion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight, PlayCircle } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
@@ -10,113 +10,144 @@ const SplineScene = dynamic(() => import('@splinetool/react-spline'), {
 })
 
 export default function Hero() {
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ["start start", "end start"]
+  });
+
+  const y1 = useTransform(scrollYProgress, [0, 1], [0, 200]);
+  const y2 = useTransform(scrollYProgress, [0, 1], [0, -150]);
+  const opacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
+  const scale = useTransform(scrollYProgress, [0, 0.5], [1, 0.9]);
+
   return (
-    <section className="relative min-h-[90vh] flex items-center pt-24 overflow-hidden">
-      {/* Background Decorative Elements */}
-      <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-gold/5 to-transparent pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-gold/5 blur-[120px] rounded-full pointer-events-none" />
-      
-      <div className="container mx-auto px-6 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-          >
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 mb-8"
-            >
-              <span className="text-gold text-sm font-bold tracking-[0.4em] uppercase">Est. 2021</span>
-            </motion.div>
-            
-            <h1 className="text-7xl md:text-8xl font-black leading-[0.85] tracking-tighter uppercase mb-8">
-              Maestría en<br/><span className="italic text-gold">Cortes</span><br/><span className="text-white/20">Bespoke</span>.
-            </h1>
-            
-            <p className="text-white/40 text-sm max-w-md mb-12 leading-relaxed">
-              Donde la tradición y el estilo convergen. Tu barbería de confianza desde el primer día, brindando excelencia en San Fernando.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-6">
-              <Link href="/reservar" passHref>
-                <motion.a 
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="bg-gold text-dark px-10 py-4 font-black text-xs tracking-ultra hover:brightness-110 transition-all flex items-center justify-center gap-2 group cursor-pointer"
-                >
-                  Reservar Ahora
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </motion.a>
-              </Link>
-              
-              <Link href="/equipo" passHref>
-                <button className="flex items-center justify-center gap-3 text-white/40 hover:text-white transition-colors group px-6 py-4 text-[10px] tracking-ultra cursor-pointer">
-                  <PlayCircle className="w-6 h-6 group-hover:text-gold transition-colors" />
-                  <span>Nuestro Equipo</span>
-                </button>
-              </Link>
-            </div>
+    <section 
+      ref={containerRef}
+      className="relative min-h-screen flex items-start justify-center overflow-hidden bg-dark pt-48 pb-24"
+    >
+      {/* Imagen de Fondo Inmersiva con Parallax */}
+      <motion.div 
+        style={{ y: y1, scale: 1.1 }}
+        className="absolute inset-0 z-0"
+      >
+        <img 
+          src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&fit=crop&q=80&w=2000" 
+          alt="Luxury Barbershop Background" 
+          className="w-full h-full object-cover opacity-30 grayscale"
+          referrerPolicy="no-referrer"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-dark via-transparent to-dark" />
+        <div className="absolute inset-0 bg-gradient-to-r from-dark via-transparent to-dark" />
+      </motion.div>
 
-            <div className="mt-16 flex items-center gap-12 border-t border-white/5 pt-12">
-              {[
-                { label: "Barberos Master", value: "3+" },
-                { label: "Clientes Felices", value: "2K+" },
-                { label: "Años de Exp.", value: "4+" }
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <div className="text-xl font-black text-white">{stat.value}</div>
-                  <div className="text-[9px] uppercase tracking-widest text-white/40 mt-1">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+      {/* Efectos de Luz Dinámicos */}
+      <motion.div 
+        style={{ y: y2, opacity }}
+        className="absolute top-1/4 right-1/4 w-[500px] h-[500px] bg-gold/10 blur-[120px] rounded-full pointer-events-none z-1" 
+      />
+      <motion.div 
+        style={{ y: y1 }}
+        className="absolute bottom-1/4 left-1/4 w-[400px] h-[400px] bg-gold/5 blur-[100px] rounded-full pointer-events-none z-1" 
+      />
 
+      <div className="container mx-auto px-6 relative z-10 text-center">
+        <motion.div
+          style={{ opacity, scale }}
+          initial={{ opacity: 0, y: 50 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
+          className="max-w-5xl mx-auto"
+        >
+          {/* Badge Establecido */}
           <motion.div 
-            initial={{ opacity: 0, scale: 0.8, rotateY: 20 }}
-            animate={{ opacity: 1, scale: 1, rotateY: 0 }}
-            transition={{ duration: 1.2, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className="hidden lg:block relative aspect-square"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.3 }}
+            className="flex items-center justify-center gap-4 mb-10"
           >
-            {/* The 3D Asset Placeholder replaced by SplineScene */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl opacity-20" />
-            <div className="w-full h-full border border-white/5 rounded-3xl bg-neutral-900/40 relative overflow-hidden group">
-              <SplineScene 
-                scene="https://prod.spline.design/3Xi3HTcxP-AAGbbw/scene.splinecode"
-                onLoad={(spline: any) => {
-                  setTimeout(() => {
-                    try {
-                      const splineWrapper = document.querySelector('.spline-container > div');
-                      if (splineWrapper && splineWrapper.shadowRoot) {
-                        const logoContainer = splineWrapper.shadowRoot.querySelector('#logo') || splineWrapper.shadowRoot.querySelector('a');
-                        if (logoContainer) (logoContainer as HTMLElement).style.display = 'none';
-                      }
-                      const canvas = document.querySelector('.spline-container canvas');
-                      if (canvas && canvas.nextElementSibling) {
-                        const logo = canvas.nextElementSibling as HTMLElement;
-                        if (logo && logo.tagName === 'A') logo.style.display = 'none';
-                      }
-                      document.querySelectorAll('a').forEach(a => {
-                        if (a.href && a.href.includes('spline.design')) {
-                          a.style.display = 'none';
-                        }
-                      });
-                    } catch(e) {}
-                  }, 100);
-                }}
-              />
-              
-              {/* Corner Accents */}
-              <div className="absolute top-8 left-8 w-4 h-4 border-t-2 border-l-2 border-gold/20 pointer-events-none" />
-              <div className="absolute top-8 right-8 w-4 h-4 border-t-2 border-r-2 border-gold/20 pointer-events-none" />
-              <div className="absolute bottom-8 left-8 w-4 h-4 border-b-2 border-l-2 border-gold/20 pointer-events-none" />
-              <div className="absolute bottom-8 right-8 w-4 h-4 border-b-2 border-r-2 border-gold/20 pointer-events-none" />
-            </div>
+            <div className="h-[1px] w-8 bg-gold/50" />
+            <span className="text-gold text-xs font-black tracking-[0.6em] uppercase">Establecido 2021</span>
+            <div className="h-[1px] w-8 bg-gold/50" />
           </motion.div>
-        </div>
+          
+          <div className="relative">
+            {/* Spline Integration - Floating behind text or next to it */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] opacity-40 pointer-events-none z-0">
+               <SplineScene 
+                scene="https://prod.spline.design/3Xi3HTcxP-AAGbbw/scene.splinecode"
+                className="w-full h-full"
+              />
+            </div>
+
+            <div className="relative z-10">
+              <h1 className="text-6xl md:text-[110px] font-black leading-[0.8] tracking-tighter uppercase mb-12">
+                Maestría en<br/>
+                <span className="text-gold italic">Cortes</span><br/>
+                <span className="outline-text">Legendarios</span>
+              </h1>
+              
+              <p className="text-white/60 text-lg md:text-xl max-w-2xl mx-auto mb-16 leading-relaxed font-medium tracking-wide">
+                Donde la tradición y el estilo convergen. Tu barbería de confianza desde el primer día, brindando excelencia en San Fernando.
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-8 justify-center items-center">
+                <Link href="/reservar" passHref>
+                  <motion.a 
+                    whileHover={{ scale: 1.05, boxShadow: "0 0 40px rgba(197, 160, 89, 0.4)" }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-gold text-dark px-14 py-6 font-black text-xs tracking-ultra hover:brightness-110 transition-all flex items-center gap-4 group relative overflow-hidden"
+                  >
+                    <span className="relative z-10">Reservar Experiencia</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform relative z-10" />
+                    <motion.div 
+                      className="absolute inset-0 bg-white/30 translate-x-[-100%]"
+                      whileHover={{ translateX: "100%" }}
+                      transition={{ duration: 0.6 }}
+                    />
+                  </motion.a>
+                </Link>
+                
+                <Link href="/equipo" passHref>
+                  <button className="flex items-center justify-center gap-4 text-white/40 hover:text-white transition-all group px-8 py-6 text-[10px] tracking-ultra border border-white/10 bg-dark/40 backdrop-blur-md">
+                    <PlayCircle className="w-6 h-6 group-hover:text-gold transition-colors" />
+                    <span>Ver Film de Marca</span>
+                  </button>
+                </Link>
+              </div>
+            </div>
+          </div>
+
+          {/* Stats Section */}
+          <div className="mt-24 flex flex-wrap justify-center gap-12 md:gap-24 border-t border-white/5 pt-16">
+            {[
+              { label: "Barberos Master", value: "3+" },
+              { label: "Clientes Felices", value: "2K+" },
+              { label: "Años de Exp.", value: "4+" }
+            ].map((stat) => (
+              <div key={stat.label} className="group cursor-default">
+                <motion.div 
+                  whileHover={{ y: -5, color: "#C5A059" }}
+                  className="text-3xl md:text-4xl font-black text-white transition-colors"
+                >
+                  {stat.value}
+                </motion.div>
+                <div className="text-[10px] uppercase tracking-[0.3em] text-white/30 font-bold mt-2 group-hover:text-white/50 transition-colors">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
       </div>
+      
+      {/* Scroll Indicator */}
+      <motion.div 
+        animate={{ y: [0, 10, 0] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 opacity-20"
+      >
+        <span className="text-[9px] uppercase tracking-[0.4em] font-black">Scroll</span>
+        <div className="w-[1px] h-12 bg-gradient-to-b from-white to-transparent" />
+      </motion.div>
     </section>
-  )
+  );
 }

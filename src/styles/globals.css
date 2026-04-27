@@ -33,6 +33,11 @@
   scrollbar-width: none;
 }
 
+.outline-text {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+  color: transparent;
+}
+
 /* === VARIABLES GLOBALES PREVIAS (Mantenidas por retrocompatibilidad) === */
 :root {
     --bg-primary: #080808; /* Updated to dark */

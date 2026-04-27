@@ -68,12 +68,17 @@ export default function ValueProp() {
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="bg-dark p-10 hover:bg-zinc-900/40 transition-colors group"
+              whileHover={{ 
+                translateZ: 30,
+                backgroundColor: "rgba(197, 160, 89, 0.05)",
+                transition: { duration: 0.3 }
+              }}
+              className="bg-dark p-10 transition-all group perspective-1000 cursor-default"
             >
-              <div className="mb-8 text-gold bg-gold/5 w-10 h-10 flex items-center justify-center rounded group-hover:bg-gold group-hover:text-dark transition-all duration-500">
+              <div className="mb-8 text-gold bg-gold/5 w-10 h-10 flex items-center justify-center rounded group-hover:scale-110 transition-transform duration-500">
                 {f.icon}
               </div>
-              <h3 className="text-sm font-black tracking-widest mb-4">{f.title}</h3>
+              <h3 className="text-sm font-black tracking-widest mb-4 group-hover:text-gold transition-colors">{f.title}</h3>
               <p className="text-white/40 leading-relaxed text-[11px]">
                 {f.description}
               </p>

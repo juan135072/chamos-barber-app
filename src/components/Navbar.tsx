@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { motion } from 'motion/react'
-import { Menu, X, Scissors } from 'lucide-react'
+import { Menu, X } from 'lucide-react'
+import { Logo } from './shared/Logo'
 
 interface NavbarProps {
   transparent?: boolean
@@ -38,12 +39,9 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           <motion.a 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-2 group cursor-pointer"
+            className="cursor-pointer"
           >
-            <div className="w-10 h-10 bg-gold rounded flex items-center justify-center text-dark transform group-hover:rotate-12 transition-transform">
-              <Scissors className="w-5 h-5" />
-            </div>
-            <span className="text-2xl font-black tracking-widest text-white">CHAMOS<span className="text-gold">.</span></span>
+            <Logo size="sm" withText={true} />
           </motion.a>
         </Link>
 

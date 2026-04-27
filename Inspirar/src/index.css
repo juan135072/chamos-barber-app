@@ -15,7 +15,17 @@
 @layer base {
   body {
     @apply bg-dark text-white antialiased;
+    perspective: 1200px;
   }
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.outline-text {
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+  color: transparent;
 }
 
 .glass-nav {
