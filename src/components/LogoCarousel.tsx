@@ -1,7 +1,7 @@
 import { motion } from "motion/react";
 
 const logos = [
-  "CHAMOS", "PREMIUM", "BARBER", "STYLE", "ELEGANCE", "TRADITION", "MEN", "GROOMING"
+  "CHAMOS", "PREMIUM", "BARBER", "ESTILO", "ELEGANCIA", "TRADICIÓN", "HOMBRES", "CUIDADO"
 ];
 
 export default function LogoCarousel() {
