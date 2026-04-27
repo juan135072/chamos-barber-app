@@ -46,28 +46,30 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
         transition: 'opacity 0.5s ease-out'
       }}
     >
-      {/* Fondo oscuro liso estilo Inspirar */}
+      {/* Fondo oscuro liso (nuevo estilo Inspirar) */}
       <div className="preloader-background" />
 
       {/* Contenedor principal */}
       <div className="preloader-content">
-        {/* Logo animado de la marca */}
-        <div className="logo-container">
+        
+        {/* Nuevo Logo tipográfico construido con CSS y la imagen de la marca */}
+        <div className="logo-section">
           <div className="logo-glow" />
-          <Image
-            src="/chamos-logo.png"
-            alt="Chamos Barber"
-            width={200}
-            height={100}
-            priority
-            className="logo-image"
-          />
-        </div>
-
-        {/* Texto animado */}
-        <div className="text-container">
-          <h1 className="brand-name">CHAMOS BARBER</h1>
-          <p className="tagline">Barbería Profesional</p>
+          <div className="logo-flex flex-col items-center gap-6">
+            <div className="logo-image-container">
+              <Image 
+                src="/chamos-logo.png" 
+                alt="Chamos Barber" 
+                width={120} 
+                height={120}
+                priority
+                className="logo-image"
+              />
+            </div>
+            <h1 className="brand-name">
+              CHAMOS<span className="text-gold">.</span>
+            </h1>
+          </div>
         </div>
 
         {/* Barra de progreso */}
@@ -109,7 +111,7 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           left: 0;
           width: 100%;
           height: 100%;
-          background-color: #080808; /* Dark inspirar */
+          background-color: #080808; /* Color Dark de Inspirar */
         }
 
         .preloader-content {
@@ -118,7 +120,7 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 30px;
+          gap: 50px;
           animation: fadeInUp 0.8s ease-out;
         }
 
@@ -133,18 +135,12 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           }
         }
 
-        .logo-container {
+        .logo-section {
           position: relative;
-          animation: pulse 2s ease-in-out infinite;
-        }
-
-        @keyframes pulse {
-          0%, 100% {
-            transform: scale(1);
-          }
-          50% {
-            transform: scale(1.05);
-          }
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 16px;
         }
 
         .logo-glow {
@@ -153,11 +149,11 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           left: 50%;
           transform: translate(-50%, -50%);
           width: 250px;
-          height: 250px;
-          /* Color dorado Inspirar rgba(197, 160, 89, 0.3) */
-          background: radial-gradient(circle, rgba(197, 160, 89, 0.25) 0%, transparent 70%);
+          height: 150px;
+          background: radial-gradient(ellipse, rgba(197, 160, 89, 0.15) 0%, transparent 70%);
           animation: glowPulse 2s ease-in-out infinite;
-          filter: blur(30px);
+          filter: blur(20px);
+          pointer-events: none;
         }
 
         @keyframes glowPulse {
@@ -167,70 +163,60 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           }
           50% {
             opacity: 1;
-            transform: translate(-50%, -50%) scale(1.2);
+            transform: translate(-50%, -50%) scale(1.1);
           }
+        }
+
+        .logo-flex {
+          display: flex;
+          align-items: center;
+          gap: 16px;
+          position: relative;
+          z-index: 1;
+          animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+          0%, 100% {
+            transform: scale(1);
+          }
+          50% {
+            transform: scale(1.02);
+          }
+        }
+
+        .logo-image-container {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          filter: drop-shadow(0 4px 20px rgba(197, 160, 89, 0.2));
         }
 
         .logo-image {
-          position: relative;
-          z-index: 1;
-          filter: drop-shadow(0 0 20px rgba(197, 160, 89, 0.4));
-          animation: logoRotate 20s linear infinite;
-        }
-
-        @keyframes logoRotate {
-          from {
-            filter: drop-shadow(0 0 20px rgba(197, 160, 89, 0.4)) hue-rotate(0deg);
-          }
-          to {
-            filter: drop-shadow(0 0 20px rgba(197, 160, 89, 0.4)) hue-rotate(360deg);
-          }
-        }
-
-        .text-container {
-          text-align: center;
-          animation: textFadeIn 1s ease-out 0.3s both;
-        }
-
-        @keyframes textFadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          /* Filtros para convertir el amarillo viejo (#D4AF37) al nuevo dorado (#C5A059) */
+          /* Hue shift de -10deg, reducir saturación y ligeramente ajustar brillo */
+          filter: hue-rotate(-10deg) saturate(0.65) brightness(1.05);
+          object-fit: contain;
         }
 
         .brand-name {
-          font-size: 2.5rem;
+          font-size: 3rem;
           font-weight: 900;
-          letter-spacing: 4px;
-          /* Degradado con el nuevo color dorado #C5A059 */
-          background: linear-gradient(135deg, #C5A059 0%, #E2C895 50%, #C5A059 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
+          letter-spacing: 0.1em;
+          color: #FFFFFF;
           margin: 0;
-          text-shadow: 0 0 30px rgba(197, 160, 89, 0.3);
-          animation: shimmer 3s ease-in-out infinite;
         }
 
-        @keyframes shimmer {
-          0%, 100% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
+        .text-gold {
+          color: #C5A059;
         }
 
         .tagline {
-          color: #999;
-          font-size: 1rem;
-          margin: 10px 0 0 0;
-          letter-spacing: 2px;
+          color: #C5A059;
+          font-size: 0.9rem;
+          margin: 0;
+          letter-spacing: 0.4em;
+          font-weight: 500;
           animation: fadeIn 1s ease-out 0.5s both;
         }
 
@@ -248,7 +234,7 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
           animation: slideUp 1s ease-out 0.6s both;
         }
 
@@ -265,38 +251,26 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
 
         .progress-bar {
           width: 100%;
-          height: 4px;
-          background: rgba(197, 160, 89, 0.2);
+          height: 2px;
+          background: rgba(197, 160, 89, 0.15);
           border-radius: 2px;
           overflow: hidden;
-          box-shadow: 0 0 10px rgba(197, 160, 89, 0.2);
         }
 
         .progress-fill {
           height: 100%;
-          background: linear-gradient(90deg, #C5A059 0%, #E2C895 50%, #C5A059 100%);
-          background-size: 200% 100%;
+          background: #C5A059;
           border-radius: 2px;
           transition: width 0.3s ease;
-          animation: progressShine 2s linear infinite;
-          box-shadow: 0 0 10px rgba(197, 160, 89, 0.6);
-        }
-
-        @keyframes progressShine {
-          0% {
-            background-position: -200% 0;
-          }
-          100% {
-            background-position: 200% 0;
-          }
+          box-shadow: 0 0 10px rgba(197, 160, 89, 0.5);
         }
 
         .progress-text {
           color: #C5A059;
-          font-size: 0.9rem;
-          font-weight: bold;
+          font-size: 0.85rem;
+          font-weight: 500;
           margin: 0;
-          font-family: 'Courier New', monospace;
+          letter-spacing: 0.1em;
         }
 
         .loading-message {
@@ -326,7 +300,7 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
         @keyframes dotBounce {
           0%, 80%, 100% {
             transform: scale(1);
-            opacity: 0.5;
+            opacity: 0.3;
           }
           40% {
             transform: scale(1.3);
@@ -337,33 +311,30 @@ export default function Preloader({ onComplete, duration = 3000 }: PreloaderProp
         /* Responsive */
         @media (max-width: 768px) {
           .brand-name {
-            font-size: 2rem;
-            letter-spacing: 3px;
+            font-size: 2.2rem;
+          }
+
+          .logo-image-container {
+            transform: scale(0.8);
           }
 
           .tagline {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
+            letter-spacing: 0.3em;
           }
 
           .progress-container {
             width: 250px;
           }
-
-          .logo-image {
-            width: 150px;
-            height: auto;
-          }
-
-          .logo-glow {
-            width: 200px;
-            height: 200px;
-          }
         }
 
         @media (max-width: 480px) {
           .brand-name {
-            font-size: 1.5rem;
-            letter-spacing: 2px;
+            font-size: 1.8rem;
+          }
+
+          .logo-image-container {
+            transform: scale(0.65);
           }
 
           .progress-container {

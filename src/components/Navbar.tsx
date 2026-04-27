@@ -38,13 +38,11 @@ const Navbar: React.FC<NavbarProps> = ({ transparent = false }) => {
           <motion.a 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3 group cursor-pointer"
+            className="flex items-center gap-2 group cursor-pointer"
           >
-            <img 
-              src="/chamos-logo.png" 
-              alt="Chamos Logo" 
-              className="w-12 h-12 object-contain drop-shadow-[0_0_10px_rgba(197,160,89,0.3)] transform group-hover:rotate-12 transition-transform duration-300"
-            />
+            <div className="w-10 h-10 bg-gold rounded flex items-center justify-center text-dark transform group-hover:rotate-12 transition-transform">
+              <Scissors className="w-5 h-5" />
+            </div>
             <span className="text-2xl font-black tracking-widest text-white">CHAMOS<span className="text-gold">.</span></span>
           </motion.a>
         </Link>
