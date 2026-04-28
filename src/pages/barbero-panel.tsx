@@ -196,364 +196,173 @@ const BarberoPanelPage: React.FC = () => {
         }
       `}</style>
 
-      <div className="min-h-screen" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        {/* Header - Solo visible en navegador normal */}
-        {!isStandalone && (
-          <header style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-              <div className="flex justify-between items-center h-16">
-                <div className="flex items-center space-x-4">
-                  <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
-                    <i className="fas fa-scissors" style={{ color: 'var(--bg-primary)' }}></i>
-                  </div>
-                  <div>
-                    <h1 className="text-lg font-semibold" style={{ color: 'var(--text-primary)' }}>Panel de Barbero</h1>
-                    <p className="text-sm" style={{ color: 'var(--accent-color)' }}>Chamos Barber</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-4">
-                  <div className="text-right">
-                    <p className="text-sm font-medium" style={{ color: 'var(--text-primary)' }}>{profile.nombre} {profile.apellido}</p>
-                    <p className="text-xs" style={{ color: 'var(--accent-color)' }}>barbero</p>
-                  </div>
-                  <button
-                    onClick={() => router.push('/barbero/liquidaciones')}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                    style={{
-                      backgroundColor: '#10B981',
-                      color: 'white',
-                      transition: 'var(--transition)'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#059669'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#10B981'}
-                  >
-                    <i className="fas fa-money-bill-wave mr-2"></i>
-                    Mis Liquidaciones
-                  </button>
-                  <button
-                    onClick={handleLogout}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2"
-                    style={{
-                      backgroundColor: 'var(--accent-color)',
-                      color: 'var(--bg-primary)',
-                      transition: 'var(--transition)'
-                    }}
-                    onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#B8941F'}
-                    onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'var(--accent-color)'}
-                  >
-                    <i className="fas fa-sign-out-alt mr-2"></i>
-                    Cerrar Sesión
-                  </button>
-                </div>
-              </div>
-            </div>
-          </header>
-        )}
-
-        <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-
-          {/* Header minimalista para PWA */}
-          {isStandalone && profile && (
-            <div style={{
-              display: 'flex',
-              justifyContent: 'between',
-              alignItems: 'center',
-              marginBottom: '1.5rem',
-              padding: '0.5rem',
-              background: 'var(--bg-secondary)',
-              borderRadius: '12px',
-              border: '1px solid var(--border-color)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div className="h-8 w-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'var(--accent-color)' }}>
-                  <i className="fas fa-scissors" style={{ color: 'var(--bg-primary)', fontSize: '0.8rem' }}></i>
-                </div>
-                <div>
-                  <h2 style={{ fontSize: '1rem', fontWeight: 'bold', color: 'var(--text-primary)', margin: 0 }}>Chamos Barber</h2>
-                  <p style={{ fontSize: '0.75rem', color: 'var(--accent-color)', margin: 0 }}>Panel de Barbero</p>
-                </div>
-              </div>
-              <div style={{ flex: 1 }}></div>
-              <NotificationBell />
-            </div>
-          )}
-
-          {/* Tabs - Solo visibles en navegador normal */}
-          {!isStandalone && (
-            <div style={{
-              display: 'flex',
-              gap: '1rem',
-              marginBottom: '2rem',
-              borderBottom: '2px solid var(--border-color)',
-              overflowX: 'auto',
-              paddingBottom: '5px'
-            }}>
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                style={{
-                  padding: '1rem 2rem',
-                  background: 'none',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  borderBottom: activeTab === 'dashboard' ? '3px solid var(--accent-color)' : 'none',
-                  color: activeTab === 'dashboard' ? 'var(--accent-color)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  transition: 'all 0.3s'
-                }}
-              >
-                <i className="fas fa-home"></i> Resumen
-              </button>
-              <button
-                onClick={() => setActiveTab('perfil')}
-                style={{
-                  padding: '1rem 2rem',
-                  background: 'none',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  borderBottom: activeTab === 'perfil' ? '3px solid var(--accent-color)' : 'none',
-                  color: activeTab === 'perfil' ? 'var(--accent-color)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  transition: 'all 0.3s'
-                }}
-              >
-                <i className="fas fa-user"></i> Mi Perfil
-              </button>
-              <button
-                onClick={() => setActiveTab('citas')}
-                style={{
-                  padding: '1rem 2rem',
-                  background: 'none',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  borderBottom: activeTab === 'citas' ? '3px solid var(--accent-color)' : 'none',
-                  color: activeTab === 'citas' ? 'var(--accent-color)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  transition: 'all 0.3s'
-                }}
-              >
-                <i className="fas fa-calendar-alt"></i> Mis Citas
-              </button>
-              <button
-                onClick={() => setActiveTab('ganancias')}
-                style={{
-                  padding: '1rem 2rem',
-                  background: 'none',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  borderBottom: activeTab === 'ganancias' ? '3px solid var(--accent-color)' : 'none',
-                  color: activeTab === 'ganancias' ? 'var(--accent-color)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  transition: 'all 0.3s'
-                }}
-              >
-                <i className="fas fa-chart-line"></i> Mis Ganancias
-              </button>
-              <button
-                onClick={() => setActiveTab('seguridad')}
-                style={{
-                  padding: '1rem 2rem',
-                  background: 'none',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  borderBottom: activeTab === 'seguridad' ? '3px solid var(--accent-color)' : 'none',
-                  color: activeTab === 'seguridad' ? 'var(--accent-color)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  transition: 'all 0.3s'
-                }}
-              >
-                <i className="fas fa-shield-alt"></i> Seguridad
-              </button>
-              <button
-                onClick={() => setActiveTab('asistencia')}
-                style={{
-                  padding: '1rem 2rem',
-                  background: 'none',
-                  border: 'none',
-                  whiteSpace: 'nowrap',
-                  borderBottom: activeTab === 'asistencia' ? '3px solid var(--accent-color)' : 'none',
-                  color: activeTab === 'asistencia' ? 'var(--accent-color)' : 'var(--text-primary)',
-                  cursor: 'pointer',
-                  fontWeight: '600',
-                  fontSize: '1rem',
-                  transition: 'all 0.3s'
-                }}
-              >
-                <i className="fas fa-clock"></i> Asistencia
-              </button>
-            </div>
-          )}
-
-          {/* Content */}
-          {activeTab === 'dashboard' && profile && (
-            <DashboardSection barberoId={profile.id} nombreBarbero={profile.nombre} />
-          )}
-
-          {activeTab === 'citas' && profile && (
-            <CitasSection barberoId={profile.id} />
-          )}
-
-          {activeTab === 'ganancias' && profile && (
-            <GananciasSection barberoId={profile.id} />
-          )}
-
-          {activeTab === 'seguridad' && (
-            <ChangePasswordSection />
-          )}
-
-          {activeTab === 'asistencia' && profile && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <MarcarAsistencia barberoId={profile.id} />
-              <HistorialAsistencia barberoId={profile.id} />
-            </div>
-          )}
-
-          {activeTab === 'perfil' && <PerfilSection />}
-
+      <div className="min-h-screen bg-[#080808] relative">
+        {/* Background Orbs */}
+        <div className="fixed inset-0 z-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px]" />
         </div>
 
-        {/* Bottom Navigation por Standalone Mode */}
-        {isStandalone && (
-          <nav style={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            backgroundColor: 'var(--bg-secondary)',
-            borderTop: '1px solid var(--border-color)',
-            display: 'flex',
-            justifyContent: 'space-around',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-            zIndex: 1000
-          }}>
-            <button
-              onClick={() => setActiveTab('dashboard')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 0',
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                color: activeTab === 'dashboard' ? 'var(--accent-color)' : 'var(--text-primary)',
-                opacity: activeTab === 'dashboard' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}
-            >
-              <i className="fas fa-home" style={{ fontSize: '1.2rem' }}></i>
-              <span style={{ fontSize: '0.75rem' }}>Inicio</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('citas')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 0',
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                color: activeTab === 'citas' ? 'var(--accent-color)' : 'var(--text-primary)',
-                opacity: activeTab === 'citas' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}
-            >
-              <i className="fas fa-calendar-alt" style={{ fontSize: '1.2rem' }}></i>
-              <span style={{ fontSize: '0.75rem' }}>Citas</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('ganancias')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 0',
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                color: activeTab === 'ganancias' ? 'var(--accent-color)' : 'var(--text-primary)',
-                opacity: activeTab === 'ganancias' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}
-            >
-              <i className="fas fa-chart-line" style={{ fontSize: '1.2rem' }}></i>
-              <span style={{ fontSize: '0.75rem' }}>Dinero</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('perfil')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 0',
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                color: activeTab === 'perfil' ? 'var(--accent-color)' : 'var(--text-primary)',
-                opacity: activeTab === 'perfil' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}
-            >
-              <i className="fas fa-user-circle" style={{ fontSize: '1.2rem' }}></i>
-              <span style={{ fontSize: '0.75rem' }}>Perfil</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('asistencia')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 0',
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                color: activeTab === 'asistencia' ? 'var(--accent-color)' : 'var(--text-primary)',
-                opacity: activeTab === 'asistencia' ? 1 : 0.6,
-                transition: 'all 0.2s'
-              }}
-            >
-              <i className="fas fa-clock" style={{ fontSize: '1.2rem' }}></i>
-              <span style={{ fontSize: '0.75rem' }}>Asistencia</span>
-            </button>
-            <button
-              onClick={() => router.push('/barbero/liquidaciones')}
-              style={{
-                flex: 1,
-                padding: '0.75rem 0',
-                background: 'none',
-                border: 'none',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '4px',
-                color: 'var(--text-primary)',
-                opacity: 0.6
-              }}
-            >
-              <i className="fas fa-wallet" style={{ fontSize: '1.2rem' }}></i>
-              <span style={{ fontSize: '0.75rem' }}>Pagos</span>
-            </button>
-          </nav>
-        )}
+        <div className="relative z-10 pb-24">
+          {/* Header - Solo visible en navegador normal */}
+          {!isStandalone && (
+            <header className="bg-white/[0.02] border-b border-white/5 backdrop-blur-md sticky top-0 z-50">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-16">
+                  <div className="flex items-center space-x-4">
+                    <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-gold to-[#a88647] p-[1px]">
+                      <div className="w-full h-full rounded-xl bg-[#080808] flex items-center justify-center">
+                        <i className="fas fa-scissors text-gold"></i>
+                      </div>
+                    </div>
+                    <div>
+                      <h1 className="text-lg font-black text-white uppercase tracking-wider m-0 leading-tight">Panel de Barbero</h1>
+                      <p className="text-xs text-gold tracking-widest m-0 uppercase">Chamos Barber</p>
+                    </div>
+                  </div>
 
-        {/* OneSignal Reset Button */}
-        <OneSignalResetButton />
+                  <div className="flex items-center space-x-4">
+                    <div className="text-right mr-2">
+                      <p className="text-sm font-bold text-white m-0">{profile.nombre} {profile.apellido}</p>
+                      <p className="text-xs text-gold uppercase tracking-widest m-0">barbero</p>
+                    </div>
+                    
+                    <button
+                      onClick={() => router.push('/barbero/liquidaciones')}
+                      className="relative group inline-flex overflow-hidden rounded-xl bg-green-500/20 p-[1px] shrink-0"
+                    >
+                      <div className="relative bg-[#080808] px-4 py-2 rounded-xl transition-colors duration-300 group-hover:bg-green-500/10 flex items-center gap-2">
+                        <i className="fas fa-money-bill-wave text-green-400 group-hover:text-green-300 transition-colors"></i>
+                        <span className="relative z-10 text-white font-bold text-sm">Mis Liquidaciones</span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={handleLogout}
+                      className="relative group inline-flex overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-red-800 p-[1px] shrink-0"
+                    >
+                      <div className="relative bg-[#080808] px-4 py-2 rounded-xl transition-colors duration-300 group-hover:bg-transparent flex items-center gap-2">
+                        <i className="fas fa-sign-out-alt text-red-400 group-hover:text-white transition-colors"></i>
+                        <span className="relative z-10 text-white font-bold text-sm">Cerrar Sesión</span>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </header>
+          )}
+
+          <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+            {/* Header minimalista para PWA */}
+            {isStandalone && profile && (
+              <div className="flex justify-between items-center mb-6 p-4 bg-white/[0.02] border border-white/10 rounded-2xl backdrop-blur-xl shadow-xl shadow-black/50">
+                <div className="flex items-center gap-4">
+                  <div className="h-12 w-12 rounded-xl bg-gradient-to-br from-gold to-[#a88647] p-[1px]">
+                    <div className="w-full h-full rounded-xl bg-[#080808] flex items-center justify-center">
+                      <i className="fas fa-scissors text-gold text-lg"></i>
+                    </div>
+                  </div>
+                  <div>
+                    <h2 className="text-base font-black text-white uppercase tracking-wider m-0">Chamos Barber</h2>
+                    <p className="text-xs text-gold tracking-widest m-0 uppercase">Panel de Barbero</p>
+                  </div>
+                </div>
+                <div style={{ flex: 1 }}></div>
+                <NotificationBell />
+              </div>
+            )}
+
+            {/* Tabs - Solo visibles en navegador normal */}
+            {!isStandalone && (
+              <div className="flex gap-2 mb-8 border-b border-white/10 overflow-x-auto pb-2 scrollbar-hide">
+                {[
+                  { id: 'dashboard', icon: 'fa-home', label: 'Resumen' },
+                  { id: 'perfil', icon: 'fa-user', label: 'Mi Perfil' },
+                  { id: 'citas', icon: 'fa-calendar-alt', label: 'Mis Citas' },
+                  { id: 'ganancias', icon: 'fa-chart-line', label: 'Mis Ganancias' },
+                  { id: 'seguridad', icon: 'fa-shield-alt', label: 'Seguridad' },
+                  { id: 'asistencia', icon: 'fa-clock', label: 'Asistencia' }
+                ].map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id as any)}
+                    className={`whitespace-nowrap px-6 py-3 rounded-t-xl font-bold transition-all border-b-2 flex items-center gap-2 ${
+                      activeTab === tab.id
+                        ? 'border-gold text-gold bg-gold/5'
+                        : 'border-transparent text-white/50 hover:text-white/80 hover:bg-white/[0.02]'
+                    }`}
+                  >
+                    <i className={`fas ${tab.icon}`}></i> {tab.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Content */}
+            <div className="space-y-6">
+              {activeTab === 'dashboard' && profile && (
+                <DashboardSection barberoId={profile.id} nombreBarbero={profile.nombre} />
+              )}
+
+              {activeTab === 'citas' && profile && (
+                <CitasSection barberoId={profile.id} />
+              )}
+
+              {activeTab === 'ganancias' && profile && (
+                <GananciasSection barberoId={profile.id} />
+              )}
+
+              {activeTab === 'seguridad' && (
+                <ChangePasswordSection />
+              )}
+
+              {activeTab === 'asistencia' && profile && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <MarcarAsistencia barberoId={profile.id} />
+                  <HistorialAsistencia barberoId={profile.id} />
+                </div>
+              )}
+
+              {activeTab === 'perfil' && <PerfilSection />}
+            </div>
+
+          </div>
+
+          {/* Bottom Navigation por Standalone Mode */}
+          {isStandalone && (
+            <nav className="fixed bottom-0 left-0 right-0 bg-[#080808]/90 backdrop-blur-xl border-t border-white/10 flex justify-around pb-safe pt-2 z-50">
+              {[
+                { id: 'dashboard', icon: 'fa-home', label: 'Inicio' },
+                { id: 'citas', icon: 'fa-calendar-alt', label: 'Citas' },
+                { id: 'ganancias', icon: 'fa-chart-line', label: 'Dinero' },
+                { id: 'perfil', icon: 'fa-user-circle', label: 'Perfil' },
+                { id: 'asistencia', icon: 'fa-clock', label: 'Asist' }
+              ].map(tab => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`flex-1 flex flex-col items-center gap-1 py-2 transition-all ${
+                    activeTab === tab.id ? 'text-gold' : 'text-white/40'
+                  }`}
+                >
+                  <i className={`fas ${tab.icon} text-xl`}></i>
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{tab.label}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => router.push('/barbero/liquidaciones')}
+                className="flex-1 flex flex-col items-center gap-1 py-2 text-white/40 transition-all"
+              >
+                <i className="fas fa-wallet text-xl"></i>
+                <span className="text-[10px] font-bold uppercase tracking-wider">Pagos</span>
+              </button>
+            </nav>
+          )}
+
+          {/* OneSignal Reset Button */}
+          <OneSignalResetButton />
+        </div>
       </div>
     </>
     </BarberoProvider>

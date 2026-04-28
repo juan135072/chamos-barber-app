@@ -42,235 +42,104 @@ export default function DashboardSection({ barberoId, nombreBarbero }: Dashboard
 
   return (
     <div className="dashboard-container">
-      <div className="welcome-header">
-        <h1>¡Hola, {nombreBarbero}! 👋</h1>
-        <p>Este es el resumen de tu actividad y ganancias acumuladas.</p>
+      <div className="welcome-header mb-8">
+        <h1 className="text-3xl font-black text-white mb-2">¡Hola, {nombreBarbero}! 👋</h1>
+        <p className="text-white/50 text-sm">Este es el resumen de tu actividad y ganancias acumuladas.</p>
       </div>
 
       {loading ? (
-        <div className="loading-state">Cargando métricas...</div>
+        <div className="text-center py-10 text-white/50">Cargando métricas...</div>
       ) : metricas ? (
         <>
-          <div className="metrics-grid">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {/* Card Principal: Acumulado Mes */}
-            <div className="info-card premium-card tall">
-              <div className="card-header">
-                <TrendingUp className="icon gold" />
-                <span>Acumulado del Mes</span>
+            <div className="bg-gradient-to-br from-[#1a1a1a] to-[#0a0a0a] border border-gold/30 rounded-3xl p-6 flex flex-col gap-4 shadow-xl shadow-gold/5 relative overflow-hidden group">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-gold/10 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-gold/20 transition-all duration-500"></div>
+              <div className="flex items-center gap-3 text-gold relative z-10">
+                <TrendingUp className="w-6 h-6" />
+                <span className="font-bold text-sm uppercase tracking-wider">Acumulado del Mes</span>
               </div>
-              <div className="card-body">
-                <div className="main-value gold-text">{formatCurrency(metricas.mes.ganancia)}</div>
-                <div className="sub-value">{metricas.mes.total_servicios} servicios realizados</div>
+              <div className="flex-1 relative z-10">
+                <div className="text-3xl font-black text-gold mb-1">{formatCurrency(metricas.mes.ganancia)}</div>
+                <div className="text-xs text-white/50">{metricas.mes.total_servicios} servicios realizados</div>
               </div>
-              <div className="card-footer">
-                <div className="stat">
-                  <span className="stat-label">Esta Semana</span>
-                  <span className="stat-val">{formatCurrency(metricas.semana.ganancia)}</span>
-                </div>
+              <div className="pt-4 mt-2 border-t border-gold/20 relative z-10 flex justify-between items-center text-sm">
+                <span className="text-white/60">Esta Semana</span>
+                <span className="font-bold text-white">{formatCurrency(metricas.semana.ganancia)}</span>
               </div>
             </div>
 
             {/* Hoy */}
-            <div className="info-card">
-              <div className="card-header">
-                <DollarSign className="icon green" />
-                <span>Ganancia Hoy</span>
+            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 flex flex-col gap-4 backdrop-blur-xl hover:border-white/20 transition-all">
+              <div className="flex items-center gap-3 text-green-400">
+                <DollarSign className="w-6 h-6" />
+                <span className="font-bold text-sm uppercase tracking-wider text-white/80">Ganancia Hoy</span>
               </div>
-              <div className="card-body">
-                <div className="main-value">{formatCurrency(metricas.hoy.ganancia)}</div>
-                <div className="sub-value">Realizado hoy</div>
+              <div className="flex-1">
+                <div className="text-3xl font-black text-white mb-1">{formatCurrency(metricas.hoy.ganancia)}</div>
+                <div className="text-xs text-white/50">Realizado hoy</div>
               </div>
             </div>
 
             {/* Agenda */}
-            <div className="info-card">
-              <div className="card-header">
-                <Calendar className="icon blue" />
-                <span>Citas Agendadas</span>
+            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 flex flex-col gap-4 backdrop-blur-xl hover:border-white/20 transition-all">
+              <div className="flex items-center gap-3 text-blue-400">
+                <Calendar className="w-6 h-6" />
+                <span className="font-bold text-sm uppercase tracking-wider text-white/80">Citas Agendadas</span>
               </div>
-              <div className="card-body">
-                <div className="main-value">{metricas.hoy.total_citas}</div>
-                <div className="sub-value">{metricas.hoy.pendientes} pendientes por atender</div>
+              <div className="flex-1">
+                <div className="text-3xl font-black text-white mb-1">{metricas.hoy.total_citas}</div>
+                <div className="text-xs text-white/50">{metricas.hoy.pendientes} pendientes por atender</div>
               </div>
             </div>
 
             {/* Rating / Meta (Mock por ahora) */}
-            <div className="info-card">
-              <div className="card-header">
-                <Star className="icon yellow" />
-                <span>Tu Calificación</span>
+            <div className="bg-white/[0.02] border border-white/10 rounded-3xl p-6 flex flex-col gap-4 backdrop-blur-xl hover:border-white/20 transition-all">
+              <div className="flex items-center gap-3 text-yellow-400">
+                <Star className="w-6 h-6" />
+                <span className="font-bold text-sm uppercase tracking-wider text-white/80">Tu Calificación</span>
               </div>
-              <div className="card-body">
-                <div className="main-value">4.9/5.0</div>
-                <div className="sub-value">Basado en últimas reseñas</div>
+              <div className="flex-1">
+                <div className="text-3xl font-black text-white mb-1">4.9/5.0</div>
+                <div className="text-xs text-white/50">Basado en últimas reseñas</div>
               </div>
             </div>
           </div>
 
-          <div className="quick-stats-row">
-            <div className="quick-stat-card">
-              <Clock className="qs-icon" />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-gold">
+                <Clock className="w-6 h-6" />
+              </div>
               <div>
-                <strong>Próxima Cita</strong>
-                <p>En 25 minutos</p>
+                <strong className="block text-white text-sm">Próxima Cita</strong>
+                <p className="text-white/50 text-xs m-0">En 25 minutos</p>
               </div>
             </div>
-            <div className="quick-stat-card">
-              <Scissors className="qs-icon" />
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-gold">
+                <Scissors className="w-6 h-6" />
+              </div>
               <div>
-                <strong>Servicio más pedido</strong>
-                <p>Corte Degradado</p>
+                <strong className="block text-white text-sm">Servicio más pedido</strong>
+                <p className="text-white/50 text-xs m-0">Corte Degradado</p>
               </div>
             </div>
-            <div className="quick-stat-card">
-              <Award className="qs-icon" />
+            <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-gold">
+                <Award className="w-6 h-6" />
+              </div>
               <div>
-                <strong>Meta Mensual</strong>
-                <p>85% completado</p>
+                <strong className="block text-white text-sm">Meta Mensual</strong>
+                <p className="text-white/50 text-xs m-0">85% completado</p>
               </div>
             </div>
           </div>
         </>
       ) : (
-        <div className="error-state">No se pudieron cargar las métricas.</div>
+        <div className="text-center py-10 text-red-400">No se pudieron cargar las métricas.</div>
       )}
 
-      <style jsx>{`
-        .dashboard-container {
-          padding: 1rem 0;
-        }
-        .welcome-header {
-          margin-bottom: 2rem;
-        }
-        .welcome-header h1 {
-          font-size: 2rem;
-          color: var(--text-primary);
-          margin-bottom: 0.5rem;
-        }
-        .welcome-header p {
-          color: var(--text-secondary);
-        }
-
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 1.5rem;
-          margin-bottom: 2rem;
-        }
-
-        .info-card {
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 20px;
-          padding: 1.5rem;
-          display: flex;
-          flex-direction: column;
-          gap: 1rem;
-          transition: transform 0.3s;
-        }
-
-        .info-card:hover {
-          transform: translateY(-5px);
-          border-color: var(--accent-color);
-        }
-
-        .premium-card {
-          grid-column: span 1;
-          background: linear-gradient(145deg, var(--bg-secondary), #1a1a1a);
-          border: 1px solid rgba(212, 175, 55, 0.3);
-        }
-
-        .card-header {
-          display: flex;
-          align-items: center;
-          gap: 0.75rem;
-          color: var(--text-secondary);
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-
-        .icon { width: 24px; height: 24px; }
-        .gold { color: #D4AF37; }
-        .green { color: #10B981; }
-        .blue { color: #3B82F6; }
-        .yellow { color: #F59E0B; }
-
-        .card-body {
-          flex: 1;
-        }
-
-        .main-value {
-          font-size: 1.75rem;
-          font-weight: 800;
-          color: var(--text-primary);
-        }
-
-        .gold-text {
-          color: #D4AF37;
-        }
-
-        .sub-value {
-          font-size: 0.85rem;
-          color: var(--text-secondary);
-          margin-top: 0.25rem;
-        }
-
-        .card-footer {
-          margin-top: 1rem;
-          padding-top: 1rem;
-          border-top: 1px solid var(--border-color);
-        }
-
-        .stat {
-          display: flex;
-          justify-content: space-between;
-          font-size: 0.85rem;
-        }
-
-        .stat-label { color: var(--text-secondary); }
-        .stat-val { font-weight: 600; color: var(--text-primary); }
-
-        .quick-stats-row {
-          display: grid;
-          grid-template-columns: repeat(3, 1fr);
-          gap: 1.5rem;
-        }
-
-        .quick-stat-card {
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 16px;
-          padding: 1.25rem;
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          border: 1px solid transparent;
-        }
-
-        .qs-icon {
-          color: var(--accent-color);
-          opacity: 0.8;
-        }
-
-        .quick-stat-card strong {
-          display: block;
-          font-size: 0.9rem;
-          color: var(--text-primary);
-        }
-
-        .quick-stat-card p {
-          font-size: 0.8rem;
-          color: var(--text-secondary);
-          margin: 0;
-        }
-
-        @media (max-width: 1200px) {
-          .metrics-grid { grid-template-columns: 1fr 1fr; }
-        }
-        @media (max-width: 768px) {
-          .metrics-grid { grid-template-columns: 1fr; }
-          .quick-stats-row { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </div>
   )
 }

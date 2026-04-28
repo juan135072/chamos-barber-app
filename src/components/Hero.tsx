@@ -72,7 +72,7 @@ export default function Hero() {
             className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-2xl mb-8"
           >
             <Star className="w-3.5 h-3.5 text-gold fill-gold" />
-            <span className="text-white/80 text-[10px] md:text-xs font-semibold tracking-[0.2em] uppercase">Establecido 2019</span>
+            <span className="text-white/80 text-[10px] md:text-xs font-semibold tracking-[0.2em] uppercase">Establecido en 2019</span>
             <Star className="w-3.5 h-3.5 text-gold fill-gold" />
           </motion.div>
           

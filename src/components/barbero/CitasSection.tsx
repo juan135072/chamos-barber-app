@@ -204,111 +204,56 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '48px 0' }}>
+      <div className="flex justify-center items-center py-12">
         <div className="spinner"></div>
       </div>
     )
   }
 
   return (
-    <div style={{ marginTop: '40px' }}>
+    <div className="mt-2">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--accent-color)' }}>Mis Citas</h2>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-black text-white uppercase tracking-wider">Mis Citas</h2>
         <button
           onClick={loadCitas}
-          style={{
-            padding: '10px 16px',
-            backgroundColor: 'var(--accent-color)',
-            color: 'var(--bg-primary)',
-            border: 'none',
-            borderRadius: '6px',
-            cursor: 'pointer',
-            fontSize: '14px',
-            fontWeight: '500',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
-          }}
+          className="relative group inline-flex overflow-hidden rounded-xl bg-gold/20 p-[1px] shrink-0"
         >
-          <i className="fas fa-sync-alt"></i>
-          Actualizar
+          <div className="relative bg-[#080808] px-4 py-2 rounded-xl transition-colors duration-300 group-hover:bg-gold/10 flex items-center gap-2">
+            <i className="fas fa-sync-alt text-gold group-hover:rotate-180 transition-transform duration-500"></i>
+            <span className="relative z-10 text-white font-bold text-sm uppercase">Actualizar</span>
+          </div>
         </button>
       </div>
 
       {/* Estadísticas */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)'
-        }}>
-          <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.7 }}>Total</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--text-primary)' }}>{stats.total}</div>
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="bg-white/[0.02] border border-white/10 p-4 rounded-2xl backdrop-blur-xl">
+          <div className="text-xs text-white/50 uppercase tracking-widest mb-1">Total</div>
+          <div className="text-2xl font-black text-white">{stats.total}</div>
         </div>
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)'
-        }}>
-          <div style={{ fontSize: '14px', color: '#60A5FA' }}>Hoy</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#93C5FD' }}>{stats.hoy}</div>
+        <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl backdrop-blur-xl">
+          <div className="text-xs text-blue-400 uppercase tracking-widest mb-1">Hoy</div>
+          <div className="text-2xl font-black text-blue-300">{stats.hoy}</div>
         </div>
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(234, 179, 8, 0.3)',
-          backgroundColor: 'rgba(234, 179, 8, 0.1)'
-        }}>
-          <div style={{ fontSize: '14px', color: '#FACC15' }}>Pendientes</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#FDE047' }}>{stats.pendientes}</div>
+        <div className="bg-yellow-500/10 border border-yellow-500/20 p-4 rounded-2xl backdrop-blur-xl">
+          <div className="text-xs text-yellow-400 uppercase tracking-widest mb-1">Pendientes</div>
+          <div className="text-2xl font-black text-yellow-300">{stats.pendientes}</div>
         </div>
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(34, 197, 94, 0.3)',
-          backgroundColor: 'rgba(34, 197, 94, 0.1)'
-        }}>
-          <div style={{ fontSize: '14px', color: '#4ADE80' }}>Confirmadas</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#86EFAC' }}>{stats.confirmadas}</div>
+        <div className="bg-green-500/10 border border-green-500/20 p-4 rounded-2xl backdrop-blur-xl">
+          <div className="text-xs text-green-400 uppercase tracking-widest mb-1">Confirmadas</div>
+          <div className="text-2xl font-black text-green-300">{stats.confirmadas}</div>
         </div>
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '16px',
-          borderRadius: '8px',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          backgroundColor: 'rgba(59, 130, 246, 0.1)'
-        }}>
-          <div style={{ fontSize: '14px', color: '#60A5FA' }}>Completadas</div>
-          <div style={{ fontSize: '24px', fontWeight: 'bold', color: '#93C5FD' }}>{stats.completadas}</div>
+        <div className="bg-blue-500/10 border border-blue-500/20 p-4 rounded-2xl backdrop-blur-xl">
+          <div className="text-xs text-blue-400 uppercase tracking-widest mb-1">Completadas</div>
+          <div className="text-2xl font-black text-blue-300">{stats.completadas}</div>
         </div>
       </div>
 
       {/* Filtros */}
-      <div style={{
-        background: 'var(--bg-secondary)',
-        padding: '16px',
-        borderRadius: '8px',
-        marginBottom: '24px',
-        border: '1px solid var(--border-color)',
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-        gap: '16px'
-      }}>
+      <div className="bg-white/[0.02] border border-white/10 p-4 rounded-2xl mb-6 backdrop-blur-xl grid grid-cols-1 md:grid-cols-3 gap-4">
         <div>
-          <label style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: '500',
-            marginBottom: '8px',
-            color: 'var(--text-primary)',
-            opacity: 0.9
-          }}>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">
             Buscar
           </label>
           <input
@@ -316,38 +261,17 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
             placeholder="Nombre, email o teléfono..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--text-primary)'
-            }}
+            className="w-full px-4 py-2 bg-white/[0.03] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-gold transition-colors"
           />
         </div>
         <div>
-          <label style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: '500',
-            marginBottom: '8px',
-            color: 'var(--text-primary)',
-            opacity: 0.9
-          }}>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">
             Estado
           </label>
           <select
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--text-primary)'
-            }}
+            className="w-full px-4 py-2 bg-[#0a0a0a] border border-white/10 rounded-xl text-white focus:outline-none focus:border-gold transition-colors"
           >
             <option value="todas">Todas</option>
             <option value="pendiente">Pendientes</option>
@@ -357,27 +281,13 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
           </select>
         </div>
         <div>
-          <label style={{
-            display: 'block',
-            fontSize: '14px',
-            fontWeight: '500',
-            marginBottom: '8px',
-            color: 'var(--text-primary)',
-            opacity: 0.9
-          }}>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">
             Fecha
           </label>
           <select
             value={filtroFecha}
             onChange={(e) => setFiltroFecha(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '8px 12px',
-              border: '1px solid var(--border-color)',
-              borderRadius: '6px',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--text-primary)'
-            }}
+            className="w-full px-4 py-2 bg-[#0a0a0a] border border-white/10 rounded-xl text-white focus:outline-none focus:border-gold transition-colors"
           >
             <option value="todas">Todas</option>
             <option value="hoy">Hoy</option>
@@ -389,177 +299,100 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
       {/* Tabla de Citas */}
       {citasFiltradas.length === 0 ? (
-        <div style={{
-          background: 'var(--bg-secondary)',
-          padding: '48px',
-          textAlign: 'center',
-          borderRadius: '8px',
-          border: '1px solid var(--border-color)',
-          color: 'var(--text-primary)',
-          opacity: 0.7
-        }}>
-          <p>No tienes citas que coincidan con los filtros</p>
+        <div className="bg-white/[0.02] border border-white/10 p-12 text-center rounded-2xl backdrop-blur-xl">
+          <p className="text-white/50 text-lg">No tienes citas que coincidan con los filtros</p>
         </div>
       ) : (
-        <div style={{
-          background: 'var(--bg-secondary)',
-          borderRadius: '8px',
-          overflow: 'auto',
-          border: '1px solid var(--border-color)'
-        }}>
-          <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0 }}>
-            <thead style={{ background: 'var(--bg-tertiary)' }}>
-              <tr>
-                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', fontWeight: '600', borderBottom: '1px solid var(--border-color)' }}>
-                  Cliente
-                </th>
-                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', fontWeight: '600', borderBottom: '1px solid var(--border-color)' }}>
-                  Contacto
-                </th>
-                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', fontWeight: '600', borderBottom: '1px solid var(--border-color)' }}>
-                  Fecha & Hora
-                </th>
-                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', fontWeight: '600', borderBottom: '1px solid var(--border-color)' }}>
-                  Servicio
-                </th>
-                <th style={{ padding: '12px', textAlign: 'left', color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', fontWeight: '600', borderBottom: '1px solid var(--border-color)' }}>
-                  Estado
-                </th>
-                <th style={{ padding: '12px', textAlign: 'center', color: 'var(--text-primary)', opacity: 0.7, fontSize: '14px', fontWeight: '600', borderBottom: '1px solid var(--border-color)' }}>
-                  Acciones
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {citasFiltradas.map((cita, index) => (
-                <tr
-                  key={cita.id}
-                  style={{
-                    borderBottom: index < citasFiltradas.length - 1 ? '1px solid var(--border-color)' : 'none',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-tertiary)'}
-                  onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                >
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{cita.cliente_nombre}</div>
-                    {cita.notas && (
-                      <div style={{
-                        fontSize: '12px',
-                        color: 'var(--text-primary)',
-                        opacity: 0.6,
-                        marginTop: '4px'
-                      }}>
-                        📝 {cita.notas.substring(0, 50)}{cita.notas.length > 50 ? '...' : ''}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.8 }}>
-                      {cita.cliente_email}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-primary)', opacity: 0.6, marginTop: '2px' }}>
-                      {cita.cliente_telefono}
-                    </div>
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.8 }}>
-                      {formatFechaChile(cita.fecha)}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-primary)', opacity: 0.6, marginTop: '2px' }}>
-                      {cita.hora}
-                    </div>
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ fontSize: '14px', color: 'var(--text-primary)', opacity: 0.8 }}>
-                      {cita.servicios?.nombre || 'N/A'}
-                    </div>
-                    <div style={{ fontSize: '13px', color: 'var(--accent-color)', marginTop: '2px' }}>
-                      ${cita.servicios?.precio || 0}
-                    </div>
-                  </td>
-                  <td style={{ padding: '12px' }}>
-                    <select
-                      value={cita.estado}
-                      onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
-                      style={{
-                        padding: '6px 10px',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '4px',
-                        fontSize: '13px',
-                        fontWeight: '500',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--text-primary)',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      <option value="pendiente">Pendiente</option>
-                      <option value="confirmada">Confirmada</option>
-                      <option value="completada">Completada</option>
-                      <option value="cancelada">Cancelada</option>
-                    </select>
-                  </td>
-                  <td style={{ padding: '12px', textAlign: 'center' }}>
-                    <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                      <button
-                        onClick={() => handleOpenNotas(cita)}
-                        style={{
-                          padding: '8px 12px',
-                          background: notasClientes[cita.cliente_email || '']
-                            ? 'rgba(212, 175, 55, 0.2)'
-                            : 'var(--bg-primary)',
-                          border: notasClientes[cita.cliente_email || '']
-                            ? '1px solid rgba(212, 175, 55, 0.4)'
-                            : '1px solid var(--border-color)',
-                          borderRadius: '4px',
-                          color: notasClientes[cita.cliente_email || '']
-                            ? 'var(--accent-color)'
-                            : 'var(--text-primary)',
-                          cursor: 'pointer',
-                          fontSize: '13px',
-                          fontWeight: '500'
-                        }}
-                        title={notasClientes[cita.cliente_email || '']
-                          ? `Ver ${notasClientes[cita.cliente_email || '']} nota(s)`
-                          : 'Agregar nota'}
-                      >
-                        <i className="fas fa-sticky-note"></i>
-                        {notasClientes[cita.cliente_email || ''] > 0 && (
-                          <span style={{ marginLeft: '4px' }}>{notasClientes[cita.cliente_email || '']}</span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDeleteCita(cita.id)}
-                        style={{
-                          padding: '8px 12px',
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)',
-                          borderRadius: '4px',
-                          color: '#EF4444',
-                          cursor: 'pointer',
-                          fontSize: '13px'
-                        }}
-                        title="Eliminar cita del historial"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </div>
-                  </td>
+        <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden backdrop-blur-xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white/5">
+                <tr>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10">Cliente</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10">Contacto</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10">Fecha & Hora</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10">Servicio</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10">Estado</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10 text-center">Acciones</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {citasFiltradas.map((cita) => (
+                  <tr key={cita.id} className="hover:bg-white/[0.03] transition-colors">
+                    <td className="p-4">
+                      <div className="font-bold text-white">{cita.cliente_nombre}</div>
+                      {cita.notas && (
+                        <div className="text-xs text-white/50 mt-1">
+                          📝 {cita.notas.substring(0, 50)}{cita.notas.length > 50 ? '...' : ''}
+                        </div>
+                      )}
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm text-white/80">{cita.cliente_email}</div>
+                      <div className="text-xs text-white/50 mt-1">{cita.cliente_telefono}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm text-white/80">{formatFechaChile(cita.fecha)}</div>
+                      <div className="text-xs text-gold mt-1 font-bold">{cita.hora}</div>
+                    </td>
+                    <td className="p-4">
+                      <div className="text-sm text-white/80">{cita.servicios?.nombre || 'N/A'}</div>
+                      <div className="text-xs text-gold mt-1 font-bold">${cita.servicios?.precio || 0}</div>
+                    </td>
+                    <td className="p-4">
+                      <select
+                        value={cita.estado}
+                        onChange={(e) => handleUpdateEstado(cita.id, e.target.value)}
+                        className={`px-3 py-1 text-xs font-bold uppercase tracking-wider rounded-lg border cursor-pointer outline-none transition-colors ${
+                          cita.estado === 'confirmada' ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                          cita.estado === 'pendiente' ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                          cita.estado === 'completada' ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' :
+                          'bg-red-500/20 text-red-400 border-red-500/30'
+                        }`}
+                      >
+                        <option value="pendiente" className="bg-[#0a0a0a] text-white">Pendiente</option>
+                        <option value="confirmada" className="bg-[#0a0a0a] text-white">Confirmada</option>
+                        <option value="completada" className="bg-[#0a0a0a] text-white">Completada</option>
+                        <option value="cancelada" className="bg-[#0a0a0a] text-white">Cancelada</option>
+                      </select>
+                    </td>
+                    <td className="p-4">
+                      <div className="flex justify-center gap-2 relative">
+                        <button
+                          onClick={() => handleOpenNotas(cita)}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors relative ${
+                            notasClientes[cita.cliente_email || '']
+                              ? 'bg-gold/20 border border-gold/30 text-gold hover:bg-gold/30'
+                              : 'bg-white/[0.03] border border-white/10 text-white/50 hover:bg-white/10 hover:text-white'
+                          }`}
+                          title={notasClientes[cita.cliente_email || ''] ? `Ver ${notasClientes[cita.cliente_email || '']} nota(s)` : 'Agregar nota'}
+                        >
+                          <i className="fas fa-sticky-note text-sm"></i>
+                          {notasClientes[cita.cliente_email || ''] > 0 && (
+                            <span className="absolute -top-2 -right-2 w-5 h-5 bg-gold rounded-full text-[#080808] text-[10px] font-black flex items-center justify-center border-2 border-[#080808]">
+                              {notasClientes[cita.cliente_email || '']}
+                            </span>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCita(cita.id)}
+                          className="w-8 h-8 rounded-lg flex items-center justify-center bg-red-500/10 border border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors"
+                          title="Eliminar cita del historial"
+                        >
+                          <i className="fas fa-trash text-sm"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
       {/* Resumen */}
-      <div style={{
-        marginTop: '16px',
-        textAlign: 'center',
-        fontSize: '14px',
-        color: 'var(--text-primary)',
-        opacity: 0.7
-      }}>
+      <div className="mt-4 text-center text-sm text-white/50">
         Mostrando {citasFiltradas.length} de {citas.length} citas
       </div>
 

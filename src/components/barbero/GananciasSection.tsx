@@ -183,85 +183,88 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
   const totales = calcularTotales()
 
   return (
-    <div className="ganancias-section">
-      <div className="section-header">
+    <div className="mt-2">
+      <div className="flex justify-between items-center mb-6">
         <div>
-          <h2>
-            <i className="fas fa-chart-line"></i> Mis Ganancias
+          <h2 className="text-2xl font-black text-white uppercase tracking-wider flex items-center gap-3">
+            <i className="fas fa-chart-line text-gold"></i> Mis Ganancias
           </h2>
-          <p className="subtitle">
+          <p className="text-white/50 text-sm mt-1">
             Consulta tus ganancias y comisiones por período
           </p>
         </div>
       </div>
 
       {/* Filtros de Fecha */}
-      <div className="filtros-section">
-        <div className="filtros-header">
-          <h3>
-            <i className="fas fa-filter"></i> Filtros de Fecha
+      <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 mb-6 backdrop-blur-xl">
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-white uppercase tracking-wider flex items-center gap-2">
+            <i className="fas fa-filter text-gold"></i> Filtros de Fecha
           </h3>
         </div>
 
         {/* Botones rápidos */}
-        <div className="filtros-rapidos">
-          <button className="btn btn-small" onClick={setHoy}>
-            <i className="fas fa-calendar-day"></i> Hoy
+        <div className="flex flex-wrap gap-4 mb-6">
+          <button className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-colors flex items-center gap-2" onClick={setHoy}>
+            <i className="fas fa-calendar-day text-gold"></i> Hoy
           </button>
-          <button className="btn btn-small" onClick={setAyer}>
-            <i className="fas fa-calendar-minus"></i> Ayer
+          <button className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-colors flex items-center gap-2" onClick={setAyer}>
+            <i className="fas fa-calendar-minus text-gold"></i> Ayer
           </button>
-          <button className="btn btn-small" onClick={setMesActual}>
-            <i className="fas fa-calendar-alt"></i> Mes Actual
+          <button className="px-4 py-2 bg-white/[0.03] hover:bg-white/[0.05] border border-white/10 rounded-xl text-white text-sm font-bold uppercase tracking-wider transition-colors flex items-center gap-2" onClick={setMesActual}>
+            <i className="fas fa-calendar-alt text-gold"></i> Mes Actual
           </button>
         </div>
 
         {/* Tipo de filtro */}
-        <div className="filtro-tipo">
-          <label className="form-label">Tipo de Reporte:</label>
-          <div className="radio-group">
-            <label className="radio-label">
+        <div className="mb-6">
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">Tipo de Reporte:</label>
+          <div className="flex flex-wrap gap-6">
+            <label className="flex items-center gap-2 text-white cursor-pointer group">
               <input
                 type="radio"
                 name="tipoFiltro"
                 value="dia"
                 checked={tipoFiltro === 'dia'}
                 onChange={() => handleTipoFiltroChange('dia')}
+                className="accent-gold w-4 h-4 cursor-pointer"
               />
-              <span>Día Específico</span>
+              <span className="group-hover:text-gold transition-colors">Día Específico</span>
             </label>
-            <label className="radio-label">
+            <label className="flex items-center gap-2 text-white cursor-pointer group">
               <input
                 type="radio"
                 name="tipoFiltro"
                 value="rango"
                 checked={tipoFiltro === 'rango'}
                 onChange={() => handleTipoFiltroChange('rango')}
+                className="accent-gold w-4 h-4 cursor-pointer"
               />
-              <span>Rango de Fechas</span>
+              <span className="group-hover:text-gold transition-colors">Rango de Fechas</span>
             </label>
-            <label className="radio-label">
+            <label className="flex items-center gap-2 text-white cursor-pointer group">
               <input
                 type="radio"
                 name="tipoFiltro"
                 value="mes"
                 checked={tipoFiltro === 'mes'}
                 onChange={() => handleTipoFiltroChange('mes')}
+                className="accent-gold w-4 h-4 cursor-pointer"
               />
-              <span>Mes Completo</span>
+              <span className="group-hover:text-gold transition-colors">Mes Completo</span>
             </label>
           </div>
         </div>
 
         {/* Selectores de fecha */}
-        <div className="fecha-inputs">
-          <div className="form-group">
-            <label className="form-label">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">
               {tipoFiltro === 'mes' ? 'Mes:' : 'Fecha Inicio:'}
             </label>
             <input
               type={tipoFiltro === 'mes' ? 'month' : 'date'}
-              className="form-input"
+              className="w-full px-4 py-2 bg-[#0a0a0a] border border-white/10 rounded-xl text-white focus:outline-none focus:border-gold transition-colors"
               value={
                 tipoFiltro === 'mes'
                   ? fechaInicio.substring(0, 7)
@@ -281,11 +284,11 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
           </div>
 
           {tipoFiltro === 'rango' && (
-            <div className="form-group">
-              <label className="form-label">Fecha Fin:</label>
+            <div>
+              <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-2">Fecha Fin:</label>
               <input
                 type="date"
-                className="form-input"
+                className="w-full px-4 py-2 bg-[#0a0a0a] border border-white/10 rounded-xl text-white focus:outline-none focus:border-gold transition-colors"
                 value={fechaFin}
                 onChange={(e) => setFechaFin(e.target.value)}
                 min={fechaInicio}
@@ -296,103 +299,109 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
       </div>
 
       {/* Tarjetas de Totales */}
-      <div className="totales-cards">
-        <div className="total-card">
-          <div className="card-icon ventas">
-            <i className="fas fa-dollar-sign"></i>
-          </div>
-          <div className="card-content">
-            <h4>Total Ventas</h4>
-            <p className="card-value">${totales.total_ventas.toFixed(2)}</p>
-            <p className="card-detail">
-              {totales.numero_servicios} servicio
-              {totales.numero_servicios !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
-
-        <div className="total-card">
-          <div className="card-icon comisiones">
-            <i className="fas fa-wallet"></i>
-          </div>
-          <div className="card-content">
-            <h4>Mis Ganancias</h4>
-            <p className="card-value">${totales.total_comisiones.toFixed(2)}</p>
-            <p className="card-detail">
-              {totales.total_ventas > 0
-                ? `${((totales.total_comisiones / totales.total_ventas) * 100).toFixed(1)}%`
-                : '0%'}{' '}
-              de comisión
-            </p>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-2xl backdrop-blur-xl group hover:border-gold/30 transition-all">
+          <div className="flex gap-4 items-center">
+            <div className="w-14 h-14 rounded-xl bg-green-500/10 text-green-400 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              <i className="fas fa-dollar-sign"></i>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-1">Total Ventas</h4>
+              <p className="text-3xl font-black text-white mb-1">${totales.total_ventas.toFixed(2)}</p>
+              <p className="text-xs text-white/40">
+                {totales.numero_servicios} servicio{totales.numero_servicios !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="total-card">
-          <div className="card-icon promedio">
-            <i className="fas fa-chart-bar"></i>
+        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-2xl backdrop-blur-xl group hover:border-gold/30 transition-all relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+          <div className="flex gap-4 items-center relative z-10">
+            <div className="w-14 h-14 rounded-xl bg-gold/10 text-gold flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              <i className="fas fa-wallet"></i>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-1">Mis Ganancias</h4>
+              <p className="text-3xl font-black text-gold mb-1">${totales.total_comisiones.toFixed(2)}</p>
+              <p className="text-xs text-white/40">
+                {totales.total_ventas > 0
+                  ? `${((totales.total_comisiones / totales.total_ventas) * 100).toFixed(1)}%`
+                  : '0%'}{' '}
+                de comisión
+              </p>
+            </div>
           </div>
-          <div className="card-content">
-            <h4>Promedio por Servicio</h4>
-            <p className="card-value">
-              $
-              {totales.numero_servicios > 0
-                ? (totales.total_comisiones / totales.numero_servicios).toFixed(2)
-                : '0.00'}
-            </p>
-            <p className="card-detail">
-              Ganancia por servicio
-            </p>
+        </div>
+
+        <div className="bg-white/[0.02] border border-white/10 p-6 rounded-2xl backdrop-blur-xl group hover:border-gold/30 transition-all">
+          <div className="flex gap-4 items-center">
+            <div className="w-14 h-14 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+              <i className="fas fa-chart-bar"></i>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-white/50 uppercase tracking-wider mb-1">Promedio por Servicio</h4>
+              <p className="text-3xl font-black text-white mb-1">
+                ${totales.numero_servicios > 0
+                  ? (totales.total_comisiones / totales.numero_servicios).toFixed(2)
+                  : '0.00'}
+              </p>
+              <p className="text-xs text-white/40">
+                Ganancia por servicio
+              </p>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Tabla de Ganancias por Día */}
-      <div className="tabla-ganancias">
+      <div className="bg-white/[0.02] border border-white/10 rounded-2xl backdrop-blur-xl overflow-hidden">
         {loading ? (
-          <div className="loading">
-            <i className="fas fa-spinner fa-spin"></i> Cargando ganancias...
+          <div className="p-12 text-center text-gold">
+            <i className="fas fa-spinner fa-spin text-4xl mb-4"></i>
+            <p className="text-white/70 font-bold uppercase tracking-wider text-sm">Cargando ganancias...</p>
           </div>
         ) : ganancias.length === 0 ? (
-          <div className="empty-state">
-            <i className="fas fa-inbox"></i>
-            <p>No hay ventas registradas en el período seleccionado</p>
+          <div className="p-12 text-center text-white/40">
+            <i className="fas fa-inbox text-5xl mb-4 text-white/20"></i>
+            <p className="font-medium">No hay ventas registradas en el período seleccionado</p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-white/5">
                 <tr>
-                  <th>Fecha</th>
-                  <th className="text-center">Servicios</th>
-                  <th className="text-right">Total Ventas</th>
-                  <th className="text-center">% Comisión</th>
-                  <th className="text-right">Mis Ganancias</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10">Fecha</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10 text-center">Servicios</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10 text-right">Total Ventas</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10 text-center">% Comisión</th>
+                  <th className="p-4 text-xs font-bold text-white/70 uppercase tracking-wider border-b border-white/10 text-right">Mis Ganancias</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-white/5">
                 {ganancias.map((ganancia) => (
-                  <tr key={ganancia.fecha}>
-                    <td>
-                      <div className="fecha-info">
-                        <i className="fas fa-calendar"></i>
+                  <tr key={ganancia.fecha} className="hover:bg-white/[0.03] transition-colors">
+                    <td className="p-4">
+                      <div className="flex items-center gap-3 text-white font-medium">
+                        <i className="fas fa-calendar text-gold"></i>
                         <span>{formatearFecha(ganancia.fecha)}</span>
                       </div>
                     </td>
-                    <td className="text-center">
-                      <span className="badge badge-info">
+                    <td className="p-4 text-center">
+                      <span className="inline-flex items-center justify-center px-3 py-1 bg-blue-500/20 text-blue-400 rounded-lg text-xs font-bold">
                         {ganancia.numero_servicios}
                       </span>
                     </td>
-                    <td className="text-right">
-                      <strong>${ganancia.total_ventas.toFixed(2)}</strong>
+                    <td className="p-4 text-right">
+                      <strong className="text-white">${ganancia.total_ventas.toFixed(2)}</strong>
                     </td>
-                    <td className="text-center">
-                      <span className="badge badge-primary">
+                    <td className="p-4 text-center">
+                      <span className="inline-flex items-center justify-center px-3 py-1 bg-gold/20 text-gold rounded-lg text-xs font-bold">
                         {ganancia.porcentaje_promedio.toFixed(1)}%
                       </span>
                     </td>
-                    <td className="text-right">
-                      <span className="amount-positive">
+                    <td className="p-4 text-right">
+                      <span className="text-gold font-black text-lg">
                         ${ganancia.comision_barbero.toFixed(2)}
                       </span>
                     </td>
@@ -400,26 +409,24 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
                 ))}
               </tbody>
               {ganancias.length > 1 && (
-                <tfoot>
-                  <tr className="totales-row">
-                    <td>
-                      <strong>TOTALES</strong>
+                <tfoot className="bg-white/5 border-t-2 border-gold/30">
+                  <tr>
+                    <td className="p-4 text-white font-black uppercase tracking-wider text-sm">
+                      TOTALES
                     </td>
-                    <td className="text-center">
-                      <strong>{totales.numero_servicios}</strong>
+                    <td className="p-4 text-center text-white font-bold">
+                      {totales.numero_servicios}
                     </td>
-                    <td className="text-right">
-                      <strong>${totales.total_ventas.toFixed(2)}</strong>
+                    <td className="p-4 text-right text-white font-bold">
+                      ${totales.total_ventas.toFixed(2)}
                     </td>
-                    <td className="text-center">
-                      <strong>
-                        {totales.total_ventas > 0
-                          ? `${((totales.total_comisiones / totales.total_ventas) * 100).toFixed(1)}%`
-                          : '-'}
-                      </strong>
+                    <td className="p-4 text-center text-white font-bold">
+                      {totales.total_ventas > 0
+                        ? `${((totales.total_comisiones / totales.total_ventas) * 100).toFixed(1)}%`
+                        : '-'}
                     </td>
-                    <td className="text-right">
-                      <strong>${totales.total_comisiones.toFixed(2)}</strong>
+                    <td className="p-4 text-right text-gold font-black text-lg">
+                      ${totales.total_comisiones.toFixed(2)}
                     </td>
                   </tr>
                 </tfoot>
@@ -428,325 +435,5 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
           </div>
         )}
       </div>
-
-      <style jsx>{`
-        .ganancias-section {
-          padding: 0;
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 2rem;
-        }
-
-        .section-header h2 {
-          margin: 0;
-          color: var(--text-primary);
-          font-size: 1.8rem;
-        }
-
-        .section-header h2 i {
-          color: var(--accent-color);
-          margin-right: 0.5rem;
-        }
-
-        .subtitle {
-          color: var(--text-secondary);
-          margin: 0.5rem 0 0 0;
-        }
-
-        /* Filtros */
-        .filtros-section {
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 1.5rem;
-          margin-bottom: 2rem;
-        }
-
-        .filtros-header h3 {
-          margin: 0 0 1rem 0;
-          color: var(--text-primary);
-          font-size: 1.2rem;
-        }
-
-        .filtros-header h3 i {
-          color: var(--accent-color);
-          margin-right: 0.5rem;
-        }
-
-        .filtros-rapidos {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1.5rem;
-          flex-wrap: wrap;
-        }
-
-        .btn-small {
-          padding: 0.5rem 1rem;
-          font-size: 0.9rem;
-        }
-
-        .btn-small i {
-          margin-right: 0.5rem;
-        }
-
-        .filtro-tipo {
-          margin-bottom: 1.5rem;
-        }
-
-        .radio-group {
-          display: flex;
-          gap: 1.5rem;
-          margin-top: 0.5rem;
-          flex-wrap: wrap;
-        }
-
-        .radio-label {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-          color: var(--text-primary);
-          cursor: pointer;
-        }
-
-        .radio-label input[type='radio'] {
-          cursor: pointer;
-        }
-
-        .fecha-inputs {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 1rem;
-        }
-
-        /* Tarjetas de Totales */
-        .totales-cards {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-          gap: 1.5rem;
-          margin-bottom: 2rem;
-        }
-
-        .total-card {
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 1.5rem;
-          display: flex;
-          gap: 1rem;
-          transition: all 0.3s ease;
-        }
-
-        .total-card:hover {
-          border-color: var(--accent-color);
-          transform: translateY(-2px);
-          box-shadow: 0 4px 12px rgba(212, 175, 55, 0.2);
-        }
-
-        .card-icon {
-          width: 60px;
-          height: 60px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.8rem;
-        }
-
-        .card-icon.ventas {
-          background: rgba(52, 211, 153, 0.1);
-          color: #34d399;
-        }
-
-        .card-icon.comisiones {
-          background: rgba(212, 175, 55, 0.1);
-          color: var(--accent-color);
-        }
-
-        .card-icon.promedio {
-          background: rgba(96, 165, 250, 0.1);
-          color: #60a5fa;
-        }
-
-        .card-content {
-          flex: 1;
-        }
-
-        .card-content h4 {
-          margin: 0 0 0.5rem 0;
-          color: var(--text-secondary);
-          font-size: 0.9rem;
-          font-weight: 500;
-        }
-
-        .card-value {
-          margin: 0 0 0.25rem 0;
-          color: var(--text-primary);
-          font-size: 1.8rem;
-          font-weight: 700;
-        }
-
-        .card-detail {
-          margin: 0;
-          color: var(--text-secondary);
-          font-size: 0.85rem;
-        }
-
-        /* Tabla */
-        .tabla-ganancias {
-          background: var(--bg-secondary);
-          border: 1px solid var(--border-color);
-          border-radius: 12px;
-          padding: 1.5rem;
-        }
-
-        .loading,
-        .empty-state {
-          text-align: center;
-          padding: 3rem;
-          color: var(--text-secondary);
-        }
-
-        .loading i,
-        .empty-state i {
-          font-size: 3rem;
-          margin-bottom: 1rem;
-          color: var(--accent-color);
-          display: block;
-        }
-
-        .table-responsive {
-          overflow-x: auto;
-        }
-
-        .data-table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-
-        .data-table th {
-          background: var(--bg-primary);
-          color: var(--text-secondary);
-          padding: 1rem;
-          text-align: left;
-          font-weight: 600;
-          font-size: 0.85rem;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          border-bottom: 2px solid var(--border-color);
-        }
-
-        .data-table td {
-          padding: 1rem;
-          color: var(--text-primary);
-          border-bottom: 1px solid var(--border-color);
-        }
-
-        .data-table tbody tr {
-          transition: background 0.2s ease;
-        }
-
-        .data-table tbody tr:hover {
-          background: var(--bg-primary);
-        }
-
-        .data-table tfoot tr {
-          background: var(--bg-primary);
-          border-top: 2px solid var(--accent-color);
-        }
-
-        .data-table tfoot td {
-          padding: 1rem;
-          font-weight: 700;
-          color: var(--text-primary);
-        }
-
-        .fecha-info {
-          display: flex;
-          align-items: center;
-          gap: 0.5rem;
-        }
-
-        .fecha-info i {
-          color: var(--accent-color);
-          font-size: 1.1rem;
-        }
-
-        .text-center {
-          text-align: center;
-        }
-
-        .text-right {
-          text-align: right;
-        }
-
-        .badge {
-          display: inline-block;
-          padding: 0.25rem 0.75rem;
-          border-radius: 12px;
-          font-size: 0.85rem;
-          font-weight: 600;
-        }
-
-        .badge-info {
-          background: rgba(96, 165, 250, 0.2);
-          color: #60a5fa;
-        }
-
-        .badge-primary {
-          background: rgba(212, 175, 55, 0.2);
-          color: var(--accent-color);
-        }
-
-        .amount-positive {
-          color: var(--accent-color);
-          font-weight: 700;
-          font-size: 1.1rem;
-        }
-
-        .totales-row {
-          font-size: 1.1rem;
-        }
-
-        @media (max-width: 768px) {
-          .section-header h2 {
-            font-size: 1.4rem;
-          }
-
-          .totales-cards {
-            grid-template-columns: 1fr;
-          }
-
-          .filtros-rapidos {
-            flex-direction: column;
-          }
-
-          .btn-small {
-            width: 100%;
-          }
-
-          .radio-group {
-            flex-direction: column;
-            gap: 0.75rem;
-          }
-
-          .data-table {
-            font-size: 0.85rem;
-          }
-
-          .data-table th,
-          .data-table td {
-            padding: 0.75rem 0.5rem;
-          }
-
-          .card-value {
-            font-size: 1.5rem;
-          }
-        }
-      `}</style>
     </div>
-  )
 }

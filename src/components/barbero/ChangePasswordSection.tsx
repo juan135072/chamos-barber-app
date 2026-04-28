@@ -89,54 +89,27 @@ const ChangePasswordSection: React.FC = () => {
   const passwordStrength = getPasswordStrength(newPassword)
 
   return (
-    <div style={{ 
-      maxWidth: '600px', 
-      margin: '0 auto',
-      background: 'var(--bg-secondary)',
-      padding: '2rem',
-      borderRadius: 'var(--border-radius)',
-      border: '1px solid var(--border-color)'
-    }}>
-      <h2 style={{ marginBottom: '1rem', color: 'var(--accent-color)' }}>
-        <i className="fas fa-key"></i> Cambiar Contraseña
+    <div className="max-w-2xl mx-auto bg-white/[0.02] border border-white/10 p-8 rounded-3xl backdrop-blur-xl mt-4">
+      <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-2 flex items-center gap-3">
+        <i className="fas fa-key text-gold"></i> Cambiar Contraseña
       </h2>
       
-      <p style={{ 
-        marginBottom: '2rem', 
-        color: 'var(--text-primary)', 
-        opacity: 0.8,
-        fontSize: '0.95rem'
-      }}>
+      <p className="text-white/60 text-sm mb-8">
         Por seguridad, te recomendamos usar una contraseña fuerte con al menos 8 caracteres.
       </p>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Contraseña Actual */}
-        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-          <label className="form-label" style={{ 
-            display: 'block', 
-            marginBottom: '0.5rem',
-            color: 'var(--text-primary)',
-            fontSize: '0.95rem',
-            fontWeight: '500'
-          }}>
+        <div>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
             Contraseña Actual
           </label>
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <input
               type={showCurrentPassword ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="form-control"
-              style={{
-                width: '100%',
-                padding: '0.75rem 3rem 0.75rem 1rem',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--border-radius)',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
+              className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-gold transition-colors pr-12"
               placeholder="Ingresa tu contraseña actual"
               disabled={loading}
               required
@@ -144,19 +117,7 @@ const ChangePasswordSection: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-              style={{
-                position: 'absolute',
-                right: '1rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-primary)',
-                opacity: 0.6,
-                cursor: 'pointer',
-                fontSize: '1.1rem',
-                padding: '0.25rem'
-              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
               title={showCurrentPassword ? 'Ocultar' : 'Mostrar'}
             >
               <i className={`fas ${showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -165,31 +126,16 @@ const ChangePasswordSection: React.FC = () => {
         </div>
 
         {/* Nueva Contraseña */}
-        <div className="form-group" style={{ marginBottom: '1rem' }}>
-          <label className="form-label" style={{ 
-            display: 'block', 
-            marginBottom: '0.5rem',
-            color: 'var(--text-primary)',
-            fontSize: '0.95rem',
-            fontWeight: '500'
-          }}>
+        <div>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
             Nueva Contraseña
           </label>
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <input
               type={showNewPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="form-control"
-              style={{
-                width: '100%',
-                padding: '0.75rem 3rem 0.75rem 1rem',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: 'var(--border-radius)',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
+              className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-gold transition-colors pr-12"
               placeholder="Mínimo 8 caracteres"
               disabled={loading}
               required
@@ -198,19 +144,7 @@ const ChangePasswordSection: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowNewPassword(!showNewPassword)}
-              style={{
-                position: 'absolute',
-                right: '1rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-primary)',
-                opacity: 0.6,
-                cursor: 'pointer',
-                fontSize: '1.1rem',
-                padding: '0.25rem'
-              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
               title={showNewPassword ? 'Ocultar' : 'Mostrar'}
             >
               <i className={`fas ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
@@ -219,25 +153,17 @@ const ChangePasswordSection: React.FC = () => {
           
           {/* Indicador de fortaleza */}
           {newPassword && (
-            <div style={{ marginTop: '0.5rem' }}>
-              <div style={{ 
-                height: '4px', 
-                background: 'var(--bg-tertiary)', 
-                borderRadius: '2px',
-                overflow: 'hidden'
-              }}>
-                <div style={{ 
-                  height: '100%', 
-                  width: passwordStrength.width,
-                  background: passwordStrength.color,
-                  transition: 'all 0.3s'
-                }}></div>
+            <div className="mt-3">
+              <div className="h-1 bg-white/10 rounded-full overflow-hidden">
+                <div 
+                  className="h-full transition-all duration-300"
+                  style={{ 
+                    width: passwordStrength.width,
+                    backgroundColor: passwordStrength.color
+                  }}
+                ></div>
               </div>
-              <p style={{ 
-                fontSize: '0.85rem', 
-                marginTop: '0.25rem',
-                color: passwordStrength.color
-              }}>
+              <p className="text-xs font-bold uppercase tracking-wider mt-2" style={{ color: passwordStrength.color }}>
                 Fortaleza: {passwordStrength.strength}
               </p>
             </div>
@@ -245,31 +171,20 @@ const ChangePasswordSection: React.FC = () => {
         </div>
 
         {/* Confirmar Nueva Contraseña */}
-        <div className="form-group" style={{ marginBottom: '2rem' }}>
-          <label className="form-label" style={{ 
-            display: 'block', 
-            marginBottom: '0.5rem',
-            color: 'var(--text-primary)',
-            fontSize: '0.95rem',
-            fontWeight: '500'
-          }}>
+        <div>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
             Confirmar Nueva Contraseña
           </label>
-          <div style={{ position: 'relative' }}>
+          <div className="relative">
             <input
               type={showConfirmPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="form-control"
-              style={{
-                width: '100%',
-                padding: '0.75rem 3rem 0.75rem 1rem',
-                background: 'var(--bg-primary)',
-                border: `1px solid ${confirmPassword && newPassword !== confirmPassword ? '#ef4444' : 'var(--border-color)'}`,
-                borderRadius: 'var(--border-radius)',
-                color: 'var(--text-primary)',
-                fontSize: '1rem'
-              }}
+              className={`w-full px-4 py-3 bg-[#0a0a0a] border rounded-xl text-white placeholder-white/30 focus:outline-none transition-colors pr-12 ${
+                confirmPassword && newPassword !== confirmPassword 
+                  ? 'border-red-500/50 focus:border-red-500' 
+                  : 'border-white/10 focus:border-gold'
+              }`}
               placeholder="Repite la nueva contraseña"
               disabled={loading}
               required
@@ -277,52 +192,33 @@ const ChangePasswordSection: React.FC = () => {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              style={{
-                position: 'absolute',
-                right: '1rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-primary)',
-                opacity: 0.6,
-                cursor: 'pointer',
-                fontSize: '1.1rem',
-                padding: '0.25rem'
-              }}
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
               title={showConfirmPassword ? 'Ocultar' : 'Mostrar'}
             >
               <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
             </button>
           </div>
           {confirmPassword && newPassword !== confirmPassword && (
-            <p style={{ fontSize: '0.85rem', color: '#ef4444', marginTop: '0.25rem' }}>
+            <p className="text-xs text-red-400 mt-2 font-bold flex items-center gap-1">
               <i className="fas fa-exclamation-circle"></i> Las contraseñas no coinciden
             </p>
           )}
         </div>
 
         {/* Info Box */}
-        <div style={{
-          padding: '1rem',
-          background: 'rgba(59, 130, 246, 0.1)',
-          border: '1px solid rgba(59, 130, 246, 0.3)',
-          borderRadius: 'var(--border-radius)',
-          marginBottom: '1.5rem'
-        }}>
-          <p style={{ fontSize: '0.85rem', color: '#60a5fa', margin: 0, lineHeight: 1.5 }}>
-            <i className="fas fa-info-circle"></i> <strong>Consejos para una contraseña segura:</strong>
-            <br />
-            • Usa al menos 12 caracteres
-            <br />
-            • Combina mayúsculas, minúsculas, números y símbolos
-            <br />
-            • Evita información personal o palabras comunes
+        <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl text-sm text-blue-400">
+          <p className="font-bold flex items-center gap-2 mb-2">
+            <i className="fas fa-info-circle"></i> Consejos para una contraseña segura:
           </p>
+          <ul className="space-y-1 pl-6 list-disc opacity-80">
+            <li>Usa al menos 12 caracteres</li>
+            <li>Combina mayúsculas, minúsculas, números y símbolos</li>
+            <li>Evita información personal o palabras comunes</li>
+          </ul>
         </div>
 
         {/* Botones */}
-        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end' }}>
+        <div className="flex gap-4 justify-end pt-4">
           <button
             type="button"
             onClick={() => {
@@ -330,50 +226,23 @@ const ChangePasswordSection: React.FC = () => {
               setNewPassword('')
               setConfirmPassword('')
             }}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'var(--bg-primary)',
-              border: '1px solid var(--border-color)',
-              borderRadius: 'var(--border-radius)',
-              color: 'var(--text-primary)',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              transition: 'all 0.3s'
-            }}
+            className="px-6 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-bold uppercase tracking-wider text-sm transition-colors"
             disabled={loading}
           >
             Cancelar
           </button>
           <button
             type="submit"
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'var(--accent-color)',
-              border: 'none',
-              borderRadius: 'var(--border-radius)',
-              color: '#000',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: 'bold',
-              transition: 'all 0.3s'
-            }}
             disabled={loading || !currentPassword || !newPassword || !confirmPassword || newPassword !== confirmPassword}
-            onMouseEnter={(e) => {
-              if (!loading) e.currentTarget.style.opacity = '0.9'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.opacity = '1'
-            }}
+            className="relative group inline-flex overflow-hidden rounded-xl bg-gold/20 p-[1px] disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? (
-              <>
-                <i className="fas fa-spinner fa-spin"></i> Cambiando...
-              </>
-            ) : (
-              <>
-                <i className="fas fa-check"></i> Cambiar Contraseña
-              </>
-            )}
+            <div className="relative bg-gradient-to-br from-gold to-[#a88647] px-6 py-3 rounded-xl transition-all duration-300 group-hover:brightness-110 flex items-center justify-center gap-2">
+              {loading ? (
+                <><i className="fas fa-circle-notch fa-spin text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider text-sm">Cambiando...</span></>
+              ) : (
+                <><i className="fas fa-check text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider text-sm">Cambiar Contraseña</span></>
+              )}
+            </div>
           </button>
         </div>
       </form>

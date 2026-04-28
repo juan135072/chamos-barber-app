@@ -200,13 +200,9 @@ export default function MarcarAsistencia({ barberoId }: Props) {
 
     if (verificandoAsistencia) {
         return (
-            <div style={{
-                padding: '2rem',
-                background: 'var(--card-background)',
-                borderRadius: '12px',
-                textAlign: 'center'
-            }}>
-                <p style={{ color: 'var(--text-secondary)' }}>Verificando asistencia...</p>
+            <div className="bg-white/[0.02] border border-white/10 p-8 rounded-3xl backdrop-blur-xl text-center">
+                <i className="fas fa-circle-notch fa-spin text-gold text-3xl mb-4"></i>
+                <p className="text-white/60 font-medium tracking-wider uppercase text-sm">Verificando asistencia...</p>
             </div>
         )
     }
@@ -216,42 +212,24 @@ export default function MarcarAsistencia({ barberoId }: Props) {
         const esNormal = asistenciaHoy.estado === 'normal'
 
         return (
-            <div style={{
-                padding: '2rem',
-                background: esNormal ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                border: `2px solid ${esNormal ? '#10b981' : '#f59e0b'}`,
-                borderRadius: '12px',
-                textAlign: 'center'
-            }}>
-                <div style={{
-                    fontSize: '48px',
-                    marginBottom: '1rem'
-                }}>
+            <div className={`p-8 rounded-3xl backdrop-blur-xl text-center transition-all ${
+                esNormal 
+                    ? 'bg-green-500/5 border border-green-500/20 shadow-[0_0_30px_rgba(16,185,129,0.1)]' 
+                    : 'bg-yellow-500/5 border border-yellow-500/20 shadow-[0_0_30px_rgba(234,179,8,0.1)]'
+            }`}>
+                <div className="text-6xl mb-6">
                     {esNormal ? '✅' : '⚠️'}
                 </div>
-                <h3 style={{
-                    margin: '0 0 0.5rem 0',
-                    color: 'var(--text-primary)',
-                    fontSize: '1.25rem'
-                }}>
+                <h3 className="text-2xl font-black text-white uppercase tracking-wider mb-2">
                     Asistencia Registrada
                 </h3>
-                <p style={{
-                    margin: '0 0 0.5rem 0',
-                    color: 'var(--text-secondary)',
-                    fontSize: '1rem'
-                }}>
-                    Llegaste a las <strong style={{ color: 'var(--text-primary)' }}>{asistenciaHoy.hora}</strong>
+                <p className="text-white/70 text-lg">
+                    Llegaste a las <strong className="text-white font-black">{asistenciaHoy.hora}</strong>
                 </p>
                 {!esNormal && (
-                    <p style={{
-                        margin: 0,
-                        color: '#f59e0b',
-                        fontSize: '0.875rem',
-                        fontWeight: 600
-                    }}>
-                        (Tarde)
-                    </p>
+                    <div className="mt-4 inline-block px-4 py-1 rounded-full bg-yellow-500/20 border border-yellow-500/30 text-yellow-500 font-bold text-sm tracking-wider uppercase">
+                        Tarde
+                    </div>
                 )}
             </div>
         )
@@ -259,39 +237,20 @@ export default function MarcarAsistencia({ barberoId }: Props) {
 
     // Pendiente de marcar
     return (
-        <div style={{
-            padding: '2rem',
-            background: 'var(--card-background)',
-            borderRadius: '12px'
-        }}>
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                <div style={{
-                    fontSize: '48px',
-                    marginBottom: '1rem'
-                }}>
+        <div className="bg-white/[0.02] border border-white/10 p-8 rounded-3xl backdrop-blur-xl">
+            <div className="text-center mb-8">
+                <div className="text-6xl mb-4 opacity-90 drop-shadow-[0_0_15px_rgba(212,175,55,0.3)]">
                     ⏰
                 </div>
-                <h3 style={{
-                    margin: '0 0 0.5rem 0',
-                    color: 'var(--text-primary)',
-                    fontSize: '1.25rem'
-                }}>
+                <h3 className="text-2xl font-black text-white uppercase tracking-wider mb-2">
                     Marcar Asistencia
                 </h3>
-                <p style={{
-                    margin: 0,
-                    color: 'var(--text-secondary)',
-                    fontSize: '0.875rem'
-                }}>
+                <p className="text-white/60 text-sm">
                     Ingresa la clave del día (pídela a recepción)
                 </p>
             </div>
 
-            <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '1rem'
-            }}>
+            <div className="flex flex-col gap-6 max-w-sm mx-auto">
                 <input
                     type="text"
                     value={clave}
@@ -305,76 +264,40 @@ export default function MarcarAsistencia({ barberoId }: Props) {
                     onKeyPress={handleKeyPress}
                     placeholder="Ej: ABC-1234"
                     disabled={loading}
-                    style={{
-                        padding: '1rem',
-                        fontSize: '1.5rem',
-                        textAlign: 'center',
-                        letterSpacing: '0.15em',
-                        fontWeight: 'bold',
-                        fontFamily: 'monospace',
-                        background: 'rgba(255, 255, 255, 0.05)',
-                        border: '2px solid var(--accent-color)',
-                        borderRadius: '12px',
-                        color: 'var(--text-primary)',
-                        boxShadow: '0 0 15px rgba(212, 175, 55, 0.1)'
-                    }}
+                    className="w-full px-6 py-4 bg-[#0a0a0a] border-2 border-gold/30 focus:border-gold rounded-2xl text-white text-center text-3xl font-mono tracking-[0.2em] shadow-[0_0_20px_rgba(212,175,55,0.1)] focus:shadow-[0_0_30px_rgba(212,175,55,0.2)] focus:outline-none transition-all placeholder:text-white/20 uppercase"
                     maxLength={8}
                 />
 
                 <button
                     onClick={handleMarcar}
                     disabled={loading || !clave.trim()}
-                    style={{
-                        padding: '1rem 2rem',
-                        fontSize: '1rem',
-                        fontWeight: 'bold',
-                        background: loading || !clave.trim()
-                            ? 'var(--border-color)'
-                            : 'linear-gradient(135deg, #d4af37 0%, #f4d03f 100%)',
-                        color: loading || !clave.trim() ? 'var(--text-secondary)' : '#121212',
-                        border: 'none',
-                        borderRadius: '8px',
-                        cursor: loading || !clave.trim() ? 'not-allowed' : 'pointer',
-                        transition: 'all 0.3s ease',
-                        opacity: loading || !clave.trim() ? 0.5 : 1
-                    }}
+                    className="w-full relative group inline-flex overflow-hidden rounded-2xl bg-gold/20 p-[1px] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                    {loading ? '⏳ Marcando...' : '✓ Marcar Asistencia'}
+                    <div className="w-full relative bg-gradient-to-br from-gold to-[#a88647] px-8 py-4 rounded-2xl transition-all duration-300 group-hover:brightness-110 flex items-center justify-center gap-2">
+                        {loading ? (
+                            <><i className="fas fa-circle-notch fa-spin text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider text-lg">Marcando...</span></>
+                        ) : (
+                            <><i className="fas fa-check text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider text-lg">Marcar Asistencia</span></>
+                        )}
+                    </div>
                 </button>
             </div>
 
-            <div style={{
-                marginTop: '1.5rem',
-                padding: '1rem',
-                background: 'rgba(59, 130, 246, 0.1)',
-                border: '1px solid rgba(59, 130, 246, 0.3)',
-                borderRadius: '8px',
-                fontSize: '0.75rem',
-                color: 'var(--text-secondary)',
-                lineHeight: '1.5'
-            }}>
-                <strong style={{ color: 'var(--text-primary)' }}>💡 Información:</strong>
-                <ul style={{ margin: '0.5rem 0 0 0', paddingLeft: '1.5rem' }}>
+            <div className="mt-8 p-6 bg-blue-500/10 border border-blue-500/20 rounded-2xl">
+                <strong className="text-blue-400 font-bold flex items-center gap-2 mb-3">
+                    <i className="fas fa-lightbulb text-xl"></i> Información
+                </strong>
+                <ul className="space-y-2 text-sm text-blue-200/80 ml-6 list-disc">
                     <li>La clave cambia cada día</li>
                     <li>Solo puedes marcar una vez por día</li>
-                    <li><strong>📍 Debes estar en la barbería (GPS)</strong></li>
+                    <li><strong className="text-blue-300">📍 Debes estar en la barbería (GPS)</strong></li>
                     <li>Acepta los permisos de ubicación</li>
                 </ul>
             </div>
 
             {debugError && (
-                <div style={{
-                    marginTop: '1rem',
-                    padding: '0.75rem',
-                    background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid #ef4444',
-                    borderRadius: '8px',
-                    fontSize: '0.7rem',
-                    fontFamily: 'monospace',
-                    color: '#ef4444',
-                    wordBreak: 'break-all'
-                }}>
-                    <strong>DEBUG:</strong> {debugError}
+                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-xs font-mono text-red-400 break-all">
+                    <strong className="block mb-1">DEBUG:</strong> {debugError}
                 </div>
             )}
         </div>

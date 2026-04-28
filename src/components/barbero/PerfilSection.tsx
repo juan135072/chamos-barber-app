@@ -87,98 +87,137 @@ export default function PerfilSection() {
   }
 
   return (
-    <div style={{
-      maxWidth: '800px', margin: '0 auto', background: 'var(--bg-secondary)',
-      padding: '2rem', borderRadius: 'var(--border-radius)', border: '1px solid var(--border-color)'
-    }}>
-      <h2 style={{ marginBottom: '2rem', color: 'var(--accent-color)' }}>
-        <i className="fas fa-edit"></i> Actualizar Información
+    <div className="max-w-4xl mx-auto bg-white/[0.02] border border-white/10 p-8 rounded-3xl backdrop-blur-xl mt-4">
+      <h2 className="text-2xl font-black text-white uppercase tracking-wider mb-8 flex items-center gap-3">
+        <i className="fas fa-edit text-gold"></i> Actualizar Información
       </h2>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="space-y-6">
         {/* Información no editable */}
-        <div style={{
-          marginBottom: '2rem', padding: '1rem',
-          background: 'rgba(212, 175, 55, 0.1)', borderRadius: 'var(--border-radius)',
-          border: '1px solid rgba(212, 175, 55, 0.3)'
-        }}>
-          <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-            <strong>Nombre:</strong> {profile.nombre} {profile.apellido}
-          </p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '0.5rem' }}>
-            <strong>Email:</strong> {profile.email}
-          </p>
-          <p style={{ fontSize: '0.9rem', marginBottom: '0' }}>
-            <strong>Especialidades:</strong> {profile.especialidades?.join(', ') || 'N/A'}
-          </p>
-          <p style={{ fontSize: '0.85rem', marginTop: '0.5rem', opacity: 0.7 }}>
-            <i className="fas fa-info-circle"></i> Contacta al administrador para cambiar estos datos
+        <div className="p-6 bg-gold/10 border border-gold/20 rounded-2xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <p className="text-xs text-white/50 uppercase tracking-widest mb-1">Nombre</p>
+              <p className="font-bold text-white text-lg">{profile.nombre} {profile.apellido}</p>
+            </div>
+            <div>
+              <p className="text-xs text-white/50 uppercase tracking-widest mb-1">Email</p>
+              <p className="font-bold text-white text-lg">{profile.email}</p>
+            </div>
+            <div className="md:col-span-2">
+              <p className="text-xs text-white/50 uppercase tracking-widest mb-1">Especialidades</p>
+              <p className="font-bold text-white text-lg">
+                {profile.especialidades?.join(', ') || 'N/A'}
+              </p>
+            </div>
+          </div>
+          <p className="text-xs text-gold/80 mt-4 flex items-center gap-2 font-medium">
+            <i className="fas fa-info-circle"></i> Contacta al administrador para cambiar estos datos base
           </p>
         </div>
 
         {/* Foto de Perfil */}
-        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-          <label className="form-label" style={{ display: 'block', marginBottom: '0.75rem', color: 'var(--text-primary)', opacity: 0.9 }}>
-            <i className="fas fa-camera"></i> Foto de Perfil
+        <div>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
+            <i className="fas fa-camera text-gold mr-2"></i> Foto de Perfil
           </label>
           {(imagePreview || profile.imagen_url) && (
-            <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-              <img
-                src={imagePreview || profile.imagen_url}
-                alt="Preview"
-                style={{ width: '120px', height: '120px', borderRadius: '50%', objectFit: 'cover', border: '3px solid var(--accent-color)' }}
-              />
+            <div className="mb-4 flex items-center gap-4">
+              <div className="relative w-32 h-32 rounded-full p-1 bg-gradient-to-br from-gold to-[#a88647]">
+                <img
+                  src={imagePreview || profile.imagen_url}
+                  alt="Preview"
+                  className="w-full h-full rounded-full object-cover border-4 border-[#080808]"
+                />
+              </div>
               {imagePreview && (
-                <button type="button" onClick={handleClearImage}
-                  style={{ padding: '0.5rem 1rem', background: 'rgba(220, 38, 38, 0.15)', color: '#fca5a5', border: '1px solid rgba(220, 38, 38, 0.3)', borderRadius: 'var(--border-radius)', cursor: 'pointer' }}
+                <button 
+                  type="button" 
+                  onClick={handleClearImage}
+                  className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 rounded-xl text-sm font-bold transition-colors flex items-center gap-2"
                 >
                   <i className="fas fa-times"></i> Quitar nueva imagen
                 </button>
               )}
             </div>
           )}
-          <div style={{ border: '2px dashed var(--border-color)', borderRadius: 'var(--border-radius)', padding: '2rem', textAlign: 'center', cursor: 'pointer', backgroundColor: 'rgba(212, 175, 55, 0.03)' }}>
-            <i className="fas fa-cloud-upload-alt" style={{ fontSize: '3rem', color: 'var(--accent-color)', marginBottom: '1rem', opacity: 0.7, display: 'block' }}></i>
-            <p style={{ marginBottom: '0.5rem', color: 'var(--text-primary)', opacity: 0.9 }}>
+          <div className="border-2 border-dashed border-white/20 rounded-2xl p-8 text-center cursor-pointer bg-white/[0.01] hover:bg-white/[0.03] transition-colors group">
+            <i className="fas fa-cloud-upload-alt text-4xl text-gold mb-4 opacity-70 group-hover:scale-110 transition-transform"></i>
+            <p className="text-white/90 mb-2">
               Arrastra una imagen aquí o{' '}
-              <label style={{ color: 'var(--accent-color)', cursor: 'pointer', textDecoration: 'underline' }}>
+              <label className="text-gold cursor-pointer hover:underline font-bold">
                 selecciona un archivo
-                <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleFileSelect} style={{ display: 'none' }} />
+                <input type="file" accept="image/jpeg,image/jpg,image/png,image/webp,image/gif" onChange={handleFileSelect} className="hidden" />
               </label>
             </p>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-primary)', opacity: 0.6, margin: 0 }}>PNG, JPG, WEBP, GIF hasta 5MB</p>
+            <p className="text-xs text-white/50 font-medium">PNG, JPG, WEBP, GIF hasta 5MB</p>
           </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label"><i className="fas fa-phone"></i> Teléfono / WhatsApp</label>
-          <input name="telefono" type="tel" className="form-input" defaultValue={profile.telefono || ''} placeholder="+56 9 1234 5678" />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
+              <i className="fas fa-phone text-gold mr-2"></i> Teléfono / WhatsApp
+            </label>
+            <input 
+              name="telefono" 
+              type="tel" 
+              className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-gold transition-colors" 
+              defaultValue={profile.telefono || ''} 
+              placeholder="+56 9 1234 5678" 
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
+              <i className="fab fa-instagram text-gold mr-2"></i> Instagram
+            </label>
+            <input 
+              name="instagram" 
+              type="text" 
+              className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-gold transition-colors" 
+              defaultValue={profile.instagram || ''} 
+              placeholder="@tu_instagram" 
+            />
+            <small className="text-xs text-white/40 mt-2 block">Usa @ o la URL completa de tu perfil</small>
+          </div>
         </div>
 
-        <div className="form-group">
-          <label className="form-label"><i className="fab fa-instagram"></i> Instagram</label>
-          <input name="instagram" type="text" className="form-input" defaultValue={profile.instagram || ''} placeholder="@tu_instagram" />
-          <small style={{ opacity: 0.7, fontSize: '0.85rem' }}>Usa @ o la URL completa de tu perfil</small>
-        </div>
-
-        <div className="form-group">
-          <label className="form-label"><i className="fas fa-align-left"></i> Descripción / Biografía</label>
-          <textarea name="descripcion" className="form-input" defaultValue={profile.descripcion || ''} rows={5}
-            placeholder="Cuéntale a tus clientes sobre ti, tu experiencia y estilo..." style={{ resize: 'vertical' }}
+        <div>
+          <label className="block text-xs font-bold text-white/70 uppercase tracking-wider mb-3">
+            <i className="fas fa-align-left text-gold mr-2"></i> Descripción / Biografía
+          </label>
+          <textarea 
+            name="descripcion" 
+            className="w-full px-4 py-3 bg-[#0a0a0a] border border-white/10 rounded-xl text-white placeholder-white/30 focus:outline-none focus:border-gold transition-colors resize-y min-h-[120px]" 
+            defaultValue={profile.descripcion || ''} 
+            placeholder="Cuéntale a tus clientes sobre ti, tu experiencia y estilo..."
           />
         </div>
 
-        <button type="submit" className="btn btn-primary" disabled={saving || uploadingImage} style={{ width: '100%', marginTop: '1rem' }}>
-          {uploadingImage ? <><div className="spinner"></div>Subiendo imagen...</>
-            : saving ? <><div className="spinner"></div>Guardando...</>
-              : <><i className="fas fa-save"></i> Guardar Cambios</>}
+        <button 
+          type="submit" 
+          disabled={saving || uploadingImage} 
+          className="w-full relative group inline-flex overflow-hidden rounded-xl bg-gold/20 p-[1px]"
+        >
+          <div className="w-full relative bg-gradient-to-br from-gold to-[#a88647] px-6 py-4 rounded-xl transition-all duration-300 hover:brightness-110 flex items-center justify-center gap-2">
+            {uploadingImage ? (
+              <><i className="fas fa-circle-notch fa-spin text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider">Subiendo imagen...</span></>
+            ) : saving ? (
+              <><i className="fas fa-circle-notch fa-spin text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider">Guardando...</span></>
+            ) : (
+              <><i className="fas fa-save text-[#080808]"></i><span className="text-[#080808] font-black uppercase tracking-wider">Guardar Cambios</span></>
+            )}
+          </div>
         </button>
 
-        <div style={{ marginTop: '2rem', paddingTop: '2rem', borderTop: '1px solid var(--border-color)' }}>
-          <button type="button" onClick={handleLogout} className="btn"
-            style={{ width: '100%', backgroundColor: 'rgba(220, 38, 38, 0.1)', color: '#EF4444', border: '1px solid rgba(220, 38, 38, 0.3)' }}
+        <div className="mt-8 pt-8 border-t border-white/10">
+          <button 
+            type="button" 
+            onClick={handleLogout} 
+            className="w-full px-6 py-4 bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 rounded-xl text-red-400 font-bold uppercase tracking-wider transition-colors flex items-center justify-center gap-2"
           >
-            <i className="fas fa-sign-out-alt mr-2"></i> Cerrar Sesión Corriente
+            <i className="fas fa-sign-out-alt"></i> Cerrar Sesión
           </button>
         </div>
       </form>
