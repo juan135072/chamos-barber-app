@@ -174,18 +174,7 @@ const BarberoProfilePage: React.FC = () => {
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-4">
-                {barbero.telefono && (
-                  <a 
-                    href={`https://wa.me/${barbero.telefono.replace(/\D/g, '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 font-medium transition-all"
-                  >
-                    <i className="fab fa-whatsapp"></i>
-                    WhatsApp
-                  </a>
-                )}
+              <div className="flex flex-wrap gap-4 mt-6">
                 {barbero.instagram && (
                   <a 
                     href={`https://instagram.com/${barbero.instagram.replace('@', '')}`}
@@ -197,12 +186,17 @@ const BarberoProfilePage: React.FC = () => {
                     Instagram
                   </a>
                 )}
+                
                 <Link 
                   href={`/reservar?barbero=${barbero.id}`} 
-                  className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-gold to-yellow-500 text-[#080808] font-bold hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 transition-all"
+                  className="relative group inline-flex overflow-hidden rounded-xl bg-gradient-to-br from-gold to-[#a88647] p-[1px] shrink-0"
                 >
-                  <i className="fas fa-calendar-plus"></i>
-                  Reservar Cita
+                  <div className="relative bg-[#080808] px-8 py-3 rounded-xl transition-colors duration-300 group-hover:bg-transparent flex items-center gap-2">
+                    <i className="fas fa-calendar-plus text-gold group-hover:text-[#080808] transition-colors"></i>
+                    <span className="relative z-10 text-white font-black tracking-widest text-sm uppercase group-hover:text-[#080808] transition-colors">
+                      Reservar Cita
+                    </span>
+                  </div>
                 </Link>
               </div>
             </div>
