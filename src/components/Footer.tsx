@@ -177,11 +177,11 @@ const Footer: React.FC = () => {
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">
           <p>© 2025 Chamos Barber. Creado por Juan Díaz. Todos los derechos reservados.</p>
           <div className="flex gap-8">
-            <Link href="/politicas-privacidad" passHref>
-              <span className="hover:text-gold transition-colors cursor-pointer">Políticas de Privacidad</span>
+            <Link href="/politicas-privacidad" className="hover:text-gold transition-colors">
+              Políticas de Privacidad
             </Link>
-            <Link href="/terminos-condiciones" passHref>
-              <span className="hover:text-gold transition-colors cursor-pointer">Términos y Condiciones</span>
+            <Link href="/terminos-condiciones" className="hover:text-gold transition-colors">
+              Términos y Condiciones
             </Link>
           </div>
         </div>

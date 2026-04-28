@@ -284,19 +284,22 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
         onClick={() => setIsOpen(!isOpen)}
         className="onesignal-debug-toggle"
         style={{
+          position: 'fixed',
           top: '20px',
           left: '20px',
           backgroundColor: '#d4af37',
           color: '#121212',
-          width: 'auto',
-          padding: '0 15px',
+          width: 'fit-content',
+          padding: '6px 15px',
           borderRadius: '30px',
           fontSize: '12px',
           fontWeight: 'bold',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
-          zIndex: 100000
+          zIndex: 100000,
+          border: 'none',
+          cursor: 'pointer',
         }}
       >
         <i className="fas fa-bug"></i>

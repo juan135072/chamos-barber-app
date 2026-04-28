@@ -24,27 +24,31 @@ const testimonials = [
 
 export default function Testimonials() {
   return (
-    <section className="py-24 bg-charcoal relative overflow-hidden" id="testimonios">
+    <section className="py-32 bg-[#080808] relative overflow-hidden" id="testimonios">
+      {/* Background Orbs */}
+      <div className="absolute top-0 right-1/4 w-96 h-96 bg-gold/5 blur-[120px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-white/5 blur-[120px] rounded-full pointer-events-none" />
+
       <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-gold/0 via-gold/20 to-gold/0" />
       
-      <div className="container mx-auto px-6">
-        <div className="flex flex-col items-center mb-16 text-center">
-          <motion.span 
+      <div className="container mx-auto px-6 relative z-10">
+        <div className="flex flex-col items-center mb-20 text-center">
+          <motion.div 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-gold text-[10px] tracking-ultra mb-4"
+            className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl mb-6"
           >
-            Historias de Clientes
-          </motion.span>
+            <span className="text-gold text-[10px] tracking-[0.2em] font-bold uppercase">Historias Reales</span>
+          </motion.div>
           <motion.h2 
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-black uppercase tracking-tighter mb-6"
+            className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter mb-6 text-white"
           >
-            Voces de la <span className="italic text-gold">Élite</span>
+            Voces de la <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">Élite</span>
           </motion.h2>
         </div>
 
@@ -52,27 +56,32 @@ export default function Testimonials() {
           {testimonials.map((t, i) => (
             <motion.div
               key={t.name}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className="bg-dark p-8 rounded-2xl border border-white/5 hover:border-gold/20 transition-all group"
+              transition={{ delay: i * 0.1, duration: 0.6 }}
+              className="bg-white/[0.02] p-10 rounded-[2rem] border border-white/5 backdrop-blur-xl hover:border-gold/30 hover:bg-white/[0.04] transition-all duration-500 group shadow-[0_0_30px_rgba(0,0,0,0.5)] hover:shadow-[0_0_40px_rgba(197,160,89,0.1)] relative overflow-hidden"
             >
-              <div className="flex items-center gap-1 mb-6">
-                {[...Array(5)].map((_, j) => (
-                  <Star key={j} className="w-3 h-3 fill-gold text-gold" />
-                ))}
-              </div>
-              <p className="text-white/40 mb-8 italic text-sm leading-relaxed">
-                "{t.text}"
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded bg-gold/5 border border-gold/10 flex items-center justify-center text-gold text-xs font-bold">
-                  {t.avatar}
+              {/* Internal glow on hover */}
+              <div className="absolute inset-0 bg-gradient-to-b from-gold/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-1.5 mb-8">
+                  {[...Array(5)].map((_, j) => (
+                    <Star key={j} className="w-4 h-4 fill-gold text-gold drop-shadow-[0_0_8px_rgba(197,160,89,0.5)]" />
+                  ))}
                 </div>
-                <div>
-                  <h4 className="text-[11px] font-black tracking-widest text-white group-hover:text-gold transition-colors uppercase">{t.name}</h4>
-                  <p className="text-[9px] uppercase tracking-widest text-white/20 mt-1">{t.role}</p>
+                <p className="text-white/60 mb-10 italic text-base leading-relaxed">
+                  "{t.text}"
+                </p>
+                <div className="flex items-center gap-5">
+                  <div className="w-12 h-12 rounded-full bg-gold/10 border border-gold/20 flex items-center justify-center text-gold font-black tracking-widest text-sm shadow-[0_0_15px_rgba(197,160,89,0.2)]">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black tracking-widest text-white group-hover:text-gold transition-colors uppercase">{t.name}</h4>
+                    <p className="text-[10px] uppercase tracking-widest text-white/30 mt-1">{t.role}</p>
+                  </div>
                 </div>
               </div>
             </motion.div>

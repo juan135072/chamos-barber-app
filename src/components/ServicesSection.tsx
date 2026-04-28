@@ -1,7 +1,8 @@
-import React from 'react'
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import { getServiceImage } from '../lib/service-utils'
+
+const MotionLink = motion.create(Link)
 
 interface Service {
   id: string
@@ -48,16 +49,15 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
               Nuestros <span className="italic text-gold">Servicios</span>.
             </motion.h2>
           </div>
-          <Link href="/servicios" passHref>
-            <motion.a 
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-[10px] uppercase tracking-widest text-white/40 hover:text-gold transition-colors pb-2 border-b border-white/10 hover:border-gold"
-            >
-              Ver todos los servicios
-            </motion.a>
-          </Link>
+          <MotionLink
+            href="/servicios"
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="text-[10px] uppercase tracking-widest text-white/40 hover:text-gold transition-colors pb-2 border-b border-white/10 hover:border-gold"
+          >
+            Ver todos los servicios
+          </MotionLink>
         </div>
 
         <div className="grid md:grid-cols-3 gap-8">
@@ -84,11 +84,12 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
                 <p className="text-white/40 text-xs leading-relaxed mb-8 h-12">
                   {svc.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}
                 </p>
-                <Link href={`/reservar?servicio=${svc.id}`} passHref>
-                  <a className="inline-flex items-center text-[10px] tracking-ultra text-gold hover:text-white transition-colors group/btn">
-                    RESERVAR AHORA 
-                    <span className="ml-2 transform group-hover/btn:translate-x-1 transition-transform">→</span>
-                  </a>
+                <Link
+                  href={`/reservar?servicio=${svc.id}`}
+                  className="inline-flex items-center text-[10px] tracking-ultra text-gold hover:text-white transition-colors group/btn"
+                >
+                  RESERVAR AHORA
+                  <span className="ml-2 transform group-hover/btn:translate-x-1 transition-transform">→</span>
                 </Link>
               </div>
             </motion.div>
