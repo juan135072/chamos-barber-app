@@ -98,8 +98,14 @@ function Login() {
       </Head>
 
       <div className="min-h-screen flex flex-col" style={{ backgroundColor: 'var(--bg-primary)' }}>
+        {/* Background Background with Orbs */}
+        <div className="fixed inset-0 bg-[#080808] z-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-gold/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-[120px] pointer-events-none" />
+        </div>
+
         {/* Header */}
-        <div className="w-full" style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)' }}>
+        <div className="w-full relative z-10 bg-white/[0.02] border-b border-white/5 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <div className="flex items-center space-x-2">
               {/* Enlace de retorno eliminado por seguridad */}
@@ -112,18 +118,18 @@ function Login() {
                 className="h-12 w-auto"
                 style={{ objectFit: 'contain' }}
               />
-              <div style={{ color: 'var(--text-primary)' }}>
-                <h1 className="font-bold text-lg leading-tight">Chamos Barber</h1>
-                <p className="text-xs" style={{ color: 'var(--accent-color)' }}>Panel de Administración</p>
+              <div>
+                <h1 className="font-bold text-lg leading-tight text-white">Chamos Barber</h1>
+                <p className="text-xs text-gold">Panel de Administración</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Login Form */}
-        <div className="flex-1 flex items-center justify-center p-4 py-8">
+        <div className="flex-1 flex items-center justify-center p-4 py-8 relative z-10">
           <div className="w-full max-w-md auth-card-enter">
-            <div className="rounded-2xl shadow-2xl p-8" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+            <div className="rounded-3xl shadow-2xl p-8 bg-white/[0.02] border border-white/10 backdrop-blur-xl">
               <div className="text-center mb-8">
                 <div className="flex items-center justify-center mx-auto mb-4 login-logo-container">
                   <img
@@ -133,8 +139,8 @@ function Login() {
                     style={{ objectFit: 'contain' }}
                   />
                 </div>
-                <h2 className="text-2xl font-bold mb-2" style={{ color: 'var(--accent-color)' }}>Iniciar Sesión</h2>
-                <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Accede al panel de administración</p>
+                <h2 className="text-2xl font-black mb-2 text-gold tracking-widest uppercase">Iniciar Sesión</h2>
+                <p className="text-white/60">Accede al panel de administración</p>
               </div>
 
               <Auth
@@ -144,15 +150,25 @@ function Login() {
                   variables: {
                     default: {
                       colors: {
-                        brand: '#d97706',
-                        brandAccent: '#b45309',
+                        brand: 'transparent',
+                        brandAccent: 'transparent',
+                        inputBackground: 'rgba(255, 255, 255, 0.05)',
+                        inputText: 'white',
+                        inputPlaceholder: 'rgba(255, 255, 255, 0.4)',
+                        inputBorder: 'rgba(255, 255, 255, 0.1)',
+                        inputBorderHover: 'rgba(212, 175, 55, 0.5)',
+                        inputBorderFocus: '#d4af37',
+                      },
+                      borderWidths: {
+                        buttonBorderWidth: '1px',
+                        inputBorderWidth: '1px',
+                      },
+                      radii: {
+                        borderRadiusButton: '0.75rem',
+                        buttonBorderRadius: '0.75rem',
+                        inputBorderRadius: '0.75rem',
                       },
                     },
-                  },
-                  className: {
-                    container: 'auth-container',
-                    button: 'auth-button',
-                    input: 'auth-input',
                   },
                 }}
                 localization={{
@@ -176,20 +192,19 @@ function Login() {
                 showLinks={false}
               />
 
-              <div className="mt-6 pt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <div className="mt-8 pt-6 border-t border-white/10">
                 <div className="text-center mb-4">
-                  <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.8 }}>
+                  <p className="text-sm text-white/60">
                     ¿No tienes cuenta?{' '}
                     <Link
                       href="/registro-barbero"
-                      className="font-medium hover:underline transition-all"
-                      style={{ color: 'var(--accent-color)' }}
+                      className="font-medium text-gold hover:text-white transition-colors"
                     >
                       Regístrate como barbero
                     </Link>
                   </p>
                 </div>
-                <div className="flex items-center justify-center text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+                <div className="flex items-center justify-center text-sm text-white/40">
                   <i className="fas fa-shield-alt mr-2"></i>
                   <span>Conexión segura y encriptada</span>
                 </div>
@@ -199,15 +214,15 @@ function Login() {
         </div>
 
         {/* Footer */}
-        <div className="w-full py-4" style={{ backgroundColor: 'var(--bg-secondary)', borderTop: '1px solid var(--border-color)' }}>
+        <div className="w-full py-4 relative z-10 bg-white/[0.02] border-t border-white/5 backdrop-blur-md">
           <div className="flex justify-center items-center space-x-3">
-            <div className="flex items-center space-x-2 px-4 py-2 rounded-full" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+            <div className="flex items-center space-x-2 px-4 py-2 rounded-full bg-[#080808] border border-white/10">
               <span className="text-2xl">🇻🇪</span>
               <i className="fas fa-heart text-red-500 text-sm"></i>
               <span className="text-2xl">🇨🇱</span>
             </div>
           </div>
-          <p className="text-center text-xs mt-2" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Hecho con ❤️ por venezolanos en Chile</p>
+          <p className="text-center text-xs mt-2 text-white/50">Hecho con ❤️ por venezolanos en Chile</p>
         </div>
 
         <style jsx global>{`
@@ -238,17 +253,54 @@ function Login() {
             animation: rotate 1s linear infinite;
           }
 
-          /* Mejoras para el formulario en móvil */
-          @media (max-width: 640px) {
-            .bg-white {
-              max-height: 90vh;
-              overflow-y: auto;
-            }
-          }
-
-          /* Asegurar que los estilos de Supabase Auth se apliquen */
+          /* Asegurar que los estilos de Supabase Auth se apliquen correctamente */
           form {
             width: 100%;
+          }
+          
+          /* Modificar los estilos del botón de Supabase Auth usando variables globales para el Liquid Glass */
+          .supabase-auth-ui_ui-button {
+            position: relative;
+            background: #080808 !important;
+            border: 1px solid rgba(212, 175, 55, 0.3) !important;
+            color: #fff !important;
+            font-weight: 900 !important;
+            letter-spacing: 0.1em !important;
+            text-transform: uppercase !important;
+            transition: all 0.3s ease !important;
+            overflow: hidden;
+            z-index: 1;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3) !important;
+          }
+          
+          .supabase-auth-ui_ui-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #d4af37, #a88647);
+            z-index: -1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+          }
+
+          .supabase-auth-ui_ui-button:hover::before {
+            opacity: 1;
+          }
+          
+          .supabase-auth-ui_ui-button:hover {
+            color: #080808 !important;
+            border-color: transparent !important;
+            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4) !important;
+          }
+
+          .supabase-auth-ui_ui-label {
+            color: rgba(255, 255, 255, 0.8) !important;
+            font-size: 0.875rem !important;
+            font-weight: 500 !important;
+            margin-bottom: 0.5rem !important;
           }
 
           /* Animación para el logo en login */
