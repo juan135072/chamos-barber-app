@@ -36,120 +36,91 @@ const ReservarPage: React.FC = () => {
       title="Reservar Cita - Chamos Barber"
       description="Reserva tu cita con nuestros expertos barberos. Proceso simple y rápido para garantizar tu lugar."
     >
-      <section className="page-header">
-        <div className="container">
-          <h1 className="page-title">Reservar Cita</h1>
-          <p className="page-subtitle">Sigue los pasos para reservar tu cita con nosotros</p>
+      <section className="relative overflow-hidden bg-[#080808] pt-24 pb-12">
+        {/* Background Orbs */}
+        <div className="absolute top-0 left-1/4 w-[400px] h-[400px] bg-gold/10 blur-[120px] rounded-full pointer-events-none z-0" />
+        <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-white/5 blur-[120px] rounded-full pointer-events-none z-0" />
+
+        <div className="relative z-10 container mx-auto text-center px-6">
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-4">
+            Reservar <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">Cita</span>
+          </h1>
+          <p className="text-lg text-white/60 font-medium tracking-wide">
+            Sigue los pasos para reservar tu cita con nuestros expertos barberos
+          </p>
         </div>
       </section>
 
-      <section style={{ padding: '4rem 0' }}>
-        <div className="container">
-          <div className="booking-form">
+      <section className="relative bg-[#080808] pb-24">
+        {/* Additional Orb for the form area */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold/5 blur-[150px] rounded-full pointer-events-none z-0" />
+        
+        <div className="relative z-10 container mx-auto px-4 max-w-4xl">
+          <div className="bg-white/[0.02] border border-white/10 rounded-[2rem] p-6 md:p-10 backdrop-blur-2xl shadow-2xl">
             {/* Progress Bar */}
-            <div className="progress-bar">
+            <div className="w-full bg-white/5 h-2 rounded-full mb-10 overflow-hidden border border-white/10">
               <div
-                className="progress-fill"
+                className="h-full bg-gradient-to-r from-gold to-yellow-400 rounded-full transition-all duration-500 ease-out shadow-[0_0_10px_rgba(212,175,55,0.5)]"
                 style={{ width: `${(currentStep / totalSteps) * 100}%` }}
               ></div>
             </div>
 
             {/* Step 1: Servicios (Múltiples) */}
             {currentStep === 1 && (
-              <div className="form-step active">
-                <div className="step-header">
-                  <h2 className="step-title">Selecciona tus Servicios</h2>
-                  <p className="step-subtitle">Puedes seleccionar uno o más servicios</p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Selecciona tus Servicios</h2>
+                  <p className="text-white/60">Puedes seleccionar uno o más servicios</p>
                 </div>
 
                 {serviciosSeleccionados.length > 0 && (
-                  <div style={{
-                    marginBottom: '1.5rem',
-                    padding: '1rem',
-                    background: 'rgba(212, 175, 55, 0.1)',
-                    border: '1px solid var(--accent-color)',
-                    borderRadius: 'var(--border-radius)'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                      <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
+                  <div className="mb-6 p-4 bg-gold/10 border border-gold/30 rounded-xl backdrop-blur-sm">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-semibold text-gold flex items-center gap-2">
                         <i className="fas fa-check-circle"></i> {serviciosSeleccionados.length} servicio{serviciosSeleccionados.length !== 1 ? 's' : ''} seleccionado{serviciosSeleccionados.length !== 1 ? 's' : ''}
                       </span>
                       <button
                         type="button"
                         onClick={() => setServiciosSeleccionados([])}
-                        style={{
-                          background: 'none',
-                          border: 'none',
-                          color: 'var(--text-secondary)',
-                          cursor: 'pointer',
-                          fontSize: '0.85rem',
-                          textDecoration: 'underline'
-                        }}
+                        className="text-sm text-white/50 hover:text-white underline transition-colors"
                       >
                         Limpiar selección
                       </button>
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.9rem' }}>
-                      <span><strong>Servicio:</strong> {calcularTotales().duracionServicios} min</span>
-                      <span><strong>Precio total:</strong> ${calcularTotales().precioTotal.toLocaleString()}</span>
+                    <div className="flex gap-6 text-sm text-white/80">
+                      <span><strong className="text-white">Duración:</strong> {calcularTotales().duracionServicios} min</span>
+                      <span><strong className="text-white">Precio total:</strong> <span className="text-gold font-semibold">${calcularTotales().precioTotal.toLocaleString()}</span></span>
                     </div>
                   </div>
                 )}
 
-                <div style={{ display: 'grid', gap: '1rem' }}>
+                <div className="grid gap-4">
                   {servicios.map(servicio => {
                     const isSelected = serviciosSeleccionados.includes(servicio.id)
                     return (
                       <div
                         key={servicio.id}
-                        className={`barber-option ${isSelected ? 'selected' : ''}`}
+                        className={`relative flex gap-4 items-start p-6 rounded-2xl cursor-pointer transition-all duration-300 border ${
+                          isSelected 
+                            ? 'bg-gold/10 border-gold/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]' 
+                            : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04] hover:border-gold/30'
+                        } backdrop-blur-sm`}
                         onClick={() => toggleServicio(servicio.id)}
-                        style={{
-                          textAlign: 'left',
-                          padding: '1.5rem',
-                          cursor: 'pointer',
-                          position: 'relative',
-                          display: 'flex',
-                          gap: '1rem',
-                          alignItems: 'flex-start'
-                        }}
                       >
                         {/* Checkbox */}
-                        <div style={{
-                          position: 'absolute',
-                          top: '1rem',
-                          right: '1rem',
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '4px',
-                          border: `2px solid ${isSelected ? 'var(--accent-color)' : 'var(--border-color)'}`,
-                          background: isSelected ? 'var(--accent-color)' : 'transparent',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          transition: 'all 0.3s ease'
-                        }}>
-                          {isSelected && <i className="fas fa-check" style={{ color: 'var(--bg-primary)', fontSize: '0.75rem' }}></i>}
+                        <div className={`absolute top-4 right-4 w-6 h-6 rounded flex items-center justify-center transition-all duration-300 border-2 ${
+                          isSelected ? 'border-gold bg-gold' : 'border-white/20 bg-transparent'
+                        }`}>
+                          {isSelected && <i className="fas fa-check text-[#080808] text-xs"></i>}
                         </div>
 
                         {/* Imagen del servicio */}
                         {servicio.imagen_url && (
-                          <div style={{
-                            flexShrink: 0,
-                            width: '80px',
-                            height: '80px',
-                            borderRadius: '8px',
-                            overflow: 'hidden',
-                            border: '2px solid var(--border-color)'
-                          }}>
+                          <div className="shrink-0 w-20 h-20 rounded-xl overflow-hidden border border-white/10">
                             <img
                               src={servicio.imagen_url}
                               alt={servicio.nombre}
-                              style={{
-                                width: '100%',
-                                height: '100%',
-                                objectFit: 'cover'
-                              }}
+                              className="w-full h-full object-cover"
                               onError={(e) => {
                                 // Fallback si la imagen no carga
                                 e.currentTarget.style.display = 'none'
@@ -159,40 +130,41 @@ const ReservarPage: React.FC = () => {
                         )}
 
                         {/* Contenido del servicio */}
-                        <div style={{ flex: 1, paddingRight: '2rem' }}>
-                          <h3 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
+                        <div className="flex-1 pr-8">
+                          <h3 className="text-xl font-semibold text-gold mb-2">
                             {servicio.nombre}
                           </h3>
-                          <p style={{ opacity: '0.8', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                          <p className="text-white/60 text-sm mb-4">
                             {servicio.descripcion}
                           </p>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '600', color: 'var(--accent-color)' }}>
+                          <div className="flex justify-between items-center">
+                            <span className="font-semibold text-gold text-lg">
                               ${servicio.precio.toLocaleString()}
                             </span>
 
                             {isSelected ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '0.25rem 0.5rem', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <div className="flex items-center gap-3 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10" onClick={(e) => e.stopPropagation()}>
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); actualizarCantidadServicio(servicio.id, -1); }}
-                                  style={{ background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '0.25rem' }}
+                                  onClick={() => actualizarCantidadServicio(servicio.id, -1)}
+                                  className="text-white/60 hover:text-white transition-colors p-1"
                                 >
-                                  <i className="fas fa-minus" style={{ fontSize: '0.7rem' }}></i>
+                                  <i className="fas fa-minus text-xs"></i>
                                 </button>
-                                <span style={{ fontWeight: 'bold', minWidth: '1.5rem', textAlign: 'center' }}>
+                                <span className="font-bold text-white min-w-[1.5rem] text-center">
                                   {serviciosSeleccionados.filter(id => id === servicio.id).length}
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={(e) => { e.stopPropagation(); actualizarCantidadServicio(servicio.id, 1); }}
-                                  style={{ background: 'none', border: 'none', color: 'var(--accent-color)', cursor: 'pointer', padding: '0.25rem' }}
+                                  onClick={() => actualizarCantidadServicio(servicio.id, 1)}
+                                  className="text-gold hover:text-yellow-400 transition-colors p-1"
                                 >
-                                  <i className="fas fa-plus" style={{ fontSize: '0.7rem' }}></i>
+                                  <i className="fas fa-plus text-xs"></i>
                                 </button>
                               </div>
                             ) : (
-                              <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
+                              <span className="text-sm text-white/50 bg-white/5 px-3 py-1 rounded-full border border-white/10">
+                                <i className="far fa-clock mr-1.5"></i>
                                 {servicio.duracion_minutos} min
                               </span>
                             )}
@@ -207,46 +179,60 @@ const ReservarPage: React.FC = () => {
 
             {/* Step 2: Barbero */}
             {currentStep === 2 && (
-              <div className="form-step active">
-                <div className="step-header">
-                  <h2 className="step-title">Elige tu Barbero</h2>
-                  <p className="step-subtitle">Selecciona con quién prefieres atenderte</p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Elige tu Barbero</h2>
+                  <p className="text-white/60">Selecciona con quién prefieres atenderte</p>
                 </div>
 
-                <div className="barbers-grid">
-                  {barberos.map(barbero => (
-                    <div
-                      key={barbero.id}
-                      className={`barber-option ${formData.barbero_id === barbero.id ? 'selected' : ''}`}
-                      onClick={() => handleInputChange('barbero_id', barbero.id)}
-                    >
-                      <img
-                        src={getImageUrl(barbero.imagen_url)}
-                        alt={`${barbero.nombre} ${barbero.apellido}`}
-                        style={{ width: '80px', height: '80px', borderRadius: '50%', marginBottom: '1rem', objectFit: 'cover' }}
-                      />
-                      <h3 style={{ marginBottom: '0.5rem' }}>{barbero.nombre} {barbero.apellido}</h3>
-                      <p style={{ fontSize: '0.8rem', opacity: '0.8' }}>
-                        {barbero.especialidades?.join(', ') || 'Barbero profesional'}
-                      </p>
-                    </div>
-                  ))}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {barberos.map(barbero => {
+                    const isSelected = formData.barbero_id === barbero.id;
+                    return (
+                      <div
+                        key={barbero.id}
+                        className={`relative flex flex-col items-center p-6 rounded-2xl cursor-pointer transition-all duration-300 border text-center ${
+                          isSelected 
+                            ? 'bg-gold/10 border-gold/50 shadow-[0_0_15px_rgba(212,175,55,0.15)]' 
+                            : 'bg-white/[0.02] border-white/10 hover:bg-white/[0.04] hover:border-gold/30'
+                        } backdrop-blur-sm`}
+                        onClick={() => handleInputChange('barbero_id', barbero.id)}
+                      >
+                        {/* Selected Indicator */}
+                        <div className={`absolute top-4 right-4 w-6 h-6 rounded flex items-center justify-center transition-all duration-300 border-2 ${
+                          isSelected ? 'border-gold bg-gold' : 'border-white/20 bg-transparent'
+                        }`}>
+                          {isSelected && <i className="fas fa-check text-[#080808] text-xs"></i>}
+                        </div>
+
+                        <img
+                          src={getImageUrl(barbero.imagen_url)}
+                          alt={`${barbero.nombre} ${barbero.apellido}`}
+                          className="w-24 h-24 rounded-full mb-4 object-cover border-2 border-white/10"
+                        />
+                        <h3 className="text-lg font-semibold text-gold mb-1">{barbero.nombre} {barbero.apellido}</h3>
+                        <p className="text-sm text-white/60">
+                          {barbero.especialidades?.join(', ') || 'Barbero profesional'}
+                        </p>
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             )}
 
             {/* Step 3: Fecha y Hora */}
             {currentStep === 3 && (
-              <div className="form-step active">
-                <div className="step-header">
-                  <h2 className="step-title">Fecha y Hora</h2>
-                  <p className="step-subtitle">¿Cuándo te gustaría venir?</p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Fecha y Hora</h2>
+                  <p className="text-white/60">¿Cuándo te gustaría venir?</p>
                 </div>
 
-                <div className="calendar-container">
-                  <div className="date-picker">
-                    <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <i className="fas fa-calendar-alt" style={{ color: 'var(--accent-color)' }}></i>
+                <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-md">
+                  <div className="mb-8">
+                    <label className="flex items-center gap-2 mb-3 text-white/80 font-medium">
+                      <i className="fas fa-calendar-alt text-gold"></i>
                       Selecciona una fecha (haz click en el calendario):
                     </label>
                     <div
@@ -315,38 +301,32 @@ const ReservarPage: React.FC = () => {
                   </div>
 
                   {formData.fecha && (
-                    <div>
-                      <label className="form-label">
-                        Horarios:
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.8rem' }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}></div>
+                    <div className="animate-in fade-in duration-500 mt-8 pt-8 border-t border-white/10">
+                      <div className="mb-6">
+                        <label className="text-white/80 font-medium block mb-3">Horarios:</label>
+                        <div className="flex flex-wrap gap-4 text-xs">
+                          <span className="flex items-center gap-2 text-white/60">
+                            <div className="w-3 h-3 rounded-full bg-white/5 border border-white/20"></div>
                             Disponible
                           </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}></div>
+                          <span className="flex items-center gap-2 text-white/60">
+                            <div className="w-3 h-3 rounded-full bg-white/[0.02] border border-white/5"></div>
                             Ocupado
                           </span>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                            <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent-color)', border: '1px solid var(--accent-color)' }}></div>
+                          <span className="flex items-center gap-2 text-white/60">
+                            <div className="w-3 h-3 rounded-full bg-gold border border-gold shadow-[0_0_8px_rgba(212,175,55,0.5)]"></div>
                             Seleccionado
                           </span>
                         </div>
-                      </label>
+                      </div>
 
                       {availableSlots.length === 0 || !availableSlots.some(s => s.disponible) ? (
-                        <div style={{
-                          padding: '2rem',
-                          textAlign: 'center',
-                          background: 'rgba(239, 68, 68, 0.1)',
-                          borderRadius: 'var(--border-radius)',
-                          border: '1px solid rgba(239, 68, 68, 0.3)'
-                        }}>
-                          <i className="fas fa-calendar-times" style={{ fontSize: '2rem', color: '#ef4444', marginBottom: '1rem' }}></i>
-                          <p style={{ margin: 0, fontWeight: '600' }}>
+                        <div className="p-8 text-center bg-red-500/10 rounded-2xl border border-red-500/30 backdrop-blur-md">
+                          <i className="fas fa-calendar-times text-4xl text-red-400 mb-4 drop-shadow-[0_0_10px_rgba(248,113,113,0.5)]"></i>
+                          <p className="font-semibold text-white text-lg">
                             No hay horarios disponibles para todos los servicios seleccionados
                           </p>
-                          <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem', opacity: 0.8 }}>
+                          <p className="mt-2 text-white/70 text-sm">
                             {(() => {
                               if (!formData.fecha) return 'Por favor selecciona otra fecha.'
 
@@ -361,21 +341,21 @@ const ReservarPage: React.FC = () => {
 
                           {/* SUGERENCIA PARCIAL */}
                           {sugerenciaParcial && (
-                            <div className="mt-4 p-3 bg-[var(--bg-secondary)] border border-[var(--accent-color)] rounded-lg text-left animate-pulse">
-                              <p className="text-sm font-semibold text-[var(--accent-color)] mb-1">
+                            <div className="mt-6 p-4 bg-white/5 border border-gold/30 rounded-xl text-left animate-pulse">
+                              <p className="text-sm font-semibold text-gold mb-2">
                                 <i className="fas fa-lightbulb mr-2"></i> Sugerencia:
                               </p>
-                              <p className="text-sm mb-3">
+                              <p className="text-sm text-white/80 mb-4">
                                 No tenemos espacio para todo, pero sí puedes reservar solo:
                                 <br />
-                                <strong className="text-white">{sugerenciaParcial.servicio.nombre} ({sugerenciaParcial.servicio.duracion_minutos} min)</strong>
+                                <strong className="text-white block mt-1">{sugerenciaParcial.servicio.nombre} ({sugerenciaParcial.servicio.duracion_minutos} min)</strong>
                               </p>
                               <button
                                 type="button"
                                 onClick={() => {
                                   setServiciosSeleccionados([sugerenciaParcial.servicio.id])
                                 }}
-                                className="w-full py-2 bg-[var(--accent-color)] text-[var(--bg-primary)] font-bold rounded hover:opacity-90 transition-opacity text-sm"
+                                className="w-full py-2.5 bg-gradient-to-r from-gold to-yellow-500 text-[#080808] font-bold rounded-lg hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] transition-all text-sm"
                               >
                                 Reservar solo {sugerenciaParcial.servicio.nombre}
                               </button>
@@ -396,26 +376,14 @@ const ReservarPage: React.FC = () => {
                                 }, 100)
                               }
                             }}
-                            style={{
-                              marginTop: '1rem',
-                              padding: '0.5rem 1rem',
-                              background: 'transparent',
-                              border: '1px solid var(--accent-color)',
-                              color: 'var(--accent-color)',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '0.9rem',
-                              transition: 'all 0.2s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(212, 175, 55, 0.1)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            className="mt-6 px-6 py-2.5 bg-transparent border border-gold/50 text-gold hover:bg-gold/10 rounded-lg transition-all text-sm font-medium"
                           >
                             Seleccionar otra fecha
                           </button>
                         </div>
                       ) : (
                         <>
-                          <div className="time-slots">
+                          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3">
                             {availableSlots.map(slot => {
                               const isAvailable = slot.disponible
                               const isSelected = formData.hora === slot.hora
@@ -423,37 +391,27 @@ const ReservarPage: React.FC = () => {
                               return (
                                 <div
                                   key={slot.hora}
-                                  className={`time-slot ${isSelected ? 'selected' : ''}`}
+                                  className={`relative flex flex-col items-center justify-center p-3 rounded-xl border transition-all duration-300 ${
+                                    isAvailable 
+                                      ? isSelected 
+                                        ? 'bg-gold border-gold text-[#080808] shadow-[0_0_15px_rgba(212,175,55,0.4)] transform scale-105 z-10' 
+                                        : 'bg-white/5 border-white/10 text-white hover:bg-white/10 hover:border-gold/30 cursor-pointer'
+                                      : 'bg-white/[0.02] border-transparent text-white/30 cursor-not-allowed opacity-60'
+                                  }`}
                                   onClick={() => isAvailable ? handleInputChange('hora', slot.hora) : null}
                                   title={isAvailable ? "Click para seleccionar" : "Horario no disponible"}
-                                  style={{
-                                    opacity: isAvailable ? 1 : 0.4,
-                                    cursor: isAvailable ? 'pointer' : 'not-allowed',
-                                    backgroundColor: isAvailable
-                                      ? (isSelected ? 'var(--accent-color)' : 'rgba(212, 175, 55, 0.05)') // Fondo sutil dorado para disponibles
-                                      : 'rgba(255, 255, 255, 0.05)',
-                                    borderColor: isAvailable
-                                      ? (isSelected ? 'var(--accent-color)' : 'var(--border-color)') // Borde neutro para disponibles no seleccionados
-                                      : 'transparent',
-                                    transform: isAvailable && isSelected ? 'scale(1.05)' : 'scale(1)',
-                                    pointerEvents: isAvailable ? 'auto' : 'none',
-                                    color: isAvailable ? (isSelected ? 'var(--bg-primary)' : 'var(--text-primary)') : 'var(--text-secondary)'
-                                  }}
                                 >
-                                  <span style={{ fontWeight: isAvailable ? '600' : '400' }}>{slot.hora}</span>
+                                  <span className={`font-medium ${isSelected ? 'font-bold text-[#080808]' : ''}`}>{slot.hora}</span>
                                   {isAvailable && isSelected && (
-                                    <i className="fas fa-check-circle" style={{
-                                      fontSize: '0.8rem',
-                                      marginLeft: '0.5rem'
-                                    }}></i>
+                                    <i className="fas fa-check-circle absolute top-1.5 right-1.5 text-xs text-[#080808]"></i>
                                   )}
                                   {isAvailable && !isSelected && (
-                                    <span style={{ fontSize: '0.6rem', display: 'block', marginTop: '2px', color: 'var(--text-secondary)', opacity: 0.8, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <span className="text-[10px] uppercase tracking-wider text-gold/80 mt-1">
                                       Disponible
                                     </span>
                                   )}
                                   {!isAvailable && (
-                                    <span style={{ fontSize: '0.65rem', display: 'block', marginTop: '2px', fontStyle: 'italic', color: 'var(--text-secondary)' }}>
+                                    <span className="text-[10px] italic text-white/30 mt-1 line-clamp-1 px-1 text-center">
                                       {slot.motivo || 'No disponible'}
                                     </span>
                                   )}
@@ -492,58 +450,54 @@ const ReservarPage: React.FC = () => {
                   <p className="step-subtitle">Necesitamos tu información de contacto</p>
                 </div>
 
-                <div style={{ display: 'grid', gap: '1.5rem' }}>
-                  <div className="form-group">
-                    <label className="form-label">Nombre completo *</label>
-                    <input
-                      type="text"
-                      className="form-input"
-                      value={formData.cliente_nombre}
-                      onChange={(e) => handleInputChange('cliente_nombre', e.target.value)}
-                      placeholder="Tu nombre completo"
-                      required
-                    />
-                  </div>
+                <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-md">
+                  <div className="grid gap-6">
+                    <div>
+                      <label className="block text-white/80 font-medium mb-2">Nombre completo <span className="text-gold">*</span></label>
+                      <input
+                        type="text"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                        value={formData.cliente_nombre}
+                        onChange={(e) => handleInputChange('cliente_nombre', e.target.value)}
+                        placeholder="Tu nombre completo"
+                        required
+                      />
+                    </div>
 
-                  <PhoneInput
-                    label="Teléfono (WhatsApp) *"
-                    value={formData.cliente_telefono}
-                    onChange={(val) => handleInputChange('cliente_telefono', val)}
-                    required
-                  />
-                  <p style={{
-                    fontSize: '0.85rem',
-                    marginTop: '0.5rem',
-                    opacity: 0.8,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}>
-                    <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
-                    Ingresa tu número de WhatsApp para contactarte.
-                  </p>
+                    <div>
+                      <PhoneInput
+                        label="Teléfono (WhatsApp) *"
+                        value={formData.cliente_telefono}
+                        onChange={(val) => handleInputChange('cliente_telefono', val)}
+                        required
+                      />
+                      <p className="flex items-center gap-2 mt-2 text-xs text-white/50">
+                        <i className="fas fa-info-circle text-gold"></i>
+                        Ingresa tu número de WhatsApp para contactarte.
+                      </p>
+                    </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Email</label>
-                    <input
-                      type="email"
-                      className="form-input"
-                      value={formData.cliente_email}
-                      onChange={(e) => handleInputChange('cliente_email', e.target.value)}
-                      placeholder="tu@email.com"
-                    />
-                  </div>
+                    <div>
+                      <label className="block text-white/80 font-medium mb-2">Email</label>
+                      <input
+                        type="email"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-gold focus:ring-1 focus:ring-gold transition-all"
+                        value={formData.cliente_email}
+                        onChange={(e) => handleInputChange('cliente_email', e.target.value)}
+                        placeholder="tu@email.com"
+                      />
+                    </div>
 
-                  <div className="form-group">
-                    <label className="form-label">Notas adicionales</label>
-                    <textarea
-                      className="form-input"
-                      value={formData.notas}
-                      onChange={(e) => handleInputChange('notas', e.target.value)}
-                      placeholder="Algún detalle especial o preferencia..."
-                      rows={3}
-                      style={{ resize: 'vertical' }}
-                    />
+                    <div>
+                      <label className="block text-white/80 font-medium mb-2">Notas adicionales</label>
+                      <textarea
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/30 focus:border-gold focus:ring-1 focus:ring-gold transition-all resize-y"
+                        value={formData.notas}
+                        onChange={(e) => handleInputChange('notas', e.target.value)}
+                        placeholder="Algún detalle especial o preferencia..."
+                        rows={3}
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -551,73 +505,43 @@ const ReservarPage: React.FC = () => {
 
             {/* Step 5: Confirmación Premium */}
             {currentStep === 5 && (
-              <div className="form-step active animate-fadeIn">
-                <div className="step-header">
-                  <h2 className="step-title">Confirma tu Reserva</h2>
-                  <p className="step-subtitle">Todo listo. Revisa tu ticket antes de confirmar.</p>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="text-center mb-8">
+                  <h2 className="text-3xl font-bold text-white mb-2">Confirma tu Reserva</h2>
+                  <p className="text-white/60">Todo listo. Revisa tu ticket antes de confirmar.</p>
                 </div>
 
-                <div style={{
-                  background: 'var(--bg-secondary)',
-                  borderRadius: '16px',
-                  border: '1px solid var(--border-color)',
-                  overflow: 'hidden',
-                  boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
-                }}>
+                <div className="bg-white/[0.02] border border-white/10 rounded-2xl overflow-hidden backdrop-blur-md shadow-2xl">
                   {/* 1. Header del Ticket: Fecha y Hora Visual */}
-                  <div style={{
-                    background: 'linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-tertiary) 100%)',
-                    padding: '2rem',
-                    borderBottom: '1px dashed var(--border-color)',
-                    position: 'relative'
-                  }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                      <div style={{
-                        background: 'var(--accent-color)',
-                        color: 'var(--bg-primary)',
-                        padding: '0.25rem 0.75rem',
-                        borderRadius: '20px',
-                        fontSize: '0.8rem',
-                        fontWeight: 'bold',
-                        textTransform: 'uppercase'
-                      }}>
+                  <div className="relative p-6 md:p-8 bg-gradient-to-br from-gold/10 to-transparent border-b border-dashed border-white/20">
+                    <div className="flex justify-between items-center mb-6">
+                      <div className="bg-gold text-[#080808] px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
                         Reserva Pendiente
                       </div>
-                      <div style={{ fontSize: '0.9rem', opacity: 0.6 }}>
+                      <div className="text-white/40 text-sm">
                         {new Date().getFullYear()}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                      <div style={{ textAlign: 'center' }}>
-                        <span style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.25rem' }}>INICIO</span>
-                        <span style={{ display: 'block', fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{formData.hora}</span>
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-center">
+                        <span className="block text-xs text-white/50 mb-1 tracking-wider">INICIO</span>
+                        <span className="block text-3xl md:text-4xl font-bold text-white tracking-tight">{formData.hora}</span>
                       </div>
 
-                      <div style={{ flex: 1, position: 'relative', height: '2px', background: 'var(--border-color)', margin: '0 1rem' }}>
-                        <div style={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          background: 'var(--bg-secondary)',
-                          padding: '0 0.5rem',
-                          fontSize: '0.75rem',
-                          color: 'var(--accent-color)',
-                          fontWeight: '600',
-                          whiteSpace: 'nowrap'
-                        }}>
+                      <div className="flex-1 relative h-[2px] bg-white/10 mx-4">
+                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0a0a0a] px-3 py-1 text-xs text-gold font-semibold rounded-full border border-white/10 whitespace-nowrap">
                           {calcularTotales().duracionTotal} min
                         </div>
                       </div>
 
-                      <div style={{ textAlign: 'center' }}>
-                        <span style={{ display: 'block', fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.25rem' }}>FIN APROX</span>
-                        <span style={{ display: 'block', fontSize: '1.8rem', fontWeight: 'bold', color: 'var(--text-primary)' }}>{calculateEndTime(formData.hora)}</span>
+                      <div className="text-center">
+                        <span className="block text-xs text-white/50 mb-1 tracking-wider">FIN APROX</span>
+                        <span className="block text-3xl md:text-4xl font-bold text-white tracking-tight">{calculateEndTime(formData.hora)}</span>
                       </div>
                     </div>
 
-                    <div style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '1.1rem', fontWeight: '500' }}>
+                    <div className="text-center mt-8 text-lg font-medium text-white/90 capitalize">
                       {new Date(formData.fecha + 'T00:00:00').toLocaleDateString('es-ES', {
                         weekday: 'long',
                         day: 'numeric',
@@ -627,9 +551,9 @@ const ReservarPage: React.FC = () => {
                   </div>
 
                   {/* 2. Cuerpo del Ticket: Barbero y Servicios */}
-                  <div style={{ padding: '2rem' }}>
+                  <div className="p-6 md:p-8 bg-black/40">
                     {/* Barbero Info */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                    <div className="flex items-center gap-4 mb-8">
                       {(() => {
                         const barbero = barberos.find(b => b.id === formData.barbero_id)
                         return barbero ? (
@@ -637,11 +561,11 @@ const ReservarPage: React.FC = () => {
                             <img
                               src={getImageUrl(barbero.imagen_url)}
                               alt={barbero.nombre}
-                              style={{ width: '60px', height: '60px', borderRadius: '50%', objectFit: 'cover', border: '2px solid var(--accent-color)' }}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-gold shadow-[0_0_10px_rgba(212,175,55,0.3)]"
                             />
                             <div>
-                              <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.2rem' }}>TU PROFESIONAL</p>
-                              <h3 style={{ fontSize: '1.2rem', fontWeight: 'bold', margin: 0 }}>{barbero.nombre} {barbero.apellido}</h3>
+                              <p className="text-xs text-white/50 tracking-wider mb-1">TU PROFESIONAL</p>
+                              <h3 className="text-xl font-bold text-white m-0">{barbero.nombre} {barbero.apellido}</h3>
                             </div>
                           </>
                         ) : null
@@ -649,30 +573,32 @@ const ReservarPage: React.FC = () => {
                     </div>
 
                     {/* Lista de Servicios */}
-                    <div style={{ marginBottom: '2rem' }}>
-                      <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Servicios Seleccionados</p>
-                      {calcularTotales().serviciosInfo.map(servicio => (
-                        <div key={servicio.id} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border-color)' }}>
-                          <div>
-                            <span style={{ display: 'block', fontWeight: '500' }}>{servicio.nombre}</span>
-                            <span style={{ fontSize: '0.8rem', opacity: 0.6 }}>{servicio.duracion_minutos} min</span>
+                    <div className="mb-8">
+                      <p className="text-xs text-white/50 uppercase tracking-widest mb-4">Servicios Seleccionados</p>
+                      <div className="space-y-3">
+                        {calcularTotales().serviciosInfo.map(servicio => (
+                          <div key={servicio.id} className="flex justify-between items-center pb-3 border-b border-white/5">
+                            <div>
+                              <span className="block font-medium text-white/90">{servicio.nombre}</span>
+                              <span className="text-xs text-white/40">{servicio.duracion_minutos} min</span>
+                            </div>
+                            <span className="font-medium text-white/90">${servicio.precio.toLocaleString()}</span>
                           </div>
-                          <span style={{ fontWeight: '500' }}>${servicio.precio.toLocaleString()}</span>
-                        </div>
-                      ))}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '1rem', fontSize: '1.2rem', color: 'var(--accent-color)' }}>
-                        <span style={{ fontWeight: 'bold' }}>TOTAL A PAGAR</span>
-                        <span style={{ fontWeight: 'bold' }}>${calcularTotales().precioTotal.toLocaleString()}</span>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-center mt-6 pt-4 border-t border-gold/20 text-xl text-gold">
+                        <span className="font-bold tracking-wide">TOTAL A PAGAR</span>
+                        <span className="font-bold">${calcularTotales().precioTotal.toLocaleString()}</span>
                       </div>
                     </div>
 
                     {/* Datos de Contacto (Resumen Compacto) */}
-                    <div style={{ background: 'rgba(255,255,255,0.03)', padding: '1rem', borderRadius: '8px' }}>
-                      <p style={{ fontSize: '0.8rem', opacity: 0.7, marginBottom: '0.5rem' }}>DATOS DE CONTACTO</p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <span style={{ fontWeight: '500' }}><i className="fas fa-user mr-2 opacity-50"></i> {formData.cliente_nombre}</span>
-                        <span style={{ fontWeight: '500' }}><i className="fab fa-whatsapp mr-2 opacity-50"></i> {formData.cliente_telefono}</span>
-                        {formData.cliente_email && <span style={{ fontSize: '0.9rem', opacity: 0.8 }}><i className="fas fa-envelope mr-2 opacity-50"></i> {formData.cliente_email}</span>}
+                    <div className="bg-white/5 p-4 rounded-xl border border-white/10">
+                      <p className="text-xs text-white/50 tracking-wider mb-3">DATOS DE CONTACTO</p>
+                      <div className="flex flex-col gap-2 text-white/80">
+                        <span className="font-medium"><i className="fas fa-user w-5 text-white/40 text-center mr-2"></i> {formData.cliente_nombre}</span>
+                        <span className="font-medium"><i className="fab fa-whatsapp w-5 text-white/40 text-center mr-2"></i> {formData.cliente_telefono}</span>
+                        {formData.cliente_email && <span className="text-sm"><i className="fas fa-envelope w-5 text-white/40 text-center mr-2"></i> {formData.cliente_email}</span>}
                       </div>
                     </div>
                   </div>
@@ -681,26 +607,36 @@ const ReservarPage: React.FC = () => {
             )}
 
             {/* Navigation */}
-            <div className="form-navigation">
+            <div className="flex items-center justify-between mt-10 pt-6 border-t border-white/10">
               <button
                 type="button"
-                className="btn btn-secondary"
+                className={`px-6 py-3 rounded-xl flex items-center gap-2 font-medium transition-all ${
+                  currentStep === 1 
+                    ? 'opacity-50 cursor-not-allowed text-white/40 bg-white/5' 
+                    : 'text-white/80 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20'
+                }`}
                 onClick={prevStep}
                 disabled={currentStep === 1}
-                style={{ opacity: currentStep === 1 ? 0.5 : 1 }}
               >
                 <i className="fas fa-arrow-left"></i>
                 Anterior
               </button>
 
-              <span style={{ fontSize: '0.9rem', opacity: '0.8' }}>
+              <span className="text-sm text-white/50 bg-white/5 px-4 py-2 rounded-full border border-white/10 hidden md:inline-block">
                 Paso {currentStep} de {totalSteps}
               </span>
 
               {currentStep < totalSteps ? (
                 <button
                   type="button"
-                  className="btn btn-primary"
+                  className={`px-8 py-3 rounded-xl flex items-center gap-2 font-bold transition-all ${
+                    (currentStep === 1 && serviciosSeleccionados.length === 0) ||
+                    (currentStep === 2 && !formData.barbero_id) ||
+                    (currentStep === 3 && (!formData.fecha || !formData.hora)) ||
+                    (currentStep === 4 && (!formData.cliente_nombre || !formData.cliente_telefono))
+                      ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-gold to-yellow-500 text-[#080808] hover:shadow-[0_0_15px_rgba(212,175,55,0.4)] hover:scale-105'
+                  }`}
                   onClick={nextStep}
                   disabled={
                     (currentStep === 1 && serviciosSeleccionados.length === 0) ||
@@ -715,13 +651,17 @@ const ReservarPage: React.FC = () => {
               ) : (
                 <button
                   type="button"
-                  className={`btn btn-primary ${loading ? 'loading' : ''}`}
+                  className={`px-8 py-3 rounded-xl flex items-center gap-2 font-bold transition-all ${
+                    loading
+                      ? 'bg-gold/50 text-[#080808]/50 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-gold to-yellow-500 text-[#080808] hover:shadow-[0_0_20px_rgba(212,175,55,0.6)] hover:scale-105'
+                  }`}
                   onClick={handleSubmit}
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <div className="spinner"></div>
+                      <div className="w-5 h-5 border-2 border-[#080808]/30 border-t-[#080808] rounded-full animate-spin"></div>
                       Reservando...
                     </>
                   ) : (

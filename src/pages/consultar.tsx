@@ -181,402 +181,265 @@ const ConsultarPage: React.FC = () => {
       title="Consultar Citas - Chamos Barber"
       description="Consulta el estado de tus citas reservadas en Chamos Barber. Revisa fechas, horarios y confirmaciones."
     >
-      <section className="page-header">
-        <div className="container">
-          <h1 className="page-title">Consultar Citas</h1>
-          <p className="page-subtitle">Ingresa tu teléfono para ver tus reservas</p>
+      <section className="relative overflow-hidden bg-[#080808] pt-24 pb-12">
+        {/* Background Orbs */}
+        <div className="absolute top-0 right-1/4 w-[400px] h-[400px] bg-gold/10 blur-[120px] rounded-full pointer-events-none z-0" />
+        <div className="absolute bottom-0 left-1/4 w-[400px] h-[400px] bg-white/5 blur-[120px] rounded-full pointer-events-none z-0" />
+
+        <div className="relative z-10 container mx-auto text-center px-6">
+          <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-4">
+            Consultar <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">Citas</span>
+          </h1>
+          <p className="text-lg text-white/60 font-medium tracking-wide">
+            Ingresa tu teléfono para ver tus reservas
+          </p>
         </div>
       </section>
 
-      <section style={{ padding: '4rem 0' }}>
-        <div className="container">
-          <div className="consultation-form">
-            <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-              <i className="fas fa-search" style={{
-                fontSize: '3rem',
-                color: 'var(--accent-color)',
-                marginBottom: '1rem'
-              }}></i>
-              <h2 style={{ color: 'var(--accent-color)', marginBottom: '0.5rem' }}>
+      <section className="relative bg-[#080808] pb-24">
+        {/* Additional Orb for the form area */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold/5 blur-[150px] rounded-full pointer-events-none z-0" />
+        
+        <div className="relative z-10 container mx-auto px-4 max-w-4xl">
+          <div className="bg-white/[0.02] border border-white/10 rounded-[2rem] p-6 md:p-10 backdrop-blur-2xl shadow-2xl">
+            <div className="text-center mb-8">
+              <i className="fas fa-search text-5xl text-gold mb-4" />
+              <h2 className="text-3xl font-bold text-white mb-2">
                 Buscar mis Citas
               </h2>
-              <p style={{ opacity: '0.8' }}>
+              <p className="text-white/70">
                 Introduce el número de teléfono que usaste al reservar
               </p>
             </div>
 
-            <form onSubmit={handleSubmit}>
-              <PhoneInput
-                label="Número de Teléfono (WhatsApp)"
-                value={telefono}
-                onChange={(val) => setTelefono(val)}
-                required
-              />
-              <small style={{
-                opacity: '0.8',
-                fontSize: '0.85rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.5rem',
-                marginTop: '0.5rem'
-              }}>
-                <i className="fas fa-info-circle" style={{ color: 'var(--accent-color)' }}></i>
-                Usa el mismo formato con el que reservaste.
-              </small>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
+                <PhoneInput
+                  label="Número de Teléfono (WhatsApp)"
+                  value={telefono}
+                  onChange={(val) => setTelefono(val)}
+                  required
+                />
+                <small className="flex items-center gap-2 mt-3 text-sm text-white/60">
+                  <i className="fas fa-info-circle text-gold" />
+                  Usa el mismo formato con el que reservaste.
+                </small>
+              </div>
 
               <button
                 type="submit"
-                className={`btn btn-primary ${loading ? 'loading' : ''}`}
+                className={`w-full py-4 px-6 rounded-2xl font-bold uppercase tracking-wider text-sm transition-all duration-300
+                  ${loading 
+                    ? 'bg-white/10 text-white/50 cursor-not-allowed' 
+                    : 'bg-gradient-to-r from-gold to-yellow-500 text-[#080808] hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-[1.02]'
+                  }`}
                 disabled={loading}
-                style={{ width: '100%' }}
               >
                 {loading ? (
-                  <>
-                    <div className="spinner"></div>
+                  <span className="flex items-center justify-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     Buscando...
-                  </>
+                  </span>
                 ) : (
-                  <>
-                    <i className="fas fa-search"></i>
+                  <span className="flex items-center justify-center gap-2">
+                    <i className="fas fa-search" />
                     Buscar mis Citas
-                  </>
+                  </span>
                 )}
               </button>
             </form>
 
             {/* Results */}
             {searched && (
-              <div className="appointments-results">
+              <div className="mt-12 space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {citas.length === 0 ? (
-                  <div className="no-results">
-                    <i className="fas fa-calendar-times" style={{
-                      fontSize: '3rem',
-                      color: 'var(--accent-color)',
-                      marginBottom: '1rem'
-                    }}></i>
-                    <h3>No se encontraron citas</h3>
-                    <p>No encontramos citas asociadas a este número de teléfono.</p>
-                    <p>Verifica que hayas ingresado el número correcto o
-                      <a href="/reservar" style={{ color: 'var(--accent-color)', textDecoration: 'none' }}>
-                        {' '}reserva una nueva cita aquí
+                  <div className="text-center py-12 bg-white/5 rounded-[2rem] border border-white/10">
+                    <i className="fas fa-calendar-times text-5xl text-gold/50 mb-6" />
+                    <h3 className="text-2xl font-bold text-white mb-3">No se encontraron citas</h3>
+                    <p className="text-white/60 mb-2">No encontramos citas asociadas a este número de teléfono.</p>
+                    <p className="text-white/60">
+                      Verifica que hayas ingresado el número correcto o
+                      <a href="/reservar" className="text-gold hover:text-yellow-400 ml-1 underline underline-offset-4">
+                        reserva una nueva cita aquí
                       </a>.
                     </p>
                   </div>
                 ) : (
                   <>
                     {/* Mensaje de Bienvenida y Estadísticas */}
-                    <div style={{
-                      marginBottom: '2rem',
-                      padding: '2rem',
-                      background: 'linear-gradient(135deg, var(--accent-color) 0%, #c89d3c 100%)',
-                      borderRadius: 'var(--border-radius)',
-                      color: '#1a1a1a',
-                      textAlign: 'center'
-                    }}>
-                      <h2 style={{
-                        fontSize: '2rem',
-                        marginBottom: '1rem',
-                        fontWeight: 'bold'
-                      }}>
-                        <i className="fas fa-heart" style={{ marginRight: '0.5rem' }}></i>
-                        ¡Gracias por confiar en Chamos Barber!
-                      </h2>
-                      <p style={{ fontSize: '1.1rem', marginBottom: '1.5rem', opacity: 0.9 }}>
-                        Nos alegra tenerte como cliente. Tu confianza es nuestro mayor orgullo.
-                      </p>
+                    <div className="relative overflow-hidden bg-gradient-to-br from-gold/20 via-yellow-500/10 to-transparent border border-gold/30 rounded-[2rem] p-8 text-center backdrop-blur-md">
+                      <div className="absolute top-0 right-0 w-64 h-64 bg-gold/20 blur-[80px] rounded-full pointer-events-none" />
+                      
+                      <div className="relative z-10">
+                        <h2 className="text-3xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                          <i className="fas fa-heart text-gold" />
+                          ¡Gracias por confiar en Chamos Barber!
+                        </h2>
+                        <p className="text-lg text-white/80 mb-8 max-w-2xl mx-auto">
+                          Nos alegra tenerte como cliente. Tu confianza es nuestro mayor orgullo.
+                        </p>
 
-                      {/* Estadísticas */}
-                      <div style={{
-                        display: 'flex',
-                        gap: '2rem',
-                        justifyContent: 'center',
-                        flexWrap: 'wrap',
-                        marginTop: '1.5rem'
-                      }}>
-                        <div style={{
-                          padding: '1rem 2rem',
-                          background: 'rgba(26, 26, 26, 0.2)',
-                          borderRadius: '10px',
-                          minWidth: '150px'
-                        }}>
-                          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                            {totalCitas}
+                        {/* Estadísticas */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm transition-transform hover:-translate-y-1">
+                            <div className="text-4xl font-black text-gold mb-2">{totalCitas}</div>
+                            <div className="text-sm font-medium uppercase tracking-wider text-white/70">
+                              <i className="fas fa-calendar mr-2" /> Total de Citas
+                            </div>
                           </div>
-                          <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                            <i className="fas fa-calendar"></i> Total de Citas
+
+                          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm transition-transform hover:-translate-y-1">
+                            <div className="text-4xl font-black text-gold mb-2">{citasPendientes}</div>
+                            <div className="text-sm font-medium uppercase tracking-wider text-white/70">
+                              <i className="fas fa-clock mr-2" /> Citas Pendientes
+                            </div>
+                          </div>
+
+                          <div className="bg-white/5 border border-white/10 rounded-2xl p-6 backdrop-blur-sm transition-transform hover:-translate-y-1">
+                            <div className="text-4xl font-black text-gold mb-2">{10 - citasPendientes}</div>
+                            <div className="text-sm font-medium uppercase tracking-wider text-white/70">
+                              <i className="fas fa-plus-circle mr-2" /> Cupos Disponibles
+                            </div>
                           </div>
                         </div>
 
-                        <div style={{
-                          padding: '1rem 2rem',
-                          background: 'rgba(26, 26, 26, 0.2)',
-                          borderRadius: '10px',
-                          minWidth: '150px'
-                        }}>
-                          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                            {citasPendientes}
+                        {citasPendientes >= 8 && (
+                          <div className="mt-8 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 flex items-center justify-center gap-2">
+                            <i className="fas fa-exclamation-triangle" />
+                            Estás cerca del límite de {citasPendientes}/10 citas pendientes
                           </div>
-                          <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                            <i className="fas fa-clock"></i> Citas Pendientes
-                          </div>
-                        </div>
-
-                        <div style={{
-                          padding: '1rem 2rem',
-                          background: 'rgba(26, 26, 26, 0.2)',
-                          borderRadius: '10px',
-                          minWidth: '150px'
-                        }}>
-                          <div style={{ fontSize: '2.5rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-                            {10 - citasPendientes}
-                          </div>
-                          <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                            <i className="fas fa-plus-circle"></i> Cupos Disponibles
-                          </div>
-                        </div>
+                        )}
                       </div>
-
-                      {citasPendientes >= 8 && (
-                        <div style={{
-                          marginTop: '1.5rem',
-                          padding: '1rem',
-                          background: 'rgba(255, 0, 0, 0.2)',
-                          borderRadius: '8px',
-                          border: '2px solid rgba(255, 0, 0, 0.4)'
-                        }}>
-                          <i className="fas fa-exclamation-triangle" style={{ marginRight: '0.5rem' }}></i>
-                          Estás cerca del límite de {citasPendientes}/10 citas pendientes
-                        </div>
-                      )}
                     </div>
 
                     {/* Próximas Citas */}
                     {upcomingCitas.length > 0 && (
-                      <div className="appointments-section">
-                        <h3>
-                          <i className="fas fa-calendar-plus" style={{ marginRight: '0.5rem' }}></i>
+                      <div className="space-y-6">
+                        <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                          <i className="fas fa-calendar-plus text-gold" />
                           Próximas Citas ({upcomingCitas.length})
                         </h3>
                         {upcomingCitas.map(cita => (
-                          <div key={cita.id} className="appointment-card" style={{
-                            position: 'relative',
-                            overflow: 'hidden'
-                          }}>
+                          <div key={cita.id} className="relative overflow-hidden bg-white/[0.03] border border-white/10 rounded-2xl p-6 md:p-8 backdrop-blur-xl transition-all duration-300 hover:bg-white/[0.05] hover:border-gold/30 hover:shadow-[0_0_30px_rgba(212,175,55,0.1)] group">
+                            {/* Accent Glow on Hover */}
+                            <div className="absolute top-0 right-0 w-32 h-32 bg-gold/10 blur-[50px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+
                             {/* Foto del Barbero y Información */}
                             {cita.barbero_imagen && (
-                              <div style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                marginBottom: '1.5rem',
-                                padding: '1.5rem',
-                                background: 'linear-gradient(135deg, rgba(212, 175, 55, 0.1) 0%, rgba(212, 175, 55, 0.05) 100%)',
-                                borderRadius: 'var(--border-radius)',
-                                gap: '1.5rem'
-                              }}>
-                                <div style={{
-                                  position: 'relative',
-                                  flexShrink: 0
-                                }}>
+                              <div className="flex items-center gap-6 mb-8 p-6 bg-gradient-to-r from-gold/10 to-transparent rounded-2xl border border-gold/20">
+                                <div className="relative shrink-0">
                                   <img
                                     src={cita.barbero_imagen}
                                     alt={cita.barbero_nombre}
-                                    style={{
-                                      width: '100px',
-                                      height: '100px',
-                                      borderRadius: '50%',
-                                      objectFit: 'cover',
-                                      border: '3px solid var(--accent-color)',
-                                      boxShadow: '0 4px 10px rgba(0,0,0,0.3)'
-                                    }}
+                                    className="w-24 h-24 rounded-full object-cover border-2 border-gold shadow-lg"
                                   />
-                                  <div style={{
-                                    position: 'absolute',
-                                    bottom: '-5px',
-                                    right: '-5px',
-                                    background: 'var(--accent-color)',
-                                    borderRadius: '50%',
-                                    width: '30px',
-                                    height: '30px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    border: '2px solid var(--bg-primary)'
-                                  }}>
-                                    <i className="fas fa-scissors" style={{ fontSize: '0.8rem', color: '#1a1a1a' }}></i>
+                                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-gold to-yellow-500 rounded-full w-8 h-8 flex items-center justify-center border-2 border-[#080808] shadow-md">
+                                    <i className="fas fa-scissors text-xs text-[#080808]" />
                                   </div>
                                 </div>
 
-                                <div style={{ flex: 1 }}>
-                                  <h4 style={{
-                                    fontSize: '1.3rem',
-                                    marginBottom: '0.5rem',
-                                    color: 'var(--accent-color)'
-                                  }}>
-                                    Tu barbero: {cita.barbero_nombre}
+                                <div className="flex-1">
+                                  <h4 className="text-xl font-bold text-white mb-1">
+                                    Tu barbero: <span className="text-transparent bg-clip-text bg-gradient-to-r from-gold to-yellow-300">{cita.barbero_nombre}</span>
                                   </h4>
                                   {cita.barbero_especialidad && (
-                                    <p style={{
-                                      fontSize: '0.95rem',
-                                      opacity: 0.8,
-                                      marginBottom: '0.5rem'
-                                    }}>
-                                      <i className="fas fa-star" style={{ marginRight: '0.5rem' }}></i>
+                                    <p className="text-sm text-gold/80 mb-2 flex items-center gap-2">
+                                      <i className="fas fa-star" />
                                       {cita.barbero_especialidad}
                                     </p>
                                   )}
-                                  <p style={{
-                                    fontSize: '0.9rem',
-                                    opacity: 0.7,
-                                    fontStyle: 'italic'
-                                  }}>
+                                  <p className="text-sm text-white/60 italic">
                                     ¡Estamos emocionados de atenderte!
                                   </p>
                                 </div>
                               </div>
                             )}
 
-                            <div className="appointment-date">
-                              <i className="fas fa-calendar"></i> {formatDate(cita.fecha)} a las {cita.hora}
+                            <div className="text-lg font-medium text-white mb-6 flex items-center gap-3">
+                              <i className="fas fa-calendar text-gold" /> {formatDate(cita.fecha)} a las {cita.hora}
                             </div>
-                            <div className="appointment-details">
+                            <div className="space-y-4 text-white/80">
                               {(() => {
                                 const serviciosDetalle = cita.servicios_detalle || []
                                 const tieneMultiplesServicios = serviciosDetalle.length > 1
 
                                 return (
-                                  <div>
-                                    <strong>
+                                  <div className="bg-[#080808]/50 rounded-xl p-6 border border-white/5">
+                                    <strong className="text-white mb-4 block text-lg">
                                       {tieneMultiplesServicios ? 'Servicios:' : 'Servicio:'}
                                     </strong>
                                     {tieneMultiplesServicios ? (
-                                      <div style={{ marginTop: '0.5rem' }}>
-                                        <ul style={{
-                                          marginBottom: '0.75rem',
-                                          paddingLeft: '1.5rem',
-                                          listStyleType: 'none'
-                                        }}>
+                                      <div className="space-y-4">
+                                        <ul className="space-y-3">
                                           {serviciosDetalle.map((servicio, idx) => (
-                                            <li key={idx} style={{
-                                              marginBottom: '0.5rem',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '0.5rem',
-                                              fontSize: '0.95rem'
-                                            }}>
-                                              <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                minWidth: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                background: 'var(--accent-color)',
-                                                color: '#1a1a1a',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 'bold'
-                                              }}>
+                                            <li key={idx} className="flex items-center gap-4 text-white/80">
+                                              <span className="flex-shrink-0 w-8 h-8 rounded-full bg-gold/20 text-gold flex items-center justify-center font-bold text-sm border border-gold/30">
                                                 {idx + 1}
                                               </span>
-                                              <span style={{ flex: 1 }}>
+                                              <span className="flex-1">
                                                 {servicio.cantidad && servicio.cantidad > 1 ? `${servicio.cantidad}x ` : ''}
                                                 {servicio.nombre}
                                               </span>
-                                              <span style={{
-                                                color: 'var(--accent-color)',
-                                                fontWeight: '600',
-                                                whiteSpace: 'nowrap'
-                                              }}>
+                                              <span className="text-gold font-semibold whitespace-nowrap">
                                                 ${(servicio.subtotal || (servicio.precio * (servicio.cantidad || 1)))?.toLocaleString()}
                                               </span>
-                                              <span style={{
-                                                opacity: 0.7,
-                                                fontSize: '0.85rem',
-                                                whiteSpace: 'nowrap'
-                                              }}>
+                                              <span className="text-white/50 text-sm whitespace-nowrap w-16 text-right">
                                                 {servicio.duracion_minutos} min
                                               </span>
                                             </li>
                                           ))}
                                         </ul>
                                         {/* Resumen Total */}
-                                        <div style={{
-                                          marginTop: '0.75rem',
-                                          paddingTop: '0.75rem',
-                                          borderTop: '2px solid var(--accent-color)',
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          fontWeight: 'bold',
-                                          fontSize: '1.05rem'
-                                        }}>
-                                          <span>TOTAL:</span>
-                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                            <span style={{ color: 'var(--accent-color)' }}>
+                                        <div className="mt-6 pt-4 border-t border-white/10 flex justify-between items-center text-lg">
+                                          <span className="font-bold text-white">TOTAL:</span>
+                                          <div className="flex gap-4 items-center">
+                                            <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold to-yellow-300">
                                               ${cita.precio?.toLocaleString()}
                                             </span>
-                                            <span style={{ opacity: 0.8, fontSize: '0.9rem' }}>
+                                            <span className="text-white/60 text-sm">
                                               {cita.duracion_total} min
                                             </span>
                                           </div>
                                         </div>
                                       </div>
                                     ) : (
-                                      <div style={{ marginTop: '0.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                          <span>{cita.servicio_nombre}</span>
-                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                            <span style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
-                                              ${cita.precio?.toLocaleString()}
+                                      <div className="flex justify-between items-center text-lg">
+                                        <span className="text-white/90">{cita.servicio_nombre}</span>
+                                        <div className="flex gap-4 items-center">
+                                          <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold to-yellow-300">
+                                            ${cita.precio?.toLocaleString()}
+                                          </span>
+                                          {cita.duracion_total && (
+                                            <span className="text-white/60 text-sm">
+                                              {cita.duracion_total} min
                                             </span>
-                                            {cita.duracion_total && (
-                                              <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>
-                                                {cita.duracion_total} min
-                                              </span>
-                                            )}
-                                          </div>
+                                          )}
                                         </div>
                                       </div>
                                     )}
                                   </div>
                                 )
                               })()}
-                              <div>
-                                <strong>Barbero:</strong> {cita.barbero_nombre}
+                              <div className="flex items-center gap-2 mt-4 px-2">
+                                <strong className="text-white">Barbero:</strong> <span className="text-white/80">{cita.barbero_nombre}</span>
                               </div>
-                              <div>
-                                <strong>Estado:</strong>
-                                <span style={{
-                                  color: getEstadoColor(cita.estado),
-                                  fontWeight: '600',
-                                  marginLeft: '0.5rem'
-                                }}>
+                              <div className="flex items-center gap-2 px-2">
+                                <strong className="text-white">Estado:</strong>
+                                <span className={`font-bold px-3 py-1 rounded-full text-xs ${cita.estado.toLowerCase() === 'pendiente' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-green-500/20 text-green-400 border border-green-500/30'}`}>
                                   {cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
                                 </span>
                               </div>
                             </div>
                             {limpiarNotas(cita.notas) && (
-                              <div style={{
-                                marginTop: '1rem',
-                                padding: '0.75rem',
-                                background: 'rgba(212, 175, 55, 0.1)',
-                                borderRadius: 'var(--border-radius)',
-                                fontSize: '0.9rem'
-                              }}>
-                                <strong>Notas:</strong> {limpiarNotas(cita.notas)}
+                              <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl text-sm text-white/80">
+                                <strong className="text-white">Notas:</strong> {limpiarNotas(cita.notas)}
                               </div>
                             )}
 
                             {cita.estado.toLowerCase() === 'pendiente' && (
-                              <div style={{
-                                marginTop: '1rem',
-                                padding: '0.75rem',
-                                background: 'rgba(255, 165, 0, 0.1)',
-                                borderRadius: 'var(--border-radius)',
-                                fontSize: '0.9rem',
-                                border: '1px solid rgba(255, 165, 0, 0.3)'
-                              }}>
-                                <i className="fas fa-info-circle"></i> Tu cita está pendiente de confirmación.
-                                Te contactaremos pronto por WhatsApp.
+                              <div className="mt-6 p-4 bg-orange-500/10 border border-orange-500/30 rounded-xl text-sm text-orange-400 flex items-start gap-3">
+                                <i className="fas fa-info-circle mt-0.5" />
+                                <span>Tu cita está pendiente de confirmación. Te contactaremos pronto por WhatsApp.</span>
                               </div>
                             )}
                           </div>
@@ -586,125 +449,81 @@ const ConsultarPage: React.FC = () => {
 
                     {/* Historial */}
                     {historyCitas.length > 0 && (
-                      <div className="appointments-section">
-                        <h3>
-                          <i className="fas fa-history" style={{ marginRight: '0.5rem' }}></i>
+                      <div className="space-y-6 mt-16">
+                        <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
+                          <i className="fas fa-history text-white/50" />
                           Historial ({historyCitas.length})
                         </h3>
                         {historyCitas.map(cita => (
-                          <div key={cita.id} className="appointment-card" style={{ opacity: '0.8' }}>
-                            <div className="appointment-date">
-                              <i className="fas fa-calendar"></i> {formatDate(cita.fecha)} a las {cita.hora}
+                          <div key={cita.id} className="relative overflow-hidden bg-white/[0.02] border border-white/5 rounded-2xl p-6 md:p-8 backdrop-blur-sm opacity-80 hover:opacity-100 transition-opacity">
+                            <div className="text-white/60 mb-6 flex items-center gap-3">
+                              <i className="fas fa-calendar" /> {formatDate(cita.fecha)} a las {cita.hora}
                             </div>
-                            <div className="appointment-details">
+                            <div className="space-y-4 text-white/80">
                               {(() => {
                                 const serviciosDetalle = cita.servicios_detalle || []
                                 const tieneMultiplesServicios = serviciosDetalle.length > 1
 
                                 return (
-                                  <div>
-                                    <strong>
+                                  <div className="bg-[#080808]/30 rounded-xl p-5 border border-white/5">
+                                    <strong className="text-white mb-4 block">
                                       {tieneMultiplesServicios ? 'Servicios:' : 'Servicio:'}
                                     </strong>
                                     {tieneMultiplesServicios ? (
-                                      <div style={{ marginTop: '0.5rem' }}>
-                                        <ul style={{
-                                          marginBottom: '0.75rem',
-                                          paddingLeft: '1.5rem',
-                                          listStyleType: 'none'
-                                        }}>
+                                      <div className="space-y-3">
+                                        <ul className="space-y-2">
                                           {serviciosDetalle.map((servicio, idx) => (
-                                            <li key={idx} style={{
-                                              marginBottom: '0.5rem',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              gap: '0.5rem',
-                                              fontSize: '0.95rem'
-                                            }}>
-                                              <span style={{
-                                                display: 'inline-flex',
-                                                alignItems: 'center',
-                                                justifyContent: 'center',
-                                                minWidth: '24px',
-                                                height: '24px',
-                                                borderRadius: '50%',
-                                                background: 'var(--accent-color)',
-                                                color: '#1a1a1a',
-                                                fontSize: '0.75rem',
-                                                fontWeight: 'bold'
-                                              }}>
+                                            <li key={idx} className="flex items-center gap-4 text-white/70 text-sm">
+                                              <span className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 text-white flex items-center justify-center font-bold text-xs">
                                                 {idx + 1}
                                               </span>
-                                              <span style={{ flex: 1 }}>{servicio.nombre}</span>
-                                              <span style={{
-                                                color: 'var(--accent-color)',
-                                                fontWeight: '600',
-                                                whiteSpace: 'nowrap'
-                                              }}>
+                                              <span className="flex-1">{servicio.nombre}</span>
+                                              <span className="text-white font-semibold whitespace-nowrap">
                                                 ${servicio.precio?.toLocaleString()}
                                               </span>
-                                              <span style={{
-                                                opacity: 0.7,
-                                                fontSize: '0.85rem',
-                                                whiteSpace: 'nowrap'
-                                              }}>
+                                              <span className="text-white/40 whitespace-nowrap w-16 text-right">
                                                 {servicio.duracion_minutos} min
                                               </span>
                                             </li>
                                           ))}
                                         </ul>
                                         {/* Resumen Total */}
-                                        <div style={{
-                                          marginTop: '0.75rem',
-                                          paddingTop: '0.75rem',
-                                          borderTop: '2px solid rgba(212, 175, 55, 0.5)',
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          fontWeight: 'bold',
-                                          fontSize: '1.05rem'
-                                        }}>
-                                          <span>TOTAL:</span>
-                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                            <span style={{ color: 'var(--accent-color)' }}>
+                                        <div className="mt-4 pt-3 border-t border-white/10 flex justify-between items-center">
+                                          <span className="font-bold text-white">TOTAL:</span>
+                                          <div className="flex gap-4 items-center">
+                                            <span className="text-lg font-bold text-white/90">
                                               ${cita.precio?.toLocaleString()}
                                             </span>
-                                            <span style={{ opacity: 0.8, fontSize: '0.9rem' }}>
+                                            <span className="text-white/50 text-sm">
                                               {cita.duracion_total} min
                                             </span>
                                           </div>
                                         </div>
                                       </div>
                                     ) : (
-                                      <div style={{ marginTop: '0.5rem' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                          <span>{cita.servicio_nombre}</span>
-                                          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                                            <span style={{ color: 'var(--accent-color)', fontWeight: '600' }}>
-                                              ${cita.precio?.toLocaleString()}
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-white/80">{cita.servicio_nombre}</span>
+                                        <div className="flex gap-4 items-center">
+                                          <span className="font-bold text-white/90">
+                                            ${cita.precio?.toLocaleString()}
+                                          </span>
+                                          {cita.duracion_total && (
+                                            <span className="text-white/50 text-sm">
+                                              {cita.duracion_total} min
                                             </span>
-                                            {cita.duracion_total && (
-                                              <span style={{ opacity: 0.7, fontSize: '0.9rem' }}>
-                                                {cita.duracion_total} min
-                                              </span>
-                                            )}
-                                          </div>
+                                          )}
                                         </div>
                                       </div>
                                     )}
                                   </div>
                                 )
                               })()}
-                              <div>
-                                <strong>Barbero:</strong> {cita.barbero_nombre}
+                              <div className="flex items-center gap-2 mt-4 px-2">
+                                <strong className="text-white">Barbero:</strong> <span className="text-white/70">{cita.barbero_nombre}</span>
                               </div>
-                              <div>
-                                <strong>Estado:</strong>
-                                <span style={{
-                                  color: getEstadoColor(cita.estado),
-                                  fontWeight: '600',
-                                  marginLeft: '0.5rem'
-                                }}>
+                              <div className="flex items-center gap-2 px-2">
+                                <strong className="text-white">Estado:</strong>
+                                <span className={`font-bold px-3 py-1 rounded-full text-xs ${cita.estado.toLowerCase() === 'cancelada' ? 'bg-red-500/10 text-red-400 border border-red-500/20' : 'bg-green-500/10 text-green-400 border border-green-500/20'}`}>
                                   {cita.estado.charAt(0).toUpperCase() + cita.estado.slice(1)}
                                 </span>
                               </div>
@@ -715,41 +534,32 @@ const ConsultarPage: React.FC = () => {
                     )}
 
                     {/* Contact Info */}
-                    <div style={{
-                      marginTop: '2rem',
-                      padding: '1.5rem',
-                      background: 'var(--bg-primary)',
-                      borderRadius: 'var(--border-radius)',
-                      border: '1px solid var(--border-color)',
-                      textAlign: 'center'
-                    }}>
-                      <h4 style={{ color: 'var(--accent-color)', marginBottom: '1rem' }}>
+                    <div className="mt-12 p-8 bg-gradient-to-b from-white/5 to-transparent rounded-[2rem] border border-white/10 text-center backdrop-blur-xl">
+                      <h4 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gold to-yellow-300 mb-4">
                         ¿Necesitas ayuda?
                       </h4>
-                      <p style={{ marginBottom: '1rem' }}>
+                      <p className="text-white/80 mb-6 max-w-lg mx-auto">
                         Si necesitas cancelar, reprogramar o tienes alguna consulta sobre tu cita:
                       </p>
-                      <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                      <div className="flex flex-wrap gap-4 justify-center">
                         <a
                           href="https://wa.me/56983588553"
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="btn btn-primary"
-                          style={{ padding: '10px 20px' }}
+                          className="flex items-center gap-2 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white px-6 py-3 rounded-xl font-bold hover:shadow-[0_0_20px_rgba(37,211,102,0.4)] transition-all hover:-translate-y-1"
                         >
-                          <i className="fab fa-whatsapp"></i>
+                          <i className="fab fa-whatsapp text-xl" />
                           WhatsApp
                         </a>
                         <a
                           href="tel:+56983588553"
-                          className="btn btn-secondary"
-                          style={{ padding: '10px 20px' }}
+                          className="flex items-center gap-2 bg-white/10 text-white border border-white/20 px-6 py-3 rounded-xl font-bold hover:bg-white/20 transition-all hover:-translate-y-1"
                         >
-                          <i className="fas fa-phone"></i>
+                          <i className="fas fa-phone text-xl" />
                           Llamar
                         </a>
                       </div>
-                      <p style={{ fontSize: '0.85rem', opacity: '0.7', marginTop: '1rem' }}>
+                      <p className="text-xs text-white/50 mt-8 font-medium tracking-wide">
                         Horario de atención: Lunes a Viernes 10:00 - 20:30 | Sábado 10:00 - 21:00 | Domingo Cerrado
                       </p>
                     </div>
