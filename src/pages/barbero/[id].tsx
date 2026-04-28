@@ -114,58 +114,53 @@ const BarberoProfilePage: React.FC = () => {
     <Layout 
       title={`${barbero.nombre} - Chamos Barber`}
       description={`Conoce a ${barbero.nombre}, ${barbero.biografia.substring(0, 150)}...`}
+      transparentNav={true}
     >
-      <div className="container" style={{ paddingTop: '6rem' }}>
-        {/* Botón volver */}
-        <div style={{ marginBottom: '2rem' }}>
-          <Link href="/equipo" className="btn btn-secondary" style={{ padding: '10px 20px' }}>
+      <div className="relative min-h-screen bg-[#080808] overflow-hidden pt-32 pb-24">
+        {/* Background Orbs */}
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/5 blur-[120px] rounded-full pointer-events-none z-0" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-white/5 blur-[120px] rounded-full pointer-events-none z-0" />
+
+        <div className="relative z-10 mx-auto max-w-6xl px-6 lg:px-8">
+          {/* Back button */}
+          <Link 
+            href="/equipo" 
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.08] text-white/80 transition-all mb-12 backdrop-blur-xl"
+          >
             <i className="fas fa-arrow-left"></i>
             Volver al Equipo
           </Link>
-        </div>
 
-        {/* Profile Header */}
-        <section className="barber-profile">
-          <div className="profile-header">
-            <div 
-              className="profile-image"
-              style={{ backgroundImage: `url(${getImageUrl(barbero.foto_url)})` }}
-            ></div>
+          {/* Profile Header Card */}
+          <div className="bg-white/[0.02] border border-white/5 rounded-[2rem] p-8 md:p-12 backdrop-blur-2xl flex flex-col md:flex-row gap-12 items-start shadow-2xl">
+            {/* Image */}
+            <div className="w-full md:w-1/3 shrink-0">
+              <div 
+                className="w-full aspect-[3/4] rounded-2xl bg-cover bg-center border border-white/10 shadow-[0_0_30px_rgba(212,175,55,0.1)]"
+                style={{ backgroundImage: `url(${getImageUrl(barbero.foto_url)})` }}
+              />
+            </div>
             
-            <div className="profile-details">
-              <h1>{barbero.nombre}</h1>
+            {/* Details */}
+            <div className="flex-1 w-full">
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white mb-4">
+                {barbero.nombre}
+              </h1>
+              
               {barbero.experiencia_anos && (
-                <p style={{ 
-                  color: 'var(--accent-color)', 
-                  fontSize: '1.2rem', 
-                  fontWeight: '600', 
-                  marginBottom: '1rem' 
-                }}>
+                <div className="flex items-center gap-2 text-gold text-lg font-medium tracking-wide mb-8">
                   <i className="fas fa-star"></i> {barbero.experiencia_anos} años de experiencia
-                </p>
+                </div>
               )}
               
               {barbero.especialidades && barbero.especialidades.length > 0 && (
-                <div style={{ marginBottom: '1.5rem' }}>
-                  <h3 style={{ 
-                    color: 'var(--accent-color)', 
-                    marginBottom: '0.5rem',
-                    fontSize: '1.1rem'
-                  }}>
-                    Especialidades:
-                  </h3>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div className="mb-8">
+                  <h3 className="text-white/50 uppercase tracking-widest text-sm mb-4">Especialidades:</h3>
+                  <div className="flex flex-wrap gap-3">
                     {barbero.especialidades.map((especialidad, index) => (
                       <span 
                         key={index}
-                        style={{
-                          background: 'var(--accent-color)',
-                          color: 'var(--bg-primary)',
-                          padding: '4px 12px',
-                          borderRadius: '20px',
-                          fontSize: '0.9rem',
-                          fontWeight: '500'
-                        }}
+                        className="px-4 py-2 rounded-full bg-gold/10 border border-gold/20 text-gold text-sm font-medium tracking-wide"
                       >
                         {especialidad}
                       </span>
@@ -174,24 +169,18 @@ const BarberoProfilePage: React.FC = () => {
                 </div>
               )}
               
-              <div className="profile-bio">
+              <div className="text-white/70 text-lg leading-relaxed mb-10 font-medium">
                 <p>{barbero.biografia}</p>
               </div>
 
-              {/* Contact Info */}
-              <div style={{ 
-                display: 'flex', 
-                gap: '1rem', 
-                marginTop: '2rem',
-                flexWrap: 'wrap'
-              }}>
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-4">
                 {barbero.telefono && (
                   <a 
                     href={`https://wa.me/${barbero.telefono.replace(/\D/g, '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-primary"
-                    style={{ padding: '10px 20px' }}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-green-500/10 border border-green-500/20 hover:bg-green-500/20 text-green-400 font-medium transition-all"
                   >
                     <i className="fab fa-whatsapp"></i>
                     WhatsApp
@@ -202,17 +191,15 @@ const BarberoProfilePage: React.FC = () => {
                     href={`https://instagram.com/${barbero.instagram.replace('@', '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="btn btn-secondary"
-                    style={{ padding: '10px 20px' }}
+                    className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-pink-500/10 border border-pink-500/20 hover:bg-pink-500/20 text-pink-400 font-medium transition-all"
                   >
                     <i className="fab fa-instagram"></i>
                     Instagram
                   </a>
                 )}
                 <Link 
-                  href="/reservar" 
-                  className="btn btn-primary"
-                  style={{ padding: '10px 20px' }}
+                  href={`/reservar?barbero=${barbero.id}`} 
+                  className="inline-flex items-center gap-2 px-8 py-3 rounded-xl bg-gradient-to-r from-gold to-yellow-500 text-[#080808] font-bold hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] hover:scale-105 transition-all"
                 >
                   <i className="fas fa-calendar-plus"></i>
                   Reservar Cita
@@ -223,21 +210,31 @@ const BarberoProfilePage: React.FC = () => {
 
           {/* Portfolio Section */}
           {portfolio.length > 0 && (
-            <div className="portfolio-section">
-              <h2>Portfolio de Trabajos</h2>
-              <div className="portfolio-grid">
+            <div className="mt-24">
+              <div className="flex items-center gap-4 mb-10">
+                <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-white/10" />
+                <h2 className="text-3xl font-black uppercase tracking-widest text-white text-center">Portfolio de Trabajos</h2>
+                <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-white/10" />
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
                 {portfolio.map((item) => (
                   <div 
                     key={item.id}
-                    className="portfolio-item"
-                    style={{ backgroundImage: `url(${getPortfolioImageUrl(item.imagen_url)})` }}
+                    className="group relative aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/10"
                     title={item.descripcion || 'Trabajo realizado'}
-                  ></div>
+                  >
+                    <div 
+                      className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-110"
+                      style={{ backgroundImage: `url(${getPortfolioImageUrl(item.imagen_url)})` }}
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#080808]/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </div>
                 ))}
               </div>
             </div>
           )}
-        </section>
+        </div>
       </div>
     </Layout>
   )
