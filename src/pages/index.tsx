@@ -91,8 +91,8 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
               <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl mb-6">
                 <span className="text-gold text-[10px] tracking-[0.2em] font-bold uppercase">Nuestra Casa</span>
               </div>
-              <h2 className="text-5xl md:text-6xl font-black uppercase tracking-tighter text-white">
-                En el centro de <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">San Fernando</span>
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white leading-tight md:leading-none">
+                En el centro de <br className="md:hidden" /><span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">San Fernando</span>
               </h2>
               <p className="text-white/50 mt-6 text-lg max-w-lg">Rancagua 759, San Fernando, Chile. <br/> Ven a vivir la experiencia Chamos.</p>
             </div>
