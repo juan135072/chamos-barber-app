@@ -2,6 +2,7 @@ import React from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Marquee } from './Marquee'
+import { CalendarPlus, Star } from 'lucide-react'
 
 interface TeamMember {
   id: string
@@ -32,8 +33,8 @@ function getRole(member: TeamMember): string {
 export default function TeamMarquee({ members, loading = false }: TeamMarqueeProps) {
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-24">
-        <div className="h-12 w-12 rounded-full border-2 border-[#D4AF37] border-t-transparent animate-spin" />
+      <div className="flex items-center justify-center py-24 bg-[#080808]">
+        <div className="h-12 w-12 rounded-full border-2 border-gold border-t-transparent animate-spin" />
       </div>
     )
   }
@@ -44,79 +45,28 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
   ]
 
   return (
-    <section className="relative w-full overflow-hidden bg-[#121212] py-12 md:py-24">
-      {/* Decorative SVG bottom-right — recoloreado al tono dorado */}
-      <svg
-        aria-hidden="true"
-        className="absolute right-0 bottom-0 text-[#2C2C2C] pointer-events-none"
-        fill="none"
-        height="154"
-        viewBox="0 0 460 154"
-        width="460"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <g clipPath="url(#clip-team-deco)">
-          <path
-            d="M-87.463 458.432C-102.118 348.092 -77.3418 238.841 -15.0744 188.274C57.4129 129.408 180.708 150.071 351.748 341.128C278.246 -374.233 633.954 380.602 548.123 42.7707"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="40"
-          />
-        </g>
-        <defs>
-          <clipPath id="clip-team-deco">
-            <rect fill="white" height="154" width="460" />
-          </clipPath>
-        </defs>
-      </svg>
+    <section className="relative w-full overflow-hidden bg-[#080808] py-16 md:py-28">
+      {/* Liquid Glass Background Orbs */}
+      <div className="absolute top-[20%] left-0 w-[400px] h-[400px] bg-gold/5 blur-[120px] rounded-full pointer-events-none z-0" />
+      <div className="absolute bottom-[20%] right-0 w-[400px] h-[400px] bg-white/5 blur-[120px] rounded-full pointer-events-none z-0" />
 
       <div className="relative z-10 mx-auto max-w-7xl">
         {/* Header */}
-        <div className="mx-auto mb-16 flex max-w-5xl flex-col items-center px-6 text-center lg:px-0">
-          {/* Ícono con acento dorado */}
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-xl text-[#121212]"
-            style={{ backgroundColor: '#D4AF37' }}>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <path d="M16.051 12.616a1 1 0 0 1 1.909.024l.737 1.452a1 1 0 0 0 .737.535l1.634.256a1 1 0 0 1 .588 1.806l-1.172 1.168a1 1 0 0 0-.282.866l.259 1.613a1 1 0 0 1-1.541 1.134l-1.465-.75a1 1 0 0 0-.912 0l-1.465.75a1 1 0 0 1-1.539-1.133l.258-1.613a1 1 0 0 0-.282-.866l-1.156-1.153a1 1 0 0 1 .572-1.822l1.633-.256a1 1 0 0 0 .737-.535z" />
-              <path d="M8 15H7a4 4 0 0 0-4 4v2" />
-              <circle cx="10" cy="7" r="4" />
-            </svg>
+        <div className="mx-auto mb-20 flex max-w-4xl flex-col items-center px-6 text-center lg:px-0">
+          
+          {/* Badge */}
+          <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-2xl mb-8">
+            <Star className="w-3.5 h-3.5 text-gold fill-gold" />
+            <span className="text-white/80 text-[10px] md:text-xs font-semibold tracking-[0.2em] uppercase">Conoce al equipo</span>
+            <Star className="w-3.5 h-3.5 text-gold fill-gold" />
           </div>
 
-          <h1 className="relative mb-4 font-bold text-4xl tracking-tight sm:text-5xl text-[#EAEAEA]">
-            Nuestros Barberos
-            {/* Decorative zigzag behind the title */}
-            <svg
-              aria-hidden="true"
-              className="absolute -top-2 -right-8 -z-10 w-24 text-[#2C2C2C]"
-              fill="currentColor"
-              height="86"
-              viewBox="0 0 108 86"
-              width="108"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M38.8484 16.236L15 43.5793L78.2688 15L18.1218 71L93 34.1172L70.2047 65.2739"
-                stroke="currentColor"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="28"
-              />
-            </svg>
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">
+            Nuestros <br className="md:hidden" />
+            <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">Barberos</span>
           </h1>
 
-          <p className="max-w-2xl text-[#EAEAEA]/70">
+          <p className="max-w-2xl text-white/60 text-lg md:text-xl font-medium tracking-wide">
             Barberos venezolanos y chilenos con pasión por el oficio. Cada uno aporta
             su estilo único para que salgas impecable.
           </p>
@@ -124,45 +74,46 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
 
         {/* Marquee */}
         <div className="relative w-full">
-          {/* Fade-out edges — usando el color de fondo del sitio */}
+          {/* Fade-out edges - ajustado al bg #080808 */}
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-0 left-0 z-10 h-full w-32"
-            style={{ background: 'linear-gradient(to right, #121212, transparent)' }}
+            className="pointer-events-none absolute top-0 left-0 z-10 h-full w-24 md:w-40"
+            style={{ background: 'linear-gradient(to right, #080808, transparent)' }}
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute top-0 right-0 z-10 h-full w-32"
-            style={{ background: 'linear-gradient(to left, #121212, transparent)' }}
+            className="pointer-events-none absolute top-0 right-0 z-10 h-full w-24 md:w-40"
+            style={{ background: 'linear-gradient(to left, #080808, transparent)' }}
           />
 
-          <Marquee className="[--gap:1.5rem] [--duration:35s]" pauseOnHover>
+          <Marquee className="[--gap:2rem] [--duration:35s]" pauseOnHover>
             {displayMembers.map((member) => (
               <Link
                 href={`/barbero/${member.slug || member.id}`}
                 key={member.id}
-                className="group/card flex w-56 shrink-0 flex-col no-underline"
+                className="group/card flex w-64 shrink-0 flex-col no-underline"
               >
-                <div className="relative overflow-hidden rounded-2xl bg-[#1A1A1A]"
-                  style={{ height: '336px' }}>
+                <div className="relative overflow-hidden rounded-[2rem] bg-white/[0.02] border border-white/5"
+                  style={{ height: '380px' }}>
                   <Image
                     alt={member.nombre}
                     src={getImageUrl(member.imagen_url || member.foto_url)}
                     fill
-                    className="object-cover grayscale transition-all duration-500 group-hover/card:grayscale-0 group-hover/card:scale-105"
-                    sizes="224px"
+                    className="object-cover grayscale transition-all duration-700 group-hover/card:grayscale-0 group-hover/card:scale-110"
+                    sizes="256px"
                   />
-                  {/* Info overlay at the bottom */}
+                  {/* Info overlay at the bottom with Glassmorphism */}
                   <div
-                    className="absolute bottom-0 w-full rounded-b-2xl p-3"
-                    style={{ background: 'rgba(18,18,18,0.88)' }}
+                    className="absolute bottom-0 w-full p-5 bg-gradient-to-t from-[#080808] via-[#080808]/80 to-transparent transition-transform duration-500"
                   >
-                    <h3 className="font-semibold text-[#EAEAEA] leading-tight">
-                      {member.nombre}
-                    </h3>
-                    <p className="text-[#D4AF37] text-xs mt-0.5 leading-snug">
-                      {getRole(member)}
-                    </p>
+                    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-4 transform translate-y-2 group-hover/card:translate-y-0 transition-transform duration-500">
+                      <h3 className="font-black text-white text-lg tracking-wide uppercase">
+                        {member.nombre}
+                      </h3>
+                      <p className="text-gold text-xs mt-1 tracking-widest uppercase font-bold">
+                        {getRole(member)}
+                      </p>
+                    </div>
                   </div>
                 </div>
               </Link>
@@ -171,18 +122,22 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
         </div>
 
         {/* Bottom CTA */}
-        <div className="mx-auto mt-16 max-w-2xl px-6 text-center lg:px-0">
-          <p className="mb-8 text-lg text-[#EAEAEA]/80 leading-relaxed">
-            Más de <strong className="text-[#D4AF37]">8 años</strong> combinando técnica
+        <div className="mx-auto mt-24 max-w-3xl px-6 text-center lg:px-0">
+          <p className="mb-10 text-lg md:text-xl text-white/70 leading-relaxed font-medium">
+            Más de <strong className="text-gold font-black">8 años</strong> combinando técnica
             venezolana y experiencia chilena. Cada corte, una obra de arte.
           </p>
+          
           <Link
             href="/reservar"
-            className="inline-flex items-center gap-2 px-8 py-3 rounded-lg font-semibold text-[#121212] transition-all hover:-translate-y-0.5 hover:brightness-90"
-            style={{ backgroundColor: '#D4AF37' }}
+            className="relative group inline-flex overflow-hidden rounded-2xl bg-gradient-to-br from-gold to-[#a88647] p-[1px] shrink-0"
           >
-            <i className="fas fa-calendar-plus" />
-            Reservar con el Equipo
+            <div className="relative bg-[#080808] px-10 py-5 rounded-2xl transition-colors duration-300 group-hover:bg-transparent flex items-center gap-3">
+              <CalendarPlus className="w-5 h-5 text-gold group-hover:text-dark transition-colors" />
+              <span className="relative z-10 text-white font-black tracking-widest text-sm uppercase group-hover:text-dark transition-colors">
+                Reservar con el Equipo
+              </span>
+            </div>
           </Link>
         </div>
       </div>
