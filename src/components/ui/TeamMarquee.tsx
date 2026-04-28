@@ -61,7 +61,7 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
             <Star className="w-3.5 h-3.5 text-gold fill-gold" />
           </div>
 
-          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6">
+          <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-white mb-6 leading-tight md:leading-none">
             Nuestros <br className="md:hidden" />
             <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">Barberos</span>
           </h1>
