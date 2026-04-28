@@ -436,4 +436,5 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
         )}
       </div>
     </div>
+  )
 }
