@@ -202,145 +202,128 @@ export default function AdminPage() {
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen" style={{ backgroundColor: '#0A0A0A' }}>
+      <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden text-white">
+        {/* Background Effects */}
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-gold/5 blur-[120px] pointer-events-none rounded-full" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-white/5 blur-[100px] pointer-events-none rounded-full" />
+
         {/* Sidebar */}
         <aside
-          className={`fixed left-0 top-0 h-screen transition-all duration-300 z-30 ${sidebarOpen ? 'sidebar-open' : ''
-            }`}
-          style={{
-            width: sidebarOpen ? '240px' : '72px',
-            backgroundColor: '#111',
-            borderRight: '1px solid rgba(255, 255, 255, 0.05)',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
+          className={`fixed left-0 top-0 h-screen transition-all duration-300 z-30 flex flex-col ${sidebarOpen ? 'w-[240px]' : 'w-[72px]'} bg-white/[0.02] border-r border-white/10 backdrop-blur-2xl`}
         >
           {/* Logo */}
           <div
-            className="h-16 flex items-center justify-between px-4"
-            style={{ borderBottom: '1px solid rgba(255, 255, 255, 0.05)' }}
+            className="h-16 flex items-center justify-between px-4 border-b border-white/10"
           >
             {sidebarOpen ? (
               <Logo size="sm" withText={true} />
             ) : (
               <Logo size="sm" withText={false} />
             )}
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="hidden lg:block p-2 rounded hover:bg-white hover:bg-opacity-5 transition-all"
-              style={{ color: '#666' }}
-            >
-              <i className={`fas fa-${sidebarOpen ? 'angles-left' : 'angles-right'}`}></i>
-            </button>
-          </div>
-
-          {/* Navigation */}
-          <nav className="py-4 overflow-y-auto flex-1">
-            {menuItems.map(item => (
               <button
-                key={item.id}
-                onClick={() => handleTabChange(item.id)}
-                className="w-full flex items-center px-4 py-3 transition-all group"
-                style={{
-                  backgroundColor: activeTab === item.id ? 'rgba(212, 175, 55, 0.1)' : 'transparent',
-                  borderLeft: activeTab === item.id ? '3px solid #D4AF37' : '3px solid transparent',
-                  color: activeTab === item.id ? '#D4AF37' : '#666'
-                }}
+                onClick={() => setSidebarOpen(!sidebarOpen)}
+                className="hidden lg:block p-2 rounded-xl hover:bg-white/5 transition-all text-white/50 hover:text-white"
               >
-                <i
-                  className={`${item.icon} ${sidebarOpen ? 'w-5' : 'w-full text-center'}`}
-                  style={{ fontSize: '18px' }}
-                />
-                {sidebarOpen && (
-                  <span className="ml-3 text-sm font-medium">{item.label}</span>
-                )}
+                <i className={`fas fa-${sidebarOpen ? 'angles-left' : 'angles-right'}`}></i>
               </button>
-            ))}
-          </nav>
+            </div>
 
-          {/* Special Admin Actions */}
-          <div className="py-2" style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}>
-            <button
-              onClick={() => router.push('/pos')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#10B981' }}
-            >
-              <i className={`fas fa-cash-register ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">POS (Caja)</span>}
-            </button>
-            <button
-              onClick={() => router.push('/admin/gastos')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#F59E0B' }}
-            >
-              <i className={`fas fa-file-invoice-dollar ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Gastos</span>}
-            </button>
-            <button
-              onClick={() => router.push('/admin/liquidaciones')}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-white hover:bg-opacity-5"
-              style={{ color: '#8B5CF6' }}
-            >
-              <i className={`fas fa-money-bill-wave ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Liquidaciones</span>}
-            </button>
-          </div>
+            {/* Navigation */}
+            <nav className="py-4 overflow-y-auto flex-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+              {menuItems.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id)}
+                  className={`w-full flex items-center px-4 py-3 transition-all relative ${
+                    activeTab === item.id 
+                      ? 'bg-gold/10 text-gold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gold' 
+                      : 'text-white/60 hover:bg-white/5 hover:text-white'
+                  }`}
+                >
+                  <i
+                    className={`${item.icon} ${sidebarOpen ? 'w-5' : 'w-full text-center'} text-lg`}
+                  />
+                  {sidebarOpen && (
+                    <span className="ml-3 text-sm font-medium tracking-wide">{item.label}</span>
+                  )}
+                </button>
+              ))}
+            </nav>
 
-          {/* Bottom Logout Actions */}
-          <div
-            className="mt-auto"
-            style={{ borderTop: '1px solid rgba(255, 255, 255, 0.05)' }}
-          >
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-4 py-3 transition-all hover:bg-red-500 hover:bg-opacity-10"
-              style={{ color: '#EF4444' }}
-            >
-              <i className={`fas fa-sign-out-alt ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
-              {sidebarOpen && <span className="ml-3 text-sm font-medium">Cerrar Sesión</span>}
-            </button>
-          </div>
-        </aside>
+            {/* Special Admin Actions */}
+            <div className="py-2 border-t border-white/10">
+              <button
+                onClick={() => router.push('/pos')}
+                className="w-full flex items-center px-4 py-3 transition-all hover:bg-white/5 text-emerald-400 hover:text-emerald-300"
+              >
+                <i className={`fas fa-cash-register ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+                {sidebarOpen && <span className="ml-3 text-sm font-medium tracking-wide">POS (Caja)</span>}
+              </button>
+              <button
+                onClick={() => router.push('/admin/gastos')}
+                className="w-full flex items-center px-4 py-3 transition-all hover:bg-white/5 text-amber-400 hover:text-amber-300"
+              >
+                <i className={`fas fa-file-invoice-dollar ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+                {sidebarOpen && <span className="ml-3 text-sm font-medium tracking-wide">Gastos</span>}
+              </button>
+              <button
+                onClick={() => router.push('/admin/liquidaciones')}
+                className="w-full flex items-center px-4 py-3 transition-all hover:bg-white/5 text-purple-400 hover:text-purple-300"
+              >
+                <i className={`fas fa-money-bill-wave ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+                {sidebarOpen && <span className="ml-3 text-sm font-medium tracking-wide">Liquidaciones</span>}
+              </button>
+            </div>
 
-        {/* Main Content */}
-        <main
-          className="transition-all duration-300"
-          style={{
-            marginLeft: sidebarOpen ? '240px' : '72px',
-            minHeight: '100vh',
-            position: 'relative'
-          }}
-        >
-          {/* Top Bar */}
-          <header
-            className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-20"
+            {/* Bottom Logout Actions */}
+            <div className="mt-auto border-t border-white/10">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center px-4 py-4 transition-all hover:bg-red-500/10 text-red-400 hover:text-red-300"
+              >
+                <i className={`fas fa-sign-out-alt ${sidebarOpen ? 'w-5' : 'w-full text-center'}`} />
+                {sidebarOpen && <span className="ml-3 text-sm font-medium tracking-wide">Cerrar Sesión</span>}
+              </button>
+            </div>
+          </aside>
+
+          {/* Main Content */}
+          <main
+            className="transition-all duration-300 relative z-10"
             style={{
-              backgroundColor: '#0A0A0A',
-              borderBottom: '1px solid rgba(255, 255, 255, 0.05)'
+              marginLeft: sidebarOpen ? '240px' : '72px',
+              minHeight: '100vh',
             }}
           >
-            <div>
-              <h1
-                className="text-lg font-semibold"
-                style={{ color: '#FFF', letterSpacing: '-0.02em' }}
-              >
-                {menuItems.find(m => m.id === activeTab)?.label || 'Dashboard'}
-              </h1>
-            </div>
+            {/* Top Bar */}
+            <header
+              className="h-16 flex items-center justify-between px-6 lg:px-8 sticky top-0 z-20 bg-[#0a0a0a]/80 backdrop-blur-xl border-b border-white/10"
+            >
+              <div>
+                <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
+                    <i className={`${menuItems.find(m => m.id === activeTab)?.icon} text-gold text-sm`}></i>
+                  </div>
+                  {menuItems.find(m => m.id === activeTab)?.label || 'Dashboard'}
+                </h1>
+              </div>
 
-            <div className="flex items-center gap-4">
-              {/* User Menu */}
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:block text-right">
-                  <p className="text-sm font-medium" style={{ color: '#FFF' }}>
-                    {adminUser.nombre}
-                  </p>
-                  <p className="text-xs" style={{ color: '#666' }}>
-                    {adminUser.rol}
-                  </p>
+              <div className="flex items-center gap-4">
+                {/* User Menu */}
+                <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.02] border border-white/10 backdrop-blur-md hidden sm:flex">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-gold to-yellow-600 flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.3)]">
+                    <i className="fas fa-shield-alt text-[10px] text-dark font-black"></i>
+                  </div>
+                  <div className="text-right flex flex-col justify-center">
+                    <p className="text-sm font-bold text-white leading-none mb-0.5">
+                      {adminUser.nombre}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-widest text-gold leading-none">
+                      {adminUser.rol}
+                    </p>
+                  </div>
                 </div>
               </div>
-            </div>
           </header >
 
           {/* Content Area */}
@@ -384,27 +367,25 @@ export default function AdminPage() {
                     ].map((stat, idx) => (
                       <div
                         key={idx}
-                        className="p-6 rounded-xl transition-all hover:scale-105"
-                        style={{
-                          backgroundColor: '#111',
-                          border: '1px solid rgba(255, 255, 255, 0.05)'
-                        }}
+                        className="p-6 rounded-3xl bg-white/[0.02] border border-white/10 backdrop-blur-xl transition-all hover:bg-white/[0.04] hover:scale-[1.02] hover:shadow-[0_8px_30px_rgba(0,0,0,0.12)] hover:border-white/20 group relative overflow-hidden"
                       >
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl -mr-10 -mt-10 group-hover:bg-white/10 transition-colors pointer-events-none" />
+                        <div className="flex items-center justify-between mb-4 relative z-10">
                           <div
-                            className="w-10 h-10 rounded-lg flex items-center justify-center"
+                            className="w-12 h-12 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/5"
                             style={{
-                              backgroundColor: `${stat.color}20`,
-                              color: stat.color
+                              backgroundColor: `${stat.color}15`,
+                              color: stat.color,
+                              boxShadow: `0 0 20px ${stat.color}20`
                             }}
                           >
-                            <i className={`fas ${stat.icon}`}></i>
+                            <i className={`fas ${stat.icon} text-lg`}></i>
                           </div>
                         </div>
-                        <div className="text-3xl font-bold mb-1" style={{ color: '#FFF' }}>
+                        <div className="text-4xl font-black mb-1 tracking-tight text-white relative z-10">
                           {stat.value}
                         </div>
-                        <div className="text-sm" style={{ color: '#666' }}>
+                        <div className="text-xs font-bold tracking-widest uppercase text-white/50 relative z-10">
                           {stat.label}
                         </div>
                       </div>
@@ -413,11 +394,7 @@ export default function AdminPage() {
 
                   {/* Calendar View - Reservas por Barbero */}
                   <div
-                    className="rounded-xl p-6"
-                    style={{
-                      backgroundColor: '#111',
-                      border: '1px solid rgba(255, 255, 255, 0.05)'
-                    }}
+                    className="rounded-3xl p-6 bg-white/[0.02] border border-white/10 backdrop-blur-xl"
                   >
                     <CalendarView
                       barberos={barberos}
@@ -483,12 +460,11 @@ export default function AdminPage() {
         {/* Mobile Sidebar Toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-50 shadow-lg"
-          style={{ backgroundColor: '#D4AF37', color: '#000' }}
+          className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-50 shadow-[0_0_30px_rgba(212,175,55,0.4)] bg-gradient-to-r from-gold to-yellow-600 text-dark transition-transform hover:scale-110 active:scale-95"
         >
-          <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'}`}></i>
+          <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'} text-xl`}></i>
         </button>
-      </div >
+      </div>
     </>
   )
 }

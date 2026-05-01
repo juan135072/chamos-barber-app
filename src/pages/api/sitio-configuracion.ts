@@ -1,5 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { supabase } from '@/lib/supabase'
+import { createClient } from '@supabase/supabase-js'
+
+// Usa service_role key para bypasear RLS (server-side)
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+)
 
 export default async function handler(
   req: NextApiRequest,
@@ -10,10 +17,9 @@ export default async function handler(
   }
 
   try {
-    const { data, error } = await (supabase as any)
-      .from('configuracion_sitio')
+    const { data, error } = await supabase
+      .from('sitio_configuracion')
       .select('*')
-      .limit(1)
 
     if (error) {
       console.error('Supabase error:', error)

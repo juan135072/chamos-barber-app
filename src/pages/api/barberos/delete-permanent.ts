@@ -62,13 +62,11 @@ export default async function handler(
 
     // 3. Eliminar otros registros relacionados que NO son críticos para el balance
     const relatedTables = [
-      'horarios_trabajo',
       'horarios_atencion',
       'horarios_bloqueados',
-      'barbero_portfolio',
-      'configuracion_comisiones',
       'notas_clientes',
-      'estadisticas'
+      'asistencias',
+      'liquidaciones'
     ]
 
     for (const table of relatedTables) {

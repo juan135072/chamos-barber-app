@@ -44,12 +44,8 @@ const BarberoProfilePage: React.FC = () => {
         setBarbero(barberoData)
       }
 
-      // Cargar portfolio del barbero
-      const portfolioResponse = await fetch(`/api/barbero-portfolio?barbero_id=${id}&aprobado=true`)
-      if (portfolioResponse.ok) {
-        const portfolioData = await portfolioResponse.json()
-        setPortfolio(portfolioData.data || [])
-      }
+      // Portfolio deshabilitado - tabla barbero_portfolio fue eliminada
+      // La sección se oculta automáticamente cuando portfolio.length === 0
     } catch (error) {
       console.error('Error loading barbero data:', error)
     } finally {
