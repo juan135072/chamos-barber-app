@@ -9,6 +9,7 @@ import OneSignalProvider from '../components/providers/OneSignalProvider'
 import OneSignalDebugPanel from '../components/debug/OneSignalDebugPanel'
 import OneSignalTestButton from '../components/debug/OneSignalTestButton'
 import WhatsAppButton from '../components/WhatsAppButton'
+import { TenantProvider } from '../context/TenantContext'
 import { ConfigProvider } from '../context/ConfigContext'
 import '../styles/globals.css'
 import '../styles/admin-minimal.css'
@@ -38,40 +39,42 @@ export default function App({ Component, pageProps }: AppProps) {
 
   return (
     <SessionContextProvider supabaseClient={supabase}>
-      <ConfigProvider>
-        <OneSignalProvider autoPrompt={false} enabled={isBarberRoute}>
-          <Head>
-            <meta charSet="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+      <TenantProvider>
+        <ConfigProvider>
+          <OneSignalProvider autoPrompt={false} enabled={isBarberRoute}>
+            <Head>
+              <meta charSet="UTF-8" />
+              <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+              <link rel="icon" type="image/x-icon" href="/favicon.ico" />
 
-            {/* Fonts y estilos globales movidos a _document.tsx */}
-          </Head>
-          <Component {...pageProps} />
-          <Toaster
-            position="top-right"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-              success: {
+              {/* Fonts y estilos globales movidos a _document.tsx */}
+            </Head>
+            <Component {...pageProps} />
+            <Toaster
+              position="top-right"
+              toastOptions={{
                 duration: 3000,
-                iconTheme: {
-                  primary: '#d97706',
-                  secondary: '#fff',
+                style: {
+                  background: '#363636',
+                  color: '#fff',
                 },
-              },
-            }}
-          />
-          {/* Componentes de debug de OneSignal (solo en desarrollo) */}
-          <OneSignalTestButton />
-          <OneSignalDebugPanel />
-          {/* WhatsApp button solo en páginas públicas (no en admin/barbero/pos) */}
-          {!isAdminRoute && <WhatsAppButton />}
-        </OneSignalProvider>
-      </ConfigProvider>
+                success: {
+                  duration: 3000,
+                  iconTheme: {
+                    primary: '#d97706',
+                    secondary: '#fff',
+                  },
+                },
+              }}
+            />
+            {/* Componentes de debug de OneSignal (solo en desarrollo) */}
+            <OneSignalTestButton />
+            <OneSignalDebugPanel />
+            {/* WhatsApp button solo en páginas públicas (no en admin/barbero/pos) */}
+            {!isAdminRoute && <WhatsAppButton />}
+          </OneSignalProvider>
+        </ConfigProvider>
+      </TenantProvider>
     </SessionContextProvider>
   )
 }

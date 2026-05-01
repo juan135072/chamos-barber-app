@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react';
-import { supabase } from '../lib/supabase';
+import React, { createContext, useContext, useMemo, useCallback } from 'react';
+import { useTenant } from './TenantContext';
 
 interface ConfigContextType {
     moneda: string;
@@ -12,31 +12,8 @@ const ConfigContext = createContext<ConfigContextType>({
 });
 
 export const ConfigProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const [moneda, setMoneda] = useState('CLP');
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchConfig = async () => {
-            try {
-                const { data, error } = await supabase
-                    .from('sitio_configuracion')
-                    .select('valor')
-                    .eq('clave', 'sitio_moneda')
-                    .maybeSingle() as { data: { valor: string } | null; error: unknown };
-
-                if (error) console.error('[Config] Error fetching moneda:', error);
-                if (data?.valor) {
-                    setMoneda(data.valor);
-                }
-            } catch (err) {
-                console.error('[Config] Error fetching global config:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchConfig();
-    }, []);
+    const { tenant, loading } = useTenant();
+    const moneda = tenant?.moneda || 'CLP';
 
     return (
         <ConfigContext.Provider value={{ moneda, loading }}>
