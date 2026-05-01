@@ -315,12 +315,13 @@ export async function crearLiquidacion(params: CrearLiquidacionParams): Promise<
  * Marcar una liquidación como pagada
  */
 export async function pagarLiquidacion(params: PagarLiquidacionParams): Promise<boolean> {
-  const { data, error } = await (supabase as any).rpc('pagar_liquidacion', {
+  const { data, error } = await supabase.rpc('pagar_liquidacion', {
     p_liquidacion_id: params.liquidacion_id,
     p_metodo_pago: params.metodo_pago,
     p_monto_efectivo: params.monto_efectivo,
     p_monto_transferencia: params.monto_transferencia,
-    p_referencia_transferencia: params.referencia_transferencia || null
+    p_numero_transferencia: params.referencia_transferencia || null,
+    p_notas: params.notas || null
   })
 
   if (error) {

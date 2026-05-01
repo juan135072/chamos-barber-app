@@ -75,17 +75,7 @@ export function useBarberAppAuth() {
         throw new Error('Perfil de barbero no encontrado')
       }
 
-      // 5. Actualizar última conexión
-      const barberoData = barbero as any
-      try {
-        await (supabase as any).rpc('actualizar_ultima_conexion', {
-          barbero_uuid: barberoData.id
-        })
-      } catch (err) {
-        console.warn('Error actualizando última conexión:', err)
-      }
-
-      // 6. Crear sesión de barbero
+      // 5. Crear sesión de barbero
       const barberoSession: BarberoSession = {
         userId: authSession.user.id,
         barberoId: (barbero as any).id,

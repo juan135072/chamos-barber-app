@@ -104,8 +104,7 @@ export default function SolicitudesTab() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          solicitudId: modalAprobacion.solicitud.id,
-          adminId: adminUserId
+          solicitudId: modalAprobacion.solicitud.id
         })
       })
 

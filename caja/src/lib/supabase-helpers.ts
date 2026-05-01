@@ -334,9 +334,9 @@ export const chamosSupabase = {
     try {
       const { data, error } = await supabase
         .rpc('get_horarios_disponibles', {
-          barbero_id_param: barbero_id,
-          fecha_param: fecha,
-          duracion_minutos_param: duracion_minutos
+          p_barbero_id: barbero_id,
+          p_fecha: fecha,
+          p_duracion_minutos: duracion_minutos
         })
 
       if (error) {

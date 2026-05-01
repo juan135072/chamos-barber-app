@@ -440,8 +440,8 @@ async function executeCheckAvailability(args: any) {
     }
 
     // 4. Obtener duracción aproximada del servicio (o default)
-    const { data: svc } = await supabase.from('servicios').select('duracion').eq('id', args.servicio_id).single();
-    const duracion = svc?.duracion || 30;
+    const { data: svc } = await supabase.from('servicios').select('duracion_minutos').eq('id', args.servicio_id).single();
+    const duracion = svc?.duracion_minutos || 30;
 
     // FECHA OBLIGATORIA: Si no viene, usamos hoy
     const fechaFinal = args.fecha || new Date().toISOString().split('T')[0];
@@ -449,9 +449,9 @@ async function executeCheckAvailability(args: any) {
     console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${barberoIdStr} en ${fechaFinal}`);
 
     const { data: slots, error: rpcError } = await supabase.rpc('get_horarios_disponibles', {
-      barbero_id_param: barberoIdStr,
-      fecha_param: fechaFinal,
-      duracion_minutos_param: duracion
+      p_barbero_id: barberoIdStr,
+      p_fecha: fechaFinal,
+      p_duracion_minutos: duracion
     });
 
     if (rpcError) { // Changed 'error' to 'rpcError' to match the new variable name

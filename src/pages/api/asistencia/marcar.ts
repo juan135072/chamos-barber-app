@@ -145,8 +145,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const { data: ubicacionValida, error: gpsError } = await supabase
             .rpc('ubicacion_es_valida', {
-                p_lat: latitud,
-                p_lng: longitud,
+                p_latitud: latitud,
+                p_longitud: longitud,
                 p_ubicacion_id: ubicacion_id
             })
 
@@ -162,13 +162,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Obtener la distancia para registrarla (metadatos) - solo si hay coordenadas
         let infoDistancia = null
         if (latitud && longitud && ubicacion_id) {
-            const { data: distData } = await supabase
-                .rpc('calcular_distancia_metros', {
-                    lat1: latitud,
-                    lng1: longitud,
-                    u_id: ubicacion_id
-                })
-            infoDistancia = distData
+            const { data: ubicacion } = await supabase
+                .from('ubicaciones_barberia')
+                .select('latitud, longitud')
+                .eq('id', ubicacion_id)
+                .single()
+
+            if (ubicacion) {
+                const { data: distData } = await supabase
+                    .rpc('calcular_distancia_metros', {
+                        lat1: latitud,
+                        lon1: longitud,
+                        lat2: ubicacion.latitud,
+                        lon2: ubicacion.longitud
+                    })
+                infoDistancia = distData
+            }
         }
 
         // 6. Determinar Estado (Normal / Tarde) basado en la configuración

@@ -115,7 +115,7 @@ export default async function handler(
     let authUserId: string | null = null
     const barberEmailNormalized = barbero.email.trim().toLowerCase()
 
-    // A. Intentar obtenerlo desde admin_users (más rápido y directo)
+    // A. Intentar obtenerlo desde admin_users por barbero_id (más rápido y directo)
     const { data: adminEntry } = await supabaseAdmin
       .from('admin_users')
       .select('id')
@@ -124,96 +124,29 @@ export default async function handler(
 
     if (adminEntry) {
       authUserId = adminEntry.id
-      console.log('🔍 [Reset Password] authUserId encontrado en admin_users:', authUserId)
+      console.log('🔍 [Reset Password] authUserId encontrado en admin_users por barbero_id:', authUserId)
     }
 
-    // B. Si no está en admin_users, buscar en Supabase Auth por email
+    // A2. Si no se encontró por barbero_id, buscar por email en admin_users (scoped, sin tocar Auth)
     if (!authUserId) {
-      console.log('🔍 [Reset Password] No encontrado en admin_users, buscando en Auth por email:', barberEmailNormalized)
-      let page = 1
-      const perPage = 1000
-
-      while (!authUserId && page <= 20) { // Aumentamos a 20 páginas (20000 usuarios)
-        const { data, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-          page,
-          perPage
-        })
-
-        if (listError) {
-          console.error('❌ [Reset Password] Error listando usuarios:', listError)
-          break
-        }
-
-        const foundUser = data.users.find((u: any) =>
-          u.email?.trim().toLowerCase() === barberEmailNormalized
-        )
-
-        if (foundUser) {
-          authUserId = foundUser.id
-          console.log('✅ [Reset Password] Usuario encontrado en Auth:', authUserId)
-          break
-        }
-
-        if (data.users.length < perPage) break
-        page++
-      }
-    }
-
-    if (!authUserId) {
-      console.log('🔍 [Reset Password] El barbero no tiene cuenta en Auth. Creando una nueva...')
-
-      // PASO 2.7: Generar contraseña inicial segura para la nueva cuenta
-      const initialPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
-
-      const { data: authUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
-        email: barbero.email,
-        password: initialPassword,
-        email_confirm: true,
-        user_metadata: {
-          nombre: barbero.nombre,
-          apellido: barbero.apellido,
-          rol: 'barbero'
-        }
-      })
-
-      if (createAuthError || !authUser.user) {
-        console.error('❌ [Reset Password] Error creando usuario en Auth:', createAuthError)
-
-        // Manejo especial si el error es porque ya existe (redundancia de seguridad)
-        if (createAuthError?.message?.includes('already registered') || createAuthError?.status === 422) {
-          return res.status(422).json({
-            error: 'El correo electrónico ya está registrado en el sistema. Intenta buscarlo manualmente o contacta a soporte.',
-            details: createAuthError.message
-          })
-        }
-
-        return res.status(500).json({
-          error: 'No se pudo crear la cuenta de autenticación para el barbero',
-          details: createAuthError?.message
-        })
-      }
-
-      authUserId = authUser.user.id
-      console.log('✅ [Reset Password] Nueva cuenta Auth creada:', authUserId)
-
-      // PASO 2.8: Asegurar que existe en admin_users
-      const { error: adminUserError } = await supabaseAdmin
+      const { data: adminByEmail } = await supabaseAdmin
         .from('admin_users')
-        .upsert({
-          id: authUserId,
-          email: barbero.email,
-          nombre: `${barbero.nombre} ${barbero.apellido}`,
-          rol: 'barbero',
-          barbero_id: barberoId,
-          activo: true
-        })
+        .select('id')
+        .eq('email', barberEmailNormalized)
+        .single()
 
-      if (adminUserError) {
-        console.error('❌ [Reset Password] Error creando/actualizando admin_user:', adminUserError)
-        // No fallar aquí, ya tenemos el authUserId para el reset
-      } else {
-        console.log('✅ [Reset Password] admin_users actualizado')
+      if (adminByEmail) {
+        authUserId = adminByEmail.id
+        console.log('🔍 [Reset Password] authUserId encontrado en admin_users por email:', authUserId)
       }
+    }
+
+    // B. Si no existe en admin_users, el barbero no tiene cuenta — debe ser aprobado primero
+    if (!authUserId) {
+      console.error('❌ [Reset Password] Barbero sin cuenta en admin_users:', barberEmailNormalized)
+      return res.status(404).json({
+        error: 'Este barbero no tiene cuenta de autenticación. Usa "Aprobar solicitud" para crear su cuenta primero.'
+      })
     }
 
     console.log('✅ [Reset Password] auth_user_id listo para procesar:', authUserId)

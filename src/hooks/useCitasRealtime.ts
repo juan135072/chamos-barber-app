@@ -24,10 +24,14 @@ export function useCitasRealtime(barberoId: string | null) {
       setLoading(true)
       setError(null)
 
-      // Usar la función RPC optimizada
-      const { data, error: rpcError } = await (supabase as any).rpc('obtener_citas_hoy_barbero', {
-        barbero_uuid: barberoId
-      })
+      const hoy = new Date().toISOString().split('T')[0]
+
+      const { data, error: rpcError } = await supabase
+        .from('citas')
+        .select('*')
+        .eq('barbero_id', barberoId)
+        .eq('fecha', hoy)
+        .order('hora', { ascending: true })
 
       if (rpcError) throw rpcError
 
@@ -175,11 +179,13 @@ export function useCitasRealtime(barberoId: string | null) {
       if (!barberoId) return { success: false, error: 'No hay barbero autenticado' }
 
       try {
-        const { data, error: rpcError } = await (supabase as any).rpc('cambiar_estado_cita', {
-          cita_uuid: citaId,
-          nuevo_estado: nuevoEstado,
-          barbero_uuid: barberoId
-        })
+        const { data, error: rpcError } = await supabase
+          .from('citas')
+          .update({ estado: nuevoEstado, updated_at: new Date().toISOString() })
+          .eq('id', citaId)
+          .eq('barbero_id', barberoId)
+          .select()
+          .single()
 
         if (rpcError) throw rpcError
 

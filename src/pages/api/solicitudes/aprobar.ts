@@ -27,11 +27,11 @@ export default async function handler(
   }
 
   try {
-    const { solicitudId, adminId } = req.body
+    const { solicitudId } = req.body
 
-    if (!solicitudId || !adminId) {
+    if (!solicitudId) {
       return res.status(400).json({
-        error: 'Faltan datos: solicitudId, adminId'
+        error: 'Faltan datos: solicitudId'
       })
     }
 
@@ -77,9 +77,7 @@ export default async function handler(
     const { data: result, error: funcError } = await supabaseAdmin
       .rpc('aprobar_solicitud_barbero', {
         p_solicitud_id: solicitudId,
-        p_admin_id: adminId,
-        p_auth_user_id: authUserId,
-        p_password: password
+        p_auth_user_id: authUserId
       })
 
     if (funcError) {

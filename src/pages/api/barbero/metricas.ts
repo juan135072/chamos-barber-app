@@ -19,7 +19,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         const { data, error } = await supabase.rpc('get_barber_dashboard_metrics_v2', {
-            barbero_uuid: barberoId
+            p_barbero_id: barberoId as string
         })
 
         if (error) throw error
