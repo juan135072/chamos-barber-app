@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import { calcularCategoriaCliente, DATA_RETENTION_POLICY, type ClienteCategoria } from '../../../../lib/data-retention-policy'
 import toast from 'react-hot-toast'
@@ -50,7 +50,7 @@ export default function ClientesTab() {
       // Agrupar por cliente y calcular categoría
       const clientesMap = new Map<string, ClienteConActividad>()
 
-      citas?.forEach(cita => {
+      citas?.forEach((cita: any) => {
         const key = cita.cliente_telefono
         const existing = clientesMap.get(key)
 
@@ -150,7 +150,7 @@ export default function ClientesTab() {
       doc.text(`Fecha de Exportación: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 14, 55)
 
       // Tabla de Citas
-      const tableData = citasCliente?.map(cita => [
+      const tableData = citasCliente?.map((cita: any) => [
         format(new Date(cita.fecha), 'dd/MM/yyyy'),
         cita.hora,
         cita.servicios?.nombre || 'Servicio no especificado',

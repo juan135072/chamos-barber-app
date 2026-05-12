@@ -1,6 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
-
+import { createPagesAdminClient } from '@/lib/supabase-server'
 // API Route para desactivar/activar barbero (soft delete)
 // Usa service_role key para bypasear RLS
 export default async function handler(
@@ -31,16 +30,7 @@ export default async function handler(
     }
 
     // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabase = createPagesAdminClient()
 
     // Actualizar estado del barbero (soft delete)
     console.log(`🔄 Actualizando barbero id: ${barberoId} a activo: ${activo}`)

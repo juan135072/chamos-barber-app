@@ -1,12 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
-
+import { createPagesAdminClient } from '@/lib/supabase-server'
 // Usa service_role key para bypasear RLS (server-side)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-)
+const supabase = createPagesAdminClient()
 
 export default async function handler(
   req: NextApiRequest,

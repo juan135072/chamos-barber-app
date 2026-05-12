@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesServerClient } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
-
+import { createPagesAdminClient } from '@/lib/supabase-server'
 /**
  * =====================================================
  * API: OBTENER CONFIGURACIÓN DE HORARIOS
@@ -27,10 +26,7 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        )
+        const supabaseAdmin = createPagesAdminClient()
 
         // Obtener comercio_id del admin por UUID — unívoco entre tenants
         const { data: adminUser, error: adminQueryError } = await supabaseAdmin

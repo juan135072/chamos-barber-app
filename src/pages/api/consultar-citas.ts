@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 import type { Database } from '@/lib/database.types'
 
 // Build Version: 2025-12-11-v6 - Security improvements (rate limiting ready, inline implementation)
@@ -55,33 +55,11 @@ export default async function handler(
   }
 
   try {
-    console.log('🔵 [consultar-citas] Creating Supabase client with SERVICE_ROLE_KEY...')
+    console.log('🔵 [consultar-citas] Creating InsForge admin client...')
 
-    // Verificar variables de entorno
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      console.error('❌ [consultar-citas] NEXT_PUBLIC_SUPABASE_URL not found')
-      return res.status(500).json({ error: 'Configuración de Supabase no encontrada' })
-    }
+    const supabase = createPagesAdminClient()
 
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('❌ [consultar-citas] SUPABASE_SERVICE_ROLE_KEY not found')
-      return res.status(500).json({ error: 'Clave de servicio de Supabase no encontrada' })
-    }
-
-    // Crear cliente Supabase con SERVICE_ROLE_KEY
-    // Esto bypassa todas las políticas RLS
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
-    console.log('✅ [consultar-citas] Supabase client created')
+    console.log('✅ [consultar-citas] InsForge admin client created')
 
     // Buscar citas por teléfono del cliente usando variaciones (OR)
     console.log('🔍 [consultar-citas] Fetching appointments...')

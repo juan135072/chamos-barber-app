@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
 import HorarioModal from '../modals/HorarioModal'
@@ -121,7 +121,7 @@ const HorariosTab: React.FC = () => {
       if (error) throw error
 
       // Mapear para asegurar tipo correcto (Supabase devuelve array de objetos para joins)
-      const citasMapeadas = (data || []).map(cita => ({
+      const citasMapeadas = (data || []).map((cita: any) => ({
         ...cita,
         servicios: Array.isArray(cita.servicios) ? cita.servicios[0] : cita.servicios
       })) as unknown as Cita[]

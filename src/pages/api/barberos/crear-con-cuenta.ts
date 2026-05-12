@@ -1,18 +1,8 @@
 // API Route: Crear Barbero con Cuenta de Usuario desde Admin
+// Migrado a InsForge 2026-05-12: adminGetUserById / adminCreateUser / adminDeleteUser
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
-
-// Cliente admin (service role)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+import { adminGetUserById, adminCreateUser, adminDeleteUser } from '@/lib/insforge-admin'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 
 export default async function handler(
   req: NextApiRequest,
@@ -23,30 +13,24 @@ export default async function handler(
   }
 
   try {
-    const { 
-      barberoData, 
-      crearCuenta, 
-      adminId 
-    } = req.body
+    const { barberoData, crearCuenta, adminId } = req.body
 
     if (!barberoData || !adminId) {
-      return res.status(400).json({
-        error: 'Faltan datos requeridos'
-      })
+      return res.status(400).json({ error: 'Faltan datos requeridos' })
     }
 
-    console.log('🔄 [Crear Barbero] Iniciando creación:', { 
-      nombre: barberoData.nombre, 
-      crearCuenta 
+    console.log('🔄 [Crear Barbero] Iniciando creación:', {
+      nombre: barberoData.nombre,
+      crearCuenta
     })
 
-    // PASO 0: Verificar que el solicitante es admin
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(adminId)
-    
+    const supabaseAdmin = createPagesAdminClient()
+
+    // PASO 0: Verificar que el solicitante existe y es admin
+    const { data: authData, error: authError } = await adminGetUserById(adminId)
+
     if (authError || !authData.user) {
-      return res.status(403).json({
-        error: 'No se pudo verificar tu identidad'
-      })
+      return res.status(403).json({ error: 'No se pudo verificar tu identidad' })
     }
 
     const { data: adminUser, error: adminError } = await supabaseAdmin
@@ -61,9 +45,9 @@ export default async function handler(
       })
     }
 
-    console.log('✅ [Crear Barbero] Admin verificado:', adminEmail)
+    console.log('✅ [Crear Barbero] Admin verificado:', authData.user.email)
 
-    // PASO 1: Crear barbero en la tabla barberos
+    // PASO 1: Crear barbero
     const { data: nuevoBarbero, error: barberoError } = await supabaseAdmin
       .from('barberos')
       .insert([barberoData])
@@ -80,14 +64,13 @@ export default async function handler(
     let password: string | null = null
     let authUserId: string | null = null
 
-    // PASO 2: Si se solicita crear cuenta, crear usuario en Auth
+    // PASO 2: Si se solicita crear cuenta, crear usuario auth
     if (crearCuenta && barberoData.email) {
-      // Generar contraseña segura
       password = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
 
-      console.log('🔑 [Crear Barbero] Creando cuenta de usuario en Auth')
+      console.log('🔑 [Crear Barbero] Creando cuenta de usuario en InsForge auth')
 
-      const { data: authUser, error: authUserError } = await supabaseAdmin.auth.admin.createUser({
+      const { data: authUser, error: authUserError } = await adminCreateUser({
         email: barberoData.email,
         password: password,
         email_confirm: true,
@@ -100,7 +83,6 @@ export default async function handler(
 
       if (authUserError || !authUser.user) {
         console.error('❌ [Crear Barbero] Error creando usuario en Auth:', authUserError)
-        // No fallar si solo falla la creación de cuenta
         console.warn('⚠️ [Crear Barbero] Barbero creado pero sin cuenta de usuario')
       } else {
         authUserId = authUser.user.id
@@ -120,9 +102,9 @@ export default async function handler(
 
         if (adminUserError) {
           console.error('❌ [Crear Barbero] Error creando admin_user:', adminUserError)
-          // Rollback: eliminar usuario de Auth
+          // Rollback: eliminar usuario auth
           try {
-            await supabaseAdmin.auth.admin.deleteUser(authUserId)
+            await adminDeleteUser(authUserId)
             console.log('🔄 [Crear Barbero] Rollback: Usuario Auth eliminado')
           } catch (rollbackError) {
             console.error('❌ [Crear Barbero] Error en rollback:', rollbackError)

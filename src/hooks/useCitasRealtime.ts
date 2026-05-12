@@ -72,7 +72,7 @@ export function useCitasRealtime(barberoId: string | null) {
           handleRealtimeChange(payload)
         }
       )
-      .subscribe((status) => {
+      .subscribe((status: any) => {
         console.log('📡 Estado de Realtime:', status)
 
         if (status === 'SUBSCRIBED') {

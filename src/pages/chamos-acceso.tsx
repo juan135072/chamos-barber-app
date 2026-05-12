@@ -1,10 +1,7 @@
 import Head from 'next/head'
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
-import { Auth } from '@supabase/auth-ui-react'
-import { ThemeSupa } from '@supabase/auth-ui-shared'
+import { useSession, useSupabaseClient } from '@/lib/insforge-react'
 import { useRouter } from 'next/router'
-import { useEffect } from 'react'
-import Image from 'next/image'
+import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import type { Database } from '@/lib/database.types'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
@@ -17,6 +14,30 @@ function Login() {
   const router = useRouter()
   const { setExternalId } = useOneSignal()
   const { tenant, loading: tenantLoading } = useTenant()
+
+  // Local form state (replaces the @supabase/auth-ui-react <Auth /> widget)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [signingIn, setSigningIn] = useState(false)
+
+  const handleSignIn = async (e: FormEvent) => {
+    e.preventDefault()
+    if (signingIn) return
+    setSigningIn(true)
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error || !data?.accessToken) {
+        toast.error(error?.message || 'Correo o contraseña incorrectos')
+        return
+      }
+      // Session is set inside the SDK; the useSession() hook below will pick it up
+      // and the existing useEffect will route admins/barbers to their panels.
+    } catch (err: any) {
+      toast.error(err?.message || 'Error al iniciar sesión')
+    } finally {
+      setSigningIn(false)
+    }
+  }
 
   useEffect(() => {
     // Si hay sesión y el usuario es admin, redirigir al admin panel
@@ -161,54 +182,52 @@ function Login() {
                 <p className="text-white/60">Accede al panel de administración</p>
               </div>
 
-              <Auth
-                supabaseClient={supabase}
-                appearance={{
-                  theme: ThemeSupa,
-                  variables: {
-                    default: {
-                      colors: {
-                        brand: 'transparent',
-                        brandAccent: 'transparent',
-                        inputBackground: 'rgba(255, 255, 255, 0.05)',
-                        inputText: 'white',
-                        inputPlaceholder: 'rgba(255, 255, 255, 0.4)',
-                        inputBorder: 'rgba(255, 255, 255, 0.1)',
-                        inputBorderHover: 'var(--tenant-primary, rgba(212, 175, 55, 0.5))',
-                        inputBorderFocus: 'var(--tenant-primary, #d4af37)',
-                      },
-                      borderWidths: {
-                        buttonBorderWidth: '1px',
-                        inputBorderWidth: '1px',
-                      },
-                      radii: {
-                        borderRadiusButton: '0.75rem',
-                        buttonBorderRadius: '0.75rem',
-                        inputBorderRadius: '0.75rem',
-                      },
-                    },
-                  },
-                }}
-                localization={{
-                  variables: {
-                    sign_in: {
-                      email_label: 'Correo electrónico',
-                      password_label: 'Contraseña',
-                      email_input_placeholder: 'Tu correo electrónico',
-                      password_input_placeholder: 'Tu contraseña',
-                      button_label: 'Iniciar sesión',
-                      loading_button_label: 'Iniciando sesión...',
-                      social_provider_text: 'Iniciar sesión con {{provider}}',
-                      link_text: '¿Ya tienes una cuenta? Inicia sesión',
-                    },
-                  },
-                }}
-                providers={[]}
-                redirectTo={typeof window !== 'undefined' ? `${window.location.origin}/admin` : '/admin'}
-                onlyThirdPartyProviders={false}
-                magicLink={false}
-                showLinks={false}
-              />
+              {/* Custom login form (replaces removed @supabase/auth-ui-react <Auth>) */}
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div>
+                  <label className="block text-sm text-white/80 mb-2 font-medium">
+                    Correo electrónico
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Tu correo electrónico"
+                    required
+                    autoComplete="email"
+                    className="supabase-auth-ui_ui-input w-full px-4 py-3 rounded-xl text-white placeholder-white/40 focus:outline-none transition-colors"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm text-white/80 mb-2 font-medium">
+                    Contraseña
+                  </label>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Tu contraseña"
+                    required
+                    autoComplete="current-password"
+                    className="supabase-auth-ui_ui-input w-full px-4 py-3 rounded-xl text-white placeholder-white/40 focus:outline-none transition-colors"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                    }}
+                  />
+                </div>
+                <button
+                  type="submit"
+                  disabled={signingIn}
+                  className="supabase-auth-ui_ui-button w-full py-3 px-4 rounded-xl font-black tracking-widest uppercase disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {signingIn ? 'Iniciando sesión...' : 'Iniciar sesión'}
+                </button>
+              </form>
 
               <div className="mt-8 pt-6 border-t border-white/10">
                 <div className="text-center mb-4">

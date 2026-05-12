@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useSession, useSupabaseClient } from '@/lib/insforge-react'
 import toast, { Toaster } from 'react-hot-toast'
 import CitasSection from '../components/barbero/CitasSection'
 import GananciasSection from '../components/barbero/GananciasSection'

@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createPagesAdminClient } from '@/lib/supabase-server'
 import { ChatMemory } from './redis';
 import { normalizePhone } from '@/lib/phone-utils';
 
@@ -10,7 +10,7 @@ const getSupabaseAdmin = () => {
     console.error('[GUSTAVO-IA] CRITICAL: Supabase credentials missing');
     return null;
   }
-  return createClient(url, key);
+  return createPagesAdminClient();
 };
 
 /**
@@ -176,10 +176,10 @@ export async function generateChatResponse(
     const catalogContext = contextData ? `
 [CONTEXTO DINÁMICO - CATÁLOGO REAL]
 BARBEROS DISPONIBLES:
-${contextData.barberos.map(b => `- ${b.nombre} ${b.apellido} (ID: ${b.id})`).join('\n')}
+${contextData.barberos.map((b: any) => `- ${b.nombre} ${b.apellido} (ID: ${b.id})`).join('\n')}
 
 SERVICIOS DISPONIBLES:
-${contextData.servicios.map(s => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.duracion_minutos} min)`).join('\n')}
+${contextData.servicios.map((s: any) => `- ${s.nombre}: $${s.precio} (ID: ${s.id}, ${s.duracion_minutos} min)`).join('\n')}
 ` : '';
 
     const now = new Date().toLocaleString('es-CL', {

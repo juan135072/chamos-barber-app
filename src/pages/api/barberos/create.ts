@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 import { createPagesServerClient } from '@/lib/supabase-server'
 
 export default async function handler(
@@ -30,16 +30,7 @@ export default async function handler(
     }
 
     // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabase = createPagesAdminClient()
 
     // Crear barbero
     console.log('💾 Insertando barbero en base de datos...')

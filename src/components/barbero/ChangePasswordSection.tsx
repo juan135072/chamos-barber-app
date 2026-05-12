@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { useSession } from '@supabase/auth-helpers-react'
+import { useSession } from '@/lib/insforge-react'
 import toast from 'react-hot-toast'
 
 const ChangePasswordSection: React.FC = () => {

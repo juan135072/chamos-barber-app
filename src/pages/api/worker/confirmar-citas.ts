@@ -1,13 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { createClient } from '@supabase/supabase-js';
+import { createPagesAdminClient } from '@/lib/supabase-server'
 import { ChatMemory } from '@/lib/redis';
 import { generateChatResponse } from '@/lib/ai-agent';
 import { sendMessageToChatwoot } from '@/lib/chatwoot';
 
-const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const supabase = createPagesAdminClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Protección del worker — requerir secret key

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useSupabaseClient, useSession } from '@supabase/auth-helpers-react'
+import { useSupabaseClient, useSession } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import { formatFechaChile } from '@/lib/date-utils'
 import NotasClienteModal from './NotasClienteModal'
@@ -47,7 +47,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'citas', filter: `barbero_id=eq.${barberoId}` },
-        (payload) => {
+        (payload: any) => {
           if (process.env.NODE_ENV !== 'production') {
             console.log('[CitasSection] Realtime cita change:', payload.eventType)
           }
@@ -101,7 +101,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
 
       // Contar notas por cliente
       const counts: Record<string, number> = {}
-      data?.forEach(nota => {
+      data?.forEach((nota: any) => {
         counts[nota.cliente_email] = (counts[nota.cliente_email] || 0) + 1
       })
       setNotasClientes(counts)

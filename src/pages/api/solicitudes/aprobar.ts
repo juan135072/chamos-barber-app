@@ -1,22 +1,8 @@
 // API Route: Aprobar Solicitud de Barbero
-// ENFOQUE SIMPLIFICADO - Usa función SQL para evitar problemas de tipos
-
+// Migrado a InsForge 2026-05-12: adminCreateUser + adminDeleteUser
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
-
-// Cliente admin (service role)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 
-  process.env.SERVICE_SUPABASESERVICE_KEY || 
-  process.env.SUPABASE_SERVICE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+import { adminCreateUser, adminDeleteUser } from '@/lib/insforge-admin'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 
 export default async function handler(
   req: NextApiRequest,
@@ -30,10 +16,10 @@ export default async function handler(
     const { solicitudId } = req.body
 
     if (!solicitudId) {
-      return res.status(400).json({
-        error: 'Faltan datos: solicitudId'
-      })
+      return res.status(400).json({ error: 'Faltan datos: solicitudId' })
     }
+
+    const supabaseAdmin = createPagesAdminClient()
 
     // PASO 0: Obtener datos de la solicitud
     const { data: solicitud, error: solicitudError } = await supabaseAdmin
@@ -43,16 +29,14 @@ export default async function handler(
       .single()
 
     if (solicitudError || !solicitud) {
-      return res.status(404).json({
-        error: 'Solicitud no encontrada'
-      })
+      return res.status(404).json({ error: 'Solicitud no encontrada' })
     }
 
     // Generar contraseña segura
     const password = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
 
-    // PASO 1: Crear usuario en Supabase Auth
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // PASO 1: Crear usuario en InsForge auth
+    const { data: authUser, error: authError } = await adminCreateUser({
       email: solicitud.email,
       password: password,
       email_confirm: true,
@@ -72,8 +56,7 @@ export default async function handler(
 
     const authUserId = authUser.user.id
 
-    // PASO 2: Llamar a función SQL que hace todo el trabajo
-    // Esta función crea barbero, admin_user y actualiza solicitud
+    // PASO 2: Llamar a función SQL que crea barbero, admin_user y actualiza solicitud
     const { data: result, error: funcError } = await supabaseAdmin
       .rpc('aprobar_solicitud_barbero', {
         p_solicitud_id: solicitudId,
@@ -82,18 +65,15 @@ export default async function handler(
 
     if (funcError) {
       console.error('Error en función aprobar_solicitud_barbero:', funcError)
-      
-      // Rollback: eliminar usuario de Auth
       try {
-        await supabaseAdmin.auth.admin.deleteUser(authUserId)
+        await adminDeleteUser(authUserId)
       } catch (rollbackError) {
         console.error('Error en rollback:', rollbackError)
       }
-
       throw new Error(funcError.message)
     }
 
-    // PASO 3: Enviar email con credenciales (opcional, no bloquea la aprobación)
+    // PASO 3: Enviar email con credenciales (opcional)
     try {
       const { emailService } = await import('../../../../lib/email-service')
       const emailSent = await emailService.sendCredentials({
@@ -110,7 +90,6 @@ export default async function handler(
       }
     } catch (emailError) {
       console.error('❌ [Aprobar] Error sending email (no crítico):', emailError)
-      // No fallar la aprobación si el email falla
     }
 
     return res.status(200).json({

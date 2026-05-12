@@ -1,5 +1,12 @@
+// Onboarding registration: creates a comercio + admin user atomically.
+// Migrado a InsForge 2026-05-12: adminCreateUser / adminUpdateUserById / adminDeleteUser
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import {
+  adminCreateUser,
+  adminUpdateUserById,
+  adminDeleteUser,
+} from '@/lib/insforge-admin'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 
 export default async function handler(
   req: NextApiRequest,
@@ -15,26 +22,15 @@ export default async function handler(
     return res.status(400).json({ error: 'Faltan campos obligatorios' })
   }
 
-  // Regex para validar slug (solo letras minúsculas, números y guiones)
-  const slugRegex = /^[a-z0-9-]+$/;
+  const slugRegex = /^[a-z0-9-]+$/
   if (!slugRegex.test(slug)) {
     return res.status(400).json({ error: 'El slug solo puede contener letras minúsculas, números y guiones.' })
   }
 
   try {
-    // 1. Inicializar cliente con SERVICE_ROLE para bypass RLS y usar Admin Auth API
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    )
+    const supabaseAdmin = createPagesAdminClient()
 
-    // 2. Verificar si el slug ya existe
+    // 1. Verificar si el slug ya existe
     const { data: existingComercio, error: checkError } = await supabaseAdmin
       .from('comercios')
       .select('id')
@@ -44,49 +40,47 @@ export default async function handler(
     if (existingComercio) {
       return res.status(400).json({ error: 'El subdominio (slug) ya está en uso. Por favor, elige otro.' })
     }
-    if (checkError && checkError.code !== 'PGRST116') { // PGRST116 es "No rows found"
+    if (checkError && checkError.code !== 'PGRST116') {
       throw checkError
     }
 
-    // 3. Crear el usuario en Supabase Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    // 2. Crear el usuario en InsForge auth
+    const { data: authData, error: authError } = await adminCreateUser({
       email: email,
       password: password,
-      email_confirm: true, // Auto-confirmar para el SaaS
+      email_confirm: true,
       user_metadata: {
         nombre: nombreAdmin,
         apellido: apellidoAdmin
       }
     })
 
-    if (authError) {
-      return res.status(400).json({ error: authError.message })
+    if (authError || !authData.user) {
+      return res.status(400).json({ error: authError?.message || 'No se pudo crear el usuario' })
     }
 
     const userId = authData.user.id
 
-    const db = supabaseAdmin as any
-
-    // 4. Crear el Comercio
-    const { data: newComercio, error: comercioError } = await db
+    // 3. Crear el Comercio
+    const { data: newComercio, error: comercioError } = await supabaseAdmin
       .from('comercios')
       .insert({
         nombre: nombreComercio,
         slug: slug,
         color_primario: colorPrimario || '#D4AF37',
-        plan: 'trial', // Plan por defecto (coincide con el check constraint)
+        plan: 'trial',
         activo: true
       })
       .select('id')
       .single()
 
     if (comercioError || !newComercio) {
-      await supabaseAdmin.auth.admin.deleteUser(userId)
+      await adminDeleteUser(userId)
       throw comercioError || new Error('Error al crear el comercio')
     }
 
-    // 5. Vincular el Usuario como Admin del Comercio
-    const { error: adminError } = await db
+    // 4. Vincular el usuario como admin del comercio
+    const { error: adminError } = await supabaseAdmin
       .from('admin_users')
       .insert({
         id: userId,
@@ -98,18 +92,17 @@ export default async function handler(
       })
 
     if (adminError) {
-      // Rollback completo si admin_users falla
-      await db.from('comercios').delete().eq('id', newComercio.id)
-      await supabaseAdmin.auth.admin.deleteUser(userId)
+      await supabaseAdmin.from('comercios').delete().eq('id', newComercio.id)
+      await adminDeleteUser(userId)
       throw adminError
     }
 
-    // 6. Escribir comercio_id en app_metadata del JWT para que get_my_comercio_id() lo lea directamente
-    await supabaseAdmin.auth.admin.updateUserById(userId, {
+    // 5. Persistir comercio_id en metadata para que se lea desde el JWT
+    //    (en InsForge, raw_app_meta_data se mapea a auth.users.metadata)
+    await adminUpdateUserById(userId, {
       app_metadata: { comercio_id: newComercio.id }
     })
 
-    // 7. Éxito
     return res.status(200).json({
       success: true,
       comercio_id: newComercio.id,

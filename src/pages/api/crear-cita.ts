@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 import type { Database } from '@/lib/database.types'
 import { RESERVATION_LIMITS, validateReservationLimits } from '@/lib/reservations-config'
 import { sendNotificationToBarber } from '../../lib/onesignal'
@@ -32,19 +32,7 @@ export default async function handler(
   try {
     devLog('🔵 [crear-cita] Creating Supabase client...')
 
-    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      return res.status(500).json({ error: 'Configuración de Supabase no encontrada' })
-    }
-
-    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      return res.status(500).json({ error: 'Clave de servicio de Supabase no encontrada' })
-    }
-
-    const supabase = createClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      { auth: { autoRefreshToken: false, persistSession: false } }
-    )
+    const supabase = createPagesAdminClient()
 
     const citaData: any = req.body
     devLog('🔵 [crear-cita] Request data:', JSON.stringify(citaData, null, 2))
@@ -234,7 +222,7 @@ export default async function handler(
       .select('fecha_hora_inicio, fecha_hora_fin')
       .eq('barbero_id', citaData.barbero_id)
 
-    const bloqueosDelDia = (bloqueos || []).filter(b => {
+    const bloqueosDelDia = (bloqueos || []).filter((b: any) => {
       const inicio = new Date((b as any).fecha_hora_inicio)
       return inicio.toISOString().split('T')[0] === citaData.fecha
     })

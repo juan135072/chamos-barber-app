@@ -18,7 +18,7 @@ export function useBarberAppAuth() {
     checkAuth()
 
     // Suscribirse a cambios de autenticación
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
       if (event === 'SIGNED_OUT') {
         setSession(null)
         router.push('/chamos-acceso')

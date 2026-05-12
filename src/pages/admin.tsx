@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
-import { useSession, useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useSession, useSupabaseClient } from '@/lib/insforge-react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { chamosSupabase } from '@/lib/supabase-helpers'

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { X, Clock, Coffee, AlertTriangle } from 'lucide-react'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
 

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { useSession } from '@supabase/auth-helpers-react'
+import { useSession } from '@/lib/insforge-react'
 import { supabase } from '@/lib/supabase'
 import Head from 'next/head'
 import Logo from '@/components/shared/Logo'

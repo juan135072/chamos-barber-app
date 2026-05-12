@@ -1,18 +1,8 @@
 // API Route: Reset Password para Barbero
+// Migrado a InsForge 2026-05-12: adminGetUserById + adminUpdateUserById
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
-
-// Cliente admin (service role)
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+import { adminGetUserById, adminUpdateUserById } from '@/lib/insforge-admin'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 
 export default async function handler(
   req: NextApiRequest,
@@ -26,22 +16,20 @@ export default async function handler(
     const { barberoId, adminId } = req.body
 
     if (!barberoId || !adminId) {
-      return res.status(400).json({
-        error: 'Faltan datos: barberoId, adminId'
-      })
+      return res.status(400).json({ error: 'Faltan datos: barberoId, adminId' })
     }
 
     console.log('🔄 [Reset Password] Procesando reset para barbero:', barberoId)
     console.log('🔄 [Reset Password] Admin auth_user_id recibido:', adminId)
 
+    const supabaseAdmin = createPagesAdminClient()
+
     // PASO 0: Obtener email del admin desde Auth
-    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.getUserById(adminId)
+    const { data: authData, error: authError } = await adminGetUserById(adminId)
 
     if (authError || !authData.user) {
       console.error('❌ [Reset Password] No se pudo obtener usuario de Auth:', authError)
-      return res.status(403).json({
-        error: 'No se pudo verificar tu identidad'
-      })
+      return res.status(403).json({ error: 'No se pudo verificar tu identidad' })
     }
 
     const adminEmail = authData.user.email
@@ -83,39 +71,16 @@ export default async function handler(
 
     if (barberoError || !barbero || !barbero.email) {
       console.error('❌ [Reset Password] Barbero no encontrado:', barberoError)
-      return res.status(404).json({
-        error: 'Barbero no encontrado o sin email'
-      })
+      return res.status(404).json({ error: 'Barbero no encontrado o sin email' })
     }
 
     console.log('✅ [Reset Password] Barbero encontrado:', barbero.email)
 
-    // PASO 2.5: Verificar que el barbero tiene cuenta en admin_users
-    const { data: barberoAdminUser, error: barberoAdminError } = await supabaseAdmin
-      .from('admin_users')
-      .select('id, email, barbero_id, rol')
-      .eq('barbero_id', barberoId)
-      .eq('rol', 'barbero')
-      .single()
-
-    console.log('🔍 [Reset Password] Query admin_users (barbero) result:', { barberoAdminUser, barberoAdminError })
-
-    // Nota: Se permite que el flujo continúe incluso si no tiene cuenta previa,
-    // para que sea creada automáticamente en el PASO 2.6
-    /* 
-    if (barberoAdminError || !barberoAdminUser) {
-      console.error('❌ [Reset Password] Barbero no tiene cuenta de usuario en admin_users')
-      return res.status(400).json({
-        error: 'Este barbero no tiene cuenta de usuario en el sistema. Debe ser aprobado primero.'
-      })
-    }
-    */
-
-    // PASO 2.6: Determinar el authUserId del barbero
+    // PASO 3: Determinar el authUserId del barbero
     let authUserId: string | null = null
     const barberEmailNormalized = barbero.email.trim().toLowerCase()
 
-    // A. Intentar obtenerlo desde admin_users por barbero_id (más rápido y directo)
+    // A. Buscar en admin_users por barbero_id (más rápido y directo)
     const { data: adminEntry } = await supabaseAdmin
       .from('admin_users')
       .select('id')
@@ -127,7 +92,7 @@ export default async function handler(
       console.log('🔍 [Reset Password] authUserId encontrado en admin_users por barbero_id:', authUserId)
     }
 
-    // A2. Si no se encontró por barbero_id, buscar por email en admin_users (scoped, sin tocar Auth)
+    // B. Fallback: buscar por email en admin_users
     if (!authUserId) {
       const { data: adminByEmail } = await supabaseAdmin
         .from('admin_users')
@@ -141,7 +106,6 @@ export default async function handler(
       }
     }
 
-    // B. Si no existe en admin_users, el barbero no tiene cuenta — debe ser aprobado primero
     if (!authUserId) {
       console.error('❌ [Reset Password] Barbero sin cuenta en admin_users:', barberEmailNormalized)
       return res.status(404).json({
@@ -151,16 +115,15 @@ export default async function handler(
 
     console.log('✅ [Reset Password] auth_user_id listo para procesar:', authUserId)
 
-    // PASO 3: Generar nueva contraseña segura
+    // PASO 4: Generar nueva contraseña segura
     const newPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
 
     console.log('🔑 [Reset Password] Nueva contraseña generada')
 
-    // PASO 4: Actualizar contraseña en Supabase Auth
-    const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
-      authUserId,
-      { password: newPassword }
-    )
+    // PASO 5: Actualizar contraseña en InsForge auth (bcrypt hash interno)
+    const { error: updateError } = await adminUpdateUserById(authUserId, {
+      password: newPassword
+    })
 
     if (updateError) {
       console.error('❌ [Reset Password] Error actualizando contraseña:', updateError)
@@ -169,7 +132,7 @@ export default async function handler(
 
     console.log('✅ [Reset Password] Contraseña actualizada exitosamente')
 
-    // PASO 5: Enviar email con nueva contraseña (opcional)
+    // PASO 6: Enviar email con nueva contraseña (opcional)
     try {
       const { emailService } = await import('../../../../lib/email-service')
       const emailSent = await emailService.sendPasswordReset({
@@ -188,12 +151,10 @@ export default async function handler(
       console.error('❌ [Reset Password] Error sending email (no crítico):', emailError)
     }
 
-    // PASO 6: Registrar el cambio (opcional, para auditoría)
+    // PASO 7: Tocar timestamp en barberos
     await supabaseAdmin
       .from('barberos')
-      .update({
-        updated_at: new Date().toISOString()
-      })
+      .update({ updated_at: new Date().toISOString() })
       .eq('id', barberoId)
 
     return res.status(200).json({

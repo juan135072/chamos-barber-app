@@ -1,7 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesServerClient } from '@/lib/supabase-server'
-import { createClient } from '@supabase/supabase-js'
-
+import { createPagesAdminClient } from '@/lib/supabase-server'
 /**
  * =====================================================
  * API: GUARDAR CONFIGURACIÓN DE HORARIOS
@@ -44,10 +43,7 @@ export default async function handler(
             return res.status(401).json({ error: 'No autenticado' })
         }
 
-        const supabaseAdmin = createClient(
-            process.env.NEXT_PUBLIC_SUPABASE_URL!,
-            process.env.SUPABASE_SERVICE_ROLE_KEY!
-        )
+        const supabaseAdmin = createPagesAdminClient()
 
         const { data: adminUser, error: adminQueryError } = await supabaseAdmin
             .from('admin_users')
@@ -56,7 +52,7 @@ export default async function handler(
             .single()
 
         if (!adminUser) {
-            console.error('❌ [guardar-horarios] Admin query failed. Error:', adminQueryError, 'User ID:', user.id, 'User Email:', userEmail)
+            console.error('❌ [guardar-horarios] Admin query failed. Error:', adminQueryError, 'User ID:', user.id, 'User Email:', user.email)
             return res.status(403).json({ error: 'Usuario no encontrado en la tabla de administradores', db_error: adminQueryError?.message })
         }
 

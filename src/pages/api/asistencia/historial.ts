@@ -81,8 +81,8 @@ export default async function handler(
 
         // Calcular estadísticas
         const totalDias = asistencias?.length || 0
-        const diasPuntuales = asistencias?.filter(a => a.estado === 'normal').length || 0
-        const diasTarde = asistencias?.filter(a => a.estado === 'tarde').length || 0
+        const diasPuntuales = asistencias?.filter((a: any) => a.estado === 'normal').length || 0
+        const diasTarde = asistencias?.filter((a: any) => a.estado === 'tarde').length || 0
 
         return res.status(200).json({
             success: true,

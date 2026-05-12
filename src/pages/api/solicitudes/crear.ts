@@ -2,20 +2,10 @@
 // Enfoque SIMPLE - Sin tipos complejos para evitar errores de TypeScript
 
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
-
+import { createPagesAdminClient } from '@/lib/supabase-server'
 // Crear cliente de Supabase con service_role para bypasear RLS
 // NOTA: Solo se usa en API routes del servidor, nunca exponer al cliente
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-)
+const supabase = createPagesAdminClient()
 
 export default async function handler(
   req: NextApiRequest,
