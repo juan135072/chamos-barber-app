@@ -32,6 +32,14 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'insforge.chamosbarber.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.cloudflarestorage.com',
+      },
+      {
+        protocol: 'https',
         hostname: '*.supabase.co',
       },
     ],
@@ -87,7 +95,7 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com https://onesignal.com",
               "img-src 'self' data: https: blob:",
               "font-src 'self' https://fonts.gstatic.com https://cdn.jsdelivr.net https://ka-f.fontawesome.com data:",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.chamosbarber.com wss://api.chamosbarber.com https://onesignal.com https://*.onesignal.com http://localhost:3001 https://*.spline.design https://prod.spline.design https://drafts.spline.design",
+              "connect-src 'self' https://insforge.chamosbarber.com wss://insforge.chamosbarber.com https://*.r2.cloudflarestorage.com https://api.chamosbarber.com wss://api.chamosbarber.com https://*.supabase.co wss://*.supabase.co https://onesignal.com https://*.onesignal.com http://localhost:3001 https://*.spline.design https://prod.spline.design https://drafts.spline.design",
               "frame-src 'self' https://www.google.com https://*.google.com https://*.google-analytics.com",
               "object-src 'none'",
               "base-uri 'self'",

@@ -26,12 +26,38 @@ function Login() {
     setSigningIn(true)
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error || !data?.accessToken) {
+      if (error || !data?.user) {
         toast.error(error?.message || 'Correo o contraseña incorrectos')
         return
       }
-      // Session is set inside the SDK; the useSession() hook below will pick it up
-      // and the existing useEffect will route admins/barbers to their panels.
+
+      // useSession() can't observe the SDK's internal session change, so route
+      // the user explicitly here. checkAdminAccess (called via the session
+      // useEffect) was the original Supabase-flow path; now we drive it
+      // straight from the just-returned user object.
+      const userId = data.user.id
+      const { data: adminUser, error: adminErr } = await supabase
+        .from('admin_users')
+        .select('rol, barbero_id, activo')
+        .eq('id', userId)
+        .eq('activo', true)
+        .single()
+
+      if (adminErr || !adminUser) {
+        toast.error('Sin permisos de acceso. Contacta al administrador.')
+        await supabase.auth.signOut()
+        return
+      }
+
+      if (adminUser.rol === 'admin') {
+        router.push('/admin')
+      } else if (adminUser.rol === 'barbero') {
+        if (adminUser.barbero_id) setExternalId(adminUser.barbero_id)
+        router.push('/barbero-panel')
+      } else {
+        toast.error('Rol no reconocido. Contacta al administrador.')
+        await supabase.auth.signOut()
+      }
     } catch (err: any) {
       toast.error(err?.message || 'Error al iniciar sesión')
     } finally {
