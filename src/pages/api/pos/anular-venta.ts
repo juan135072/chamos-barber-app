@@ -18,18 +18,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 0. Verificar clave de seguridad
-        const { data: configClave } = await supabase
-            .from('sitio_configuracion')
-            .select('valor')
-            .eq('clave', 'pos_clave_seguridad')
-            .single()
+        // 0. Autenticar al usuario llamante
+        const authHeader = req.headers.authorization
+        const token = authHeader?.replace('Bearer ', '')
+        const { data: { user }, error: authError } = token
+            ? await supabase.auth.getUser(token)
+            : { data: { user: null }, error: null }
 
-        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
-            return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
+        if (!user) {
+            return res.status(401).json({ message: 'No autenticado' })
         }
 
-        // 1. Obtener la factura para saber si tiene cita asociada
+        const { data: adminUser } = await supabase
+            .from('admin_users')
+            .select('comercio_id, rol')
+            .eq('id', user.id)
+            .single()
+
+        if (!adminUser?.comercio_id) {
+            return res.status(403).json({ message: 'Sin permisos' })
+        }
+
+        // 1. Obtener la factura y verificar que pertenece al tenant del usuario
         const { data: factura, error: facturaError } = await supabase
             .from('facturas')
             .select('*')
@@ -40,11 +50,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ message: 'Factura no encontrada' })
         }
 
+        if (factura.comercio_id !== adminUser.comercio_id) {
+            return res.status(403).json({ message: 'No tienes acceso a esta factura' })
+        }
+
         if (factura.anulada) {
             return res.status(400).json({ message: 'La factura ya está anulada' })
         }
 
-        // 2. Anular la factura
+        // 2. Verificar clave de seguridad del tenant correcto
+        const { data: configClave } = await supabase
+            .from('sitio_configuracion')
+            .select('valor')
+            .eq('clave', 'pos_clave_seguridad')
+            .eq('comercio_id', adminUser.comercio_id)
+            .single()
+
+        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
+            return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
+        }
+
+        // 3. Anular la factura
         // Validamos que usuario_id sea un UUID válido o null
         const esUUIDValido = usuario_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(usuario_id)
 

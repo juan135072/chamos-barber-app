@@ -12,11 +12,18 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  const { comercio_id } = req.query
+
+  if (!comercio_id || typeof comercio_id !== 'string') {
+    return res.status(400).json({ error: 'comercio_id es requerido' })
+  }
+
   try {
     const { data, error } = await supabase
       .from('barberos')
       .select('*')
       .eq('activo', true)
+      .eq('comercio_id', comercio_id)
       .order('created_at', { ascending: true })
 
     if (error) {

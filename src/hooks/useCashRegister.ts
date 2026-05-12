@@ -31,11 +31,7 @@ export function useCashRegister(usuario: any) {
                 .select('*')
                 .eq('estado', 'abierta')
                 .eq('usuario_id', usuario.id)
-
-            // Si tenemos el ID de comercio, lo usamos para filtrar (seguridad extra)
-            if (usuario.comercio_id) {
-                query = query.eq('comercio_id', usuario.comercio_id)
-            }
+                .eq('comercio_id', usuario.comercio_id)
 
             const { data, error } = await query.maybeSingle()
 
@@ -56,18 +52,18 @@ export function useCashRegister(usuario: any) {
         if (!usuario?.id) throw new Error('Usuario no identificado')
 
         try {
+            if (!usuario.comercio_id) {
+                throw new Error('Usuario sin comercio asignado. No se puede operar la caja.')
+            }
+
             devLog('🔄 Intentando abrir caja para usuario:', usuario.id)
 
             // 1. Preparar datos de sesión
             const sessionPayload: any = {
                 usuario_id: usuario.id,
+                comercio_id: usuario.comercio_id,
                 monto_inicial: montoInicial,
                 estado: 'abierta'
-                // Dejamos que la BD maneje fecha_apertura por defecto (now())
-            }
-
-            if (usuario.comercio_id) {
-                sessionPayload.comercio_id = usuario.comercio_id
             }
 
             devLog('📤 Enviando payload de sesión:', sessionPayload)
@@ -89,13 +85,10 @@ export function useCashRegister(usuario: any) {
             // 2. Registrar movimiento de apertura
             const movementPayload: any = {
                 sesion_id: data.id,
+                comercio_id: usuario.comercio_id,
                 tipo: 'apertura',
                 monto: montoInicial,
                 descripcion: 'Fondo inicial de caja'
-            }
-
-            if (usuario.comercio_id) {
-                movementPayload.comercio_id = usuario.comercio_id
             }
 
             const { error: moveError } = await (supabase.from('movimientos_caja') as any).insert([movementPayload])
@@ -142,13 +135,10 @@ export function useCashRegister(usuario: any) {
             // Registrar movimiento de cierre
             const movementPayload: any = {
                 sesion_id: sesion.id,
+                comercio_id: usuario.comercio_id,
                 tipo: 'cierre',
                 monto: montoFinalReal,
                 descripcion: `Cierre de caja. Notas: ${notas}`
-            }
-
-            if (usuario.comercio_id) {
-                movementPayload.comercio_id = usuario.comercio_id
             }
 
             await (supabase.from('movimientos_caja') as any).insert([movementPayload])
@@ -180,14 +170,11 @@ export function useCashRegister(usuario: any) {
             // 2. Registrar el movimiento en movimientos_caja
             const movementPayload: any = {
                 sesion_id: sesion.id,
+                comercio_id: usuario.comercio_id,
                 tipo: 'venta',
                 monto: monto,
                 metodo_pago: metodoPago,
                 referencia_id: referenciaId
-            }
-
-            if (usuario.comercio_id) {
-                movementPayload.comercio_id = usuario.comercio_id
             }
 
             await (supabase.from('movimientos_caja') as any).insert([movementPayload])

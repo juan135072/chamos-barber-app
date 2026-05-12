@@ -9,12 +9,14 @@ import Link from 'next/link'
 import type { Database } from '@/lib/database.types'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
 import toast from 'react-hot-toast'
+import { useTenant } from '@/context/TenantContext'
 
 function Login() {
   const session = useSession()
   const supabase = useSupabaseClient<Database>()
   const router = useRouter()
   const { setExternalId } = useOneSignal()
+  const { tenant, loading: tenantLoading } = useTenant()
 
   useEffect(() => {
     // Si hay sesión y el usuario es admin, redirigir al admin panel
@@ -76,12 +78,12 @@ function Login() {
     }
   }
 
-  if (session) {
+  if (session || tenantLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: 'var(--tenant-bg, var(--bg-primary))' }}>
         <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 mx-auto mb-4" style={{ borderBottom: '2px solid var(--accent-color)' }}></div>
-          <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>Verificando acceso de administrador...</p>
+          <div className="animate-spin rounded-full h-32 w-32 mx-auto mb-4" style={{ borderBottom: '2px solid var(--tenant-primary, var(--accent-color))' }}></div>
+          <p style={{ color: 'var(--text-primary)', opacity: 0.8 }}>{tenantLoading ? 'Cargando comercio...' : 'Verificando acceso...'}</p>
         </div>
       </div>
     )
@@ -112,15 +114,23 @@ function Login() {
             </div>
 
             <div className="flex items-center space-x-3">
-              <img
-                src="/chamos-logo-gold.png"
-                alt="Chamos Barber Shop Logo"
-                className="h-12 w-auto"
-                style={{ objectFit: 'contain' }}
-              />
+              {tenant?.logo_url ? (
+                <img
+                  src={tenant.logo_url}
+                  alt={`${tenant.nombre} Logo`}
+                  className="h-12 w-auto"
+                  style={{ objectFit: 'contain' }}
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-full flex items-center justify-center border" style={{ borderColor: 'var(--tenant-primary, #d4af37)', background: 'rgba(0,0,0,0.5)' }}>
+                  <span className="text-lg font-bold" style={{ color: 'var(--tenant-primary, #d4af37)' }}>
+                    {tenant?.nombre?.charAt(0) || 'C'}
+                  </span>
+                </div>
+              )}
               <div>
-                <h1 className="font-bold text-lg leading-tight text-white">Chamos Barber</h1>
-                <p className="text-xs text-gold">Panel de Administración</p>
+                <h1 className="font-bold text-lg leading-tight text-white">{tenant?.nombre || 'Chamos Barber'}</h1>
+                <p className="text-xs" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Panel de Administración</p>
               </div>
             </div>
           </div>
@@ -132,14 +142,22 @@ function Login() {
             <div className="rounded-3xl shadow-2xl p-8 bg-white/[0.02] border border-white/10 backdrop-blur-xl">
               <div className="text-center mb-8">
                 <div className="flex items-center justify-center mx-auto mb-4 login-logo-container">
-                  <img
-                    src="/chamos-logo-gold.png"
-                    alt="Chamos Barber Shop Logo"
-                    className="h-20 w-auto"
-                    style={{ objectFit: 'contain' }}
-                  />
+                  {tenant?.logo_url ? (
+                    <img
+                      src={tenant.logo_url}
+                      alt={`${tenant.nombre} Logo`}
+                      className="h-20 w-auto"
+                      style={{ objectFit: 'contain' }}
+                    />
+                  ) : (
+                    <div className="h-20 w-20 rounded-full flex items-center justify-center border-2 shadow-lg" style={{ borderColor: 'var(--tenant-primary, #d4af37)', background: 'rgba(0,0,0,0.5)' }}>
+                      <span className="text-3xl font-bold" style={{ color: 'var(--tenant-primary, #d4af37)' }}>
+                        {tenant?.nombre?.charAt(0) || 'C'}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <h2 className="text-2xl font-black mb-2 text-gold tracking-widest uppercase">Iniciar Sesión</h2>
+                <h2 className="text-2xl font-black mb-2 tracking-widest uppercase" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Iniciar Sesión</h2>
                 <p className="text-white/60">Accede al panel de administración</p>
               </div>
 
@@ -156,8 +174,8 @@ function Login() {
                         inputText: 'white',
                         inputPlaceholder: 'rgba(255, 255, 255, 0.4)',
                         inputBorder: 'rgba(255, 255, 255, 0.1)',
-                        inputBorderHover: 'rgba(212, 175, 55, 0.5)',
-                        inputBorderFocus: '#d4af37',
+                        inputBorderHover: 'var(--tenant-primary, rgba(212, 175, 55, 0.5))',
+                        inputBorderFocus: 'var(--tenant-primary, #d4af37)',
                       },
                       borderWidths: {
                         buttonBorderWidth: '1px',
@@ -198,7 +216,8 @@ function Login() {
                     ¿No tienes cuenta?{' '}
                     <Link
                       href="/registro-barbero"
-                      className="font-medium text-gold hover:text-white transition-colors"
+                      className="font-medium hover:text-white transition-colors"
+                      style={{ color: 'var(--tenant-primary, #d4af37)' }}
                     >
                       Regístrate como barbero
                     </Link>
@@ -262,7 +281,7 @@ function Login() {
           .supabase-auth-ui_ui-button {
             position: relative;
             background: #080808 !important;
-            border: 1px solid rgba(212, 175, 55, 0.3) !important;
+            border: 1px solid var(--tenant-primary, rgba(212, 175, 55, 0.3)) !important;
             color: #fff !important;
             font-weight: 900 !important;
             letter-spacing: 0.1em !important;
@@ -280,7 +299,7 @@ function Login() {
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(135deg, #d4af37, #a88647);
+            background: linear-gradient(135deg, var(--tenant-primary, #d4af37), rgba(0,0,0,0.5));
             z-index: -1;
             opacity: 0;
             transition: opacity 0.3s ease;
@@ -293,7 +312,7 @@ function Login() {
           .supabase-auth-ui_ui-button:hover {
             color: #080808 !important;
             border-color: transparent !important;
-            box-shadow: 0 0 20px rgba(212, 175, 55, 0.4) !important;
+            box-shadow: 0 0 20px var(--tenant-primary, rgba(212, 175, 55, 0.4)) !important;
           }
 
           .supabase-auth-ui_ui-label {
@@ -313,9 +332,9 @@ function Login() {
             }
           }
 
-          .login-logo-container img {
+          .login-logo-container img, .login-logo-container > div {
             animation: float 3s ease-in-out infinite;
-            filter: drop-shadow(0 5px 15px rgba(212, 175, 55, 0.3));
+            filter: drop-shadow(0 5px 15px var(--tenant-primary, rgba(212, 175, 55, 0.3)));
           }
         `}</style>
       </div>

@@ -1,5 +1,6 @@
 import React from 'react'
 import Link from 'next/link'
+import { useTenant } from '@/context/TenantContext'
 
 interface LogoProps {
   size?: 'sm' | 'md' | 'lg' | 'xl'
@@ -22,22 +23,33 @@ export const Logo: React.FC<LogoProps> = ({
   className = '' 
 }) => {
   const sizes = sizeClasses[size]
+  const { tenant } = useTenant()
+  
+  const defaultNombre = tenant?.nombre || 'CHAMOS'
   
   const logoContent = (
     <div className={`flex items-center gap-3 ${className}`}>
-      <img 
-        src="/chamos-icon-gold.png" 
-        alt="Chamos Barber Logo" 
-        className={`${sizes.img} object-contain`}
-        style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
-      />
+      {tenant?.favicon_url || tenant?.logo_url ? (
+        <img 
+          src={tenant?.favicon_url || tenant?.logo_url || '/chamos-icon-gold.png'} 
+          alt={`${defaultNombre} Logo`} 
+          className={`${sizes.img} object-contain`}
+          style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.1))' }}
+        />
+      ) : (
+        <div className={`${sizes.img} aspect-square rounded-full flex items-center justify-center border`} style={{ borderColor: 'var(--tenant-primary, var(--accent-color))', background: 'rgba(0,0,0,0.5)' }}>
+          <span className={`${sizes.text} font-bold`} style={{ color: 'var(--tenant-primary, var(--accent-color))' }}>
+            {defaultNombre.charAt(0)}
+          </span>
+        </div>
+      )}
       {withText && (
         <div className="flex flex-col">
           <span 
             className={`${sizes.text} font-bold leading-tight uppercase`}
-            style={{ color: 'var(--accent-color)' }}
+            style={{ color: 'var(--tenant-primary, var(--accent-color))' }}
           >
-            CHAMOS
+            {defaultNombre}
           </span>
           <span 
             className="text-[10px] font-black tracking-[0.3em] uppercase"
@@ -47,7 +59,7 @@ export const Logo: React.FC<LogoProps> = ({
               marginTop: '-4px'
             }}
           >
-            BARBER SHOP
+            PANEL DE CONTROL
           </span>
         </div>
       )}

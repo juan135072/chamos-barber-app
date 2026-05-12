@@ -19,6 +19,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'slug or domain is required' })
   }
 
+  // Validar formato de slug para evitar queries con patrones maliciosos
+  if (slug && !/^[a-z0-9-]{2,50}$/.test(slug as string)) {
+    return res.status(400).json({ error: 'slug inválido' })
+  }
+
   try {
     let query = supabase
       .from('comercios')
@@ -27,8 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         logo_url, favicon_url,
         color_primario, color_secundario, color_fondo,
         descripcion, telefono, email_contacto, direccion,
-        pais, moneda, timezone,
-        plan, activo, max_barberos
+        pais, moneda, timezone, activo
       `)
 
     if (slug) {

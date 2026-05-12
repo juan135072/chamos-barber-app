@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { useGSAP } from '@gsap/react'
 import gsap from 'gsap'
+import { useTenant } from '@/context/TenantContext'
 
 interface PreloaderProps {
   onComplete?: () => void
@@ -9,6 +10,7 @@ interface PreloaderProps {
 }
 
 export default function Preloader({ onComplete, duration = 3200 }: PreloaderProps) {
+  const { tenant } = useTenant()
   const [mounted, setMounted] = useState(true)
 
   const containerRef  = useRef<HTMLDivElement>(null)
@@ -104,21 +106,21 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
       style={{ position: 'fixed', inset: 0, zIndex: 9999, overflow: 'hidden' }}
     >
       {/* ── Background ── */}
-      <div style={{ position: 'absolute', inset: 0, background: '#080808', zIndex: 0 }} />
+      <div style={{ position: 'absolute', inset: 0, backgroundColor: 'var(--tenant-bg, #080808)', zIndex: 0 }} />
 
       {/* ── Split-exit panels (below content, animate away on exit) ── */}
       <div
         ref={panel1Ref}
         style={{
           position: 'absolute', top: 0, left: 0, right: 0,
-          height: '51%', background: '#080808', zIndex: 1,
+          height: '51%', backgroundColor: 'var(--tenant-bg, #080808)', zIndex: 1,
         }}
       />
       <div
         ref={panel2Ref}
         style={{
           position: 'absolute', bottom: 0, left: 0, right: 0,
-          height: '51%', background: '#080808', zIndex: 1,
+          height: '51%', backgroundColor: 'var(--tenant-bg, #080808)', zIndex: 1,
         }}
       />
 
@@ -141,8 +143,8 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
               top: '-12%',
               height: '124%',
               width: '2px',
-              background: 'linear-gradient(to bottom, transparent 0%, #C5A059 40%, #C5A059 60%, transparent 100%)',
-              boxShadow: '0 0 18px rgba(197,160,89,0.9), 0 0 40px rgba(197,160,89,0.3)',
+              backgroundImage: 'linear-gradient(to bottom, transparent 0%, var(--tenant-primary, #C5A059) 40%, var(--tenant-primary, #C5A059) 60%, transparent 100%)',
+              boxShadow: '0 0 18px var(--tenant-primary, rgba(197,160,89,0.9)), 0 0 40px var(--tenant-primary, rgba(197,160,89,0.3))',
               zIndex: 10,
               transform: 'translateX(-50%)',
               pointerEvents: 'none',
@@ -150,14 +152,22 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
           />
           {/* Logo with clip reveal */}
           <div ref={logoRef}>
-            <Image
-              src="/chamos-logo-gold.png"
-              alt="Chamos Barber"
-              width={210}
-              height={210}
-              priority
-              style={{ objectFit: 'contain', display: 'block' }}
-            />
+            {tenant?.logo_url ? (
+              <img
+                src={tenant.logo_url}
+                alt={tenant.nombre || 'Chamos Barber'}
+                style={{ width: 210, height: 210, objectFit: 'contain', display: 'block' }}
+              />
+            ) : (
+              <Image
+                src="/chamos-logo-gold.png"
+                alt="Chamos Barber"
+                width={210}
+                height={210}
+                priority
+                style={{ objectFit: 'contain', display: 'block' }}
+              />
+            )}
           </div>
         </div>
 
@@ -178,7 +188,7 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
                 fontFamily: "'Cormorant Garamond', Georgia, serif",
                 fontSize: '3.2rem',
                 fontWeight: 300,
-                color: '#C5A059',
+                color: 'var(--tenant-primary, #C5A059)',
                 lineHeight: 1,
                 letterSpacing: '-0.03em',
                 minWidth: '3ch',
@@ -190,25 +200,26 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
             <span style={{
               fontSize: '0.65rem',
               letterSpacing: '0.2em',
-              color: 'rgba(197,160,89,0.4)',
+              color: 'var(--tenant-primary, rgba(197,160,89,0.4))',
               fontWeight: 700,
               textTransform: 'uppercase',
+              opacity: 0.4
             }}>%</span>
           </div>
 
-          {/* Progress bar */}
           <div style={{
             width: '100%',
             height: '1px',
-            background: 'rgba(197,160,89,0.1)',
+            backgroundColor: 'var(--tenant-primary, rgba(197,160,89,0.1))',
+            opacity: 0.1,
             overflow: 'hidden',
           }}>
             <div
               ref={progressRef}
               style={{
                 height: '100%',
-                background: 'linear-gradient(to right, #C5A059, #e0c050)',
-                boxShadow: '0 0 10px rgba(197,160,89,0.7)',
+                backgroundImage: 'linear-gradient(to right, var(--tenant-primary, #C5A059), var(--tenant-secondary, #e0c050))',
+                boxShadow: '0 0 10px var(--tenant-primary, rgba(197,160,89,0.7))',
               }}
             />
           </div>
@@ -216,9 +227,10 @@ export default function Preloader({ onComplete, duration = 3200 }: PreloaderProp
           <span style={{
             fontSize: '0.5rem',
             letterSpacing: '0.35em',
-            color: 'rgba(197,160,89,0.25)',
+            color: 'var(--tenant-primary, rgba(197,160,89,0.25))',
             textTransform: 'uppercase',
             fontWeight: 700,
+            opacity: 0.25
           }}>
             Cargando
           </span>

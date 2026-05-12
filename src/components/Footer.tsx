@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Share2, MapPin, Phone, Mail } from 'lucide-react'
 import { Logo } from './shared/Logo'
 import { chamosSupabase } from '@/lib/supabase-helpers'
+import { useTenant } from '@/context/TenantContext'
 
 // SVG brand icons (lucide-react no incluye iconos de marcas registradas)
 const FacebookIcon = () => (
@@ -29,9 +30,10 @@ interface Horarios {
   domingo: string
 }
 
-const SOCIAL_LINK_CLASS = "w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:text-gold hover:border-gold transition-all"
+const SOCIAL_LINK_CLASS = "w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:border-[var(--tenant-primary)] transition-all"
 
 const Footer: React.FC = () => {
+  const { tenant } = useTenant()
   const [socialLinks, setSocialLinks] = useState({
     facebook: 'https://web.facebook.com/people/Chamos-Barberia/61553216854694/',
     instagram: 'https://www.instagram.com/chamosbarber_shop/?hl=es-la',
@@ -83,8 +85,8 @@ const Footer: React.FC = () => {
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Chamos Barber',
-          text: 'La mejor barbería en San Fernando, Chile.',
+          title: tenant?.nombre || 'Chamos Barber',
+          text: tenant?.descripcion || 'La mejor barbería.',
           url: window.location.origin,
         })
       } catch {
@@ -104,9 +106,14 @@ const Footer: React.FC = () => {
               <Logo size="md" withText={true} />
             </div>
             <p className="text-white/30 max-w-sm mb-8 leading-relaxed text-xs uppercase tracking-wider">
-              La mejor experiencia de barbería en San Fernando, Chile. Estilo, calidad y tradición en cada corte.
+              {tenant?.descripcion || 'La mejor experiencia de barbería en San Fernando, Chile. Estilo, calidad y tradición en cada corte.'}
             </p>
-            <div className="flex gap-4">
+            <div className="flex gap-4 group-icons">
+              <style jsx>{`
+                .group-icons a:hover, .group-icons button:hover {
+                  color: var(--tenant-primary, #d4af37);
+                }
+              `}</style>
               {socialLinks.facebook && (
                 <a href={socialLinks.facebook} target="_blank" rel="noopener noreferrer" className={SOCIAL_LINK_CLASS} title="Facebook">
                   <FacebookIcon />
@@ -129,23 +136,28 @@ const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="text-[10px] tracking-ultra text-gold mb-8 uppercase">Contacto</h4>
+            <h4 className="text-[10px] tracking-ultra mb-8 uppercase" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Contacto</h4>
             <ul className="space-y-4">
               <li>
                 <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest">
-                  <MapPin className="w-4 h-4 text-gold" />
-                  San Fernando, Chile
+                  <MapPin className="w-4 h-4" style={{ color: 'var(--tenant-primary, #d4af37)' }} />
+                  {tenant?.direccion || 'San Fernando, Chile'}
                 </div>
               </li>
               <li>
                 <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest">
-                  <Phone className="w-4 h-4 text-gold" />
+                  <Phone className="w-4 h-4" style={{ color: 'var(--tenant-primary, #d4af37)' }} />
                   +56 9 8358 8553
                 </div>
               </li>
               <li>
-                <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest hover:text-gold transition-colors">
-                  <Mail className="w-4 h-4 text-gold" />
+                <div className="flex items-center gap-3 text-white/40 text-[10px] uppercase tracking-widest hover-email transition-colors">
+                  <style jsx>{`
+                    .hover-email:hover {
+                      color: var(--tenant-primary, #d4af37);
+                    }
+                  `}</style>
+                  <Mail className="w-4 h-4" style={{ color: 'var(--tenant-primary, #d4af37)' }} />
                   <a href="mailto:contacto@chamosbarber.com">contacto@chamosbarber.com</a>
                 </div>
               </li>
@@ -153,7 +165,7 @@ const Footer: React.FC = () => {
           </div>
 
           <div>
-            <h4 className="text-[10px] tracking-ultra text-gold mb-8 uppercase">Horarios del Estudio</h4>
+            <h4 className="text-[10px] tracking-ultra mb-8 uppercase" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Horarios del Estudio</h4>
             <ul className="space-y-4 text-[10px] tracking-widest uppercase font-bold">
               <li className="flex justify-between border-b border-white/5 pb-2">
                 <span className="text-white/20">Lun — Vie</span>
@@ -167,7 +179,7 @@ const Footer: React.FC = () => {
                 <span className="text-white/20">Domingo</span>
                 {horarios.domingo
                   ? <span className="text-white">{horarios.domingo}</span>
-                  : <span className="text-gold italic">Cerrado</span>
+                  : <span className="italic" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Cerrado</span>
                 }
               </li>
             </ul>
@@ -175,12 +187,17 @@ const Footer: React.FC = () => {
         </div>
 
         <div className="pt-12 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">
-          <p>© 2025 Chamos Barber. Creado por Juan Díaz. Todos los derechos reservados.</p>
-          <div className="flex gap-8">
-            <Link href="/politicas-privacidad" className="hover:text-gold transition-colors">
+          <p>© {new Date().getFullYear()} {tenant?.nombre || 'Chamos Barber'}. Creado por Juan Díaz. Todos los derechos reservados.</p>
+          <div className="flex gap-8 hover-links">
+            <style jsx>{`
+              .hover-links a:hover {
+                color: var(--tenant-primary, #d4af37);
+              }
+            `}</style>
+            <Link href="/politicas-privacidad" className="transition-colors">
               Políticas de Privacidad
             </Link>
-            <Link href="/terminos-condiciones" className="hover:text-gold transition-colors">
+            <Link href="/terminos-condiciones" className="transition-colors">
               Términos y Condiciones
             </Link>
           </div>

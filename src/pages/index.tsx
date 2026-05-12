@@ -4,6 +4,7 @@ import Layout from '../components/Layout'
 import Preloader from '../components/Preloader'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import Link from 'next/link'
+import { useTenant } from '@/context/TenantContext'
 
 // Import new Inspirar components
 import Hero from '../components/Hero'
@@ -26,6 +27,7 @@ interface HomePageProps {
 }
 
 const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
+  const { tenant } = useTenant()
   const [showPreloader, setShowPreloader] = useState(true)
   const [isFirstVisit, setIsFirstVisit] = useState(true)
 
@@ -58,22 +60,22 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
         <ServicesSection servicios={servicios} />
         
         {/* CTA Band */}
-        <section className="py-24 relative overflow-hidden bg-[#080808] mt-12">
+        <section className="py-24 relative overflow-hidden mt-12" style={{ backgroundColor: 'var(--tenant-bg, #080808)' }}>
           {/* Liquid glowing background */}
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-full bg-gold/10 blur-[120px] pointer-events-none rounded-full" />
-          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
-          <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold/30 to-transparent" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[80%] h-full blur-[120px] pointer-events-none rounded-full" style={{ backgroundColor: 'var(--tenant-primary, #d4af37)', opacity: 0.1 }} />
+          <div className="absolute top-0 left-0 w-full h-[1px]" style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--tenant-primary, rgba(212, 175, 55, 0.3)), transparent)' }} />
+          <div className="absolute bottom-0 left-0 w-full h-[1px]" style={{ backgroundImage: 'linear-gradient(to right, transparent, var(--tenant-primary, rgba(212, 175, 55, 0.3)), transparent)' }} />
 
           <div className="container mx-auto px-6 relative z-10 flex flex-col md:flex-row items-center justify-between gap-12 bg-white/[0.02] border border-white/5 backdrop-blur-3xl p-12 md:p-16 rounded-[2rem] shadow-2xl">
             <div>
               <h2 className="text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-tighter text-white mb-4 leading-none">
                 ¿Listo para tu <br/>
-                <span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">próximo look?</span>
+                <span className="italic font-serif font-normal bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #fef08a))' }}>próximo look?</span>
               </h2>
               <p className="text-white/60 max-w-md font-medium text-lg">Reserva en línea en segundos y asegura tu espacio con los mejores.</p>
             </div>
-            <Link href="/reservar" className="relative group overflow-hidden rounded-2xl bg-gradient-to-br from-gold to-[#a88647] p-[1px] shrink-0">
-              <div className="relative bg-[#080808] px-12 py-6 rounded-2xl transition-colors duration-300 group-hover:bg-transparent">
+            <Link href="/reservar" className="relative group overflow-hidden rounded-2xl p-[1px] shrink-0" style={{ backgroundImage: 'linear-gradient(to bottom right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #a88647))' }}>
+              <div className="relative px-12 py-6 rounded-2xl transition-colors duration-300 group-hover:bg-transparent" style={{ backgroundColor: 'var(--tenant-bg, #080808)' }}>
                 <span className="relative z-10 text-white font-black tracking-widest text-sm uppercase group-hover:text-dark transition-colors">Agendar Cita</span>
               </div>
             </Link>
@@ -83,22 +85,22 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
         <Testimonials />
 
         {/* Location Section */}
-        <section className="py-32 relative bg-[#080808] overflow-hidden">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gold/5 blur-[150px] rounded-full pointer-events-none" />
+        <section className="py-32 relative overflow-hidden" style={{ backgroundColor: 'var(--tenant-bg, #080808)' }}>
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] blur-[150px] rounded-full pointer-events-none" style={{ backgroundColor: 'var(--tenant-primary, #d4af37)', opacity: 0.05 }} />
           
           <div className="container mx-auto px-6 relative z-10">
              <div className="flex flex-col items-center mb-20 text-center">
               <div className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl mb-6">
-                <span className="text-gold text-[10px] tracking-[0.2em] font-bold uppercase">Nuestra Casa</span>
+                <span className="text-[10px] tracking-[0.2em] font-bold uppercase" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Nuestra Casa</span>
               </div>
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-black uppercase tracking-tighter text-white leading-tight md:leading-none">
-                En el centro de <br className="md:hidden" /><span className="italic font-serif font-normal bg-gradient-to-r from-gold to-yellow-300 bg-clip-text text-transparent">San Fernando</span>
+                En el centro de <br className="md:hidden" /><span className="italic font-serif font-normal bg-clip-text text-transparent" style={{ backgroundImage: 'linear-gradient(to right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #fef08a))' }}>{tenant?.nombre ? tenant.nombre.split(' ')[0] : 'San Fernando'}</span>
               </h2>
-              <p className="text-white/50 mt-6 text-lg max-w-lg">Rancagua 759, San Fernando, Chile. <br/> Ven a vivir la experiencia Chamos.</p>
+              <p className="text-white/50 mt-6 text-lg max-w-lg">{tenant?.direccion || 'Rancagua 759, San Fernando, Chile.'} <br/> Ven a vivir la experiencia {tenant?.nombre || 'Chamos'}.</p>
             </div>
             
             <div className="relative w-full h-[500px] rounded-[2rem] overflow-hidden group">
-              <div className="absolute inset-0 bg-gradient-to-t from-[#080808] via-transparent to-transparent z-10 pointer-events-none" />
+              <div className="absolute inset-0 z-10 pointer-events-none" style={{ backgroundImage: 'linear-gradient(to top, var(--tenant-bg, #080808), transparent, transparent)' }} />
               <div className="absolute inset-0 border border-white/10 rounded-[2rem] z-20 pointer-events-none" />
               <iframe
                 width="100%"
@@ -108,7 +110,7 @@ const HomePage: React.FC<HomePageProps> = ({ servicios }) => {
                 allowFullScreen
                 referrerPolicy="no-referrer-when-downgrade"
                 className="filter grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-1000 ease-in-out"
-                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=Rancagua+759,San+Fernando,Chile&language=es&zoom=16`}
+                src={`https://www.google.com/maps/embed/v1/place?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&q=${encodeURIComponent(tenant?.direccion || 'Rancagua 759, San Fernando, Chile')}&language=es&zoom=16`}
               />
             </div>
           </div>

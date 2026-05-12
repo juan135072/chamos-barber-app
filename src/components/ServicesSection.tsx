@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { motion } from 'motion/react'
 import { getServiceImage } from '../lib/service-utils'
+import { useTenant } from '@/context/TenantContext'
 
 const MotionLink = motion.create(Link)
 
@@ -24,6 +25,7 @@ const DEFAULT_SERVICES: Service[] = [
 ]
 
 export default function ServicesSection({ servicios }: ServicesSectionProps) {
+  const { tenant } = useTenant()
   const displayServices = servicios.length > 0 ? servicios.slice(0, 3) : DEFAULT_SERVICES
 
   return (
@@ -35,7 +37,8 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
               initial={{ opacity: 0, y: 10 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              className="text-gold text-[10px] tracking-ultra block mb-4"
+              className="text-[10px] tracking-ultra block mb-4"
+              style={{ color: 'var(--tenant-primary, #d4af37)' }}
             >
               Catálogo de Servicios
             </motion.span>
@@ -46,7 +49,7 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
               transition={{ delay: 0.1 }}
               className="text-5xl md:text-6xl font-black uppercase tracking-tighter"
             >
-              Nuestros <span className="italic text-gold">Servicios</span>.
+              Nuestros <span className="italic" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Servicios</span>.
             </motion.h2>
           </div>
           <MotionLink
@@ -54,8 +57,14 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-[10px] uppercase tracking-widest text-white/40 hover:text-gold transition-colors pb-2 border-b border-white/10 hover:border-gold"
+            className="text-[10px] uppercase tracking-widest text-white/40 pb-2 border-b border-white/10 transition-colors link-hover"
           >
+            <style jsx>{`
+              :global(.link-hover:hover) {
+                color: var(--tenant-primary, #d4af37) !important;
+                border-color: var(--tenant-primary, #d4af37) !important;
+              }
+            `}</style>
             Ver todos los servicios
           </MotionLink>
         </div>
@@ -79,14 +88,15 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
                 />
               </div>
               <div className="p-8">
-                <div className="text-gold font-mono text-[10px] mb-4">0{i + 1} // {svc.categoria.toUpperCase()}</div>
+                <div className="font-mono text-[10px] mb-4" style={{ color: 'var(--tenant-primary, #d4af37)' }}>0{i + 1} // {svc.categoria.toUpperCase()}</div>
                 <h3 className="text-xl font-bold tracking-widest uppercase mb-4 text-white">{svc.nombre}</h3>
                 <p className="text-white/40 text-xs leading-relaxed mb-8 h-12">
-                  {svc.descripcion || 'Servicio profesional con la calidad garantizada de Chamos Barber.'}
+                  {svc.descripcion || `Servicio profesional con la calidad garantizada de ${tenant?.nombre || 'nuestra barbería'}.`}
                 </p>
                 <Link
                   href={`/reservar?servicio=${svc.id}`}
-                  className="inline-flex items-center text-[10px] tracking-ultra text-gold hover:text-white transition-colors group/btn"
+                  className="inline-flex items-center text-[10px] tracking-ultra hover:text-white transition-colors group/btn"
+                  style={{ color: 'var(--tenant-primary, #d4af37)' }}
                 >
                   RESERVAR AHORA
                   <span className="ml-2 transform group-hover/btn:translate-x-1 transition-transform">→</span>

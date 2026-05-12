@@ -38,7 +38,14 @@ const TenantContext = createContext<TenantContextType>({
 
 function getSlugFromBrowser(): string {
   if (typeof window === 'undefined') return ''
+  
+  // 1. Check for slug in URL query params (useful for local development redirects)
+  const params = new URLSearchParams(window.location.search)
+  const urlSlug = params.get('slug')
+  if (urlSlug) return urlSlug
+
   const hostname = window.location.hostname
+  // 2. Check hostname for subdomains
   if (hostname === 'localhost' || hostname === '127.0.0.1') {
     return process.env.NEXT_PUBLIC_TENANT_SLUG || 'chamos'
   }

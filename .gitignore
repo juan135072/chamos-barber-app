@@ -100,5 +100,15 @@ N8N_NEW_CREDENTIALS.txt
 **/credentials.json
 **/*-credentials.json
 
+# MCP server configs (contain API keys)
+.mcp.json
+.claude/
+
+# Migration artifacts (generated during Supabase -> InsForge migration)
+scratch/
+supabase_schema.json
+skills-lock.json
+nvidia_llm.py
+
 # Local AI Proxy project
 api-agentes/

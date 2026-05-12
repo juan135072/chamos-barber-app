@@ -61,6 +61,14 @@ export default async function handler(
 
     devLog('🔍 [crear-cita] Checking active future appointments for:', citaData.cliente_telefono)
 
+    // Obtener comercio_id del barbero temprano para usarlo en todos los filtros tenant
+    const { data: barberoTenant } = await supabase
+      .from('barberos')
+      .select('comercio_id')
+      .eq('id', citaData.barbero_id)
+      .single()
+    const comercioId = (barberoTenant as any)?.comercio_id
+
     // Obtener fecha y hora actual en Santiago de Chile
     const { getChileAhora, getChileHoy } = await import('../../lib/date-utils');
     const currentChileTime = getChileAhora();
@@ -72,6 +80,7 @@ export default async function handler(
       .from('citas')
       .select('id, fecha, hora, estado')
       .eq('cliente_telefono', citaData.cliente_telefono)
+      .eq('comercio_id', comercioId)
       .in('estado', RESERVATION_LIMITS.ACTIVE_STATES)
       .or(`fecha.gt.${fechaActual},and(fecha.eq.${fechaActual},hora.gte.${horaActual})`)
 
@@ -117,6 +126,7 @@ export default async function handler(
       .from('servicios')
       .select('id, nombre, activo, duracion_minutos, tiempo_buffer, precio')
       .in('id', uniqueServiciosIds)
+      .eq('comercio_id', comercioId)
 
     if (serviciosError || !serviciosData || serviciosData.length !== uniqueServiciosIds.length) {
       return res.status(400).json({
@@ -187,10 +197,11 @@ export default async function handler(
       .eq('fecha', citaData.fecha)
       .in('estado', ['pendiente', 'confirmada'])
 
-    // Obtener todos los servicios para validar duraciones exactas de citas existentes
+    // Obtener servicios del tenant para validar duraciones exactas de citas existentes
     const { data: allServices } = await supabase
       .from('servicios')
       .select('id, duracion_minutos, tiempo_buffer')
+      .eq('comercio_id', comercioId)
 
     const servicesMap = new Map<string, any>(allServices?.map((s: any) => [s.id, s]) || [])
 
@@ -285,6 +296,7 @@ export default async function handler(
     const citaInsert: any = {
       servicio_id: serviciosIds[0], // Primer servicio (obligatorio por compatibilidad DB)
       barbero_id: citaData.barbero_id,
+      comercio_id: comercioId,
       fecha: citaData.fecha,
       hora: citaData.hora,
       cliente_nombre: citaData.cliente_nombre,

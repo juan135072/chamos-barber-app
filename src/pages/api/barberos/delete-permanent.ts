@@ -37,6 +37,15 @@ export default async function handler(
       }
     )
 
+    // 0. Obtener comercio_id del barbero antes de eliminar (necesario para filtros de seguridad)
+    const { data: barberoData } = await supabase
+      .from('barberos')
+      .select('comercio_id')
+      .eq('id', barberoId)
+      .single()
+
+    const comercioId = barberoData?.comercio_id
+
     // 1. Desvincular CITAS (poner barbero_id a NULL para no perder el historial del cliente)
     console.log('🔗 Desvinculando citas del barbero:', barberoId)
     const { error: citasUpdateError } = await supabase
@@ -81,13 +90,18 @@ export default async function handler(
       }
     }
 
-    // 4. Eliminar de admin_users (relación de acceso)
+    // 4. Eliminar de admin_users (relación de acceso) — doble filtro para seguridad multi-tenant
     console.log('🗑️ Eliminando admin_users con barbero_id:', barberoId)
-    const { data: deletedAdmins, error: adminError } = await supabase
+    let adminDeleteQuery = supabase
       .from('admin_users')
       .delete()
       .eq('barbero_id', barberoId)
-      .select()
+
+    if (comercioId) {
+      adminDeleteQuery = adminDeleteQuery.eq('comercio_id', comercioId)
+    }
+
+    const { data: deletedAdmins, error: adminError } = await adminDeleteQuery.select()
 
     if (adminError) {
       console.warn('⚠️ Error deleting admin_user:', adminError)

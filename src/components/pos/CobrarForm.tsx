@@ -266,6 +266,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         .from('facturas')
         .insert({
           barbero_id: barberoId,
+          comercio_id: usuario.comercio_id,
           cliente_nombre: clienteNombre.trim() || 'Consumidor Final',
           cliente_rut: tipoDocumento === 'factura' ? rut.trim() : null,
           tipo_documento: tipoDocumento,

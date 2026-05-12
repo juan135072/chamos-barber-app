@@ -16,21 +16,41 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
+  const { slug, comercio_id } = req.query
+
+  if (!slug && !comercio_id) {
+    return res.status(400).json({ error: 'slug o comercio_id requerido' })
+  }
+
   try {
+    let tenantId = comercio_id as string | undefined
+
+    // Resolver comercio_id desde slug si no viene directo
+    if (!tenantId && slug) {
+      const { data: comercio } = await supabase
+        .from('comercios')
+        .select('id')
+        .eq('slug', slug as string)
+        .single()
+      tenantId = comercio?.id
+    }
+
+    if (!tenantId) {
+      return res.status(404).json({ error: 'Comercio no encontrado' })
+    }
+
     const { data, error } = await supabase
       .from('sitio_configuracion')
-      .select('*')
+      .select('clave, valor, tipo, categoria')
+      .eq('comercio_id', tenantId)
+      .eq('publico', true)
 
     if (error) {
       console.error('Supabase error:', error)
       return res.status(500).json({ error: 'Error fetching configuration', details: error.message })
     }
 
-    if (!data) {
-      return res.status(200).json([])
-    }
-
-    return res.status(200).json(data)
+    return res.status(200).json(data || [])
   } catch (error) {
     console.error('API error:', error)
     return res.status(500).json({ error: 'Internal server error' })

@@ -10,21 +10,24 @@ const supabase = createClient(
 );
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    // 1. Solo permitir vía cron o secret key (opcional)
-    // if (req.headers['x-api-key'] !== process.env.WORKER_SECRET_KEY) return res.status(401)...
+    // Protección del worker — requerir secret key
+    if (req.headers['x-api-key'] !== process.env.WORKER_SECRET_KEY) {
+        return res.status(401).json({ error: 'Unauthorized' })
+    }
 
     try {
         console.log('[WORKER] Iniciando chequeo de confirmaciones proactivas...');
 
-        // 2. Buscar citas PENDIENTES para hoy y mañana
+        // 2. Buscar citas PENDIENTES para hoy y mañana — solo citas con tenant asignado
         const now = new Date();
         const tomorrow = new Date(now);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         const { data: appointments, error } = await supabase
             .from('citas')
-            .select('*')
+            .select('*, comercio_id')
             .eq('estado', 'pendiente')
+            .not('comercio_id', 'is', null)
             .gte('fecha', now.toISOString().split('T')[0])
             .lte('fecha', tomorrow.toISOString().split('T')[0]);
 

@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import type { Database } from '@/lib/database.types'
+import { useTenant } from '@/context/TenantContext'
 import Logo from '../components/shared/Logo'
 
 // Tabs cargadas bajo demanda — solo se descarga el bundle cuando la tab está activa
@@ -42,6 +43,7 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { tenant } = useTenant()
 
 
 
@@ -179,8 +181,8 @@ export default function AdminPage() {
           <div
             className="w-12 h-12 mx-auto mb-4 rounded-full animate-spin"
             style={{
-              border: '2px solid rgba(212, 175, 55, 0.2)',
-              borderTopColor: '#D4AF37'
+              border: '2px solid var(--tenant-primary, rgba(212, 175, 55, 0.2))',
+              borderTopColor: 'var(--tenant-primary, #D4AF37)'
             }}
           />
           <p style={{ color: '#888', fontSize: '14px' }}>Cargando...</p>
@@ -196,16 +198,16 @@ export default function AdminPage() {
   return (
     <>
       <Head>
-        <title>Admin - Chamos Barber</title>
-        <meta name="description" content="Panel de administración Chamos Barber" />
+        <title>Admin - {tenant?.nombre || 'Chamos Barber'}</title>
+        <meta name="description" content={`Panel de administración ${tenant?.nombre || 'Chamos Barber'}`} />
         <meta name="robots" content="noindex, nofollow" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <div className="min-h-screen bg-[#0a0a0a] relative overflow-hidden text-white">
+      <div className="min-h-screen relative overflow-hidden text-white" style={{ backgroundColor: 'var(--tenant-bg, #0a0a0a)' }}>
         {/* Background Effects */}
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-gold/5 blur-[120px] pointer-events-none rounded-full" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] bg-white/5 blur-[100px] pointer-events-none rounded-full" />
+        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] blur-[120px] pointer-events-none rounded-full" style={{ backgroundColor: 'var(--tenant-primary, #D4AF37)', opacity: 0.05 }} />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[30%] h-[30%] blur-[100px] pointer-events-none rounded-full" style={{ backgroundColor: 'var(--tenant-secondary, #ffffff)', opacity: 0.05 }} />
 
         {/* Sidebar */}
         <aside
@@ -236,10 +238,17 @@ export default function AdminPage() {
                   onClick={() => handleTabChange(item.id)}
                   className={`w-full flex items-center px-4 py-3 transition-all relative ${
                     activeTab === item.id 
-                      ? 'bg-gold/10 text-gold before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1 before:bg-gold' 
+                      ? 'active-tab text-white before:absolute before:left-0 before:top-0 before:bottom-0 before:w-1' 
                       : 'text-white/60 hover:bg-white/5 hover:text-white'
                   }`}
+                  style={activeTab === item.id ? { 
+                    backgroundColor: 'color-mix(in srgb, var(--tenant-primary, #d4af37) 10%, transparent)',
+                    color: 'var(--tenant-primary, #d4af37)' 
+                  } : {}}
                 >
+                  {activeTab === item.id && (
+                    <div className="absolute left-0 top-0 bottom-0 w-1" style={{ backgroundColor: 'var(--tenant-primary, #d4af37)' }} />
+                  )}
                   <i
                     className={`${item.icon} ${sidebarOpen ? 'w-5' : 'w-full text-center'} text-lg`}
                   />
@@ -301,8 +310,8 @@ export default function AdminPage() {
             >
               <div>
                 <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-gold/10 flex items-center justify-center">
-                    <i className={`${menuItems.find(m => m.id === activeTab)?.icon} text-gold text-sm`}></i>
+                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: 'color-mix(in srgb, var(--tenant-primary, #d4af37) 10%, transparent)' }}>
+                    <i className={`${menuItems.find(m => m.id === activeTab)?.icon} text-sm`} style={{ color: 'var(--tenant-primary, #d4af37)' }}></i>
                   </div>
                   {menuItems.find(m => m.id === activeTab)?.label || 'Dashboard'}
                 </h1>
@@ -311,14 +320,17 @@ export default function AdminPage() {
               <div className="flex items-center gap-4">
                 {/* User Menu */}
                 <div className="flex items-center gap-3 px-4 py-1.5 rounded-full bg-white/[0.02] border border-white/10 backdrop-blur-md hidden sm:flex">
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-tr from-gold to-yellow-600 flex items-center justify-center shadow-[0_0_10px_rgba(212,175,55,0.3)]">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center shadow-lg" style={{ 
+                    background: 'linear-gradient(to top right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #a88647))',
+                    boxShadow: '0 0 10px color-mix(in srgb, var(--tenant-primary, #d4af37) 30%, transparent)' 
+                  }}>
                     <i className="fas fa-shield-alt text-[10px] text-dark font-black"></i>
                   </div>
                   <div className="text-right flex flex-col justify-center">
                     <p className="text-sm font-bold text-white leading-none mb-0.5">
                       {adminUser.nombre}
                     </p>
-                    <p className="text-[10px] uppercase tracking-widest text-gold leading-none">
+                    <p className="text-[10px] uppercase tracking-widest leading-none" style={{ color: 'var(--tenant-primary, #d4af37)' }}>
                       {adminUser.rol}
                     </p>
                   </div>
@@ -330,7 +342,7 @@ export default function AdminPage() {
           <div className="p-6 lg:p-8">
           <Suspense fallback={
             <div className="flex items-center justify-center py-20">
-              <div className="w-8 h-8 rounded-full animate-spin" style={{ border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#D4AF37' }} />
+              <div className="w-8 h-8 rounded-full animate-spin" style={{ border: '2px solid var(--tenant-primary, rgba(212,175,55,0.2))', borderTopColor: 'var(--tenant-primary, #D4AF37)' }} />
             </div>
           }>
             {/* Dashboard */}
@@ -460,7 +472,12 @@ export default function AdminPage() {
         {/* Mobile Sidebar Toggle */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-50 shadow-[0_0_30px_rgba(212,175,55,0.4)] bg-gradient-to-r from-gold to-yellow-600 text-dark transition-transform hover:scale-110 active:scale-95"
+          className="lg:hidden fixed bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center z-50 transition-transform hover:scale-110 active:scale-95"
+          style={{
+            background: 'linear-gradient(to right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #a88647))',
+            boxShadow: '0 0 30px color-mix(in srgb, var(--tenant-primary, #d4af37) 40%, transparent)',
+            color: 'var(--tenant-bg, #0a0a0a)'
+          }}
         >
           <i className={`fas fa-${sidebarOpen ? 'times' : 'bars'} text-xl`}></i>
         </button>

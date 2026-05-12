@@ -48,11 +48,11 @@ export default async function handler(
         // Verificar que es admin
         const { data: adminUser } = await supabase
             .from('admin_users')
-            .select('role')
+            .select('rol')
             .eq('id', user.id)
             .single()
 
-        if (!adminUser || adminUser.role !== 'admin') {
+        if (!adminUser || adminUser.rol !== 'admin') {
             return res.status(403).json({ error: 'Acceso denegado. Solo administradores.' })
         }
 

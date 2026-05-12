@@ -32,13 +32,11 @@ export default async function handler(
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
 
-        const userEmail = user.email || ''
-
-        // Obtener comercio_id del admin comprobando por ID o por Email
+        // Obtener comercio_id del admin por UUID — unívoco entre tenants
         const { data: adminUser, error: adminQueryError } = await supabaseAdmin
             .from('admin_users')
             .select('comercio_id')
-            .or(`id.eq.${user.id},email.eq.${userEmail}`)
+            .eq('id', user.id)
             .single()
 
         if (adminQueryError) {

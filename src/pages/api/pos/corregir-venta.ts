@@ -18,18 +18,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 0. Verificar clave de seguridad
-        const { data: configClave } = await supabase
-            .from('sitio_configuracion')
-            .select('valor')
-            .eq('clave', 'pos_clave_seguridad')
-            .single()
+        // 0. Autenticar al usuario llamante
+        const authHeader = req.headers.authorization
+        const token = authHeader?.replace('Bearer ', '')
+        const { data: { user } } = token
+            ? await supabase.auth.getUser(token)
+            : { data: { user: null } }
 
-        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
-            return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
+        if (!user) {
+            return res.status(401).json({ message: 'No autenticado' })
         }
 
-        // 1. Obtener datos de la factura original
+        const { data: adminUser } = await supabase
+            .from('admin_users')
+            .select('comercio_id')
+            .eq('id', user.id)
+            .single()
+
+        if (!adminUser?.comercio_id) {
+            return res.status(403).json({ message: 'Sin permisos' })
+        }
+
+        // 1. Obtener datos de la factura original y verificar tenant
         const { data: factura, error: facturaError } = await supabase
             .from('facturas')
             .select('*')
@@ -40,12 +50,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ message: 'Factura no encontrada' })
         }
 
+        if (factura.comercio_id !== adminUser.comercio_id) {
+            return res.status(403).json({ message: 'No tienes acceso a esta factura' })
+        }
+
+        // 2. Verificar clave de seguridad del tenant correcto
+        const { data: configClave } = await supabase
+            .from('sitio_configuracion')
+            .select('valor')
+            .eq('clave', 'pos_clave_seguridad')
+            .eq('comercio_id', adminUser.comercio_id)
+            .single()
+
+        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
+            return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
+        }
+
         let barbero_id = nuevoBarberoId || factura.barbero_id
         let porcentajeComision = factura.porcentaje_comision
         let total = parseFloat(factura.total.toString())
         let items = Array.isArray(factura.items) ? [...factura.items] : []
 
-        // 2. Si hay nuevo barbero, obtener su porcentaje de comisión
+        // 3. Si hay nuevo barbero, obtener su porcentaje de comisión
         if (nuevoBarberoId && nuevoBarberoId !== factura.barbero_id) {
             const { data: barbero, error: barberoError } = await supabase
                 .from('barberos')

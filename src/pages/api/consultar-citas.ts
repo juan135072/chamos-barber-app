@@ -23,7 +23,7 @@ export default async function handler(
   // if (!rateLimitResult.allowed) return
 
   // 🛡️ Validación mejorada
-  let { telefono } = req.query
+  let { telefono, comercio_id } = req.query
   console.log('🔍 [consultar-citas] Telefono original recibido:', telefono)
 
   if (!telefono || typeof telefono !== 'string') {
@@ -85,7 +85,7 @@ export default async function handler(
 
     // Buscar citas por teléfono del cliente usando variaciones (OR)
     console.log('🔍 [consultar-citas] Fetching appointments...')
-    const { data: citas, error: citasError } = await supabase
+    let citasQuery = supabase
       .from('citas')
       .select(`
         id,
@@ -108,6 +108,13 @@ export default async function handler(
         )
       `)
       .or(`cliente_telefono.eq."${phoneNormalized}",cliente_telefono.eq."${phoneWith56}",cliente_telefono.eq."${phoneRaw}"`)
+
+    // Filtrar por tenant si se provee comercio_id
+    if (comercio_id && typeof comercio_id === 'string') {
+      citasQuery = citasQuery.eq('comercio_id', comercio_id)
+    }
+
+    const { data: citas, error: citasError } = await citasQuery
       .order('fecha', { ascending: false })
       .order('hora', { ascending: false })
 
@@ -171,6 +178,7 @@ export default async function handler(
               .from('servicios')
               .select('nombre, precio, duracion_minutos')
               .in('nombre', nombresServicios)
+              .eq('comercio_id', comercio_id as string)
 
             if (serviciosData && serviciosData.length > 0) {
               const precioTotal = serviciosData.reduce((sum: number, s: any) => sum + (s.precio || 0), 0)

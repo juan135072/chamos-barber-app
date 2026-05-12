@@ -49,11 +49,10 @@ export default async function handler(
             process.env.SUPABASE_SERVICE_ROLE_KEY!
         )
 
-        const userEmail = user.email || ''
         const { data: adminUser, error: adminQueryError } = await supabaseAdmin
             .from('admin_users')
             .select('rol, comercio_id')
-            .or(`id.eq.${user.id},email.eq.${userEmail}`)
+            .eq('id', user.id)
             .single()
 
         if (!adminUser) {

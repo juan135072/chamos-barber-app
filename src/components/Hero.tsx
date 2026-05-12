@@ -2,10 +2,12 @@ import { useRef } from 'react'
 import Link from 'next/link'
 import { motion, useScroll, useTransform } from 'motion/react'
 import { ArrowRight, PlayCircle, Star } from 'lucide-react'
+import { useTenant } from '@/context/TenantContext'
 
 const MotionLink = motion.create(Link)
 
 export default function Hero() {
+  const { tenant } = useTenant()
   const containerRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -44,7 +46,8 @@ export default function Hero() {
           borderRadius: ["20%", "50%", "30%", "50%", "20%"]
         }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="absolute top-[15%] right-[10%] w-[350px] md:w-[500px] h-[350px] md:h-[500px] bg-gold/10 blur-[80px] md:blur-[120px] pointer-events-none z-1" 
+        className="absolute top-[15%] right-[10%] w-[350px] md:w-[500px] h-[350px] md:h-[500px] blur-[80px] md:blur-[120px] pointer-events-none z-1"
+        style={{ backgroundColor: 'var(--tenant-primary, #d4af37)', opacity: 0.1 }}
       />
       <motion.div 
         animate={{ 
@@ -71,19 +74,20 @@ export default function Hero() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="inline-flex items-center gap-3 px-6 py-2.5 rounded-full bg-white/[0.03] border border-white/10 backdrop-blur-xl shadow-2xl mb-8"
           >
-            <Star className="w-3.5 h-3.5 text-gold fill-gold" />
+            <Star className="w-3.5 h-3.5" style={{ color: 'var(--tenant-primary, #d4af37)', fill: 'var(--tenant-primary, #d4af37)' }} />
             <span className="text-white/80 text-[10px] md:text-xs font-semibold tracking-[0.2em] uppercase">Establecido en 2019</span>
-            <Star className="w-3.5 h-3.5 text-gold fill-gold" />
+            <Star className="w-3.5 h-3.5" style={{ color: 'var(--tenant-primary, #d4af37)', fill: 'var(--tenant-primary, #d4af37)' }} />
           </motion.div>
           
           {/* Main Title with Liquid Text Effect */}
           <h1 className="text-5xl md:text-[85px] lg:text-[100px] font-black leading-[0.95] tracking-tighter text-white mb-8">
             FORJANDO TU <br/>
             <span className="relative inline-block mt-2">
-              <span className="relative z-10 bg-gradient-to-r from-gold via-yellow-200 to-gold bg-clip-text text-transparent italic font-serif pr-2">MEJOR VERSIÓN</span>
+              <span className="relative z-10 bg-clip-text text-transparent italic font-serif pr-2" style={{ backgroundImage: 'linear-gradient(to right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #fef08a), var(--tenant-primary, #d4af37))' }}>MEJOR VERSIÓN</span>
               <motion.span 
-                className="absolute inset-0 bg-gold/30 blur-3xl z-0 rounded-full mix-blend-screen"
-                animate={{ opacity: [0.3, 0.6, 0.3], scale: [0.9, 1.1, 0.9] }}
+                className="absolute inset-0 blur-3xl z-0 rounded-full mix-blend-screen"
+                style={{ backgroundColor: 'var(--tenant-primary, #d4af37)' }}
+                animate={{ opacity: [0.1, 0.4, 0.1], scale: [0.9, 1.1, 0.9] }}
                 transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
               />
             </span><br/>
@@ -91,7 +95,7 @@ export default function Hero() {
           </h1>
           
           <p className="text-white/60 text-base md:text-xl max-w-2xl font-medium tracking-wide mb-12">
-            Donde la tradición y el estilo convergen. Tu barbería de confianza brindando excelencia y maestría en San Fernando.
+            {tenant?.descripcion || 'Donde la tradición y el estilo convergen. Tu barbería de confianza brindando excelencia y maestría en San Fernando.'}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-5 w-full sm:w-auto">
@@ -100,7 +104,8 @@ export default function Hero() {
               href="/reservar"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className="relative group overflow-hidden rounded-xl bg-gradient-to-r from-gold to-[#a88647] px-10 py-5 flex items-center justify-center gap-3"
+              className="relative group overflow-hidden rounded-xl px-10 py-5 flex items-center justify-center gap-3"
+              style={{ backgroundImage: 'linear-gradient(to right, var(--tenant-primary, #d4af37), var(--tenant-secondary, #a88647))' }}
             >
               <div className="absolute inset-0 bg-white/20 translate-y-[100%] group-hover:translate-y-[0%] transition-transform duration-500 ease-out rounded-xl" />
               <span className="relative z-10 text-dark font-black tracking-widest text-sm uppercase">Agendar Experiencia</span>
@@ -112,7 +117,7 @@ export default function Hero() {
               href="/equipo"
               className="relative overflow-hidden rounded-xl bg-white/5 border border-white/10 backdrop-blur-xl px-10 py-5 flex items-center justify-center gap-3 group hover:bg-white/10 transition-colors duration-300"
             >
-              <PlayCircle className="w-5 h-5 text-gold group-hover:scale-110 transition-transform" />
+              <PlayCircle className="w-5 h-5 group-hover:scale-110 transition-transform" style={{ color: 'var(--tenant-primary, #d4af37)' }} />
               <span className="text-white font-bold tracking-widest text-sm uppercase">Conocer Equipo</span>
             </Link>
           </div>
@@ -131,7 +136,7 @@ export default function Hero() {
             ].map((stat, i) => (
               <div key={stat.label} className="flex flex-col items-center">
                 <span className="text-3xl md:text-5xl font-black text-white mb-2">{stat.value}</span>
-                <span className="text-[9px] md:text-[11px] uppercase tracking-[0.2em] text-gold/80 font-bold">{stat.label}</span>
+                <span className="text-[9px] md:text-[11px] uppercase tracking-[0.2em] font-bold" style={{ color: 'var(--tenant-primary, #d4af37)', opacity: 0.8 }}>{stat.label}</span>
               </div>
             ))}
           </motion.div>
@@ -144,7 +149,7 @@ export default function Hero() {
         transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
         className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3"
       >
-        <div className="w-[1px] h-16 bg-gradient-to-b from-gold/50 to-transparent" />
+        <div className="w-[1px] h-16" style={{ backgroundImage: 'linear-gradient(to bottom, var(--tenant-primary, #d4af37), transparent)', opacity: 0.5 }} />
       </motion.div>
     </section>
   );

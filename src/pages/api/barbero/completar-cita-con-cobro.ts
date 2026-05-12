@@ -132,6 +132,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         .insert({
           cita_id: cita_id,
           barbero_id: barbero_id,
+          comercio_id: (cita as any).comercio_id,
           cliente_nombre: cita.cliente_nombre,
           servicio_nombre: cita.servicios?.nombre || 'Servicio',
           monto_total: monto_cobrado,

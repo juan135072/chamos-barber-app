@@ -49,11 +49,10 @@ export default async function handler(
       })
     }
 
-    const adminEmail = authData.user.email
     const { data: adminUser, error: adminError } = await supabaseAdmin
       .from('admin_users')
       .select('id, rol')
-      .eq('email', adminEmail)
+      .eq('id', adminId)
       .single()
 
     if (adminError || !adminUser || adminUser.rol !== 'admin') {

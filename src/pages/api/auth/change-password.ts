@@ -90,10 +90,10 @@ export default async function handler(
     // PASO 4: Registrar el cambio en la tabla de barberos (actualizar timestamp)
     await supabaseAdmin
       .from('barberos')
-      .update({ 
+      .update({
         updated_at: new Date().toISOString()
       })
-      .eq('auth_user_id', userId)
+      .eq('id', userId)
 
     return res.status(200).json({
       success: true,
