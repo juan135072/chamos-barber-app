@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Layout from '../components/Layout'
 import TeamMarquee from '../components/ui/TeamMarquee'
 import { CalendarPlus, MapPin, Users, Award } from 'lucide-react'
+import { useTenant } from '@/context/TenantContext'
 
 interface Barbero {
   id: string
@@ -18,16 +19,18 @@ interface Barbero {
 }
 
 const EquipoPage: React.FC = () => {
+  const { tenant } = useTenant()
   const [barberos, setBarberos] = useState<Barbero[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    loadBarberos()
-  }, [])
+    if (!tenant?.id) return
+    loadBarberos(tenant.id)
+  }, [tenant?.id])
 
-  const loadBarberos = async () => {
+  const loadBarberos = async (comercioId: string) => {
     try {
-      const response = await fetch('/api/barberos')
+      const response = await fetch(`/api/barberos?comercio_id=${encodeURIComponent(comercioId)}`)
       if (response.ok) {
         const data = await response.json()
         setBarberos(data.data || [])
