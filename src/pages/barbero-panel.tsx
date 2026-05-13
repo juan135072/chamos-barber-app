@@ -70,6 +70,9 @@ const BarberoPanelPage: React.FC = () => {
         document.referrer.includes('android-app://')
       setIsStandalone(isPWA)
     }
+    // Wait for useSession() to finish its async check (returns undefined while
+    // loading). Without this guard we'd redirect during the loading window.
+    if (session === undefined) return
     if (!session) {
       router.push('/chamos-acceso')
       return

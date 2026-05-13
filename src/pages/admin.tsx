@@ -86,6 +86,10 @@ export default function AdminPage() {
   })
 
   useEffect(() => {
+    // Wait for useSession() to finish its async check (returns undefined while
+    // loading). Without this guard, the first render sees session=null,
+    // redirects to /chamos-acceso, and creates a bucle with the login page.
+    if (session === undefined) return
     if (!session?.user) {
       router.push('/chamos-acceso')
       return

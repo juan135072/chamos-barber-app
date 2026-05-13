@@ -24,8 +24,22 @@ export function useSupabaseClient<_T = unknown>() {
     return supabase
 }
 
-export function useUser(): any | null {
-    const [user, setUser] = useState<any | null>(null)
+/**
+ * Tri-state session/user values:
+ *   undefined → still loading (the SDK's session check is async on
+ *               first render because InsForge stores tokens in cookies,
+ *               which JS can't peek at synchronously)
+ *   null      → confirmed no session
+ *   object    → confirmed user/session
+ *
+ * Callers that want the old "redirect on missing user" pattern must
+ * guard with `if (session === undefined) return` before treating null
+ * as "logged out" — otherwise they redirect during the loading window
+ * and create a /admin ↔ /chamos-acceso bucle.
+ */
+
+export function useUser(): any | null | undefined {
+    const [user, setUser] = useState<any | null | undefined>(undefined)
 
     useEffect(() => {
         let cancelled = false
@@ -53,8 +67,8 @@ export function useUser(): any | null {
     return user
 }
 
-export function useSession(): any | null {
-    const [session, setSession] = useState<any | null>(null)
+export function useSession(): any | null | undefined {
+    const [session, setSession] = useState<any | null | undefined>(undefined)
 
     useEffect(() => {
         let cancelled = false
