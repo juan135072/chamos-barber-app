@@ -323,6 +323,14 @@ export default async function handler(
 
     devLog('✅ [crear-cita] Appointment created successfully:', (nuevaCita as any)?.id)
 
+    // Realtime: notificar a las pantallas suscritas (panel barbero, /barber-app)
+    try {
+      const { publishCitaChange } = await import('@/lib/realtime-publish')
+      await publishCitaChange(supabase, 'INSERT', nuevaCita as any)
+    } catch (rtErr) {
+      console.warn('[crear-cita] realtime publish skipped:', rtErr)
+    }
+
     try {
       const { formatFechaChile } = await import('../../lib/date-utils');
       const barberoNombre = (barbero as any)?.nombre || 'Barbero'

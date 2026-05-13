@@ -189,7 +189,17 @@ export function useCitasRealtime(barberoId: string | null) {
 
         if (rpcError) throw rpcError
 
-        // El cambio se reflejará automáticamente por Realtime
+        // Realtime: notificar al resto de pantallas suscritas (admin panel,
+        // otras instancias del mismo barbero abiertas en otros dispositivos).
+        // El cambio en el dispositivo actual se refleja al hacer setCitas via
+        // el siguiente render — no dependemos del round-trip.
+        try {
+          const { publishCitaChange } = await import('@/lib/realtime-publish')
+          await publishCitaChange(supabase, 'UPDATE', (data as any) ?? { id: citaId, barbero_id: barberoId, comercio_id: null, estado: nuevoEstado })
+        } catch (rtErr) {
+          console.warn('[useCitasRealtime] realtime publish skipped:', rtErr)
+        }
+
         return { success: true, data }
       } catch (err: any) {
         console.error('Error al cambiar estado de cita:', err)

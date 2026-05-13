@@ -122,6 +122,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
     }
 
+    // Realtime: notificar pantallas suscritas (panel admin, otros barberos viendo)
+    try {
+      const { publishCitaChange } = await import('@/lib/realtime-publish')
+      await publishCitaChange(supabase, 'UPDATE', {
+        id: cita_id,
+        barbero_id: (cita as any).barbero_id,
+        comercio_id: (cita as any).comercio_id,
+        estado: 'completada',
+      })
+    } catch (rtErr) {
+      console.warn('[completar-cita] realtime publish skipped:', rtErr)
+    }
+
     // 4. Registrar el cobro en la tabla de facturas (si existe)
     try {
       const { error: facturaError } = await supabase

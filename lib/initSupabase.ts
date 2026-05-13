@@ -147,24 +147,92 @@ export const supabase: any = {
     storage: storageAdapter,
     functions: _client.functions,
     realtime: _client.realtime,
-    // Stub for legacy `supabase.channel(name).on(...).subscribe(...)` callsites.
-    // Returns a chainable object whose .on / .subscribe / .unsubscribe are
-    // no-ops, so the existing useCitasRealtime hook compiles and renders
-    // without throwing; it just won't receive live updates until the
-    // realtime backend is wired up (see Phase 5 of the migration plan).
-    channel: (_name: string) => {
+    // Bridge: translate Supabase's `channel(name).on('postgres_changes', cfg, cb)
+    // .subscribe()` API into InsForge realtime subscribe + on(event).
+    //
+    // Channel naming convention used across the app:
+    //   citas:barbero:<uuid>    — events scoped to one barbero's citas
+    //   citas:comercio:<uuid>   — events scoped to a whole comercio's citas
+    //
+    // The legacy Supabase API took an arbitrary channel name (e.g.
+    // `citas-barbero-<id>`); we accept it as-is. Any callback registered for
+    // `postgres_changes` receives the InsForge SocketMessage payload (with
+    // `payload.eventType` for backwards compat where possible).
+    //
+    // Multiple subscribers to the same channel share one InsForge subscription
+    // (managed via refcount in `_insforge.realtime.subscribedChannels`).
+    channel: (name: string) => {
+        // Translate Supabase-style names like `citas-barbero-<uuid>` to
+        // InsForge style `citas:barbero:<uuid>` by replacing dashes between
+        // the prefix segments with colons. If the caller already passed a
+        // colon-style name, leave as-is.
+        const normalized = name.includes(':')
+            ? name
+            : name.replace(/^citas-barbero-/, 'citas:barbero:')
+                  .replace(/^citas-comercio-/, 'citas:comercio:')
+
+        const handlers: Array<(payload: any) => void> = []
+        let chainSubscribed = false
+        let cleanup: (() => void) | null = null
+
+        const internalListener = (msg: any) => {
+            // Pass the message payload to all handlers. Shape it minimally to
+            // mirror Supabase's postgres_changes payload so existing code paths
+            // (`payload.eventType`, `payload.new`, `payload.old`) keep working
+            // when the publisher follows our convention.
+            const payload = msg?.payload ?? msg ?? {}
+            for (const cb of handlers) {
+                try { cb(payload) } catch (err) { console.error('[realtime] handler error:', err) }
+            }
+        }
+
         const chain: any = {
-            on() { return chain },
-            subscribe(cb?: (status: string) => void) {
-                if (typeof cb === 'function') cb('SUBSCRIBED')
+            // Supabase: on('postgres_changes', config, callback)
+            // We ignore the config (we already scope by channel name) and just
+            // register the callback.
+            on(_event: string, ...rest: any[]) {
+                const cb = rest[rest.length - 1]
+                if (typeof cb === 'function') handlers.push(cb)
                 return chain
             },
-            unsubscribe() { /* no-op */ },
+
+            subscribe(statusCb?: (status: string) => void) {
+                if (chainSubscribed) {
+                    if (typeof statusCb === 'function') statusCb('SUBSCRIBED')
+                    return chain
+                }
+                chainSubscribed = true
+
+                ;(async () => {
+                    try {
+                        await _client.realtime.connect()
+                        await _client.realtime.subscribe(normalized)
+                        // InsForge emits a single 'change' event by convention from our publishers
+                        _client.realtime.on('change', internalListener)
+                        cleanup = () => {
+                            _client.realtime.off('change', internalListener)
+                            _client.realtime.unsubscribe(normalized)
+                        }
+                        if (typeof statusCb === 'function') statusCb('SUBSCRIBED')
+                    } catch (err) {
+                        console.error('[realtime] subscribe failed:', err)
+                        if (typeof statusCb === 'function') statusCb('CHANNEL_ERROR')
+                    }
+                })()
+                return chain
+            },
+
+            unsubscribe() {
+                if (cleanup) { cleanup(); cleanup = null }
+                chainSubscribed = false
+            },
         }
         return chain
     },
-    removeChannel: (_channel: unknown) => {
-        /* no-op stub */
+
+    // Supabase: removeChannel(channel) calls channel.unsubscribe()
+    removeChannel: (channel: any) => {
+        if (channel && typeof channel.unsubscribe === 'function') channel.unsubscribe()
     },
     _insforge: _client,
 }
