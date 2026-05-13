@@ -65,12 +65,26 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   useEffect(() => {
     const slug = getSlugFromBrowser()
-    if (!slug) {
+    const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
+
+    // Resolve order: explicit ?slug, then subdomain slug, then bare-domain
+    // custom_domain match. The bare-domain branch is what makes the
+    // production site (chamosbarber.com) resolve to its comercio — without
+    // it, useTenant() returns null forever and any page that gates on
+    // tenant.id (e.g. /equipo) stays in a loading spinner.
+    const resolveUrl = slug
+      ? `/api/tenant/resolve?slug=${encodeURIComponent(slug)}`
+      : hostname && hostname !== 'localhost' && hostname !== '127.0.0.1'
+        ? `/api/tenant/resolve?domain=${encodeURIComponent(hostname)}`
+        : null
+
+    if (!resolveUrl) {
       setIsSaasLanding(true)
       setLoading(false)
       return
     }
-    fetch(`/api/tenant/resolve?slug=${encodeURIComponent(slug)}`)
+
+    fetch(resolveUrl)
       .then(res => {
         if (!res.ok) throw new Error('Comercio no encontrado')
         return res.json()
@@ -84,6 +98,9 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       .catch(err => {
         console.error('[TenantContext] Error:', err)
         setError(err.message)
+        // No tenant resolved via slug or custom domain → treat as SaaS landing
+        // so pages that read isSaasLanding can branch correctly.
+        setIsSaasLanding(true)
       })
       .finally(() => setLoading(false))
   }, [])
