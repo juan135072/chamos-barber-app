@@ -261,12 +261,21 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     try {
       setGuardando(true)
 
-      // Crear la factura
-      const { data: factura, error: facturaError } = await (supabase as any)
-        .from('facturas')
-        .insert({
+      // Crear la factura via API route (authenticated server-side insert)
+      const token = (supabase as any)._insforge.auth.getAccessToken()
+      if (!token) {
+        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.')
+        return
+      }
+
+      const res = await fetch('/api/pos/registrar-venta', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
           barbero_id: barberoId,
-          comercio_id: (usuario as any).comercio_id,
           cliente_nombre: clienteNombre.trim() || 'Consumidor Final',
           cliente_rut: tipoDocumento === 'factura' ? rut.trim() : null,
           tipo_documento: tipoDocumento,
@@ -280,12 +289,15 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
           comision_barbero: comisionInfo.comisionBarbero,
           ingreso_casa: comisionInfo.ingresoCasa,
           cita_id: citaId,
-          created_by: usuario.id
-        })
-        .select()
-        .single()
+        }),
+      })
 
-      if (facturaError) throw facturaError
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}))
+        throw new Error(errBody.message || 'Error al registrar la venta')
+      }
+
+      const { factura } = await res.json()
 
       // REGISTRAR VENTA EN LA SESIÓN DE CAJA
       if (sesionCaja && registrarVentaCaja) {
