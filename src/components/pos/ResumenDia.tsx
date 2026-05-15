@@ -11,7 +11,7 @@ interface ResumenDiaProps {
   usuario: UsuarioConPermisos
   recargar: number
   sesionCaja?: any
-  onCerrarCaja?: (montoFinalReal: number, notas?: string) => Promise<void>
+  onCerrarCaja?: (montoFinalReal: number, notas?: string) => Promise<unknown>
 }
 
 interface ResumenData {
