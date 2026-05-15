@@ -327,9 +327,8 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         try {
           await fetch('/api/inventario/movimientos', {
             method: 'POST',
-            headers: { 
+            headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${token}` 
             },
             body: JSON.stringify({
               producto_id: item.producto_id,
@@ -362,9 +361,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
       // Recargar productos (stock actualizado)
       try {
-        const resProd = await fetch('/api/inventario/productos?activo=true', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        const resProd = await fetch('/api/inventario/productos?activo=true')
         if (resProd.ok) {
           const prodData = await resProd.json()
           setProductos(prodData.filter((p: any) => p.stock_actual > 0))
