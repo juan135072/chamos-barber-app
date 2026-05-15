@@ -82,6 +82,7 @@ const authAdapter = {
     // Supabase-shape: { data: { user }, error }
     async getUser() {
         const { data, error } = await _client.auth.getCurrentUser()
+        if (data?.user) maybeSetSessionCookie()
         return { data: { user: (data?.user as any) ?? null }, error }
     },
 
@@ -89,6 +90,7 @@ const authAdapter = {
     // since InsForge keeps tokens internal — only the user object surfaces.
     async getSession() {
         const { data, error } = await _client.auth.getCurrentUser()
+        if (data?.user) maybeSetSessionCookie()
         const user = (data?.user as any) ?? null
         const session = user
             ? {

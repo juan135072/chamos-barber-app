@@ -59,11 +59,13 @@ const authAdapter = {
 
     async getUser() {
         const { data, error } = await _client.auth.getCurrentUser()
+        if (data?.user) maybeSetSessionCookie()
         return { data: { user: (data?.user as any) ?? null }, error }
     },
 
     async getSession() {
         const { data, error } = await _client.auth.getCurrentUser()
+        if (data?.user) maybeSetSessionCookie()
         const user = (data?.user as any) ?? null
         const session = user
             ? {
