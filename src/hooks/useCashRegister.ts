@@ -13,8 +13,7 @@ export interface CajaSesion {
     fecha_cierre: string | null
     monto_inicial: number
     monto_final_esperado: number
-    monto_final_real: number | null
-    diferencia: number
+    monto_final: number | null
     estado: 'abierta' | 'cerrada'
 }
 
@@ -122,16 +121,16 @@ export function useCashRegister(usuario: any) {
         if (!sesion) throw new Error('No hay una sesión activa')
 
         try {
-            // Calcular diferencia
-            const diferencia = montoFinalReal - sesion.monto_final_esperado
+            // Diferencia y esperado se calculan en memoria — caja_sesiones
+            // solo persiste monto_final (no _esperado / _real / diferencia).
+            const diferencia = montoFinalReal - (sesion.monto_final_esperado ?? 0)
 
             const { data, error } = await (supabase
                 .from('caja_sesiones') as any)
                 .update({
                     estado: 'cerrada',
                     fecha_cierre: new Date().toISOString(),
-                    monto_final_real: montoFinalReal,
-                    diferencia: diferencia
+                    monto_final: montoFinalReal,
                 })
                 .eq('id', sesion.id)
                 .select()
@@ -139,13 +138,14 @@ export function useCashRegister(usuario: any) {
 
             if (error) throw error
 
-            // Registrar movimiento de cierre
+            const descripcionCierre = `Cierre de caja. Esperado: ${sesion.monto_final_esperado ?? 0}, Real: ${montoFinalReal}, Diferencia: ${diferencia}. Notas: ${notas}`
+
             const movementPayload: any = {
                 sesion_id: sesion.id,
                 comercio_id: usuario.comercio_id,
                 tipo: 'cierre',
                 monto: montoFinalReal,
-                descripcion: `Cierre de caja. Notas: ${notas}`
+                descripcion: descripcionCierre,
             }
 
             await (supabase.from('movimientos_caja') as any).insert([movementPayload])
@@ -167,39 +167,33 @@ export function useCashRegister(usuario: any) {
         try {
             devLog(`📝 Registrando venta de ${monto} en sesión ${sesion.id}`)
 
-            // 1. Actualizar el monto esperado en la sesión
+            // Running total persistido en caja_sesiones.monto_final_esperado
+            // para que sobreviva al refresh del POS.
             const nuevoEsperado = (sesion.monto_final_esperado || 0) + monto
             await (supabase
                 .from('caja_sesiones') as any)
                 .update({ monto_final_esperado: nuevoEsperado })
                 .eq('id', sesion.id)
 
-            // 2. Registrar el movimiento en movimientos_caja
+            // movimientos_caja solo expone descripcion/tipo/monto — el método
+            // de pago y la referencia a la factura van embebidos en descripcion.
+            // facturas.cierre_caja_id NO se actualiza aquí: esa FK apunta a
+            // cierres_caja y solo se debe poblar cuando se genere un cierre real.
             const movementPayload: any = {
                 sesion_id: sesion.id,
                 comercio_id: usuario.comercio_id,
                 tipo: 'venta',
                 monto: monto,
-                metodo_pago: metodoPago,
-                referencia_id: referenciaId
+                descripcion: `Venta ${metodoPago} - factura:${referenciaId}`,
             }
 
-            await (supabase.from('movimientos_caja') as any).insert([movementPayload])
-
-            // 3. Vincular la factura con la sesión (Importante para reportes)
-            // Intentamos actualizar la columna cierre_caja_id en facturas
-            const { error: invoiceError } = await (supabase
-                .from('facturas') as any)
-                .update({ cierre_caja_id: sesion.id })
-                .eq('id', referenciaId)
-
-            if (invoiceError) {
-                console.warn('⚠️ Venta registrada pero no se pudo vincular con la factura:', invoiceError)
+            const { error: moveError } = await (supabase.from('movimientos_caja') as any).insert([movementPayload])
+            if (moveError) {
+                console.warn('⚠️ Error al registrar movimiento de venta en caja:', moveError)
             }
 
-            // Actualizar estado local
             setSesion(prev => prev ? { ...prev, monto_final_esperado: nuevoEsperado } : null)
-            devLog('✅ Venta vinculada a la sesión correctamente')
+            devLog('✅ Venta registrada en la sesión correctamente')
         } catch (error) {
             console.error('Error al registrar venta en caja:', error)
         }
