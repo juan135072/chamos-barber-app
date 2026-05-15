@@ -108,19 +108,20 @@ export function useCitasRealtime(barberoId: string | null) {
     switch (eventType) {
       case 'INSERT':
         // Nueva cita insertada
-        if (newRecord && newRecord.fecha_hora && esHoy(newRecord.fecha_hora)) {
+        // citas uses separate fecha (DATE) + hora (TIME) columns, not fecha_hora
+        if (newRecord && newRecord.fecha && esHoy(newRecord.fecha)) {
           console.log('➕ Nueva cita insertada:', newRecord)
           setCitas((prevCitas) => {
             // Evitar duplicados
             if (prevCitas.some((c) => c.id === newRecord.id)) {
               return prevCitas
             }
-            // Insertar y ordenar por fecha
+            // Insertar y ordenar por hora
             return [...prevCitas, newRecord].sort(
               (a, b) => {
-                const timeA = a.fecha_hora ? new Date(a.fecha_hora).getTime() : 0
-                const timeB = b.fecha_hora ? new Date(b.fecha_hora).getTime() : 0
-                return timeA - timeB
+                const timeA = a.hora ?? ''
+                const timeB = b.hora ?? ''
+                return timeA.localeCompare(timeB)
               }
             )
           })
