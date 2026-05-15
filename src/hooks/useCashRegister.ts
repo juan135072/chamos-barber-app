@@ -31,7 +31,12 @@ export function useCashRegister(usuario: any) {
                 .select('*')
                 .eq('estado', 'abierta')
                 .eq('usuario_id', usuario.id)
-                .eq('comercio_id', usuario.comercio_id)
+
+            if (usuario.comercio_id) {
+                query = query.eq('comercio_id', usuario.comercio_id)
+            } else {
+                query = query.is('comercio_id', null)
+            }
 
             const { data, error } = await query.maybeSingle()
 

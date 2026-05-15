@@ -49,6 +49,22 @@ export function usePermissions() {
         console.error('Error cargando permisos:', error);
         setUsuario(null);
       } else {
+        // Fallback: If the view doesn't return comercio_id, fetch it directly from admin_users
+        if (data && !data.comercio_id) {
+          try {
+            const { data: adminData } = await supabase
+              .from('admin_users')
+              .select('comercio_id')
+              .eq('id', session.user.id)
+              .single();
+            
+            if (adminData && adminData.comercio_id) {
+              data.comercio_id = adminData.comercio_id;
+            }
+          } catch (err) {
+            console.error('Error fetching comercio_id fallback:', err);
+          }
+        }
         setUsuario(data);
       }
     } catch (error) {

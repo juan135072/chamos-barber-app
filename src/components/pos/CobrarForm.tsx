@@ -152,7 +152,10 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       setCitasHoy(citasData || [])
 
       try {
-        const resProd = await fetch('/api/inventario/productos?activo=true')
+        const token = (supabase as any)._insforge?.auth?.getAccessToken() || '';
+        const resProd = await fetch('/api/inventario/productos?activo=true', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
         if (resProd.ok) {
           const prodData = await resProd.json()
           setProductos(prodData.filter((p: any) => p.stock_actual > 0))
@@ -335,7 +338,10 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         try {
           await fetch('/api/inventario/movimientos', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}` 
+            },
             body: JSON.stringify({
               producto_id: item.producto_id,
               tipo: 'salida',
@@ -367,7 +373,9 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
       // Recargar productos (stock actualizado)
       try {
-        const resProd = await fetch('/api/inventario/productos?activo=true')
+        const resProd = await fetch('/api/inventario/productos?activo=true', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
         if (resProd.ok) {
           const prodData = await resProd.json()
           setProductos(prodData.filter((p: any) => p.stock_actual > 0))

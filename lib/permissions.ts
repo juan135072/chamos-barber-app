@@ -42,6 +42,7 @@ export interface UsuarioConPermisos {
   activo: boolean;
   telefono?: string;
   barbero_id?: string;
+  comercio_id?: string;
   rol_nombre?: string;
   rol_descripcion?: string;
   permisos?: Permiso;
