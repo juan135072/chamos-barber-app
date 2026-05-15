@@ -77,23 +77,53 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const {
             comercio_id: _ignoredComercioId,
             created_by: _ignoredCreatedBy,
+            numero_factura: _ignoredNumero,
             ...rest
         } = body
 
-        const insertPayload = {
-            ...rest,
-            cliente_nombre: body.cliente_nombre?.trim() || 'Consumidor Final',
-            comercio_id: adminUser.comercio_id,
-            created_by: user.id,
+        // Compute numero_factura per comercio (was a DB trigger; trigger relied on
+        // auth.uid() which blows up under the admin API key, so we do it here).
+        // Retries on unique-violation in case of concurrent inserts.
+        let factura: any = null
+        const MAX_RETRIES = 5
+        for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+            const { data: lastRows } = await supabase
+                .from('facturas')
+                .select('numero_factura')
+                .eq('comercio_id', adminUser.comercio_id)
+                .like('numero_factura', 'B-%')
+                .order('numero_factura', { ascending: false })
+                .limit(1)
+
+            const lastNum = lastRows?.[0]?.numero_factura ?? ''
+            const lastSeq = parseInt(lastNum.replace(/^[BF]-/, ''), 10)
+            const nextSeq = Number.isFinite(lastSeq) ? lastSeq + 1 : 1
+            const numero_factura = `B-${String(nextSeq).padStart(4, '0')}`
+
+            const insertPayload = {
+                ...rest,
+                cliente_nombre: body.cliente_nombre?.trim() || 'Consumidor Final',
+                comercio_id: adminUser.comercio_id,
+                created_by: user.id,
+                numero_factura,
+            }
+
+            const { data, error: insertError } = await supabase
+                .from('facturas')
+                .insert([insertPayload])
+                .select()
+                .single()
+
+            if (!insertError) {
+                factura = data
+                break
+            }
+            // 23505 = unique_violation — someone else grabbed this numero_factura
+            const isUniqueViolation =
+                insertError?.code === '23505' ||
+                /duplicate key|unique constraint/i.test(insertError?.message ?? '')
+            if (!isUniqueViolation || attempt === MAX_RETRIES - 1) throw insertError
         }
-
-        const { data: factura, error: insertError } = await supabase
-            .from('facturas')
-            .insert([insertPayload])
-            .select()
-            .single()
-
-        if (insertError) throw insertError
 
         return res.status(200).json({ factura })
 
