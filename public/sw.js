@@ -1,122 +1,50 @@
-// ================================================================
-// 📱 SERVICE WORKER - Chamos Barber PWA
-// ================================================================
+// Kill switch: this Service Worker exists only to evict every previous SW
+// version of Chamos Barber that was using "Cache First" for the Next.js
+// HTML + JS chunks. That strategy locked browsers onto stale bundles after
+// every deploy (the cache name "chamos-barber-v1.0.1" was never bumped),
+// which surfaced as 400/409/500s against endpoints whose payload contract
+// had moved on. See feedback memory for the full incident.
+//
+// Behavior:
+//   1. install: skipWaiting so we take over immediately.
+//   2. activate: claim all clients, delete every Cache Storage entry,
+//      unregister this worker, and reload all open clients so they fetch
+//      the current build straight from the network.
+//   3. fetch: passthrough (no caching).
+//
+// Once every active user has loaded this file at least once their browser
+// will be SW-free. Future PWA work should re-introduce a worker only with
+// a build-ID-based cache name (e.g. caches.open(`chamos-${BUILD_ID}`)) and
+// a Network First strategy for HTML and Next.js assets.
 
-// 1. CONFIGURACIÓN
-const CACHE_NAME = 'chamos-barber-v1.0.1';
-const API_CACHE_NAME = 'chamos-barber-api-v1';
-const STATIC_CACHE = [
-  '/',
-  '/barber-app',
-  '/favicon.ico',
-  '/android-chrome-192x192.png',
-  '/manifest.json'
-];
-
-// 2. LISTENERS - Deben estar en el nivel superior absoluto para evaluación inicial
-
-// Manejo de mensajes (ej. actualización de versión)
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+self.addEventListener('install', () => {
     self.skipWaiting();
-  }
 });
 
-// INSTALACIÓN
-self.addEventListener('install', (event) => {
-  console.log('📦 Service Worker: Instalando...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('✅ Service Worker: Archivos estáticos cacheados');
-      return cache.addAll(STATIC_CACHE);
-    })
-  );
-  self.skipWaiting();
-});
-
-// ACTIVACIÓN
 self.addEventListener('activate', (event) => {
-  console.log('🚀 Service Worker: Activando...');
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== API_CACHE_NAME) {
-            console.log('🗑️ Service Worker: Eliminando caché antigua:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  // Tomar control inmediato de todas las páginas
-  return self.clients.claim();
-});
+    event.waitUntil((async () => {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map((name) => caches.delete(name)));
 
-// FETCH - ESTRATEGIA DE CACHÉ
-self.addEventListener('fetch', (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
+        await self.clients.claim();
 
-  // Ignorar solicitudes externas (Supabase, CDN, etc.) para caché estático
-  if (url.origin !== location.origin) {
-    return;
-  }
-
-  // Ignorar POST/PUT/DELETE (solo cachear GET)
-  if (request.method !== 'GET') {
-    return;
-  }
-
-  // Estrategia: Network First para /barber-app, Cache First para estáticos
-  if (url.pathname.startsWith('/barber-app')) {
-    // Network First: Intenta red primero, si falla usa caché
-    event.respondWith(
-      fetch(request)
-        .then((response) => {
-          // Clonar respuesta para cachear
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-          return response;
-        })
-        .catch(() => {
-          // Si falla la red, buscar en caché
-          return caches.match(request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Fallback: retornar la página principal del app si estamos en esa ruta
-            return caches.match('/barber-app');
-          });
-        })
-    );
-  } else {
-    // Cache First: Para otros archivos estáticos internos
-    event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        if (cachedResponse) {
-          return cachedResponse;
+        try {
+            await self.registration.unregister();
+        } catch (_) {
+            // best-effort: keep going even if unregister fails
         }
 
-        return fetch(request).then((response) => {
-          // No cachear si no es 200 OK o si es un error
-          if (!response || response.status !== 200 || response.type === 'error') {
-            return response;
-          }
-
-          const responseToCache = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-
-          return response;
-        });
-      })
-    );
-  }
+        const clients = await self.clients.matchAll({ type: 'window' });
+        for (const client of clients) {
+            try {
+                client.navigate(client.url);
+            } catch (_) {
+                // fallthrough — the user's next manual reload will pick it up
+            }
+        }
+    })());
 });
 
-console.log('✅ Service Worker cargado y consolidado');
-
+self.addEventListener('fetch', () => {
+    // No-op: let the browser handle every request directly.
+});
