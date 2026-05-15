@@ -121,15 +121,98 @@ export function useCashRegister(usuario: any) {
         if (!sesion) throw new Error('No hay una sesión activa')
 
         try {
-            // Diferencia y esperado se calculan en memoria — caja_sesiones
-            // solo persiste monto_final (no _esperado / _real / diferencia).
-            const diferencia = montoFinalReal - (sesion.monto_final_esperado ?? 0)
+            // 1. Recolectar las facturas de esta sesión (no anuladas, no asignadas
+            //    a otro cierre) para computar totales del Z-report.
+            const fechaApertura = sesion.fecha_apertura
+            const fechaFinIso = new Date().toISOString()
 
+            const { data: facturasSesion, error: facturasErr } = await (supabase
+                .from('facturas') as any)
+                .select('total, comision_barbero, ingreso_casa, metodo_pago')
+                .eq('comercio_id', usuario.comercio_id)
+                .eq('anulada', false)
+                .is('cierre_caja_id', null)
+                .gte('created_at', fechaApertura)
+                .lt('created_at', fechaFinIso)
+
+            if (facturasErr) throw facturasErr
+
+            const facturas: Array<{ total: number; comision_barbero: number; ingreso_casa: number; metodo_pago: string }> = facturasSesion ?? []
+
+            const totals = facturas.reduce(
+                (acc, f) => {
+                    const total = Number(f.total) || 0
+                    const com = Number(f.comision_barbero) || 0
+                    const casa = Number(f.ingreso_casa) || 0
+                    const metodo = (f.metodo_pago || 'otro').toLowerCase()
+                    acc.total_ventas += total
+                    acc.total_comisiones += com
+                    acc.total_casa += casa
+                    acc.metodos_pago[metodo] = (acc.metodos_pago[metodo] || 0) + total
+                    return acc
+                },
+                {
+                    total_ventas: 0,
+                    total_comisiones: 0,
+                    total_casa: 0,
+                    metodos_pago: {} as Record<string, number>,
+                }
+            )
+
+            const ventasEfectivo = totals.metodos_pago['efectivo'] || 0
+            const montoEsperadoEfectivo = Number(sesion.monto_inicial || 0) + ventasEfectivo
+            const diferencia = montoFinalReal - montoEsperadoEfectivo
+
+            // 2. Crear la fila formal en cierres_caja (Z-report).
+            const fechaApDate = fechaApertura.slice(0, 10)
+            const fechaFinDate = fechaFinIso.slice(0, 10)
+
+            const cierrePayload: any = {
+                fecha_inicio: fechaApDate,
+                fecha_fin: fechaFinDate,
+                cajero_id: usuario.id,
+                comercio_id: usuario.comercio_id,
+                monto_apertura: Number(sesion.monto_inicial || 0),
+                monto_esperado_efectivo: montoEsperadoEfectivo,
+                monto_real_efectivo: montoFinalReal,
+                diferencia,
+                total_ventas: totals.total_ventas,
+                total_comisiones: totals.total_comisiones,
+                total_casa: totals.total_casa,
+                metodos_pago: totals.metodos_pago,
+                notas: notas || null,
+                estado: 'cerrada',
+            }
+
+            const { data: cierre, error: cierreErr } = await (supabase
+                .from('cierres_caja') as any)
+                .insert([cierrePayload])
+                .select()
+                .single()
+
+            if (cierreErr) throw cierreErr
+
+            // 3. Sellar las facturas de la sesión con el id del cierre. Idempotente:
+            //    sólo afecta filas con cierre_caja_id IS NULL.
+            const { error: stampErr } = await (supabase
+                .from('facturas') as any)
+                .update({ cierre_caja_id: cierre.id })
+                .eq('comercio_id', usuario.comercio_id)
+                .eq('anulada', false)
+                .is('cierre_caja_id', null)
+                .gte('created_at', fechaApertura)
+                .lt('created_at', fechaFinIso)
+
+            if (stampErr) {
+                console.warn('⚠️ Cierre creado pero no se pudieron sellar todas las facturas:', stampErr)
+            }
+
+            // 4. Marcar la sesión como cerrada.
             const { data, error } = await (supabase
                 .from('caja_sesiones') as any)
                 .update({
                     estado: 'cerrada',
-                    fecha_cierre: new Date().toISOString(),
+                    fecha_cierre: fechaFinIso,
                     monto_final: montoFinalReal,
                 })
                 .eq('id', sesion.id)
@@ -138,20 +221,19 @@ export function useCashRegister(usuario: any) {
 
             if (error) throw error
 
-            const descripcionCierre = `Cierre de caja. Esperado: ${sesion.monto_final_esperado ?? 0}, Real: ${montoFinalReal}, Diferencia: ${diferencia}. Notas: ${notas}`
+            // 5. Movimiento de cierre (auditoría).
+            const descripcionCierre = `Cierre Z-report ${cierre.id}. Apertura: ${sesion.monto_inicial}, Esperado efectivo: ${montoEsperadoEfectivo}, Real: ${montoFinalReal}, Diferencia: ${diferencia}, Total ventas: ${totals.total_ventas} (${facturas.length} facturas). Notas: ${notas}`
 
-            const movementPayload: any = {
+            await (supabase.from('movimientos_caja') as any).insert([{
                 sesion_id: sesion.id,
                 comercio_id: usuario.comercio_id,
                 tipo: 'cierre',
                 monto: montoFinalReal,
                 descripcion: descripcionCierre,
-            }
-
-            await (supabase.from('movimientos_caja') as any).insert([movementPayload])
+            }])
 
             setSesion(null)
-            return data
+            return { sesion: data, cierre, facturasSelladas: facturas.length }
         } catch (error) {
             console.error('Error al cerrar caja:', error)
             throw error
