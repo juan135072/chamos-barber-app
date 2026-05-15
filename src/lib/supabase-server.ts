@@ -57,7 +57,9 @@ function setCookies(
  * Build a Supabase-shaped wrapper around an InsForge client so existing
  * code (`supabase.from`, `supabase.rpc`, `supabase.auth.*`) works unchanged.
  */
-function makeSupabaseShape(client: InsForgeClient): any {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+function makeSupabaseShape(client: InsForgeClient, res?: NextApiResponse): any {
     return {
         from: (table: string) => client.database.from(table),
         rpc: (fn: string, args?: Record<string, unknown>, options?: any) =>
@@ -72,11 +74,19 @@ function makeSupabaseShape(client: InsForgeClient): any {
             // Supabase-shape compat
             async getUser() {
                 const { data, error } = await client.auth.getCurrentUser()
-                return { data: { user: (data?.user as any) ?? null }, error }
+                const raw = (data?.user as any) ?? null
+                const user = raw && UUID_RE.test(raw.id) ? raw : null
+                if (raw && !user && res) clearAuthCookies(res)
+                return { data: { user }, error }
             },
             async getSession() {
                 const { data, error } = await client.auth.getCurrentUser()
-                const user = (data?.user as any) ?? null
+                const raw = (data?.user as any) ?? null
+                // If the token is a service-role API key, InsForge returns a
+                // virtual user with id "project-admin-with-api-key". Reject it
+                // so routes get 401 and the stale cookie is cleared automatically.
+                const user = raw && UUID_RE.test(raw.id) ? raw : null
+                if (raw && !user && res) clearAuthCookies(res)
                 const session = user
                     ? {
                         user,
@@ -122,7 +132,7 @@ function makeSupabaseShape(client: InsForgeClient): any {
  *
  * Drop-in for the old `createPagesServerClient(req, res)` import.
  */
-export function createPagesServerClient(req: NextApiRequest, _res: NextApiResponse) {
+export function createPagesServerClient(req: NextApiRequest, res: NextApiResponse) {
     if (!BASE_URL || !ANON_KEY) {
         throw new Error(
             'Missing InsForge env vars: NEXT_PUBLIC_INSFORGE_BASE_URL and NEXT_PUBLIC_INSFORGE_ANON_KEY required'
@@ -135,7 +145,7 @@ export function createPagesServerClient(req: NextApiRequest, _res: NextApiRespon
         isServerMode: true,
         edgeFunctionToken: accessToken,
     } as Parameters<typeof createInsforgeClient>[0])
-    return makeSupabaseShape(client)
+    return makeSupabaseShape(client, res)
 }
 
 /**
