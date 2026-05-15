@@ -9,6 +9,10 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (!accessToken || typeof accessToken !== 'string') {
         return res.status(400).json({ error: 'accessToken required' })
     }
+    // Reject API keys (ik_...) — only user JWTs (eyJ...) are valid session tokens
+    if (!accessToken.startsWith('eyJ')) {
+        return res.status(400).json({ error: 'Invalid token format' })
+    }
 
     const cookie = serializeCookie(ACCESS_COOKIE, accessToken, {
         httpOnly: true,

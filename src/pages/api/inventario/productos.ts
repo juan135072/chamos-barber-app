@@ -1,13 +1,16 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesServerClient } from '@/lib/supabase-server'
+import { createPagesServerClient, clearAuthCookies } from '@/lib/supabase-server'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const supabase = createPagesServerClient(req, res)
 
     // Verificar autenticación
     const { data: { session } } = await supabase.auth.getSession()
-    if (!session) {
-        return res.status(401).json({ error: 'No autenticado' })
+    if (!session || !UUID_RE.test(session.user.id)) {
+        clearAuthCookies(res)
+        return res.status(401).json({ error: 'Sesión inválida. Por favor iniciá sesión nuevamente.' })
     }
 
     // Obtener comercio_id del usuario para aislamiento multitenant

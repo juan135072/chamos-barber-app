@@ -1,5 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient, createPagesServerClient } from '@/lib/supabase-server'
+import { createPagesAdminClient, createPagesServerClient, clearAuthCookies } from '@/lib/supabase-server'
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 const REQUIRED_FIELDS = [
     'barbero_id',
@@ -25,8 +27,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const { data: { session } } = await serverClient.auth.getSession()
         const user = session?.user
 
-        if (!user) {
-            return res.status(401).json({ message: 'No autenticado' })
+        if (!user || !UUID_RE.test(user.id)) {
+            clearAuthCookies(res)
+            return res.status(401).json({ message: 'Sesión inválida. Por favor iniciá sesión nuevamente.' })
         }
 
         const supabase = createPagesAdminClient()
