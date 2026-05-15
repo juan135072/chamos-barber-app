@@ -176,10 +176,13 @@ export const supabase: any = {
         let cleanup: (() => void) | null = null
 
         const internalListener = (msg: any) => {
-            // Pass the message payload to all handlers. Shape it minimally to
-            // mirror Supabase's postgres_changes payload so existing code paths
-            // (`payload.eventType`, `payload.new`, `payload.old`) keep working
-            // when the publisher follows our convention.
+            // Scope to this channel — InsForge fires on() globally across all
+            // subscribed channels, so we must filter by meta.channel to avoid
+            // delivering events from unrelated channels to this handler set.
+            if (msg?.meta?.channel && msg.meta.channel !== normalized) return
+            // Shape minimally to mirror Supabase postgres_changes payload so
+            // existing code paths (`payload.eventType`, `payload.new`,
+            // `payload.old`) keep working.
             const payload = msg?.payload ?? msg ?? {}
             for (const cb of handlers) {
                 try { cb(payload) } catch (err) { console.error('[realtime] handler error:', err) }

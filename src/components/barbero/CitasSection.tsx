@@ -43,7 +43,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
     if (!barberoId) return
 
     const channel = supabase
-      .channel(`citas-barbero-panel-${barberoId}`)
+      .channel(`citas-barbero-${barberoId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'citas', filter: `barbero_id=eq.${barberoId}` },
