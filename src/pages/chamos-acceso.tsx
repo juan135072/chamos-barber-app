@@ -163,6 +163,10 @@ function Login() {
                   alt={`${tenant.nombre} Logo`}
                   className="h-12 w-auto"
                   style={{ objectFit: 'contain' }}
+                  onError={(e: any) => {
+                    e.currentTarget.src = '/chamos-logo-gold.png'
+                    e.currentTarget.onerror = null
+                  }}
                 />
               ) : (
                 <div className="h-10 w-10 rounded-full flex items-center justify-center border" style={{ borderColor: 'var(--tenant-primary, #d4af37)', background: 'rgba(0,0,0,0.5)' }}>
@@ -191,6 +195,10 @@ function Login() {
                       alt={`${tenant.nombre} Logo`}
                       className="h-20 w-auto"
                       style={{ objectFit: 'contain' }}
+                      onError={(e: any) => {
+                        e.currentTarget.src = '/chamos-logo-gold.png'
+                        e.currentTarget.onerror = null
+                      }}
                     />
                   ) : (
                     <div className="h-20 w-20 rounded-full flex items-center justify-center border-2 shadow-lg" style={{ borderColor: 'var(--tenant-primary, #d4af37)', background: 'rgba(0,0,0,0.5)' }}>
