@@ -24,6 +24,14 @@ function Login() {
                 return
             }
 
+            if ((data as any).accessToken) {
+                await fetch('/api/auth/set-session', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ accessToken: (data as any).accessToken }),
+                }).catch(() => {})
+            }
+
             const { data: adminUser, error: adminErr } = await supabase
                 .from('admin_users')
                 .select('rol, activo')

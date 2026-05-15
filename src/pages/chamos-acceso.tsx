@@ -31,10 +31,18 @@ function Login() {
         return
       }
 
-      // useSession() can't observe the SDK's internal session change, so route
-      // the user explicitly here. checkAdminAccess (called via the session
-      // useEffect) was the original Supabase-flow path; now we drive it
-      // straight from the just-returned user object.
+      // Persist the access token as an httpOnly cookie on our domain so that
+      // Next.js API routes can authenticate the caller via createPagesServerClient.
+      // The InsForge SDK keeps the token in memory only — without this step,
+      // all server-side cookie-auth routes return 401.
+      if ((data as any).accessToken) {
+        await fetch('/api/auth/set-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: (data as any).accessToken }),
+        }).catch(() => {})
+      }
+
       const userId = data.user.id
       const { data: adminUser, error: adminErr } = await supabase
         .from('admin_users')
