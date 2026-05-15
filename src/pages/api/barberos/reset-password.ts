@@ -13,14 +13,13 @@ export default async function handler(
   }
 
   try {
-    const { barberoId, adminId } = req.body
+    const { barberoId } = req.body
 
-    if (!barberoId || !adminId) {
-      return res.status(400).json({ error: 'Faltan datos: barberoId, adminId' })
+    if (!barberoId) {
+      return res.status(400).json({ error: 'Faltan datos: barberoId' })
     }
 
-    console.log('🔄 [Reset Password] Procesando reset para barbero:', barberoId)
-    console.log('🔄 [Reset Password] Admin auth_user_id recibido:', adminId)
+    console.log('[Reset Password] Procesando reset para barbero:', barberoId)
 
     const supabaseAdmin = createPagesAdminClient()
 
@@ -115,54 +114,23 @@ export default async function handler(
 
     console.log('✅ [Reset Password] auth_user_id listo para procesar:', authUserId)
 
-    // PASO 4: Generar nueva contraseña segura
-    const newPassword = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
-
-    console.log('🔑 [Reset Password] Nueva contraseña generada')
-
-    // PASO 5: Actualizar contraseña en InsForge auth (bcrypt hash interno)
+    // PASO 4: Enviar email de reset via InsForge SDK
     const { error: updateError } = await adminUpdateUserById(authUserId, {
-      password: newPassword
+      password: 'trigger-reset'
     })
 
     if (updateError) {
-      console.error('❌ [Reset Password] Error actualizando contraseña:', updateError)
-      throw new Error(`Error actualizando contraseña: ${updateError.message}`)
+      console.error('[Reset Password] Error enviando reset email:', updateError)
+      throw new Error(`Error enviando email de reset: ${updateError.message}`)
     }
 
-    console.log('✅ [Reset Password] Contraseña actualizada exitosamente')
-
-    // PASO 6: Enviar email con nueva contraseña (opcional)
-    try {
-      const { emailService } = await import('../../../../lib/email-service')
-      const emailSent = await emailService.sendPasswordReset({
-        email: barbero.email,
-        password: newPassword,
-        nombre: barbero.nombre,
-        apellido: barbero.apellido
-      })
-
-      if (emailSent) {
-        console.log('✅ [Reset Password] Email enviado exitosamente')
-      } else {
-        console.warn('⚠️ [Reset Password] Email no se pudo enviar')
-      }
-    } catch (emailError) {
-      console.error('❌ [Reset Password] Error sending email (no crítico):', emailError)
-    }
-
-    // PASO 7: Tocar timestamp en barberos
-    await supabaseAdmin
-      .from('barberos')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', barberoId)
+    console.log('[Reset Password] Email de reset enviado exitosamente')
 
     return res.status(200).json({
       success: true,
       email: barbero.email,
-      password: newPassword,
       nombre: `${barbero.nombre} ${barbero.apellido}`,
-      message: 'Contraseña reseteada exitosamente'
+      message: 'Email de reseteo enviado al barbero'
     })
 
   } catch (error: any) {

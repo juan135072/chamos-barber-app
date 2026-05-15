@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { DollarSign, Calendar, TrendingUp, Clock, Scissors, Award, Star } from 'lucide-react'
 import { MetricasDiarias } from '@/types/barber-app'
 import { useFormatCurrency } from '@/context/ConfigContext'
+import { supabase } from '@/lib/supabase'
 import toast from 'react-hot-toast'
 
 interface DashboardSectionProps {
@@ -23,8 +24,15 @@ export default function DashboardSection({ barberoId, nombreBarbero }: Dashboard
   const fetchMetricas = async () => {
     try {
       setLoading(true)
-      // Usar la misma lógica que el mobile app
-      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`)
+      const token = (supabase as any)._insforge?.auth?.getAccessToken?.() ?? null
+      if (!token) {
+        toast.error('Sesión expirada')
+        setLoading(false)
+        return
+      }
+      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
       const result = await response.json()
       if (result.success) {
         setMetricas(result.data)

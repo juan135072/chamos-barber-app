@@ -1,8 +1,3 @@
-// ================================================================
-// 📱 HOOK: useMetricasDiarias
-// Obtiene las métricas diarias del barbero
-// ================================================================
-
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
 import type { MetricasDiarias } from '../types/barber-app'
@@ -26,16 +21,21 @@ export function useMetricasDiarias(barberoId: string | null) {
       setLoading(true)
       setError(null)
 
-      // Usar nueva función RPC para métricas acumuladas
-      const { data, error: rpcError } = await supabase.rpc('get_barber_dashboard_metrics_v2', {
-        p_barbero_id: barberoId
-      })
-
-      if (rpcError) throw rpcError
-
-      if (data) {
-        setMetricas(data as MetricasDiarias)
+      const token = (supabase as any)._insforge?.auth?.getAccessToken?.() ?? null
+      if (!token) {
+        setError('Sesión expirada')
+        setLoading(false)
+        return
       }
+
+      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      const result = await response.json()
+
+      if (!response.ok) throw new Error(result.error ?? 'Error al cargar métricas')
+
+      setMetricas(result.data as MetricasDiarias)
     } catch (err: any) {
       console.error('Error al obtener métricas:', err)
       setError(err.message || 'Error al cargar métricas')
@@ -44,17 +44,12 @@ export function useMetricasDiarias(barberoId: string | null) {
     }
   }, [barberoId])
 
-  // Cargar métricas iniciales
   useEffect(() => {
     fetchMetricas()
   }, [fetchMetricas])
 
-  // Refrescar métricas cada 30 segundos
   useEffect(() => {
-    const interval = setInterval(() => {
-      fetchMetricas()
-    }, 30000) // 30 segundos
-
+    const interval = setInterval(fetchMetricas, 30000)
     return () => clearInterval(interval)
   }, [fetchMetricas])
 

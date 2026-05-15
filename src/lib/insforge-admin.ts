@@ -7,27 +7,34 @@
  *   supabase.auth.admin.updateUserById(id, {password, ...})
  *   supabase.auth.admin.deleteUser(id)
  *
- * InsForge has no `auth.admin` namespace on the SDK; admin user
- * operations are done by directly hitting `auth.users` / `auth.user_providers`
- * via the raw-SQL endpoint with the project's `ik_*` admin API key.
- *
  * Server-only. Never import from client components.
  * Migrated 2026-05-12.
  */
 
 import bcrypt from 'bcryptjs'
+import { createClient as createInsforgeClient } from '@insforge/sdk'
 
-const BCRYPT_COST = 10
 const BASE_URL = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
+const ANON_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY
 const API_KEY = process.env.INSFORGE_API_KEY
 
-function ensureConfig(): { baseUrl: string; apiKey: string } {
-    if (!BASE_URL || !API_KEY) {
+function ensureConfig(): { baseUrl: string; anonKey: string; apiKey: string } {
+    if (!BASE_URL || !ANON_KEY || !API_KEY) {
         throw new Error(
-            'Missing InsForge admin env vars: NEXT_PUBLIC_INSFORGE_BASE_URL and INSFORGE_API_KEY are required'
+            'Missing InsForge admin env vars: NEXT_PUBLIC_INSFORGE_BASE_URL, NEXT_PUBLIC_INSFORGE_ANON_KEY, and INSFORGE_API_KEY are required'
         )
     }
-    return { baseUrl: BASE_URL, apiKey: API_KEY }
+    return { baseUrl: BASE_URL, anonKey: ANON_KEY, apiKey: API_KEY }
+}
+
+function getAdminInsForgeClient() {
+    const { baseUrl, anonKey, apiKey } = ensureConfig()
+    return createInsforgeClient({
+        baseUrl,
+        anonKey,
+        isServerMode: true,
+        edgeFunctionToken: apiKey,
+    } as Parameters<typeof createInsforgeClient>[0])
 }
 
 /**
@@ -92,13 +99,10 @@ export async function adminGetUserById(
 }
 
 /**
- * Create a user with email + password (already-hashed bcrypt is supported
- * by setting `passwordHash` directly; otherwise plaintext is hashed here).
- *
+ * Create a user via the InsForge SDK signUp endpoint.
  * Drop-in for `supabase.auth.admin.createUser({email, password, ...})`.
  *
- * Note: `user_metadata` -> InsForge `profile` (display data)
- *       `app_metadata`  -> InsForge `metadata` (app/role data)
+ * Note: `user_metadata.nombre` + `user_metadata.apellido` -> SDK `name` field.
  */
 export async function adminCreateUser(input: {
     email: string
@@ -108,44 +112,45 @@ export async function adminCreateUser(input: {
     user_metadata?: Record<string, unknown>
     app_metadata?: Record<string, unknown>
 }): Promise<{ data: { user: AdminUser | null }; error: Error | null }> {
+    if (!input.password && !input.passwordHash) {
+        return {
+            data: { user: null },
+            error: new Error('adminCreateUser requires either `password` or `passwordHash`'),
+        }
+    }
     try {
-        const passwordHash =
-            input.passwordHash ??
-            (input.password ? await bcrypt.hash(input.password, BCRYPT_COST) : null)
-        if (!passwordHash) {
-            return {
-                data: { user: null },
-                error: new Error('adminCreateUser requires either `password` or `passwordHash`'),
-            }
+        const client = getAdminInsForgeClient()
+        const nameParts = [
+            (input.user_metadata?.nombre as string) || '',
+            (input.user_metadata?.apellido as string) || '',
+        ].filter(Boolean)
+        const name = nameParts.join(' ') || undefined
+
+        const { data, error } = await client.auth.signUp({
+            email: input.email,
+            password: input.password ?? input.passwordHash!,
+            ...(name ? { name } : {}),
+            autoConfirm: input.email_confirm ?? true,
+        } as any)
+
+        if (error) return { data: { user: null }, error: error as Error }
+
+        const rawUser = (data as any)?.user
+        if (!rawUser) {
+            return { data: { user: null }, error: new Error('signUp returned no user') }
         }
 
-        const { rows } = await adminRawSql<AdminUser>(
-            `INSERT INTO auth.users (email, password, email_verified, profile, metadata)
-             VALUES ($1, $2, $3, $4::jsonb, $5::jsonb)
-             RETURNING id, email, email_verified, created_at, updated_at, profile, metadata,
-                       COALESCE(is_anonymous,false) AS is_anonymous,
-                       COALESCE(is_project_admin,false) AS is_project_admin`,
-            [
-                input.email,
-                passwordHash,
-                input.email_confirm ?? true,
-                JSON.stringify(input.user_metadata ?? {}),
-                JSON.stringify(input.app_metadata ?? {}),
-            ]
-        )
-        const user = rows[0]
-        if (!user) {
-            return { data: { user: null }, error: new Error('INSERT returned no row') }
+        const user: AdminUser = {
+            id: rawUser.id,
+            email: rawUser.email ?? input.email,
+            email_verified: rawUser.email_verified ?? (input.email_confirm ?? true),
+            created_at: rawUser.created_at ?? new Date().toISOString(),
+            updated_at: rawUser.updated_at ?? new Date().toISOString(),
+            profile: rawUser.profile ?? input.user_metadata ?? null,
+            metadata: rawUser.metadata ?? input.app_metadata ?? null,
+            is_anonymous: rawUser.is_anonymous ?? false,
+            is_project_admin: rawUser.is_project_admin ?? false,
         }
-
-        // Mirror auth.identities row from Supabase: an email-provider linkage.
-        await adminRawSql(
-            `INSERT INTO auth.user_providers (user_id, provider, provider_account_id, provider_data)
-             VALUES ($1, 'email', $2, '{}'::jsonb)
-             ON CONFLICT DO NOTHING`,
-            [user.id, input.email]
-        )
-
         return { data: { user }, error: null }
     } catch (err: any) {
         return { data: { user: null }, error: err }
@@ -153,8 +158,9 @@ export async function adminCreateUser(input: {
 }
 
 /**
- * Update a user's password / email / profile / metadata.
- * Drop-in for `supabase.auth.admin.updateUserById(id, attrs)`.
+ * Trigger a password reset email via the InsForge SDK.
+ * Only password resets are supported — email/metadata changes throw loudly.
+ * Drop-in for `supabase.auth.admin.updateUserById(id, { password })`.
  */
 export async function adminUpdateUserById(
     userId: string,
@@ -165,38 +171,21 @@ export async function adminUpdateUserById(
         app_metadata?: Record<string, unknown>
     }
 ): Promise<{ data: { user: AdminUser | null }; error: Error | null }> {
+    if (attributes.email || attributes.user_metadata || attributes.app_metadata) {
+        throw new Error('adminUpdateUserById: only password resets are supported')
+    }
+    if (!attributes.password) {
+        return { data: { user: null }, error: new Error('adminUpdateUserById: password attribute required') }
+    }
     try {
-        const sets: string[] = []
-        const params: unknown[] = []
-        let p = 1
-
-        if (attributes.password) {
-            sets.push(`password = $${p++}`)
-            params.push(await bcrypt.hash(attributes.password, BCRYPT_COST))
+        const { data: userData } = await adminGetUserById(userId)
+        if (!userData.user?.email) {
+            return { data: { user: null }, error: new Error('User not found or has no email') }
         }
-        if (attributes.email) {
-            sets.push(`email = $${p++}`)
-            params.push(attributes.email)
-        }
-        if (attributes.user_metadata) {
-            sets.push(`profile = $${p++}::jsonb`)
-            params.push(JSON.stringify(attributes.user_metadata))
-        }
-        if (attributes.app_metadata) {
-            sets.push(`metadata = $${p++}::jsonb`)
-            params.push(JSON.stringify(attributes.app_metadata))
-        }
-        sets.push(`updated_at = NOW()`)
-        params.push(userId)
-
-        const { rows } = await adminRawSql<AdminUser>(
-            `UPDATE auth.users SET ${sets.join(', ')} WHERE id = $${p}
-             RETURNING id, email, email_verified, created_at, updated_at, profile, metadata,
-                       COALESCE(is_anonymous,false) AS is_anonymous,
-                       COALESCE(is_project_admin,false) AS is_project_admin`,
-            params
-        )
-        return { data: { user: rows[0] ?? null }, error: null }
+        const client = getAdminInsForgeClient()
+        const { error } = await (client.auth as any).sendResetPasswordEmail({ email: userData.user.email })
+        if (error) return { data: { user: null }, error: error as Error }
+        return { data: { user: null }, error: null }
     } catch (err: any) {
         return { data: { user: null }, error: err }
     }

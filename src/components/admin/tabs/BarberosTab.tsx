@@ -25,7 +25,7 @@ const BarberosTab: React.FC = () => {
   const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
   const [barberoToReset, setBarberoToReset] = useState<Barbero | null>(null)
   const [resettingPassword, setResettingPassword] = useState(false)
-  const [newPassword, setNewPassword] = useState<string | null>(null)
+  const [resetSent, setResetSent] = useState(false)
 
   const handleCreate = () => {
     setSelectedBarbero(null)
@@ -99,7 +99,7 @@ const BarberosTab: React.FC = () => {
 
   const handleResetPassword = (barbero: Barbero) => {
     setBarberoToReset(barbero)
-    setNewPassword(null)
+    setResetSent(false)
     setShowResetPasswordModal(true)
   }
 
@@ -121,20 +121,18 @@ const BarberosTab: React.FC = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          barberoId: barberoToReset.id,
-          adminId: user.id
+          barberoId: barberoToReset.id
         })
       })
 
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || 'Error reseteando contraseña')
+        throw new Error(data.error || 'Error enviando email de reset')
       }
 
-      console.log('✅ FRONTEND: Contraseña reseteada:', data)
-      setNewPassword(data.password)
-      toast.success('Contraseña reseteada exitosamente')
+      setResetSent(true)
+      toast.success('Email de reseteo enviado al barbero')
     } catch (error: any) {
       console.error('❌ FRONTEND: Error resetting password:', error)
       toast.error(error.message || 'Error al resetear contraseña')
@@ -419,12 +417,12 @@ const BarberosTab: React.FC = () => {
           onClose={() => {
             setShowResetPasswordModal(false)
             setBarberoToReset(null)
-            setNewPassword(null)
+            setResetSent(false)
           }}
           title="Resetear Contraseña"
         >
           <div className="space-y-4">
-            {!newPassword ? (
+            {!resetSent ? (
               <>
                 <p style={{ color: 'var(--text-primary)' }}>
                   ¿Estás seguro de resetear la contraseña de:
@@ -504,115 +502,44 @@ const BarberosTab: React.FC = () => {
               </>
             ) : (
               <>
-                <div 
+                <div
                   className="p-4 rounded-lg text-center"
-                  style={{ 
-                    backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                    border: '1px solid rgba(34, 197, 94, 0.3)'
+                  style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                    border: '1px solid rgba(59, 130, 246, 0.3)'
                   }}
                 >
-                  <i className="fas fa-check-circle text-green-400 text-4xl mb-3"></i>
-                  <h3 className="text-lg font-bold text-green-400 mb-2">
-                    ¡Contraseña Reseteada!
+                  <i className="fas fa-envelope-circle-check text-blue-400 text-4xl mb-3"></i>
+                  <h3 className="text-lg font-bold text-blue-400 mb-2">
+                    Email enviado
                   </h3>
-                  <p className="text-sm text-green-300">
-                    La contraseña ha sido actualizada exitosamente
+                  <p className="text-sm text-blue-300">
+                    Se envió un email a <strong>{barberoToReset.email}</strong> con instrucciones para crear una nueva contraseña.
                   </p>
                 </div>
 
-                <div 
-                  className="p-4 rounded-lg space-y-3"
-                  style={{ 
-                    backgroundColor: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)'
-                  }}
-                >
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wide mb-1 block" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                      Email de Acceso
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={barberoToReset.email || ''}
-                        readOnly
-                        className="flex-1 px-3 py-2 rounded-lg"
-                        style={{
-                          backgroundColor: 'var(--bg-primary)',
-                          color: 'var(--text-primary)',
-                          border: '1px solid var(--border-color)'
-                        }}
-                      />
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(barberoToReset.email || '')
-                          toast.success('Email copiado')
-                        }}
-                        className="px-3 py-2 rounded-lg"
-                        style={{ backgroundColor: 'var(--accent-color)', color: '#000' }}
-                        title="Copiar email"
-                      >
-                        <i className="fas fa-copy"></i>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold uppercase tracking-wide mb-1 block" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                      Nueva Contraseña
-                    </label>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="text"
-                        value={newPassword}
-                        readOnly
-                        className="flex-1 px-3 py-2 rounded-lg font-mono"
-                        style={{
-                          backgroundColor: 'var(--bg-primary)',
-                          color: 'var(--accent-color)',
-                          border: '1px solid var(--accent-color)',
-                          fontWeight: 'bold'
-                        }}
-                      />
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(newPassword)
-                          toast.success('Contraseña copiada')
-                        }}
-                        className="px-3 py-2 rounded-lg"
-                        style={{ backgroundColor: 'var(--accent-color)', color: '#000' }}
-                        title="Copiar contraseña"
-                      >
-                        <i className="fas fa-copy"></i>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                <div 
+                <div
                   className="p-3 rounded-lg flex items-start space-x-2"
-                  style={{ 
-                    backgroundColor: 'rgba(234, 179, 8, 0.1)',
-                    border: '1px solid rgba(234, 179, 8, 0.3)'
+                  style={{
+                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                    border: '1px solid rgba(59, 130, 246, 0.2)'
                   }}
                 >
-                  <i className="fas fa-exclamation-triangle text-yellow-400 mt-0.5"></i>
-                  <div className="text-sm text-yellow-300">
-                    <strong>IMPORTANTE:</strong> Copia estas credenciales ahora.
-                    Esta es la única vez que verás la contraseña.
-                    Envíala al barbero por un canal seguro (WhatsApp, email, etc.)
+                  <i className="fas fa-info-circle text-blue-400 mt-0.5"></i>
+                  <div className="text-sm text-blue-300">
+                    Si el barbero no recibe el email, revisá la carpeta de spam.
                   </div>
                 </div>
 
                 <div className="flex justify-end pt-4">
                   <button
                     onClick={() => {
+                      setResetSent(false)
                       setShowResetPasswordModal(false)
                       setBarberoToReset(null)
-                      setNewPassword(null)
                     }}
                     className="px-4 py-2 rounded-lg"
-                    style={{ 
+                    style={{
                       backgroundColor: 'var(--accent-color)',
                       color: '#000'
                     }}
