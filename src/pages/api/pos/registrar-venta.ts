@@ -86,7 +86,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const { data: factura, error: insertError } = await supabase
             .from('facturas')
-            .insert(insertPayload)
+            .insert([insertPayload])
             .select()
             .single()
 
@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({ factura })
 
     } catch (error: any) {
-        console.error('Error en registrar-venta:', error)
-        return res.status(500).json({ message: 'Error interno del servidor', error: error.message })
+        console.error('Error en registrar-venta:', error?.message ?? error)
+        return res.status(500).json({ message: error?.message ?? 'Error interno del servidor' })
     }
 }
