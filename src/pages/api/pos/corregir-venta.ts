@@ -1,13 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
 
-const supabase = createPagesAdminClient()
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         return res.status(405).json({ message: 'Método no permitido' })
     }
 
+    const supabase = createPagesAdminClient()
     const { facturaId, nuevoBarberoId, nuevoServicioId, nuevoMetodoPago, claveSeguridad } = req.body
 
     if (!facturaId) {
