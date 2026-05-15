@@ -22,14 +22,40 @@ const _client: InsForgeClient = createInsforgeClient({
     anonKey: ANON_KEY,
 })
 
+let _lastPersistedToken: string | null = null
+function maybeSetSessionCookie() {
+    if (typeof window === 'undefined') return
+    const token = (_client as any).tokenManager?.getAccessToken?.()
+    if (token && token !== _lastPersistedToken) {
+        _lastPersistedToken = token
+        fetch('/api/auth/set-session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ accessToken: token }),
+        }).catch(() => {})
+    }
+}
+
 const authAdapter = {
     signUp: _client.auth.signUp.bind(_client.auth),
-    signInWithPassword: _client.auth.signInWithPassword.bind(_client.auth),
+    async signInWithPassword(...args: any[]) {
+        const result = await (_client.auth.signInWithPassword as any)(...args)
+        if (!result?.error) maybeSetSessionCookie()
+        return result
+    },
     signOut: _client.auth.signOut.bind(_client.auth),
-    refreshSession: _client.auth.refreshSession.bind(_client.auth),
+    async refreshSession(...args: any[]) {
+        const result = await (_client.auth.refreshSession as any)(...args)
+        if (!result?.error) maybeSetSessionCookie()
+        return result
+    },
     signInWithOAuth: _client.auth.signInWithOAuth.bind(_client.auth),
     exchangeOAuthCode: _client.auth.exchangeOAuthCode.bind(_client.auth),
-    getCurrentUser: _client.auth.getCurrentUser.bind(_client.auth),
+    async getCurrentUser() {
+        const result = await _client.auth.getCurrentUser()
+        if (result?.data?.user) maybeSetSessionCookie()
+        return result
+    },
 
     async getUser() {
         const { data, error } = await _client.auth.getCurrentUser()

@@ -24,12 +24,6 @@ function Login() {
                 return
             }
 
-            fetch('/api/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            }).catch(() => {})
-
             const { data: adminUser, error: adminErr } = await supabase
                 .from('admin_users')
                 .select('rol, activo')
