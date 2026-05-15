@@ -17,18 +17,24 @@ export function useBarberAppAuth() {
   useEffect(() => {
     checkAuth()
 
-    // Suscribirse a cambios de autenticación
-    const { data: authListener } = supabase.auth.onAuthStateChange((event: any, session: any) => {
-      if (event === 'SIGNED_OUT') {
+    // Re-check on tab focus — catches expired sessions when the user returns to the tab
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkAuth()
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    // Periodic check every 5 minutes — redirects if the refresh token has expired
+    const interval = setInterval(async () => {
+      const { data } = await supabase.auth.getCurrentUser()
+      if (!data?.user) {
         setSession(null)
         router.push('/chamos-acceso')
-      } else if (event === 'SIGNED_IN' && session) {
-        checkAuth()
       }
-    })
+    }, 5 * 60 * 1000)
 
     return () => {
-      authListener.subscription.unsubscribe()
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      clearInterval(interval)
     }
   }, [])
 
