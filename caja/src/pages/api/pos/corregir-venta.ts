@@ -1,10 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import { createPagesServerClient, createPagesAdminClient } from '@/lib/supabase-server'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const adminClient = createPagesAdminClient()
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -18,19 +15,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 0. Verificar clave de seguridad
-        const { data: configClave } = await supabase
+        const serverClient = createPagesServerClient(req, res)
+        const { data: { session } } = await serverClient.auth.getSession()
+        const user = session?.user
+
+        if (!user) {
+            return res.status(401).json({ message: 'No autenticado' })
+        }
+
+        const { data: adminUser } = await adminClient
+            .from('admin_users')
+            .select('comercio_id, rol')
+            .eq('id', user.id)
+            .single()
+
+        if (!adminUser?.comercio_id) {
+            return res.status(403).json({ message: 'Sin permisos' })
+        }
+
+        // 0. Verificar clave scoped por comercio_id
+        const { data: configClave } = await adminClient
             .from('sitio_configuracion')
             .select('valor')
             .eq('clave', 'pos_clave_seguridad')
+            .eq('comercio_id', adminUser.comercio_id)
             .single()
 
         if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
             return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
         }
 
-        // 1. Obtener datos de la factura original
-        const { data: factura, error: facturaError } = await supabase
+        // 1. Obtener factura y verificar tenant
+        const { data: factura, error: facturaError } = await adminClient
             .from('facturas')
             .select('*')
             .eq('id', facturaId)
@@ -40,14 +56,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ message: 'Factura no encontrada' })
         }
 
+        if (factura.comercio_id !== adminUser.comercio_id) {
+            return res.status(403).json({ message: 'No tienes acceso a esta factura' })
+        }
+
         let barbero_id = nuevoBarberoId || factura.barbero_id
         let porcentajeComision = factura.porcentaje_comision
         let total = parseFloat(factura.total.toString())
         let items = Array.isArray(factura.items) ? [...factura.items] : []
 
-        // 2. Si hay nuevo barbero, obtener su porcentaje de comisión
+        // 2. Nuevo barbero → obtener su comisión
         if (nuevoBarberoId && nuevoBarberoId !== factura.barbero_id) {
-            const { data: barbero, error: barberoError } = await supabase
+            const { data: barbero, error: barberoError } = await adminClient
                 .from('barberos')
                 .select('porcentaje_comision')
                 .eq('id', nuevoBarberoId)
@@ -58,9 +78,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
         }
 
-        // 3. Si hay nuevo servicio, obtener su precio y actualizar items
+        // 3. Nuevo servicio → actualizar precio e items
         if (nuevoServicioId) {
-            const { data: servicio, error: servicioError } = await supabase
+            const { data: servicio, error: servicioError } = await adminClient
                 .from('servicios')
                 .select('nombre, precio')
                 .eq('id', nuevoServicioId)
@@ -68,19 +88,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             if (!servicioError && servicio) {
                 total = servicio.precio
-                // Actualizar el primer item (asumimos que es el servicio principal)
                 if (items.length > 0) {
-                    items[0] = {
-                        ...items[0],
-                        servicio: servicio.nombre,
-                        precio: total
-                    }
+                    items[0] = { ...items[0], servicio: servicio.nombre, precio: total }
                 } else {
-                    items = [{
-                        servicio: servicio.nombre,
-                        precio: total,
-                        cantidad: 1
-                    }]
+                    items = [{ servicio: servicio.nombre, precio: total, cantidad: 1 }]
                 }
             }
         }
@@ -90,16 +101,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const ingresoCasa = total - comisionBarbero
 
         // 5. Actualizar factura
-        const { error: updateFacturaError } = await supabase
+        const { error: updateFacturaError } = await adminClient
             .from('facturas')
             .update({
-                barbero_id: barbero_id,
+                barbero_id,
                 porcentaje_comision: porcentajeComision,
                 comision_barbero: comisionBarbero,
                 ingreso_casa: ingresoCasa,
-                total: total,
+                total,
                 subtotal: total,
-                items: items,
+                items,
                 metodo_pago: nuevoMetodoPago || factura.metodo_pago,
                 updated_at: new Date().toISOString()
             })
@@ -109,13 +120,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 6. Actualizar cita asociada si existe
         if (factura.cita_id) {
-            const updateCita: any = {
-                updated_at: new Date().toISOString()
-            }
+            const updateCita: any = { updated_at: new Date().toISOString() }
             if (nuevoBarberoId) updateCita.barbero_id = nuevoBarberoId
             if (nuevoServicioId) updateCita.servicio_id = nuevoServicioId
 
-            await supabase
+            await adminClient
                 .from('citas')
                 .update(updateCita)
                 .eq('id', factura.cita_id)
@@ -124,14 +133,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({
             success: true,
             message: 'Venta corregida exitosamente',
-            data: {
-                total,
-                comision: comisionBarbero
-            }
+            data: { total, comision: comisionBarbero }
         })
 
     } catch (error: any) {
-        console.error('Error en corregir-venta:', error)
+        console.error('Error en corregir-venta (caja):', error)
         return res.status(500).json({ message: 'Error interno del servidor', error: error.message })
     }
 }

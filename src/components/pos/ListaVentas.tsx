@@ -183,10 +183,12 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
     if (!clave) return
 
     try {
+      const token = (supabase as any)._insforge?.auth?.getAccessToken?.()
       const response = await fetch('/api/pos/anular-venta', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           facturaId,

@@ -1,10 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createClient } from '@supabase/supabase-js'
+import { createPagesServerClient, createPagesAdminClient } from '@/lib/supabase-server'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-
-const supabase = createClient(supabaseUrl, supabaseServiceKey)
+const adminClient = createPagesAdminClient()
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -18,19 +15,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 0. Verificar clave de seguridad
-        const { data: configClave } = await supabase
+        const serverClient = createPagesServerClient(req, res)
+        const { data: { session } } = await serverClient.auth.getSession()
+        const user = session?.user
+
+        if (!user) {
+            return res.status(401).json({ message: 'No autenticado' })
+        }
+
+        const { data: adminUser } = await adminClient
+            .from('admin_users')
+            .select('comercio_id, rol')
+            .eq('id', user.id)
+            .single()
+
+        if (!adminUser?.comercio_id) {
+            return res.status(403).json({ message: 'Sin permisos' })
+        }
+
+        // 0. Verificar clave scoped por comercio_id
+        const { data: configClave } = await adminClient
             .from('sitio_configuracion')
             .select('valor')
             .eq('clave', 'pos_clave_seguridad')
+            .eq('comercio_id', adminUser.comercio_id)
             .single()
 
         if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
             return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
         }
 
-        // 1. Obtener la factura para saber si tiene cita asociada
-        const { data: factura, error: facturaError } = await supabase
+        // 1. Obtener la factura y verificar tenant
+        const { data: factura, error: facturaError } = await adminClient
             .from('facturas')
             .select('*')
             .eq('id', facturaId)
@@ -40,15 +56,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({ message: 'Factura no encontrada' })
         }
 
+        if (factura.comercio_id !== adminUser.comercio_id) {
+            return res.status(403).json({ message: 'No tienes acceso a esta factura' })
+        }
+
         if (factura.anulada) {
             return res.status(400).json({ message: 'La factura ya está anulada' })
         }
 
-        // 2. Anular la factura
-        // Validamos que usuario_id sea un UUID válido o null
+        // 2. Anular
         const esUUIDValido = usuario_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(usuario_id)
 
-        const { error: updateFacturaError } = await supabase
+        const { error: updateFacturaError } = await adminClient
             .from('facturas')
             .update({
                 anulada: true,
@@ -61,20 +80,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         if (updateFacturaError) throw updateFacturaError
 
-        // 3. Si tiene cita asociada, revertir el estado de pago
+        // 3. Revertir cita asociada si existe
         if (factura.cita_id) {
-            const { error: updateCitaError } = await supabase
+            const { error: updateCitaError } = await adminClient
                 .from('citas')
-                .update({
-                    estado_pago: 'pendiente',
-                    updated_at: new Date().toISOString()
-                })
+                .update({ estado_pago: 'pendiente', updated_at: new Date().toISOString() })
                 .eq('id', factura.cita_id)
 
             if (updateCitaError) {
                 console.error('Error al revertir estado de cita:', updateCitaError)
-                // No lanzamos error para no fallar la anulación de la factura, 
-                // pero lo registramos.
             }
         }
 
@@ -84,7 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
     } catch (error: any) {
-        console.error('Error en anular-venta:', error)
+        console.error('Error en anular-venta (caja):', error)
         return res.status(500).json({ message: 'Error interno del servidor', error: error.message })
     }
 }

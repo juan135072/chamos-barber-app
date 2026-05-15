@@ -94,15 +94,11 @@ export function useCitasRealtime(barberoId: string | null) {
   const handleRealtimeChange = (payload: RealtimePayload) => {
     const { eventType, new: newRecord, old: oldRecord } = payload
 
-    // Verificar que la cita sea de hoy
+    // Compare date strings directly — avoids UTC-vs-local off-by-one when parsing
+    // bare DATE values (e.g. "2026-05-15") with new Date(), which treats them as
+    // UTC midnight and returns the previous local day in UTC-4/-5 timezones.
     const esHoy = (fecha: string) => {
-      const fechaCita = new Date(fecha)
-      const hoy = new Date()
-      return (
-        fechaCita.getDate() === hoy.getDate() &&
-        fechaCita.getMonth() === hoy.getMonth() &&
-        fechaCita.getFullYear() === hoy.getFullYear()
-      )
+      return fecha === new Date().toISOString().split('T')[0]
     }
 
     switch (eventType) {

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
 import { getChileHoy } from '@/lib/date-utils'
+import { usePermissions } from '@/hooks/usePermissions'
 import toast from 'react-hot-toast'
 
 type Factura = Database['public']['Tables']['facturas']['Row']
@@ -17,6 +18,7 @@ interface GananciaBarberoDia {
 }
 
 export default function GananciasTab() {
+  const { usuario } = usePermissions()
   const [ganancias, setGanancias] = useState<GananciaBarberoDia[]>([])
   const [loading, setLoading] = useState(true)
   const [fechaInicio, setFechaInicio] = useState<string>(getChileHoy())
@@ -25,9 +27,10 @@ export default function GananciasTab() {
 
   useEffect(() => {
     cargarGanancias()
-  }, [fechaInicio, fechaFin, tipoFiltro])
+  }, [fechaInicio, fechaFin, tipoFiltro, usuario?.comercio_id])
 
   const cargarGanancias = async () => {
+    if (!usuario?.comercio_id) return
     try {
       setLoading(true)
 
@@ -58,6 +61,7 @@ export default function GananciasTab() {
         (supabase as any)
           .from('facturas')
           .select('barbero_id, total, comision_barbero, ingreso_casa, porcentaje_comision')
+          .eq('comercio_id', usuario!.comercio_id)
           .gte('created_at', fechaInicioCompleta)
           .lte('created_at', fechaFinCompleta)
           .eq('anulada', false)
@@ -65,6 +69,7 @@ export default function GananciasTab() {
         (supabase as any)
           .from('barberos')
           .select('*')
+          .eq('comercio_id', usuario!.comercio_id)
           .eq('activo', true)
           .order('nombre')
       ])

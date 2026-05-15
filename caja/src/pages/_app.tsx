@@ -1,13 +1,12 @@
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
-import { SessionContextProvider } from '@supabase/auth-helpers-react'
-import { supabase } from '@/lib/supabase'
+import { SessionContextProvider } from '@/lib/insforge-react'
 import { Toaster } from 'react-hot-toast'
 import '@/styles/globals.css'
 
 export default function App({ Component, pageProps }: AppProps) {
   return (
-    <SessionContextProvider supabaseClient={supabase}>
+    <SessionContextProvider>
       <Head>
         <meta charSet="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
