@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
+import { getDynamicHoy, formatFechaChile } from '@/lib/date-utils'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   barberos?: { nombre: string; apellido: string }
@@ -132,8 +133,8 @@ export default function CitasTab() {
     // Filtro por estado
     if (filtroEstado !== 'todas' && cita.estado !== filtroEstado) return false
 
-    // Filtro por fecha
-    const hoy = new Date().toISOString().split('T')[0]
+    // Filtro por fecha — getDynamicHoy usa Santiago TZ para evitar el off-by-one UTC-4
+    const hoy = getDynamicHoy()
     if (filtroFecha === 'hoy' && cita.fecha !== hoy) return false
     if (filtroFecha === 'futuras' && cita.fecha < hoy) return false
     if (filtroFecha === 'pasadas' && cita.fecha >= hoy) return false
@@ -380,7 +381,7 @@ export default function CitasTab() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
-                    <div>{new Date(cita.fecha).toLocaleDateString('es-ES')}</div>
+                    <div>{formatFechaChile(cita.fecha)}</div>
                     <div style={{ color: 'var(--text-primary)', opacity: 0.7 }}>{cita.hora}</div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
