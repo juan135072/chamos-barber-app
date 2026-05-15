@@ -152,10 +152,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
       setCitasHoy(citasData || [])
 
       try {
-        const token = (supabase as any)._insforge?.auth?.getAccessToken() || '';
-        const resProd = await fetch('/api/inventario/productos?activo=true', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
+        const resProd = await fetch('/api/inventario/productos?activo=true')
         if (resProd.ok) {
           const prodData = await resProd.json()
           setProductos(prodData.filter((p: any) => p.stock_actual > 0))
@@ -264,18 +261,10 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     try {
       setGuardando(true)
 
-      // Crear la factura via API route (authenticated server-side insert)
-      const token = (supabase as any)._insforge.auth.getAccessToken()
-      if (!token) {
-        toast.error('Sesión expirada. Por favor, inicia sesión nuevamente.')
-        return
-      }
-
       const res = await fetch('/api/pos/registrar-venta', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           barbero_id: barberoId,

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
+import { createPagesAdminClient, createPagesServerClient } from '@/lib/supabase-server'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
@@ -12,8 +12,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: 'barberoId is required' })
     }
 
-    const token = (req.headers.authorization ?? '').replace('Bearer ', '') || null
-    const { data: { user } } = await getUserFromBearer(token)
+    const serverClient = createPagesServerClient(req, res)
+    const { data: { session } } = await serverClient.auth.getSession()
+    const user = session?.user
     if (!user) {
         return res.status(401).json({ error: 'Unauthorized' })
     }

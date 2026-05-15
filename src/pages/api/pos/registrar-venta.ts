@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
-
-const supabase = createPagesAdminClient()
+import { createPagesAdminClient, createPagesServerClient } from '@/lib/supabase-server'
 
 const REQUIRED_FIELDS = [
     'barbero_id',
@@ -23,14 +21,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // Authenticate the caller via bearer token
-        const authHeader = req.headers.authorization
-        const token = authHeader?.replace('Bearer ', '')
-        const { data: { user } } = await getUserFromBearer(token)
+        const serverClient = createPagesServerClient(req, res)
+        const { data: { session } } = await serverClient.auth.getSession()
+        const user = session?.user
 
         if (!user) {
             return res.status(401).json({ message: 'No autenticado' })
         }
+
+        const supabase = createPagesAdminClient()
 
         // Derive comercio_id from admin_users — never trust the request body
         const { data: adminUser } = await supabase

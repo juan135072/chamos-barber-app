@@ -21,16 +21,7 @@ export function useMetricasDiarias(barberoId: string | null) {
       setLoading(true)
       setError(null)
 
-      const token = (supabase as any)._insforge?.auth?.getAccessToken?.() ?? null
-      if (!token) {
-        setError('Sesión expirada')
-        setLoading(false)
-        return
-      }
-
-      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`)
       const result = await response.json()
 
       if (!response.ok) throw new Error(result.error ?? 'Error al cargar métricas')

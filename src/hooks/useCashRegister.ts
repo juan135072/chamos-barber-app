@@ -38,10 +38,12 @@ export function useCashRegister(usuario: any) {
                 query = query.is('comercio_id', null)
             }
 
-            const { data, error } = await query.maybeSingle()
+            const { data, error } = await query
+                .order('fecha_apertura', { ascending: false })
+                .limit(1)
 
             if (error) throw error
-            setSesion(data)
+            setSesion(data?.[0] ?? null)
         } catch (error) {
             console.error('Error al verificar sesión de caja:', error)
         } finally {

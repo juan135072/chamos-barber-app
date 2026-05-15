@@ -24,15 +24,7 @@ export default function DashboardSection({ barberoId, nombreBarbero }: Dashboard
   const fetchMetricas = async () => {
     try {
       setLoading(true)
-      const token = (supabase as any)._insforge?.auth?.getAccessToken?.() ?? null
-      if (!token) {
-        toast.error('Sesión expirada')
-        setLoading(false)
-        return
-      }
-      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
+      const response = await fetch(`/api/barbero/metricas?barberoId=${barberoId}`)
       const result = await response.json()
       if (result.success) {
         setMetricas(result.data)
