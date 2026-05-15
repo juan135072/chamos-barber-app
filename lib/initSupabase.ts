@@ -44,18 +44,7 @@ const authAdapter = {
     signUp: _client.auth.signUp.bind(_client.auth),
     signInWithPassword: _client.auth.signInWithPassword.bind(_client.auth),
     signOut: _client.auth.signOut.bind(_client.auth),
-    async refreshSession(...args: any[]) {
-        const result = await (_client.auth.refreshSession as any)(...args)
-        const newToken = (result?.data as any)?.accessToken
-        if (newToken && typeof window !== 'undefined') {
-            fetch('/api/auth/set-session', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ accessToken: newToken }),
-            }).catch(() => {})
-        }
-        return result
-    },
+    refreshSession: _client.auth.refreshSession.bind(_client.auth),
     signInWithOAuth: _client.auth.signInWithOAuth.bind(_client.auth),
     exchangeOAuthCode: _client.auth.exchangeOAuthCode.bind(_client.auth),
     getCurrentUser: _client.auth.getCurrentUser.bind(_client.auth),

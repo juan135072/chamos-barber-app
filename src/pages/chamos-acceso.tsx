@@ -31,17 +31,16 @@ function Login() {
         return
       }
 
-      // Persist the access token as an httpOnly cookie on our domain so that
-      // Next.js API routes can authenticate the caller via createPagesServerClient.
-      // The InsForge SDK keeps the token in memory only — without this step,
-      // all server-side cookie-auth routes return 401.
-      if ((data as any).accessToken) {
-        await fetch('/api/auth/set-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ accessToken: (data as any).accessToken }),
-        }).catch(() => {})
-      }
+      // Set the access token as an httpOnly cookie on our domain so that
+      // Next.js API routes (createPagesServerClient) can authenticate the caller.
+      // The browser-mode InsForge SDK stores tokens via InsForge-domain cookies only
+      // (inaccessible from JS) — a server-side sign-in is the only way to get the
+      // raw token and set it for our domain.
+      fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      }).catch(() => {})
 
       const userId = data.user.id
       const { data: adminUser, error: adminErr } = await supabase
