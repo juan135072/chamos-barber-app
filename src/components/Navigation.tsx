@@ -65,10 +65,11 @@ export default function Navigation() {
             {/* Logo */}
             <Link href="/" className={styles.logo}>
               <Image
-                src="/images/logo.png"
+                src="/chamos-logo-gold.png"
                 alt="Chamos Barber"
-                width={40}
-                height={40}
+                width={50}
+                height={50}
+                className="object-contain"
                 priority
               />
               <span>Chamos Barber</span>
@@ -131,10 +132,11 @@ export default function Navigation() {
         <div className={styles.mobileMenuHeader}>
           <Link href="/" className={styles.mobileLogo} onClick={() => setIsMobileMenuOpen(false)}>
             <Image
-              src="/images/logo.png"
+              src="/chamos-logo-gold.png"
               alt="Chamos Barber"
-              width={30}
-              height={30}
+              width={40}
+              height={40}
+              className="object-contain"
             />
             <span>Chamos Barber</span>
           </Link>

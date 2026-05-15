@@ -35,7 +35,8 @@
 }
 
 .logo img {
-    border-radius: 50%;
+    border-radius: 8px; /* Slightly rounded corners instead of full circle to avoid cropping */
+    margin-right: 4px;
 }
 
 .logo span {
@@ -43,6 +44,7 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
 }
 
 .navLinks {
@@ -176,11 +178,17 @@
     font-family: 'Playfair Display', serif;
 }
 
+.mobileLogo img {
+    border-radius: 8px;
+    margin-right: 4px;
+}
+
 .mobileLogo span {
     background: var(--gradient-gold);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
 }
 
 .closeButton {
