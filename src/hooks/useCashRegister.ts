@@ -167,6 +167,9 @@ export function useCashRegister(usuario: any) {
             const fechaApDate = fechaApertura.slice(0, 10)
             const fechaFinDate = fechaFinIso.slice(0, 10)
 
+            // Nota: cierres_caja.diferencia es columna generada
+            // (monto_real_efectivo - monto_esperado_efectivo), no se incluye
+            // en el INSERT — Postgres rebota con 428C9 si se le pasa valor.
             const cierrePayload: any = {
                 fecha_inicio: fechaApDate,
                 fecha_fin: fechaFinDate,
@@ -175,7 +178,6 @@ export function useCashRegister(usuario: any) {
                 monto_apertura: Number(sesion.monto_inicial || 0),
                 monto_esperado_efectivo: montoEsperadoEfectivo,
                 monto_real_efectivo: montoFinalReal,
-                diferencia,
                 total_ventas: totals.total_ventas,
                 total_comisiones: totals.total_comisiones,
                 total_casa: totals.total_casa,
