@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../lib/supabase'
+import { getChileHoy } from '../lib/date-utils'
 import type { Cita, RealtimePayload } from '../types/barber-app'
 
 export function useCitasRealtime(barberoId: string | null) {
@@ -24,7 +25,7 @@ export function useCitasRealtime(barberoId: string | null) {
       setLoading(true)
       setError(null)
 
-      const hoy = new Date().toISOString().split('T')[0]
+      const hoy = getChileHoy()
 
       const { data, error: rpcError } = await supabase
         .from('citas')
@@ -97,9 +98,7 @@ export function useCitasRealtime(barberoId: string | null) {
     // Compare date strings directly — avoids UTC-vs-local off-by-one when parsing
     // bare DATE values (e.g. "2026-05-15") with new Date(), which treats them as
     // UTC midnight and returns the previous local day in UTC-4/-5 timezones.
-    const esHoy = (fecha: string) => {
-      return fecha === new Date().toISOString().split('T')[0]
-    }
+    const esHoy = (fecha: string) => fecha === getChileHoy()
 
     switch (eventType) {
       case 'INSERT':

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient, useSession } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
-import { formatFechaChile } from '@/lib/date-utils'
+import { formatFechaChile, getChileHoy } from '@/lib/date-utils'
 import NotasClienteModal from './NotasClienteModal'
 import toast from 'react-hot-toast'
 
@@ -173,7 +173,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
     if (filtroEstado !== 'todas' && cita.estado !== filtroEstado) return false
 
     // Filtro por fecha
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     if (filtroFecha === 'hoy' && cita.fecha !== hoy) return false
     if (filtroFecha === 'futuras' && cita.fecha < hoy) return false
     if (filtroFecha === 'pasadas' && cita.fecha >= hoy) return false
@@ -196,7 +196,7 @@ export default function CitasSection({ barberoId }: CitasSectionProps) {
   // Estadísticas
   const stats = {
     total: citas.length,
-    hoy: citas.filter(c => c.fecha === new Date().toISOString().split('T')[0]).length,
+    hoy: citas.filter(c => c.fecha === getChileHoy()).length,
     pendientes: citas.filter(c => c.estado === 'pendiente').length,
     confirmadas: citas.filter(c => c.estado === 'confirmada').length,
     completadas: citas.filter(c => c.estado === 'completada').length,
