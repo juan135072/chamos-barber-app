@@ -68,12 +68,13 @@ export const TenantProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const hostname = typeof window !== 'undefined' ? window.location.hostname : ''
 
     // Resolve order: explicit ?slug, then subdomain slug, then bare-domain
-    // custom_domain match. The bare-domain branch is what makes the
-    // production site (chamosbarber.com) resolve to its comercio — without
-    // it, useTenant() returns null forever and any page that gates on
-    // tenant.id (e.g. /equipo) stays in a loading spinner.
+    // custom_domain match. When slug comes from a subdomain (e.g. "old" from
+    // "old.chamosbarber.com"), also include the domain as fallback so the API
+    // can match by dominio_custom even if the slug doesn't exist.
     const resolveUrl = slug
-      ? `/api/tenant/resolve?slug=${encodeURIComponent(slug)}`
+      ? hostname && hostname !== 'localhost' && hostname !== '127.0.0.1'
+        ? `/api/tenant/resolve?slug=${encodeURIComponent(slug)}&domain=${encodeURIComponent(hostname)}`
+        : `/api/tenant/resolve?slug=${encodeURIComponent(slug)}`
       : hostname && hostname !== 'localhost' && hostname !== '127.0.0.1'
         ? `/api/tenant/resolve?domain=${encodeURIComponent(hostname)}`
         : null

@@ -38,6 +38,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const candidates: Array<{ col: 'slug' | 'dominio_custom'; val: string }> = []
   if (slug) {
     candidates.push({ col: 'slug', val: slug as string })
+    // También intentar por dominio cuando el slug vino del subdominio
+    // (ej: "old.chamosbarber.com" → slug="old", pero también probar
+    // dominio_custom="old.chamosbarber.com" y "chamosbarber.com")
+    if (normalizedDomain) {
+      candidates.push({ col: 'dominio_custom', val: normalizedDomain })
+      candidates.push({ col: 'dominio_custom', val: `www.${normalizedDomain}` })
+      // Intentar dominio padre (ej: old.chamosbarber.com → chamosbarber.com)
+      const parts = normalizedDomain.split('.')
+      if (parts.length > 2) {
+        const parentDomain = parts.slice(1).join('.')
+        candidates.push({ col: 'dominio_custom', val: parentDomain })
+        candidates.push({ col: 'dominio_custom', val: `www.${parentDomain}` })
+      }
+    }
   } else if (normalizedDomain) {
     candidates.push({ col: 'dominio_custom', val: normalizedDomain })
     candidates.push({ col: 'dominio_custom', val: `www.${normalizedDomain}` })
