@@ -680,7 +680,7 @@ export const chamosSupabase = {
     }
   },
 
-  // Storage - Eliminar imagen de servicio (no crítico, timeout/red no bloquean)
+  // Storage - Eliminar imagen de servicio
   deleteServicioFoto: async (filePath: string) => {
     try {
       devLog('🗑️ [deleteServicioFoto] Eliminando archivo:', filePath)
@@ -697,688 +697,84 @@ export const chamosSupabase = {
       devLog('✅ [deleteServicioFoto] Archivo eliminado')
     } catch (error: any) {
       console.error('❌ [deleteServicioFoto] Error:', error)
-      // Errores no críticos: timeout, red, archivo no encontrado → solo warning
-      const msg = (error.message || error.error_description || '').toLowerCase()
-      if (msg.includes('not found') || msg.includes('timeout') || msg.includes('timed out') || msg.includes('network') || msg.includes('fetch')) {
-        devLog('⚠️ [deleteServicioFoto] Error no crítico (timeout/red/not found), continuando...')
+      // No lanzar error si el archivo no existe
+      if (error.message?.includes('not found')) {
+        devLog('⚠️ [deleteServicioFoto] Archivo no encontrado, continuando...')
         return
       }
       throw error
     }
   },
 
-  // Categorías de servicios
-  getCategorias: async () => {
-    const { data, error } = await supabase
-      .from('categorias_servicios')
-      .select('*')
-      .order('nombre')
-
-    if (error) throw error
-    return data
-  },
-
-  createCategoria: async (categoria: Database['public']['Tables']['categorias_servicios']['Insert']) => {
+  // Productos con stock bajo
+  getProductosConStockBajo: async () => {
     const { data, error } = await db
-      .from('categorias_servicios')
-      .insert([categoria])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateCategoria: async (id: string, updates: Database['public']['Tables']['categorias_servicios']['Update']) => {
-    const { data, error } = await db
-      .from('categorias_servicios')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteCategoria: async (id: string) => {
-    const { error } = await supabase
-      .from('categorias_servicios')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Productos
-  getProductos: async (activo?: boolean) => {
-    let query = supabase
       .from('productos')
       .select('*')
-
-    if (activo !== undefined) {
-      query = query.eq('activo', activo)
-    }
-
-    const { data, error } = await query.order('nombre')
-
+      .eq('activo', true)
+      .filter('stock_actual', 'lte', 'stock_minimo')
+      .order('stock_actual')
     if (error) throw error
-    return data
+    return data || []
   },
 
-  createProducto: async (producto: Database['public']['Tables']['productos']['Insert']) => {
-    const { data, error } = await db
-      .from('productos')
-      .insert([producto])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateProducto: async (id: string, updates: Database['public']['Tables']['productos']['Update']) => {
-    const { data, error } = await db
-      .from('productos')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteProducto: async (id: string) => {
-    const { error } = await supabase
-      .from('productos')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Inventario - Movimientos
-  getInventarioMovimientos: async (producto_id?: string, limit = 50) => {
-    let query = supabase
+  getMovimientosInventario: async (productoId?: string, limit: number = 50) => {
+    let query = db
       .from('inventario_movimientos')
-      .select(`
-        *,
-        productos (nombre, sku)
-      `)
+      .select('*, productos(nombre)')
       .order('created_at', { ascending: false })
       .limit(limit)
-
-    if (producto_id) {
-      query = query.eq('producto_id', producto_id)
-    }
-
+    if (productoId) query = query.eq('producto_id', productoId)
     const { data, error } = await query
-
     if (error) throw error
-    return data
+    return data || []
   },
 
-  createInventarioMovimiento: async (movimiento: Database['public']['Tables']['inventario_movimientos']['Insert']) => {
-    const { data, error } = await db
+  registrarMovimientoInventario: async (
+    productoId: string,
+    tipo: 'entrada' | 'salida' | 'ajuste',
+    cantidad: number,
+    motivo?: string,
+    referenciaId?: string,
+    createdBy?: string
+  ) => {
+    const { data: producto, error: fetchError } = await db
+      .from('productos')
+      .select('stock_actual')
+      .eq('id', productoId)
+      .single()
+
+    if (fetchError) throw fetchError
+
+    const stockAnterior = producto.stock_actual
+    let stockNuevo = stockAnterior
+
+    if (tipo === 'entrada') stockNuevo = stockAnterior + cantidad
+    else if (tipo === 'salida') stockNuevo = stockAnterior - cantidad
+    else stockNuevo = cantidad
+
+    const { error: movError } = await db
       .from('inventario_movimientos')
-      .insert([movimiento])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Ubicaciones
-  getUbicaciones: async (activo?: boolean) => {
-    let query = supabase
-      .from('ubicaciones_barberia')
-      .select('*')
-
-    if (activo !== undefined) {
-      query = query.eq('activo', activo)
-    }
-
-    const { data, error } = await query.order('nombre')
-
-    if (error) throw error
-    return data
-  },
-
-  createUbicacion: async (ubicacion: Database['public']['Tables']['ubicaciones_barberia']['Insert']) => {
-    const { data, error } = await db
-      .from('ubicaciones_barberia')
-      .insert([ubicacion])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateUbicacion: async (id: string, updates: Database['public']['Tables']['ubicaciones_barberia']['Update']) => {
-    const { data, error } = await db
-      .from('ubicaciones_barberia')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteUbicacion: async (id: string) => {
-    const { error } = await supabase
-      .from('ubicaciones_barberia')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Configuración del sitio
-  getSitioConfig: async () => {
-    const { data, error } = await supabase
-      .from('sitio_configuracion')
-      .select('*')
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateSitioConfig: async (updates: Database['public']['Tables']['sitio_configuracion']['Update']) => {
-    const { data, error } = await db
-      .from('sitio_configuracion')
-      .update(updates)
-      .eq('id', 1)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Enlaces sociales
-  getEnlacesSociales: async () => {
-    const { data, error } = await supabase
-      .from('enlaces_sociales')
-      .select('*')
-      .order('orden')
-
-    if (error) throw error
-    return data
-  },
-
-  updateEnlaceSocial: async (id: string, updates: Database['public']['Tables']['enlaces_sociales']['Update']) => {
-    const { data, error } = await db
-      .from('enlaces_sociales')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Solicitudes de barberos
-  getSolicitudes: async () => {
-    const { data, error } = await supabase
-      .from('solicitudes_barberos')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data
-  },
-
-  createSolicitud: async (solicitud: Database['public']['Tables']['solicitudes_barberos']['Insert']) => {
-    const { data, error } = await db
-      .from('solicitudes_barberos')
-      .insert([solicitud])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateSolicitud: async (id: string, updates: Database['public']['Tables']['solicitudes_barberos']['Update']) => {
-    const { data, error } = await db
-      .from('solicitudes_barberos')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Asistencias
-  getAsistencias: async (filters?: { barbero_id?: string, fecha?: string }) => {
-    let query = supabase
-      .from('asistencias')
-      .select(`
-        *,
-        barberos (nombre, apellido)
-      `)
-      .order('fecha', { ascending: false })
-
-    if (filters?.barbero_id) {
-      query = query.eq('barbero_id', filters.barbero_id)
-    }
-    if (filters?.fecha) {
-      query = query.eq('fecha', filters.fecha)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data
-  },
-
-  createAsistencia: async (asistencia: Database['public']['Tables']['asistencias']['Insert']) => {
-    const { data, error } = await db
-      .from('asistencias')
-      .insert([asistencia])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateAsistencia: async (id: string, updates: Database['public']['Tables']['asistencias']['Update']) => {
-    const { data, error } = await db
-      .from('asistencias')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Ventas / Caja
-  getCajaSesiones: async (filters?: { fecha?: string }) => {
-    let query = supabase
-      .from('caja_sesiones')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(1)
-
-    if (filters?.fecha) {
-      query = query.eq('fecha_apertura', filters.fecha)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data
-  },
-
-  createCajaSesion: async (sesion: any) => {
-    const { data, error } = await db
-      .from('caja_sesiones')
-      .insert([sesion])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateCajaSesion: async (id: string, updates: any) => {
-    const { data, error } = await db
-      .from('caja_sesiones')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  getMovimientosCaja: async (sesion_id: string) => {
-    const { data, error } = await db
-      .from('movimientos_caja')
-      .select('*')
-      .eq('sesion_id', sesion_id)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data
-  },
-
-  createMovimientoCaja: async (movimiento: any) => {
-    const { data, error } = await db
-      .from('movimientos_caja')
-      .insert([movimiento])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  getCierresCaja: async (filters?: { fecha?: string }) => {
-    let query = db
-      .from('cierres_caja')
-      .select('*')
-      .order('fecha_cierre', { ascending: false })
-
-    if (filters?.fecha) {
-      query = query.eq('fecha_cierre', filters.fecha)
-    }
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data
-  },
-
-  createCierreCaja: async (cierre: any) => {
-    const { data, error } = await db
-      .from('cierres_caja')
-      .insert([cierre])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Gastos
-  getGastos: async (filters?: { fecha_inicio?: string, fecha_fin?: string, categoria_id?: string }) => {
-    let query = supabase
-      .from('gastos')
-      .select(`
-        *,
-        gastos_categorias (nombre, color)
-      `)
-      .order('fecha_gasto', { ascending: false })
-
-    if (filters?.fecha_inicio) query = query.gte('fecha_gasto', filters.fecha_inicio)
-    if (filters?.fecha_fin) query = query.lte('fecha_gasto', filters.fecha_fin)
-    if (filters?.categoria_id) query = query.eq('categoria_id', filters.categoria_id)
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data
-  },
-
-  createGasto: async (gasto: Database['public']['Tables']['gastos']['Insert']) => {
-    const { data, error } = await db
-      .from('gastos')
-      .insert([gasto])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateGasto: async (id: string, updates: Database['public']['Tables']['gastos']['Update']) => {
-    const { data, error } = await db
-      .from('gastos')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteGasto: async (id: string) => {
-    const { error } = await supabase
-      .from('gastos')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Categorías de gastos
-  getGastosCategorias: async () => {
-    const { data, error } = await supabase
-      .from('gastos_categorias')
-      .select('*')
-      .order('nombre')
-
-    if (error) throw error
-    return data
-  },
-
-  createGastoCategoria: async (categoria: Database['public']['Tables']['gastos_categorias']['Insert']) => {
-    const { data, error } = await db
-      .from('gastos_categorias')
-      .insert([categoria])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateGastoCategoria: async (id: string, updates: Database['public']['Tables']['gastos_categorias']['Update']) => {
-    const { data, error } = await db
-      .from('gastos_categorias')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteGastoCategoria: async (id: string) => {
-    const { error } = await supabase
-      .from('gastos_categorias')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Liquidaciones
-  getLiquidaciones: async (filters?: { barbero_id?: string, fecha_inicio?: string, fecha_fin?: string }) => {
-    let query = supabase
-      .from('liquidaciones')
-      .select(`
-        *,
-        barberos (nombre, apellido)
-      `)
-      .order('fecha_inicio', { ascending: false })
-
-    if (filters?.barbero_id) query = query.eq('barbero_id', filters.barbero_id)
-    if (filters?.fecha_inicio) query = query.gte('fecha_inicio', filters.fecha_inicio)
-    if (filters?.fecha_fin) query = query.lte('fecha_fin', filters.fecha_fin)
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data
-  },
-
-  createLiquidacion: async (liquidacion: Database['public']['Tables']['liquidaciones']['Insert']) => {
-    const { data, error } = await db
-      .from('liquidaciones')
-      .insert([liquidacion])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  updateLiquidacion: async (id: string, updates: Database['public']['Tables']['liquidaciones']['Update']) => {
-    const { data, error } = await db
-      .from('liquidaciones')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteLiquidacion: async (id: string) => {
-    const { error } = await supabase
-      .from('liquidaciones')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Facturas
-  getFacturas: async (filters?: { fecha_inicio?: string, fecha_fin?: string, cita_id?: string }) => {
-    let query = supabase
-      .from('facturas')
-      .select(`
-        *,
-        citas!inner (
-          cliente_nombre, cliente_telefono, barbero_id,
-          barberos (nombre, apellido)
-        )
-      `)
-      .order('created_at', { ascending: false })
-
-    if (filters?.fecha_inicio) query = query.gte('created_at', filters.fecha_inicio)
-    if (filters?.fecha_fin) query = query.lte('created_at', filters.fecha_fin)
-    if (filters?.cita_id) query = query.eq('cita_id', filters.cita_id)
-
-    const { data, error } = await query
-
-    if (error) throw error
-    return data
-  },
-
-  createFactura: async (factura: any) => {
-    const { data, error } = await db
-      .from('facturas')
-      .insert([factura])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  getFacturaDetalle: async (factura_id: string) => {
-    const { data, error } = await db
-      .from('facturas_detalle')
-      .select(`
-        *,
-        servicios (nombre, precio)
-      `)
-      .eq('factura_id', factura_id)
-
-    if (error) throw error
-    return data
-  },
-
-  createFacturaDetalle: async (detalle: any) => {
-    const { data, error } = await db
-      .from('facturas_detalle')
-      .insert([detalle])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Claves diarias
-  getClaveDiaria: async (fecha?: string) => {
-    let query = db
-      .from('claves_diarias')
-      .select('*')
-
-    if (fecha) {
-      query = query.eq('fecha', fecha)
-    }
-
-    const { data, error } = await query
-      .order('fecha', { ascending: false })
-      .limit(1)
-
-    if (error) throw error
-    return data?.[0] || null
-  },
-
-  createClaveDiaria: async (clave: any) => {
-    const { data, error } = await db
-      .from('claves_diarias')
-      .insert([clave])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  // Notas de clientes
-  getNotasCliente: async (cliente_telefono: string) => {
-    const { data, error } = await supabase
-      .from('notas_clientes')
-      .select('*')
-      .eq('cliente_telefono', cliente_telefono)
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-    return data
-  },
-
-  createNotaCliente: async (nota: Database['public']['Tables']['notas_clientes']['Insert']) => {
-    const { data, error } = await db
-      .from('notas_clientes')
-      .insert([nota])
-      .select()
-      .single()
-
-    if (error) throw error
-    return data
-  },
-
-  deleteNotaCliente: async (id: string) => {
-    const { error } = await supabase
-      .from('notas_clientes')
-      .delete()
-      .eq('id', id)
-
-    if (error) throw error
-  },
-
-  // Comisiones / Roles
-  getRolesPermisos: async () => {
-    const { data, error } = await supabase
-      .from('roles_permisos')
-      .select('*')
-      .order('nombre')
-
-    if (error) throw error
-    return data
-  },
-
-  // Categorías de clientes
-  getClientesCategorias: async () => {
-    const { data, error } = await supabase
-      .from('clientes_categorias')
-      .select('*')
-      .order('nombre')
-
-    if (error) throw error
-    return data
-  },
+      .insert([{
+        producto_id: productoId,
+        tipo,
+        cantidad,
+        stock_anterior: stockAnterior,
+        stock_nuevo: stockNuevo,
+        motivo: motivo || null,
+        referencia_id: referenciaId || null,
+        created_by: createdBy || null,
+      }])
+
+    if (movError) throw movError
+
+    const { error: updateError } = await db
+      .from('productos')
+      .update({ stock_actual: stockNuevo })
+      .eq('id', productoId)
+
+    if (updateError) throw updateError
+
+    return { stockAnterior, stockNuevo }
+  }
 }
