@@ -499,7 +499,7 @@ export const chamosSupabase = {
       .order('orden')
 
     if (error) throw error
-    return data as PortfolioItem[]
+    return data
   },
 
   createPortfolioItem: async (item: Database['public']['Tables']['barbero_portfolio']['Insert']) => {
@@ -516,7 +516,7 @@ export const chamosSupabase = {
   updatePortfolioItem: async (id: string, updates: Database['public']['Tables']['barbero_portfolio']['Update']) => {
     const { data, error } = await db
       .from('barbero_portfolio')
-      .update(updates)
+      .update({ ...updates, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select()
       .single()
@@ -534,15 +534,159 @@ export const chamosSupabase = {
     if (error) throw error
   },
 
-  // Admin Users
+  // Usuarios admin
   getAdminUsers: async () => {
     const { data, error } = await supabase
       .from('admin_users')
-      .select('*')
+      .select('id, email, nombre, rol, activo, created_at')
       .order('nombre')
 
     if (error) throw error
-    return data as AdminUser[]
+    return data
+  },
+
+  getAdminUser: async (email: string) => {
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('*')
+      .eq('email', email)
+      .eq('activo', true)
+      .single()
+
+    if (error) throw error
+    return data as AdminUser
+  },
+
+  createAdminUser: async (user: Database['public']['Tables']['admin_users']['Insert']) => {
+    const { data, error } = await db
+      .from('admin_users')
+      .insert([user])
+      .select('id, email, nombre, rol, activo, created_at')
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  updateAdminUser: async (id: string, updates: Database['public']['Tables']['admin_users']['Update']) => {
+    const { data, error } = await db
+      .from('admin_users')
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', id)
+      .select('id, email, nombre, rol, activo, created_at')
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  deleteAdminUser: async (id: string) => {
+    const { error } = await supabase
+      .from('admin_users')
+      .delete()
+      .eq('id', id)
+
+    if (error) throw error
+  },
+
+  // Configuración del sitio (Multitenant Aware)
+  getConfiguracion: async (clave?: string) => {
+    if (clave) {
+      const { data, error } = await supabase
+        .from('sitio_configuracion')
+        .select('*')
+        .eq('clave', clave)
+        .single()
+      if (error) throw error
+      return data
+    }
+
+    const { data, error } = await supabase
+      .from('sitio_configuracion')
+      .select('*')
+      .order('clave')
+
+    if (error) throw error
+    return data
+  },
+
+  updateConfiguracion: async (clave: string, valor: string) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuario no autenticado')
+
+    const { data: adminUser } = await db
+      .from('admin_users')
+      .select('comercio_id')
+      .eq('id', user.id)
+      .single()
+
+    const comercio_id = adminUser?.comercio_id
+
+    const { data, error } = await db
+      .from('sitio_configuracion')
+      .upsert({ clave, valor, comercio_id, updated_at: new Date().toISOString() }, {
+        onConflict: 'clave,comercio_id'
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Gestión de Horario General (Configuración de puntualidad)
+  getHorarioGeneral: async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuario no autenticado')
+
+    const { data: adminUser } = await db
+      .from('admin_users')
+      .select('comercio_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!adminUser?.comercio_id) throw new Error('Comercio no asociado al usuario')
+
+    const { data, error } = await db
+      .from('configuracion_horarios')
+      .select('*')
+      .eq('comercio_id', adminUser.comercio_id)
+      .eq('activa', true)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  },
+
+  updateHorarioGeneral: async (updates: { hora_entrada_puntual: string, hora_salida_minima?: string }) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) throw new Error('Usuario no autenticado')
+
+    const { data: adminUser } = await db
+      .from('admin_users')
+      .select('comercio_id')
+      .eq('id', user.id)
+      .single()
+
+    if (!adminUser?.comercio_id) throw new Error('Comercio no asociado al usuario')
+
+    const { data, error } = await db
+      .from('configuracion_horarios')
+      .upsert({
+        nombre: 'Horario General',
+        comercio_id: adminUser.comercio_id,
+        hora_entrada_puntual: updates.hora_entrada_puntual,
+        hora_salida_minima: updates.hora_salida_minima,
+        activa: true,
+        updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'nombre,comercio_id'
+      })
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
   },
 
   // Storage - Subir imagen de barbero
@@ -572,7 +716,7 @@ export const chamosSupabase = {
         .from('barberos-fotos')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         })
 
       if (error) {
@@ -599,7 +743,7 @@ export const chamosSupabase = {
     }
   },
 
-  // Storage - Eliminar imagen de barbero (no crítico, timeout/red no bloquean)
+  // Storage - Eliminar imagen de barbero
   deleteBarberoFoto: async (filePath: string) => {
     try {
       devLog('🗑️ [deleteBarberoFoto] Eliminando archivo:', filePath)
@@ -616,7 +760,7 @@ export const chamosSupabase = {
       devLog('✅ [deleteBarberoFoto] Archivo eliminado')
     } catch (error: any) {
       console.error('❌ [deleteBarberoFoto] Error:', error)
-      // Errores no críticos: timeout, red, archivo no encontrado → solo warning
+      // No lanzar error si el archivo no existe o es timeout/red
       const msg = (error.message || error.error_description || '').toLowerCase()
       if (msg.includes('not found') || msg.includes('timeout') || msg.includes('timed out') || msg.includes('network') || msg.includes('fetch')) {
         devLog('⚠️ [deleteBarberoFoto] Error no crítico (timeout/red/not found), continuando...')
@@ -650,10 +794,10 @@ export const chamosSupabase = {
 
       // Subir archivo a Supabase Storage
       const { data, error } = await supabase.storage
-        .from('barberos-fotos')
+        .from('servicios-fotos')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: true
+          upsert: false
         })
 
       if (error) {
@@ -665,7 +809,7 @@ export const chamosSupabase = {
 
       // Obtener URL pública
       const { data: urlData } = supabase.storage
-        .from('barberos-fotos')
+        .from('servicios-fotos')
         .getPublicUrl(data.path)
 
       devLog('🔗 [uploadServicioFoto] URL pública:', urlData.publicUrl)
@@ -686,7 +830,7 @@ export const chamosSupabase = {
       devLog('🗑️ [deleteServicioFoto] Eliminando archivo:', filePath)
 
       const { error } = await supabase.storage
-        .from('barberos-fotos')
+        .from('servicios-fotos')
         .remove([filePath])
 
       if (error) {
@@ -706,7 +850,253 @@ export const chamosSupabase = {
     }
   },
 
-  // Productos con stock bajo
+  // Storage - Subir imagen de producto
+  uploadProductoFoto: async (file: File, productoId: string) => {
+    try {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, WEBP, GIF)')
+      }
+
+      const maxSize = 5 * 1024 * 1024
+      if (file.size > maxSize) {
+        throw new Error('La imagen es muy grande. Tamaño máximo: 5MB')
+      }
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${productoId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      devLog('📤 [uploadProductoFoto] Subiendo archivo:', fileName)
+
+      const { data, error } = await supabase.storage
+        .from('productos-fotos')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) {
+        console.error('❌ [uploadProductoFoto] Error subiendo:', error)
+        throw error
+      }
+
+      devLog('✅ [uploadProductoFoto] Archivo subido:', data.path)
+
+      const { data: urlData } = supabase.storage
+        .from('productos-fotos')
+        .getPublicUrl(data.path)
+
+      devLog('🔗 [uploadProductoFoto] URL pública:', urlData.publicUrl)
+
+      return {
+        path: data.path,
+        publicUrl: urlData.publicUrl
+      }
+    } catch (error: any) {
+      console.error('❌ [uploadProductoFoto] Error:', error)
+      throw error
+    }
+  },
+
+  // Storage - Eliminar imagen de producto
+  deleteProductoFoto: async (filePath: string) => {
+    try {
+      devLog('🗑️ [deleteProductoFoto] Eliminando archivo:', filePath)
+
+      const { error } = await supabase.storage
+        .from('productos-fotos')
+        .remove([filePath])
+
+      if (error) {
+        console.error('❌ [deleteProductoFoto] Error eliminando:', error)
+        throw error
+      }
+
+      devLog('✅ [deleteProductoFoto] Archivo eliminado')
+    } catch (error: any) {
+      console.error('❌ [deleteProductoFoto] Error:', error)
+      if (error.message?.includes('not found')) {
+        devLog('⚠️ [deleteProductoFoto] Archivo no encontrado, continuando...')
+        return
+      }
+      throw error
+    }
+  },
+
+  // Storage - Subir foto de resultado de corte
+  uploadCorteFoto: async (file: File, citaId: string) => {
+    try {
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+      if (!validTypes.includes(file.type)) {
+        throw new Error('Solo se permiten imágenes (JPG, PNG, WEBP)')
+      }
+
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${citaId}-${Date.now()}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { data, error } = await supabase.storage
+        .from('cortes')
+        .upload(filePath, file)
+
+      if (error) throw error
+
+      const { data: urlData } = supabase.storage
+        .from('cortes')
+        .getPublicUrl(data.path)
+
+      return {
+        path: data.path,
+        publicUrl: urlData.publicUrl
+      }
+    } catch (error: any) {
+      console.error('❌ [uploadCorteFoto] Error:', error)
+      throw error
+    }
+  },
+
+  // Cierres de Caja
+  getCierresCaja: async (limit: number = 30) => {
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .select('*')
+      .order('fecha_inicio', { ascending: false })
+      .limit(limit)
+
+    if (error) throw error
+    return data
+  },
+
+  getCierreCajaPorRango: async (fechaInicio: string, fechaFin: string) => {
+    const { data, error } = await supabase
+      .from('cierres_caja')
+      .select('*')
+      .eq('fecha_inicio', fechaInicio)
+      .eq('fecha_fin', fechaFin)
+      .maybeSingle()
+
+    if (error) throw error
+    return data
+  },
+
+  crearCierreCaja: async (cierre: any) => {
+    const { data, error } = await db
+      .from('cierres_caja')
+      .insert([cierre])
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  updateCierreCaja: async (id: string, updates: any) => {
+    const { data, error } = await db
+      .from('cierres_caja')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Extensiones para POS y Cierre de Caja
+  getCitasHoyPendientes: async () => {
+    const hoy = new Intl.DateTimeFormat('es-CL', {
+      timeZone: 'America/Santiago',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date()).filter(p => p.type !== 'literal').reduce((acc, p) => ({ ...acc, [p.type]: p.value }), {} as any);
+
+    const hoyStr = `${hoy.year}-${hoy.month}-${hoy.day}`;
+
+    const { data, error } = await supabase
+      .from('citas')
+      .select(`
+        *,
+        barberos (nombre, apellido),
+        servicios (nombre, precio, duracion_minutos)
+      `)
+      .eq('fecha', hoyStr)
+      .eq('estado_pago', 'pendiente')
+      .in('estado', ['confirmada', 'completada'])
+      .order('hora')
+
+    if (error) throw error
+    return data || []
+  },
+
+  getFacturasSinCierre: async (fechaInicio: string, fechaFin: string) => {
+    const { data, error } = await supabase
+      .from('facturas')
+      .select('*')
+      .gte('created_at', `${fechaInicio}T00:00:00`)
+      .lte('created_at', `${fechaFin}T23:59:59`)
+      .is('cierre_caja_id', null)
+      .eq('anulada', false)
+
+    if (error) throw error
+    return data || []
+  },
+
+  vincularFacturasACierre: async (facturaIds: string[], cierreCajaId: string) => {
+    const { data, error } = await db
+      .from('facturas')
+      .update({ cierre_caja_id: cierreCajaId })
+      .in('id', facturaIds)
+      .select()
+
+    if (error) throw error
+    return data
+  },
+
+  // =====================================================
+  // INVENTARIO - Productos y Movimientos
+  // =====================================================
+
+  getProductos: async (soloActivos: boolean = true) => {
+    let query = supabase.from('productos').select('*').order('nombre')
+    if (soloActivos) query = query.eq('activo', true)
+    const { data, error } = await query
+    if (error) throw error
+    return data || []
+  },
+
+  getProducto: async (id: string) => {
+    const { data, error } = await supabase
+      .from('productos')
+      .select('*')
+      .eq('id', id)
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  createProducto: async (producto: any) => {
+    const { data, error } = await db
+      .from('productos')
+      .insert([producto])
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
+  updateProducto: async (id: string, updates: any) => {
+    const { data, error } = await db
+      .from('productos')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+    if (error) throw error
+    return data
+  },
+
   getProductosConStockBajo: async () => {
     const { data, error } = await db
       .from('productos')
