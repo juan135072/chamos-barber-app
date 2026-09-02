@@ -1,11 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { ACCESS_COOKIE } from '@/lib/supabase-server'
+import { ACCESS_COOKIE, REFRESH_COOKIE } from '@/lib/supabase-server'
 import { serialize as serializeCookie } from 'cookie'
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') return res.status(405).end()
 
-    const { accessToken } = req.body ?? {}
+    const { accessToken, refreshToken } = req.body ?? {}
     if (!accessToken || typeof accessToken !== 'string') {
         return res.status(400).json({ error: 'accessToken required' })
     }
@@ -14,13 +14,29 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         return res.status(400).json({ error: 'Invalid token format' })
     }
 
-    const cookie = serializeCookie(ACCESS_COOKIE, accessToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 15,
-    })
-    res.setHeader('Set-Cookie', cookie)
+    const cookies = [
+        serializeCookie(ACCESS_COOKIE, accessToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            maxAge: 60 * 15,
+        }),
+    ]
+
+    // Store refresh token if provided (7-day expiry)
+    if (refreshToken && typeof refreshToken === 'string') {
+        cookies.push(
+            serializeCookie(REFRESH_COOKIE, refreshToken, {
+                httpOnly: true,
+                secure: process.env.NODE_ENV === 'production',
+                sameSite: 'lax',
+                path: '/',
+                maxAge: 60 * 60 * 24 * 7,
+            })
+        )
+    }
+
+    res.setHeader('Set-Cookie', cookies)
     return res.status(200).json({ ok: true })
 }

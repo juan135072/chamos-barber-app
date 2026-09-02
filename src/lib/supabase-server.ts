@@ -59,7 +59,7 @@ function setCookies(
  */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
-function makeSupabaseShape(client: InsForgeClient, res?: NextApiResponse): any {
+function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: NextApiResponse): any {
     return {
         from: (table: string) => client.database.from(table),
         rpc: (fn: string, args?: Record<string, unknown>, options?: any) =>
@@ -87,6 +87,43 @@ function makeSupabaseShape(client: InsForgeClient, res?: NextApiResponse): any {
                 // so routes get 401 and the stale cookie is cleared automatically.
                 const user = raw && UUID_RE.test(raw.id) ? raw : null
                 if (raw && !user && res) clearAuthCookies(res)
+
+                // Token expired — try to refresh using the refresh token cookie
+                if (!user && !raw && res && req) {
+                    const refreshToken = readCookie(req, REFRESH_COOKIE)
+                    if (refreshToken) {
+                        try {
+                            const refreshResult = await client.auth.refreshSession({ refreshToken } as any)
+                            const newToken = (refreshResult as any)?.accessToken
+                            if (newToken) {
+                                setAuthCookies(res, newToken, refreshToken)
+                                // Retry getCurrentUser with the new token
+                                const retry = await client.auth.getCurrentUser()
+                                const retryRaw = (retry?.data?.user as any) ?? null
+                                const retryUser = retryRaw && UUID_RE.test(retryRaw.id) ? retryRaw : null
+                                if (retryUser) {
+                                    return {
+                                        data: {
+                                            session: {
+                                                user: retryUser,
+                                                access_token: newToken,
+                                                refresh_token: refreshToken,
+                                                expires_at: 0,
+                                                expires_in: 0,
+                                                token_type: 'bearer',
+                                            },
+                                        },
+                                        error: null,
+                                    }
+                                }
+                            }
+                        } catch {
+                            // Refresh failed — clear cookies
+                            clearAuthCookies(res)
+                        }
+                    }
+                }
+
                 const session = user
                     ? {
                         user,
@@ -145,7 +182,7 @@ export function createPagesServerClient(req: NextApiRequest, res: NextApiRespons
         isServerMode: true,
         edgeFunctionToken: accessToken,
     } as Parameters<typeof createInsforgeClient>[0])
-    return makeSupabaseShape(client, res)
+    return makeSupabaseShape(client, req, res)
 }
 
 /**

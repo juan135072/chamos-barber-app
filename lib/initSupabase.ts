@@ -54,12 +54,13 @@ let _lastPersistedToken: string | null = null
 function maybeSetSessionCookie() {
     if (typeof window === 'undefined') return
     const token = (_client as any).tokenManager?.getAccessToken?.()
+    const refreshToken = (_client as any).tokenManager?.getRefreshToken?.()
     if (token && token !== _lastPersistedToken) {
         _lastPersistedToken = token
         fetch('/api/auth/set-session', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ accessToken: token }),
+            body: JSON.stringify({ accessToken: token, refreshToken: refreshToken || '' }),
         }).catch(() => {})
     }
 }
