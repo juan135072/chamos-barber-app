@@ -704,50 +704,56 @@ export const chamosSupabase = {
         throw new Error('La imagen es muy grande. Tamaño máximo: 5MB')
       }
 
-      // Generar nombre único para el archivo
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${barberoId}-${Date.now()}.${fileExt}`
-      const filePath = `${fileName}`
+      devLog('📤 [uploadBarberoFoto] Subiendo archivo vía proxy:', file.name)
 
-      devLog('📤 [uploadBarberoFoto] Subiendo archivo:', fileName)
+      // Convertir a base64 para enviar por el proxy (evita Cloudflare)
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          // Strip the data:...;base64, prefix
+          const comma = result.indexOf(',')
+          resolve(comma >= 0 ? result.slice(comma + 1) : result)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
 
-      // Subir archivo a Supabase Storage con timeout de 15s
+      // Usar proxy server-side para evitar Cloudflare cutoff
       const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), 15000)
+      const timeoutId = setTimeout(() => controller.abort(), 30000)
 
-      const { data, error } = await supabase.storage
-        .from('barberos-fotos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-          signal: controller.signal,
-        } as any)
+      const response = await fetch('/api/upload/barbero-foto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barberoId,
+          fileName: file.name,
+          base64,
+          contentType: file.type,
+        }),
+        signal: controller.signal,
+      })
 
       clearTimeout(timeoutId)
 
-      if (error) {
-        console.error('❌ [uploadBarberoFoto] Error subiendo:', error)
-        throw error
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Error de conexión' }))
+        throw new Error(err.error || 'Error al subir imagen')
       }
 
-      devLog('✅ [uploadBarberoFoto] Archivo subido:', data.path)
-
-      // Obtener URL pública
-      const { data: urlData } = supabase.storage
-        .from('barberos-fotos')
-        .getPublicUrl(data.path)
-
-      devLog('🔗 [uploadBarberoFoto] URL pública:', urlData.publicUrl)
+      const result = await response.json()
+      devLog('✅ [uploadBarberoFoto] Archivo subido:', result.path)
 
       return {
-        path: data.path,
-        publicUrl: urlData.publicUrl
+        path: result.path,
+        publicUrl: result.publicUrl,
       }
     } catch (error: any) {
       console.error('❌ [uploadBarberoFoto] Error:', error)
       // Timeout da mensaje claro
       if (error?.name === 'AbortError' || error?.message?.includes('abort') || error?.message?.includes('timeout') || error?.message?.includes('timed out')) {
-        throw new Error('La conexión con el servidor de imágenes tardó demasiado. Intentá de nuevo o usá una imagen más pequeña.')
+        throw new Error('La conexión con el servidor tardó demasiado. Intentá de nuevo o usá una imagen más pequeña.')
       }
       throw error
     }
