@@ -34,7 +34,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     fs.writeFileSync(filePath, buffer)
 
-    const publicUrl = `${BASE_URL}/uploads/barberos/${finalName}`
+    const publicUrl = `${BASE_URL}/api/upload/barbero-foto/${finalName}`
 
     console.log('✅ [upload-barbero] Archivo guardado:', finalName)
     return res.status(200).json({
