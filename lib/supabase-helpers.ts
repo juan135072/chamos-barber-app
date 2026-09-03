@@ -692,50 +692,48 @@ export const chamosSupabase = {
   // Storage - Subir imagen de barbero
   uploadBarberoFoto: async (file: File, barberoId: string) => {
     try {
-      // Validar tipo de archivo
       const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
       if (!validTypes.includes(file.type)) {
         throw new Error('Tipo de archivo no válido. Solo se permiten imágenes (JPG, PNG, WEBP, GIF)')
       }
 
-      // Validar tamaño (5MB máximo)
       const maxSize = 5 * 1024 * 1024 // 5MB
       if (file.size > maxSize) {
         throw new Error('La imagen es muy grande. Tamaño máximo: 5MB')
       }
 
-      // Generar nombre único para el archivo
-      const fileExt = file.name.split('.').pop()
-      const fileName = `${barberoId}-${Date.now()}.${fileExt}`
-      const filePath = `${fileName}`
+      devLog('📤 [uploadBarberoFoto] Subiendo archivo:', file.name)
 
-      devLog('📤 [uploadBarberoFoto] Subiendo archivo:', fileName)
+      // Convertir a base64 para enviar por API route
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const result = reader.result as string
+          const comma = result.indexOf(',')
+          resolve(comma >= 0 ? result.slice(comma + 1) : result)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(file)
+      })
 
-      // Subir archivo a InsForge Storage
-      const { data, error } = await supabase.storage
-        .from('barberos-fotos')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: true,
-        })
+      const response = await fetch('/api/upload/barbero-foto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ barberoId, fileName: file.name, base64, contentType: file.type }),
+        signal: AbortSignal.timeout(30000),
+      })
 
-      if (error) {
-        console.error('❌ [uploadBarberoFoto] Error subiendo:', error)
-        throw error
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Error de conexión' }))
+        throw new Error(err.error || 'Error al subir imagen')
       }
 
-      devLog('✅ [uploadBarberoFoto] Archivo subido:', data.path)
-
-      // Obtener URL pública
-      const { data: urlData } = supabase.storage
-        .from('barberos-fotos')
-        .getPublicUrl(data.path)
-
-      devLog('🔗 [uploadBarberoFoto] URL pública:', urlData.publicUrl)
+      const result = await response.json()
+      devLog('✅ [uploadBarberoFoto] Archivo subido:', result.path)
 
       return {
-        path: data.path,
-        publicUrl: urlData.publicUrl
+        path: result.path,
+        publicUrl: result.publicUrl,
       }
     } catch (error: any) {
       console.error('❌ [uploadBarberoFoto] Error:', error)
