@@ -9,7 +9,7 @@ import fs from 'fs'
 import path from 'path'
 
 const UPLOAD_DIR = path.resolve(process.cwd(), 'public/uploads/barberos')
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://old.chamosbarber.com'
+const BASE_URL = process.env.COOLIFY_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://old.chamosbarber.com'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
