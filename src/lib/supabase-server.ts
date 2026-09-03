@@ -25,7 +25,7 @@ import { parse as parseCookie, serialize as serializeCookie } from 'cookie'
 export const ACCESS_COOKIE = 'insforge_access_token'
 export const REFRESH_COOKIE = 'insforge_refresh_token'
 
-const BASE_URL = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
+const BASE_URL = process.env.INSFORGE_INTERNAL_URL || process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
 const ANON_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY
 const API_KEY = process.env.INSFORGE_API_KEY
 

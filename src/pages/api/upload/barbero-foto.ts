@@ -1,11 +1,14 @@
 /**
  * API route to proxy file uploads to InsForge Storage.
  * Avoids Cloudflare connection issues when uploading directly from the browser.
+ * Uses raw HTTP to the InsForge storage API (bypasses SDK storage adapter).
  * POST /api/upload/barbero-foto
  * Body: { barberoId: string, fileName: string, base64: string, contentType: string }
  */
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient } from '@/lib/supabase-server'
+
+const INSFOEGE_URL = process.env.INSFORGE_INTERNAL_URL || process.env.NEXT_PUBLIC_INSFORGE_BASE_URL || 'https://insforge.chamosbarber.com'
+const API_KEY = process.env.INSFORGE_API_KEY
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -23,34 +26,45 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const buffer = Buffer.from(base64, 'base64')
     const ext = fileName?.split('.').pop() || 'jpg'
     const finalName = `${barberoId}-${Date.now()}.${ext}`
-    const blob = new Blob([buffer], { type: contentType || 'image/jpeg' })
 
-    // Upload to InsForge using admin client (server-to-server, no Cloudflare browser limits)
-    const supabase = createPagesAdminClient()
-    const { data, error } = await supabase.storage
-      .from('barberos-fotos')
-      .uploadAuto(finalName, blob, {
-        cacheControl: '3600',
-        upsert: true,
-      })
-
-    if (error) {
-      console.error('❌ [upload-proxy] Error:', error)
-      return res.status(500).json({ error: error.message })
+    if (!API_KEY) {
+      return res.status(500).json({ error: 'INSFORGE_API_KEY not configured' })
     }
 
-    // Get public URL
-    const { data: urlData } = supabase.storage
-      .from('barberos-fotos')
-      .getPublicUrl(data.path)
+    // Upload directly to InsForge storage API using admin API key
+    const storageUrl = `${INSFOEGE_URL}/api/storage/buckets/barberos-fotos/files/${finalName}`
+    
+    const uploadRes = await fetch(storageUrl, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${API_KEY}`,
+        'Content-Type': contentType || 'image/jpeg',
+        'x-amz-acl': 'public-read',
+      },
+      body: buffer,
+      signal: AbortSignal.timeout(30000),
+    })
 
+    if (!uploadRes.ok) {
+      const errText = await uploadRes.text().catch(() => 'unknown error')
+      console.error('❌ [upload-proxy] Storage error:', uploadRes.status, errText.substring(0, 200))
+      return res.status(500).json({ error: `Upload failed: ${uploadRes.status} ${errText.substring(0, 100)}` })
+    }
+
+    // Construct public URL
+    const publicUrl = `${INSFOEGE_URL}/api/storage/buckets/barberos-fotos/files/${finalName}`
+
+    console.log('✅ [upload-proxy] Archivo subido:', finalName)
     return res.status(200).json({
-      path: data.path,
-      publicUrl: urlData.publicUrl,
+      path: finalName,
+      publicUrl,
     })
 
   } catch (error: any) {
     console.error('❌ [upload-proxy] Error:', error?.message ?? error)
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+      return res.status(504).json({ error: 'La conexión con el servidor de imágenes tardó demasiado. Intentá de nuevo o usá una imagen más pequeña.' })
+    }
     return res.status(500).json({ error: error?.message ?? 'Error interno' })
   }
 }
