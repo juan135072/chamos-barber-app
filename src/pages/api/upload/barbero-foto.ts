@@ -29,10 +29,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const supabase = createPagesAdminClient()
     const { data, error } = await supabase.storage
       .from('barberos-fotos')
-      .upload(finalName, blob, {
+      .uploadAuto(finalName, blob, {
         cacheControl: '3600',
         upsert: true,
-        contentType: contentType || 'image/jpeg',
       })
 
     if (error) {
