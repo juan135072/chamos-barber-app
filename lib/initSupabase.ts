@@ -37,13 +37,10 @@ if (!BASE_URL || !ANON_KEY) {
 const _client: InsForgeClient = createInsforgeClient({
     baseUrl: BASE_URL,
     anonKey: ANON_KEY,
-    // Disable the SDK's built-in auto refresh. The SDK only ever has tokens
-    // immediately after signInWithPassword in the current tab; on any reload
-    // it starts empty and the cookie-based session (set by our Next.js API
-    // routes) is the source of truth. With autoRefreshToken=true the SDK
-    // would respond to every 401 by hitting /api/auth/refresh with an empty
-    // body and adding a noisy 401 to the console.
-    autoRefreshToken: false,
+    // Enable auto-refresh so the SDK can mint new tokens when the current
+        // one expires. The SDK's internal refreshSession handles the token
+        // exchange using the httpOnly refresh cookie stored on the InsForge domain.
+        autoRefreshToken: true,
 } as any)
 
 // After any auth operation that produces a new token, persist it as an

@@ -72,12 +72,21 @@ export function useSession(): any | null | undefined {
 
     useEffect(() => {
         let cancelled = false
-        supabase.auth.getSession().then(({ data }: any) => {
+        const check = () => supabase.auth.getSession().then(({ data }: any) => {
             if (cancelled) return
             setSession(data?.session ?? null)
         })
+        check()
+
+        // Refresh on tab regain so auth state doesn't go stale forever.
+        const onVis = () => {
+            if (document.visibilityState !== 'visible') return
+            check()
+        }
+        document.addEventListener('visibilitychange', onVis)
         return () => {
             cancelled = true
+            document.removeEventListener('visibilitychange', onVis)
         }
     }, [])
 
