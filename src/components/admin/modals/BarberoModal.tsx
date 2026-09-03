@@ -586,7 +586,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                     className="w-24 h-24 rounded-full object-cover"
                     style={{ border: '2px solid var(--accent-color)' }}
                   />
-                  {imagePreview && (
+                  {imagePreview ? (
                     <button
                       type="button"
                       onClick={removeImage}
@@ -600,7 +600,34 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                       <i className="fas fa-times mr-2"></i>
                       Quitar imagen
                     </button>
-                  )}
+                  ) : isEdit && barbero?.imagen_url ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        const oldPath = barbero.imagen_url!.split('/').pop()
+                        if (oldPath) {
+                          try {
+                            await chamosSupabase.deleteBarberoFoto(oldPath)
+                            await chamosSupabase.updateBarbero(barbero.id, { imagen_url: null })
+                            barbero.imagen_url = null
+                            toast.success('Foto eliminada')
+                            onSuccess()
+                          } catch (err) {
+                            toast.error('Error al eliminar la foto')
+                          }
+                        }
+                      }}
+                      className="px-3 py-1 text-sm rounded-md"
+                      style={{ 
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: '#ef4444',
+                        border: '1px solid #ef4444'
+                      }}
+                    >
+                      <i className="fas fa-trash mr-2"></i>
+                      Eliminar foto actual
+                    </button>
+                  ) : null}
                 </div>
               )}
 
