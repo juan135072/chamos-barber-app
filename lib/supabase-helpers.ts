@@ -711,13 +711,19 @@ export const chamosSupabase = {
 
       devLog('📤 [uploadBarberoFoto] Subiendo archivo:', fileName)
 
-      // Subir archivo a Supabase Storage
+      // Subir archivo a Supabase Storage con timeout de 15s
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 15000)
+
       const { data, error } = await supabase.storage
         .from('barberos-fotos')
         .upload(filePath, file, {
           cacheControl: '3600',
-          upsert: false
-        })
+          upsert: true,
+          signal: controller.signal,
+        } as any)
+
+      clearTimeout(timeoutId)
 
       if (error) {
         console.error('❌ [uploadBarberoFoto] Error subiendo:', error)
@@ -739,6 +745,10 @@ export const chamosSupabase = {
       }
     } catch (error: any) {
       console.error('❌ [uploadBarberoFoto] Error:', error)
+      // Timeout da mensaje claro
+      if (error?.name === 'AbortError' || error?.message?.includes('abort') || error?.message?.includes('timeout') || error?.message?.includes('timed out')) {
+        throw new Error('La conexión con el servidor de imágenes tardó demasiado. Intentá de nuevo o usá una imagen más pequeña.')
+      }
       throw error
     }
   },
