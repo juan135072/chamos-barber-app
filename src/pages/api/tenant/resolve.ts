@@ -1,9 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { Pool } from 'pg'
 
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || process.env.DATABASE_URL_DIRECT,
-})
+const PGREST_URL = process.env.PGREST_URL || 'https://api-insforge.chamosbarber.com'
+const ANON_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -20,16 +18,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'slug inválido' })
   }
 
-  // Normalize domain
   const normalizedDomain = domain
     ? (domain as string).replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
     : null
 
-  const COLS = `id, nombre, slug, dominio_custom,
-    logo_url, favicon_url,
-    color_primario, color_secundario, color_fondo,
-    descripcion, telefono, email_contacto, direccion,
-    pais, moneda, timezone, activo`
+  const COLS = 'id,nombre,slug,dominio_custom,logo_url,favicon_url,color_primario,color_secundario,color_fondo,descripcion,telefono,email_contacto,direccion,pais,moneda,timezone,activo'
 
   // Build candidates
   const candidates: Array<{ col: string; val: string }> = []
@@ -53,19 +46,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   let lastError: any = null
   for (const { col, val } of candidates) {
     try {
-      const result = await pool.query(
-        `SELECT ${COLS} FROM comercios WHERE ${col} = $1 LIMIT 1`,
-        [val]
-      )
-      const data = result.rows[0] || null
+      const url = `${PGREST_URL}/comercios?${col}=eq.${encodeURIComponent(val)}&select=${COLS}&limit=1`
+      const response = await fetch(url, {
+        headers: { 'apikey': ANON_KEY || '' },
+        signal: AbortSignal.timeout(10000),
+      })
+
+      if (!response.ok) {
+        const text = await response.text()
+        lastError = { message: `HTTP ${response.status}: ${text.substring(0, 100)}` }
+        continue
+      }
+
+      const rows = await response.json()
+      const data = rows?.[0] || null
       if (!data) continue
+
       if (!data.activo) {
         return res.status(403).json({ error: 'Comercio suspendido' })
       }
+
       res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
       return res.status(200).json(data)
     } catch (err: any) {
-      console.error('[tenant/resolve] backend error for', col, '=', val, err?.message ?? err)
+      console.error('[tenant/resolve] error for', col, '=', val, err?.message ?? err)
       lastError = err
     }
   }
