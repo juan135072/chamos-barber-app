@@ -23,12 +23,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const buffer = Buffer.from(base64, 'base64')
     const ext = fileName?.split('.').pop() || 'jpg'
     const finalName = `${barberoId}-${Date.now()}.${ext}`
+    const blob = new Blob([buffer], { type: contentType || 'image/jpeg' })
 
     // Upload to InsForge using admin client (server-to-server, no Cloudflare browser limits)
     const supabase = createPagesAdminClient()
     const { data, error } = await supabase.storage
       .from('barberos-fotos')
-      .upload(finalName, buffer, {
+      .upload(finalName, blob, {
         cacheControl: '3600',
         upsert: true,
         contentType: contentType || 'image/jpeg',

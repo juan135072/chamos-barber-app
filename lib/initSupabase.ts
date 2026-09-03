@@ -37,10 +37,11 @@ if (!BASE_URL || !ANON_KEY) {
 const _client: InsForgeClient = createInsforgeClient({
     baseUrl: BASE_URL,
     anonKey: ANON_KEY,
-    // Enable auto-refresh so the SDK can mint new tokens when the current
-        // one expires. The SDK's internal refreshSession handles the token
-        // exchange using the httpOnly refresh cookie stored on the InsForge domain.
-        autoRefreshToken: true,
+    // Disable the SDK's built-in auto refresh. Token refresh is handled
+        // by the server-side createPagesServerClient's getSession() using the
+        // refresh token cookie. With autoRefreshToken=true the SDK tries to
+        // call /api/auth/refresh on the InsForge domain which returns 401.
+        autoRefreshToken: false,
 } as any)
 
 // After any auth operation that produces a new token, persist it as an
