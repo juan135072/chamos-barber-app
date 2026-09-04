@@ -716,10 +716,10 @@ export const chamosSupabase = {
         reader.readAsDataURL(file)
       })
 
-      const response = await fetch('/api/upload/barbero-foto', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ barberoId, fileName: file.name, base64, contentType: file.type }),
+        body: JSON.stringify({ entityType: 'barbero', entityId: barberoId, fileName: file.name, base64, contentType: file.type }),
         signal: AbortSignal.timeout(30000),
       })
 
@@ -746,25 +746,34 @@ export const chamosSupabase = {
     try {
       devLog('🗑️ [deleteBarberoFoto] Eliminando archivo:', filePath)
 
-      const { error } = await supabase.storage
-        .from('barberos-fotos')
-        .remove([filePath])
+      // Extract the filename from the URL/path
+      const parts = filePath.split('/')
+      const fileName = parts[parts.length - 1]
 
-      if (error) {
-        console.error('❌ [deleteBarberoFoto] Error eliminando:', error)
-        throw error
+      // Delete from local filesystem via API route (the photo is stored locally now)
+      const response = await fetch('/api/upload/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ entityType: 'barbero', fileName }),
+        signal: AbortSignal.timeout(15000),
+      })
+
+      // Non-critical: even if deletion fails, don't block the barbero update
+      if (!response.ok) {
+        devLog('⚠️ [deleteBarberoFoto] No se pudo eliminar archivo local, continuando...')
+      } else {
+        devLog('✅ [deleteBarberoFoto] Archivo eliminado')
       }
-
-      devLog('✅ [deleteBarberoFoto] Archivo eliminado')
     } catch (error: any) {
       console.error('❌ [deleteBarberoFoto] Error:', error)
-      // No lanzar error si el archivo no existe o es timeout/red
+      // No lanzar error: la eliminación es best-effort, no debe bloquear el guardado
       const msg = (error.message || error.error_description || '').toLowerCase()
-      if (msg.includes('not found') || msg.includes('timeout') || msg.includes('timed out') || msg.includes('network') || msg.includes('fetch')) {
+      if (msg.includes('not found') || msg.includes('timeout') || msg.includes('timed out') || msg.includes('network') || msg.includes('fetch') || msg.includes('forbidden')) {
         devLog('⚠️ [deleteBarberoFoto] Error no crítico (timeout/red/not found), continuando...')
         return
       }
-      throw error
+      // In all cases, don't throw — deletion is best-effort
+      devLog('⚠️ [deleteBarberoFoto] Error no crítico, continuando...')
     }
   },
 
