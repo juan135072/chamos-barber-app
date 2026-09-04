@@ -50,7 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // PostgREST returns bytea as either hex string ("\x...") or base64 string.
     let buffer: Buffer
     if (typeof record.data === 'string') {
-      if (record.data.length > 1 && record.data[0] === '\' && record.data[1] === 'x') {
+      if (record.data.length > 1 && record.data[0] === '\\' && record.data[1] === 'x') {
         buffer = Buffer.from(record.data.slice(2), 'hex')
       } else {
         buffer = Buffer.from(record.data, 'base64')
