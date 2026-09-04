@@ -44,15 +44,6 @@ const _client: InsForgeClient = createInsforgeClient({
         autoRefreshToken: false,
 } as any)
 
-// Clear stale session tokens so the SDK doesn't try to use them
-// (they were generated with a previous JWT secret and will always 401).
-if (typeof window !== 'undefined') {
-    try {
-        const keys = Object.keys(localStorage).filter(k => k.startsWith('insforge.') || k.includes('auth.token'))
-        keys.forEach(k => localStorage.removeItem(k))
-    } catch { /* localStorage not available */ }
-}
-
 // After any auth operation that produces a new token, persist it as an
 // httpOnly cookie on our domain so Next.js API routes can authenticate
 // the caller via createPagesServerClient. InsForge browser mode stores the
