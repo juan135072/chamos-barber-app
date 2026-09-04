@@ -162,3 +162,4 @@ Desarrollado con ❤️ por **Juan Díaz** y venezolanos en Chile 🇻🇪🇨�
 **Deploy Status**: 🚀 En Producción (rama `main`)
 
 
+
