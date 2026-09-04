@@ -47,8 +47,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ext = fileName.split('.').pop()?.toLowerCase() || ''
     const contentType = MIME_TYPES[`.${ext}`] || record.content_type || 'application/octet-stream'
 
-    // data is a Buffer/bytea from postgrest
-    const buffer = Buffer.from(record.data)
+    // PostgREST returns bytea as either hex string ("\x...") or base64 string.
+    let buffer: Buffer
+    if (typeof record.data === 'string') {
+      if (record.data.startsWith('\\x')) {
+        buffer = Buffer.from(record.data.slice(2), 'hex')
+      } else {
+        buffer = Buffer.from(record.data, 'base64')
+      }
+    } else if (ArrayBuffer.isView(record.data)) {
+      buffer = Buffer.from(record.data.buffer, record.data.byteOffset, record.data.byteLength)
+    } else {
+      buffer = Buffer.from(record.data)
+    }
 
     res.setHeader('Content-Type', contentType)
     res.setHeader('Cache-Control', 'public, max-age=86400, immutable')
