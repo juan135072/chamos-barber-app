@@ -53,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       entity_id: entityId,
       file_name: finalName,
       content_type: contentType,
-      data: buffer,
+      data: base64, // store base64 string directly in TEXT column
     })
 
     if (error) {
