@@ -1,13 +1,10 @@
 /**
- * Deletes an uploaded image from the filesystem.
+ * Deletes an uploaded image from the database.
  * POST /api/upload/delete
  * Body: { entityType: string, fileName: string }
  */
 import { NextApiRequest, NextApiResponse } from 'next'
-import fs from 'fs'
-import path from 'path'
-
-const UPLOAD_DIR = path.resolve(process.cwd(), 'public/uploads')
+import { supabase } from '@/lib/supabase'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
@@ -20,16 +17,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'entityType and fileName are required' })
     }
 
-    const dir = path.join(UPLOAD_DIR, `${entityType}s`)
-    const fullPath = path.join(dir, fileName)
+    const { data, error } = await supabase
+      .from('uploads')
+      .delete()
+      .eq('entity_type', entityType)
+      .eq('file_name', fileName)
 
-    // Security: ensure we stay inside UPLOAD_DIR
-    if (!fullPath.startsWith(UPLOAD_DIR)) {
-      return res.status(403).json({ error: 'Forbidden' })
-    }
-
-    if (fs.existsSync(fullPath)) {
-      fs.unlinkSync(fullPath)
+    if (error) {
+      console.error('❌ [upload/delete] DB delete error:', error)
+      return res.status(500).json({ error: error.message || 'Error al eliminar' })
     }
 
     console.log(`🗑️ [upload/delete] Eliminado ${entityType}: ${fileName}`)

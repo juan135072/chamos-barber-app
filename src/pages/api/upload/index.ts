@@ -1,17 +1,14 @@
 /**
- * Unified upload API route for all entity images (barberos, servicios, productos, cortes).
+ * Unified upload API route — stores images in the database (persists across deploys).
  * POST /api/upload
- * Body: { entityType: string, entityId: string, fileName: string, base64: string, contentType: string }
+ * Body: { entityType, entityId, fileName, base64, contentType }
  */
 import { NextApiRequest, NextApiResponse } from 'next'
-import fs from 'fs'
-import path from 'path'
-
-const BASE_UPLOAD_DIR = path.resolve(process.cwd(), 'public/uploads')
-const BASE_URL = process.env.COOLIFY_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://old.chamosbarber.com'
+import { supabase } from '@/lib/supabase'
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
+const BASE_URL = process.env.COOLIFY_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://old.chamosbarber.com'
 
 export const config = {
   api: {
@@ -37,7 +34,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: 'Tipo de archivo no válido. Solo JPG, PNG, WEBP, GIF' })
     }
 
-    // Validate entityType
     const validTypes = ['barbero', 'servicio', 'producto', 'corte']
     if (!validTypes.includes(entityType)) {
       return res.status(400).json({ error: 'entityType inválido. Use: barbero, servicio, producto, corte' })
@@ -50,14 +46,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const ext = fileName?.split('.').pop() || 'jpg'
     const finalName = `${entityId}-${Date.now()}.${ext}`
-    const uploadDir = path.join(BASE_UPLOAD_DIR, `${entityType}s`)
-    const filePath = path.join(uploadDir, finalName)
 
-    fs.mkdirSync(uploadDir, { recursive: true })
-    fs.writeFileSync(filePath, buffer)
+    // Store in DB (persists across deploys)
+    const { error } = await supabase.from('uploads').insert({
+      entity_type: entityType,
+      entity_id: entityId,
+      file_name: finalName,
+      content_type: contentType,
+      data: buffer,
+    })
+
+    if (error) {
+      console.error('❌ [upload] DB insert error:', error)
+      return res.status(500).json({ error: 'Error al guardar imagen' })
+    }
 
     const publicUrl = `${BASE_URL}/api/upload/serve/${entityType}s/${finalName}`
-
     console.log(`✅ [upload] ${entityType} ${finalName}`)
     return res.status(200).json({ path: finalName, publicUrl })
 
