@@ -95,12 +95,10 @@ export default function TeamMarquee({ members, loading = false }: TeamMarqueePro
               >
                 <div className="relative overflow-hidden rounded-[2rem] bg-white/[0.02] border border-white/5"
                   style={{ height: '380px' }}>
-                  <Image
+                  <img
                     alt={member.nombre}
                     src={getImageUrl(member.imagen_url || member.foto_url)}
-                    fill
-                    className="object-cover grayscale transition-all duration-700 group-hover/card:grayscale-0 group-hover/card:scale-110"
-                    sizes="256px"
+                    className="object-cover w-full h-full grayscale transition-all duration-700 group-hover/card:grayscale-0 group-hover/card:scale-110"
                   />
                   {/* Info overlay at the bottom with Glassmorphism */}
                   <div
