@@ -20,11 +20,11 @@ export default function GastosPage() {
     }, [session])
 
     const checkAdminAccess = async () => {
-        if (!session) {
-            setLoading(false) // Let the redirect happen in effect or just render blank/loading
-            if (!session) router.push('/chamos-acceso')
-            return
-        }
+            if (session === undefined) return // still loading
+            if (!session) {
+                router.push('/chamos-acceso')
+                return
+            }
 
         const { data } = await (supabase as any)
             .from('admin_users')
