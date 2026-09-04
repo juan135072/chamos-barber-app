@@ -161,3 +161,4 @@ Desarrollado con ❤️ por **Juan Díaz** y venezolanos en Chile 🇻🇪🇨�
 **Versión**: 1.2.1 (Seguridad)  
 **Deploy Status**: 🚀 En Producción (rama `main`)
 
+
