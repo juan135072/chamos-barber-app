@@ -160,3 +160,4 @@ Desarrollado con ❤️ por **Juan Díaz** y venezolanos en Chile 🇻🇪🇨�
 **Última actualización**: 2026-01-22  
 **Versión**: 1.2.1 (Seguridad)  
 **Deploy Status**: 🚀 En Producción (rama `main`)
+
