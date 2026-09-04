@@ -1,6 +1,8 @@
 /**
  * Serves uploaded images from the database (persists across deploys).
  * GET /api/upload/serve/[entityType]/[fileName]
+ *
+ * The `data` column is TEXT containing a base64-encoded image.
  */
 import { NextApiRequest, NextApiResponse } from 'next'
 import { supabase } from '@/lib/supabase'
@@ -28,7 +30,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    // entityDir like "barberos" → strip trailing 's' for entity_type
     const entityType = entityDir.endsWith('s') ? entityDir.slice(0, -1) : entityDir
 
     const { data, error } = await supabase
@@ -47,14 +48,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const ext = fileName.split('.').pop()?.toLowerCase() || ''
     const contentType = MIME_TYPES[`.${ext}`] || record.content_type || 'application/octet-stream'
 
-    // PostgREST returns bytea as either hex string ("\x...") or base64 string.
+    // data is TEXT containing base64-encoded image
     let buffer: Buffer
     if (typeof record.data === 'string') {
-      if (record.data.length > 1 && record.data[0] === '\\' && record.data[1] === 'x') {
-        buffer = Buffer.from(record.data.slice(2), 'hex')
-      } else {
-        buffer = Buffer.from(record.data, 'base64')
-      }
+      buffer = Buffer.from(record.data, 'base64')
     } else if (ArrayBuffer.isView(record.data)) {
       buffer = Buffer.from(record.data.buffer, record.data.byteOffset, record.data.byteLength)
     } else {
