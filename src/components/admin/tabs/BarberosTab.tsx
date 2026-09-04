@@ -118,12 +118,15 @@ const BarberosTab: React.FC = () => {
       }
 
       const response = await fetch('/api/barberos/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          barberoId: barberoToReset.id
-        })
-      })
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${(supabase as any).tokenManager?.getAccessToken?.() || ''}`
+              },
+              body: JSON.stringify({
+                barberoId: barberoToReset.id
+              })
+            })
 
       const data = await response.json()
 
