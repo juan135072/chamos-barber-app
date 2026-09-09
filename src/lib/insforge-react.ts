@@ -5,8 +5,8 @@
  * SDK (exposed as `supabase` from @/lib/supabase):
  *
  *   useSupabaseClient<T>()    -> returns the InsForge-backed client
- *   useUser()                 -> reactive user from getCurrentUser()
- *   useSession()              -> reactive session shim (user-only)
+ *   useUser()                 -> reactive user from the app-owned session
+ *   useSession()              -> reactive session from the app-owned session
  *   SessionContextProvider    -> identity passthrough (no context needed,
  *                                client is module-singleton)
  *
@@ -19,6 +19,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
+import { getAppSession, getAppUser } from '@/lib/app-session'
 
 export function useSupabaseClient<_T = unknown>() {
     return supabase
@@ -26,16 +27,13 @@ export function useSupabaseClient<_T = unknown>() {
 
 /**
  * Tri-state session/user values:
- *   undefined → still loading (the SDK's session check is async on
- *               first render because InsForge stores tokens in cookies,
- *               which JS can't peek at synchronously)
+ *   undefined → still loading
  *   null      → confirmed no session
  *   object    → confirmed user/session
  *
- * Callers that want the old "redirect on missing user" pattern must
- * guard with `if (session === undefined) return` before treating null
- * as "logged out" — otherwise they redirect during the loading window
- * and create a /admin ↔ /chamos-acceso bucle.
+ * Session restoration goes through Chamos' own httpOnly cookies. This avoids
+ * calling InsForge's browser /api/auth/refresh endpoint when its in-memory
+ * TokenManager is empty after a reload.
  */
 
 export function useUser(): any | null | undefined {
@@ -43,19 +41,17 @@ export function useUser(): any | null | undefined {
 
     useEffect(() => {
         let cancelled = false
-        supabase.auth.getCurrentUser().then(({ data }: any) => {
+
+        const check = () => getAppUser().then((currentUser) => {
             if (cancelled) return
-            setUser(data?.user ?? null)
+            setUser(currentUser ?? null)
         })
 
-        // Refresh on tab regain so auth state doesn't go stale forever.
-        // (InsForge has no onAuthStateChange equivalent.)
+        check()
+
         const onVis = () => {
             if (document.visibilityState !== 'visible') return
-            supabase.auth.getCurrentUser().then(({ data }: any) => {
-                if (cancelled) return
-                setUser(data?.user ?? null)
-            })
+            check()
         }
         document.addEventListener('visibilitychange', onVis)
         return () => {
@@ -72,13 +68,14 @@ export function useSession(): any | null | undefined {
 
     useEffect(() => {
         let cancelled = false
-        const check = () => supabase.auth.getSession().then(({ data }: any) => {
+
+        const check = () => getAppSession().then((currentSession) => {
             if (cancelled) return
-            setSession(data?.session ?? null)
+            setSession(currentSession ?? null)
         })
+
         check()
 
-        // Refresh on tab regain so auth state doesn't go stale forever.
         const onVis = () => {
             if (document.visibilityState !== 'visible') return
             check()
@@ -97,7 +94,7 @@ export function useSessionContext() {
     const session = useSession()
     return {
         session,
-        isLoading: false,
+        isLoading: session === undefined,
         supabaseClient: supabase,
         error: null,
     }
