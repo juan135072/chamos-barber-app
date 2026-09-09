@@ -1,4 +1,4 @@
-import { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient as createInsforgeClient } from '@insforge/sdk'
 import { setAuthCookies } from '@/lib/supabase-server'
 
@@ -17,9 +17,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(500).json({ error: 'Server misconfigured' })
     }
 
-    // Use server mode so InsForge returns the access token in the response body
-    // (in browser mode, the token is only stored as an httpOnly cookie on the
-    // InsForge domain and is never accessible from JavaScript or our Next.js server)
+    // Server mode returns access + refresh tokens in the response body so the
+    // Next.js app can own the httpOnly session cookies on the Chamos domain.
     const client = createInsforgeClient({
         baseUrl: BASE_URL,
         anonKey: ANON_KEY,
@@ -32,9 +31,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(401).json({ error: (error as any)?.message ?? 'Invalid credentials' })
     }
 
-    const accessToken = (data as any).accessToken
+    const accessToken = (data as any)?.accessToken
+    const refreshToken = (data as any)?.refreshToken ?? ''
+
     if (accessToken) {
-        setAuthCookies(res, accessToken, '')
+        setAuthCookies(res, accessToken, refreshToken)
     }
 
     return res.status(200).json({ ok: !!accessToken })

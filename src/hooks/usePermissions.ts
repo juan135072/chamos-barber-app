@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { 
+import {
   supabase,
   UsuarioConPermisos,
   tienePermiso,
@@ -18,6 +18,7 @@ import {
   getRutaPorDefecto,
   Permiso,
 } from '@/lib/supabase';
+import { getAppSession } from '@/lib/app-session';
 
 export function usePermissions() {
   const [usuario, setUsuario] = useState<UsuarioConPermisos | null>(null);
@@ -30,8 +31,10 @@ export function usePermissions() {
 
   const cargarUsuario = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      // Restore from Chamos' own httpOnly cookies instead of triggering
+      // InsForge's browser refresh endpoint when memory is empty.
+      const session = await getAppSession();
+
       if (!session) {
         setUsuario(null);
         setCargando(false);
@@ -57,7 +60,7 @@ export function usePermissions() {
               .select('comercio_id')
               .eq('id', session.user.id)
               .single();
-            
+
             if (adminData && adminData.comercio_id) {
               data.comercio_id = adminData.comercio_id;
             }
@@ -116,7 +119,7 @@ export function usePermissions() {
   return {
     usuario,
     cargando,
-    
+
     // Funciones de verificación
     verificarPermiso,
     puedeAccederPOS: () => puedeAccederPOS(usuario),
@@ -126,11 +129,11 @@ export function usePermissions() {
     puedeVerReportes: () => puedeVerReportes(usuario),
     puedeEditarConfiguracion: () => puedeEditarConfiguracion(usuario),
     puedeAccederRuta: (ruta: string) => puedeAccederRuta(usuario, ruta),
-    
+
     // Funciones de navegación
     redirigirPorRol,
     protegerRuta,
-    
+
     // Estado
     esAdmin: usuario?.rol === 'admin',
     esCajero: usuario?.rol === 'cajero',
@@ -151,4 +154,3 @@ export function useProtectedRoute(rutaRequerida: string) {
 
   return { cargando };
 }
-
