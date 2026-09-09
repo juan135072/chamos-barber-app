@@ -185,6 +185,14 @@ export const supabase: any = {
     storage: storageAdapter,
     functions: _client.functions,
     realtime: _client.realtime,
+    // Compatibility bridge for legacy callers that still read
+    // `supabase.tokenManager`. The actual TokenManager belongs to the
+    // underlying InsForge client, so expose only the getters we need instead
+    // of leaking the private SDK object itself.
+    tokenManager: {
+        getAccessToken: () => (_client as any).tokenManager?.getAccessToken?.() ?? null,
+        getRefreshToken: () => (_client as any).tokenManager?.getRefreshToken?.() ?? null,
+    },
     // Bridge: translate Supabase's `channel(name).on('postgres_changes', cfg, cb)
     // .subscribe()` API into InsForge realtime subscribe + on(event).
     //
