@@ -31,11 +31,11 @@ function Login() {
         return
       }
 
-      const userId = data.user.id
+      const userEmail = data.user.email || email
       const { data: adminUser, error: adminErr } = await supabase
         .from('admin_users')
         .select('rol, barbero_id, activo')
-        .eq('id', userId)
+        .eq('email', userEmail)
         .eq('activo', true)
         .single()
 
@@ -78,7 +78,7 @@ function Login() {
       const { data: adminUser, error } = await supabase
         .from('admin_users')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('email', session.user.email)
         .eq('activo', true)
         .single()
 
