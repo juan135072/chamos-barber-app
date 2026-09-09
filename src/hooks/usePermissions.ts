@@ -35,17 +35,20 @@ export function usePermissions() {
       // InsForge's browser refresh endpoint when memory is empty.
       const session = await getAppSession();
 
-      if (!session) {
+      if (!session?.user?.email) {
         setUsuario(null);
         setCargando(false);
         return;
       }
 
-      // Obtener datos del usuario con permisos
+      const userEmail = session.user.email;
+
+      // The historical Chamos row may keep its legacy UUID after the auth
+      // migration. Email remains the stable key for the authenticated account.
       const { data, error } = await supabase
         .from('usuarios_con_permisos')
         .select('*')
-        .eq('id', session.user.id)
+        .eq('email', userEmail)
         .single();
 
       if (error) {
@@ -58,7 +61,7 @@ export function usePermissions() {
             const { data: adminData } = await supabase
               .from('admin_users')
               .select('comercio_id')
-              .eq('id', session.user.id)
+              .eq('email', userEmail)
               .single();
 
             if (adminData && adminData.comercio_id) {
