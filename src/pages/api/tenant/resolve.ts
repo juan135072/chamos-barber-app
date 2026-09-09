@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient } from '@/lib/supabase-server'
+import { createPagesServerClient } from '@/lib/supabase-server'
 
 const LEGACY_DOMAIN_SLUGS: Record<string, string> = {
   'old.chamosbarber.com': 'chamos',
@@ -58,13 +58,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   )
 
   try {
-    // Tenant resolution used to call the retired api-insforge/PostgREST host.
-    // Use the same current InsForge server client as the rest of the application.
-    const admin = createPagesAdminClient()
+    // Tenant resolution is a public lookup used before login. Do not require
+    // the server-only INSFORGE_API_KEY here; use the normal cookie/anon client.
+    const client = createPagesServerClient(req, res)
     let lastError: any = null
 
     for (const { col, val } of uniqueCandidates) {
-      const { data, error } = await admin
+      const { data, error } = await client
         .from('comercios')
         .select(COLS)
         .eq(col, val)
