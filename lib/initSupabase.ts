@@ -38,22 +38,36 @@ const _client: InsForgeClient = createInsforgeClient({
     baseUrl: BASE_URL,
     anonKey: ANON_KEY,
     // Disable the SDK's built-in auto refresh. Token refresh is handled
-        // by the server-side createPagesServerClient's getSession() using the
-        // refresh token cookie. With autoRefreshToken=true the SDK tries to
-        // call /api/auth/refresh on the InsForge domain which returns 401.
-        autoRefreshToken: false,
+    // by the server-side createPagesServerClient's getSession() using the
+    // refresh token cookie. With autoRefreshToken=true the SDK tries to
+    // call /api/auth/refresh on the InsForge domain which returns 401.
+    autoRefreshToken: false,
 } as any)
 
 // After any auth operation that produces a new token, persist it as an
 // httpOnly cookie on our domain so Next.js API routes can authenticate
-// the caller via createPagesServerClient. InsForge browser mode stores the
-// token in tokenManager (in memory) — without this, the cookie is never set.
+// the caller via createPagesServerClient. InsForge keeps the access token
+// in memory, while sign-in/refresh responses surface the refresh token.
 let _lastPersistedToken: string | null = null
-function maybeSetSessionCookie() {
+let _lastRefreshToken: string | null = null
+
+function getAccessToken(): string | null {
+    return (_client as any).tokenManager?.getAccessToken?.() ?? null
+}
+
+function rememberRefreshToken(result: any): string | null {
+    const refreshToken = result?.data?.refreshToken ?? result?.data?.refresh_token ?? null
+    if (typeof refreshToken === 'string' && refreshToken) {
+        _lastRefreshToken = refreshToken
+    }
+    return _lastRefreshToken
+}
+
+function maybeSetSessionCookie(refreshTokenOverride?: string | null) {
     if (typeof window === 'undefined') return
-    const token = (_client as any).tokenManager?.getAccessToken?.()
-    const refreshToken = (_client as any).tokenManager?.getRefreshToken?.()
-    if (token && token !== _lastPersistedToken) {
+    const token = getAccessToken()
+    const refreshToken = refreshTokenOverride ?? _lastRefreshToken
+    if (token && (token !== _lastPersistedToken || refreshToken)) {
         _lastPersistedToken = token
         fetch('/api/auth/set-session', {
             method: 'POST',
@@ -68,13 +82,24 @@ const authAdapter = {
     signUp: _client.auth.signUp.bind(_client.auth),
     async signInWithPassword(...args: any[]) {
         const result = await (_client.auth.signInWithPassword as any)(...args)
-        if (!result?.error) maybeSetSessionCookie()
+        if (!result?.error) {
+            const refreshToken = rememberRefreshToken(result)
+            maybeSetSessionCookie(refreshToken)
+        }
         return result
     },
-    signOut: _client.auth.signOut.bind(_client.auth),
+    async signOut(...args: any[]) {
+        const result = await (_client.auth.signOut as any)(...args)
+        _lastPersistedToken = null
+        _lastRefreshToken = null
+        return result
+    },
     async refreshSession(...args: any[]) {
         const result = await (_client.auth.refreshSession as any)(...args)
-        if (!result?.error) maybeSetSessionCookie()
+        if (!result?.error) {
+            const refreshToken = rememberRefreshToken(result)
+            maybeSetSessionCookie(refreshToken)
+        }
         return result
     },
     signInWithOAuth: _client.auth.signInWithOAuth.bind(_client.auth),
@@ -92,17 +117,17 @@ const authAdapter = {
         return { data: { user: (data?.user as any) ?? null }, error }
     },
 
-    // Supabase-shape: { data: { session }, error }. Session is synthesized
-    // since InsForge keeps tokens internal — only the user object surfaces.
+    // Supabase-shape: { data: { session }, error }.
     async getSession() {
         const { data, error } = await _client.auth.getCurrentUser()
         if (data?.user) maybeSetSessionCookie()
         const user = (data?.user as any) ?? null
-        const session = user
+        const accessToken = getAccessToken()
+        const session = user && accessToken
             ? {
                 user,
-                access_token: '',
-                refresh_token: '',
+                access_token: accessToken,
+                refresh_token: _lastRefreshToken ?? '',
                 expires_at: 0,
                 expires_in: 0,
                 token_type: 'bearer',
@@ -185,13 +210,10 @@ export const supabase: any = {
     storage: storageAdapter,
     functions: _client.functions,
     realtime: _client.realtime,
-    // Compatibility bridge for legacy callers that still read
-    // `supabase.tokenManager`. The actual TokenManager belongs to the
-    // underlying InsForge client, so expose only the getters we need instead
-    // of leaking the private SDK object itself.
+    // Compatibility bridge for callers that read `supabase.tokenManager`.
     tokenManager: {
-        getAccessToken: () => (_client as any).tokenManager?.getAccessToken?.() ?? null,
-        getRefreshToken: () => (_client as any).tokenManager?.getRefreshToken?.() ?? null,
+        getAccessToken,
+        getRefreshToken: () => _lastRefreshToken,
     },
     // Bridge: translate Supabase's `channel(name).on('postgres_changes', cfg, cb)
     // .subscribe()` API into InsForge realtime subscribe + on(event).
