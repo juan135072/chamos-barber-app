@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { createPagesAdminClient } from '@/lib/supabase-server'
 
-const PGREST_URL = process.env.PGREST_URL || 'https://api-insforge.chamosbarber.com'
-const ANON_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY
+const LEGACY_DOMAIN_SLUGS: Record<string, string> = {
+  'old.chamosbarber.com': 'chamos',
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
@@ -22,66 +24,76 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ? (domain as string).replace(/^https?:\/\//, '').replace(/^www\./, '').split('/')[0]
     : null
 
-  const COLS = 'id,nombre,slug,dominio_custom,logo_url,favicon_url,color_primario,color_secundario,color_fondo,descripcion,telefono,email_contacto,direccion,pais,moneda,timezone,activo'
+  const COLS = 'id,nombre,slug,dominio_custom,logo_url,favicon_url,color_primario,color_secundario,color_fondo,descripcion,telefono,email_contacto,direccion,pais,moneda,timezone,plan,activo,max_barberos'
 
-  // Build candidates
   const candidates: Array<{ col: string; val: string }> = []
-  if (slug) {
-    candidates.push({ col: 'slug', val: slug as string })
-    if (normalizedDomain) {
-      candidates.push({ col: 'dominio_custom', val: normalizedDomain })
-      candidates.push({ col: 'dominio_custom', val: `www.${normalizedDomain}` })
-      const parts = normalizedDomain.split('.')
-      if (parts.length > 2) {
-        const parentDomain = parts.slice(1).join('.')
-        candidates.push({ col: 'dominio_custom', val: parentDomain })
-        candidates.push({ col: 'dominio_custom', val: `www.${parentDomain}` })
-      }
-    }
-  } else if (normalizedDomain) {
-    candidates.push({ col: 'dominio_custom', val: normalizedDomain })
-    candidates.push({ col: 'dominio_custom', val: `www.${normalizedDomain}` })
+  const legacySlug = normalizedDomain ? LEGACY_DOMAIN_SLUGS[normalizedDomain] : undefined
+
+  // old.chamosbarber.com is the legacy production hostname for the original
+  // Chamos tenant. Resolve it explicitly before interpreting "old" as a SaaS slug.
+  if (legacySlug) {
+    candidates.push({ col: 'slug', val: legacySlug })
   }
 
-  let lastError: any = null
-  for (const { col, val } of candidates) {
-    try {
-      const url = `${PGREST_URL}/comercios?${col}=eq.${encodeURIComponent(val)}&select=${COLS}&limit=1`
-      const response = await fetch(url, {
-        headers: { 'apikey': ANON_KEY || '' },
-        signal: AbortSignal.timeout(10000),
-      })
+  if (slug) {
+    candidates.push({ col: 'slug', val: slug as string })
+  }
 
-      if (!response.ok) {
-        const text = await response.text()
-        lastError = { message: `HTTP ${response.status}: ${text.substring(0, 100)}` }
+  if (normalizedDomain) {
+    candidates.push({ col: 'dominio_custom', val: normalizedDomain })
+    candidates.push({ col: 'dominio_custom', val: `www.${normalizedDomain}` })
+
+    const parts = normalizedDomain.split('.')
+    if (parts.length > 2) {
+      const parentDomain = parts.slice(1).join('.')
+      candidates.push({ col: 'dominio_custom', val: parentDomain })
+      candidates.push({ col: 'dominio_custom', val: `www.${parentDomain}` })
+    }
+  }
+
+  // Remove duplicate candidate lookups while preserving priority.
+  const uniqueCandidates = candidates.filter(
+    (candidate, index, all) =>
+      all.findIndex(item => item.col === candidate.col && item.val === candidate.val) === index
+  )
+
+  try {
+    // Tenant resolution used to call the retired api-insforge/PostgREST host.
+    // Use the same current InsForge server client as the rest of the application.
+    const admin = createPagesAdminClient()
+    let lastError: any = null
+
+    for (const { col, val } of uniqueCandidates) {
+      const { data, error } = await admin
+        .from('comercios')
+        .select(COLS)
+        .eq(col, val)
+        .limit(1)
+
+      if (error) {
+        lastError = error
+        console.error('[tenant/resolve] lookup error for', col, '=', val, error)
         continue
       }
 
-      const rows = await response.json()
-      const data = rows?.[0] || null
-      if (!data) continue
+      const tenant = Array.isArray(data) ? data[0] : data
+      if (!tenant) continue
 
-      if (!data.activo) {
+      if (!tenant.activo) {
         return res.status(403).json({ error: 'Comercio suspendido' })
       }
 
       res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=600')
-      return res.status(200).json(data)
-    } catch (err: any) {
-      console.error('[tenant/resolve] error for', col, '=', val, err?.message ?? err)
-      lastError = err
+      return res.status(200).json(tenant)
     }
-  }
 
-  if (lastError) {
-    const msg = String(lastError?.message ?? lastError ?? '')
-    const isUpstream = /timeout|fetch failed|ENOTFOUND|ECONNREFUSED|ETIMEDOUT|gateway|503|502|504/i.test(msg)
-    if (isUpstream) {
+    if (lastError) {
       return res.status(503).json({ error: 'Backend no disponible, reintentá en unos segundos' })
     }
-    return res.status(500).json({ error: 'Internal server error', detail: msg })
-  }
 
-  return res.status(404).json({ error: 'Comercio no encontrado' })
+    return res.status(404).json({ error: 'Comercio no encontrado' })
+  } catch (error: any) {
+    console.error('[tenant/resolve] fatal error:', error?.message ?? error)
+    return res.status(503).json({ error: 'Backend no disponible, reintentá en unos segundos' })
+  }
 }
