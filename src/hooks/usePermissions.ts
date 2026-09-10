@@ -5,7 +5,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
 import {
-  supabase,
   UsuarioConPermisos,
   tienePermiso,
   puedeAccederPOS,
@@ -19,6 +18,7 @@ import {
   Permiso,
 } from '@/lib/supabase';
 import { getAppSession } from '@/lib/app-session';
+import { getServerAccess } from '@/lib/server-access';
 
 export function usePermissions() {
   const [usuario, setUsuario] = useState<UsuarioConPermisos | null>(null);
@@ -31,50 +31,26 @@ export function usePermissions() {
 
   const cargarUsuario = async () => {
     try {
-      // Restore from Chamos' own httpOnly cookies instead of triggering
-      // InsForge's browser refresh endpoint when memory is empty.
+      // Restore the Chamos session first. The access token lets our own server
+      // validate the caller even if the httpOnly cookie is still being renewed.
       const session = await getAppSession();
 
       if (!session?.user?.email) {
         setUsuario(null);
-        setCargando(false);
         return;
       }
 
-      const userEmail = session.user.email;
-
-      // The historical Chamos row may keep its legacy UUID after the auth
-      // migration. Email remains the stable key for the authenticated account.
-      const { data, error } = await supabase
-        .from('usuarios_con_permisos')
-        .select('*')
-        .eq('email', userEmail)
-        .single();
-
-      if (error) {
-        console.error('Error cargando permisos:', error);
-        setUsuario(null);
-      } else {
-        // Fallback: If the view doesn't return comercio_id, fetch it directly from admin_users
-        if (data && !data.comercio_id) {
-          try {
-            const { data: adminData } = await supabase
-              .from('admin_users')
-              .select('comercio_id')
-              .eq('email', userEmail)
-              .single();
-
-            if (adminData && adminData.comercio_id) {
-              data.comercio_id = adminData.comercio_id;
-            }
-          } catch (err) {
-            console.error('Error fetching comercio_id fallback:', err);
-          }
-        }
-        setUsuario(data);
-      }
-    } catch (error) {
-      console.error('Error en cargarUsuario:', error);
+      // Role/access resolution is server-side. The browser no longer queries
+      // admin_users or usuarios_con_permisos directly, avoiding legacy RLS
+      // rules tied to the old Supabase auth UUID.
+      const access = await getServerAccess(session.access_token);
+      setUsuario(access.user as UsuarioConPermisos);
+    } catch (error: any) {
+      console.error('[permissions] Server access check failed:', {
+        code: error?.code ?? null,
+        status: error?.status ?? null,
+        message: error?.message ?? String(error),
+      });
       setUsuario(null);
     } finally {
       setCargando(false);
