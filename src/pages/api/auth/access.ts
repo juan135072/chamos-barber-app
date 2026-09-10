@@ -55,6 +55,32 @@ async function findAdminRow(admin: any, email: string) {
   }
 }
 
+async function findPermissionProfile(admin: any, email: string) {
+  try {
+    const { data, error } = await admin
+      .from('usuarios_con_permisos')
+      .select('*')
+      .eq('email', email)
+      .limit(1)
+      .setHeader('Accept', 'application/json')
+
+    if (error) {
+      console.warn('[auth/access] usuarios_con_permisos enrichment unavailable', {
+        code: error?.code ?? null,
+        message: error?.message ?? null,
+      })
+      return null
+    }
+
+    return Array.isArray(data) && data.length === 1 ? data[0] : null
+  } catch (error: any) {
+    console.warn('[auth/access] usuarios_con_permisos enrichment failed', {
+      message: error?.message ?? String(error),
+    })
+    return null
+  }
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     res.setHeader('Allow', 'GET')
@@ -137,6 +163,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
       }
 
+      // Preserve optional custom permissions/comercio information from the
+      // existing view, but never depend on that view to grant access.
+      const permissionProfile = await findPermissionProfile(admin, candidate)
+
       console.info('[auth/access] Access resolved', {
         authenticatedEmail,
         role: row.rol,
@@ -149,13 +179,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // are authorization metadata, not the current authenticated identity.
           id: authUser.id,
           email: authenticatedEmail,
-          nombre: row.nombre || authUser.name || authenticatedEmail,
+          nombre: permissionProfile?.nombre || row.nombre || authUser.name || authenticatedEmail,
           rol: row.rol,
           activo: true,
-          telefono: row.telefono ?? null,
-          barbero_id: row.barbero_id ?? null,
-          comercio_id: row.comercio_id ?? null,
-          permisos: row.permisos ?? null,
+          telefono: permissionProfile?.telefono ?? row.telefono ?? null,
+          barbero_id: permissionProfile?.barbero_id ?? row.barbero_id ?? null,
+          comercio_id: permissionProfile?.comercio_id ?? row.comercio_id ?? null,
+          permisos: permissionProfile?.permisos ?? row.permisos ?? null,
         },
         accessSource: usingLegacyAlias ? 'legacy_alias' : 'direct',
       })
