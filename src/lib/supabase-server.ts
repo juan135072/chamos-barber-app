@@ -197,22 +197,23 @@ export function createPagesServerClient(req: NextApiRequest, res: NextApiRespons
 }
 
 /**
- * Admin client authenticated with the InsForge API key (project_admin).
- * Used by API routes that need to do operations the calling user can't
- * (create/delete users, write to system tables, etc.). Equivalent to the
- * old Supabase service-role client.
+ * Admin client authenticated with the InsForge project API key.
+ * Project-admin credentials must be the request bearer token; they are not
+ * an anon key and must never be mixed with the public anon client. This mirrors
+ * InsForge's server-admin client semantics while keeping compatibility with the
+ * SDK version currently locked by this app.
  */
 export function createPagesAdminClient() {
-    if (!BASE_URL || !ANON_KEY || !API_KEY) {
+    if (!BASE_URL || !API_KEY) {
         throw new Error(
-            'Missing InsForge env vars: NEXT_PUBLIC_INSFORGE_BASE_URL, NEXT_PUBLIC_INSFORGE_ANON_KEY, INSFORGE_API_KEY required'
+            'Missing InsForge env vars: NEXT_PUBLIC_INSFORGE_BASE_URL / INSFORGE_INTERNAL_URL and INSFORGE_API_KEY required'
         )
     }
     const client = createInsforgeClient({
         baseUrl: BASE_URL,
-        anonKey: ANON_KEY,
+        accessToken: API_KEY,
         isServerMode: true,
-        edgeFunctionToken: API_KEY,
+        autoRefreshToken: false,
     } as Parameters<typeof createInsforgeClient>[0])
     return makeSupabaseShape(client)
 }
