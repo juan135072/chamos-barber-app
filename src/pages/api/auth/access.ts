@@ -118,15 +118,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const result = await findAdminRow(admin, candidate)
 
       if (result.error) {
+        const backendStatus = typeof result.status === 'number' ? result.status : null
+        const backendCode = typeof result.error?.code === 'string' ? result.error.code : null
+
         console.error('[auth/access] admin_users lookup failed', {
-          status: result.status ?? null,
+          status: backendStatus,
           statusText: result.statusText ?? null,
-          code: result.error?.code ?? null,
+          code: backendCode,
           message: result.error?.message ?? null,
         })
         return res.status(503).json({
           code: 'ACCESS_LOOKUP_FAILED',
           message: 'No se pudo consultar los permisos del usuario.',
+          // Safe diagnostics only: never expose API keys, tokens or backend messages.
+          backendStatus,
+          backendCode,
         })
       }
 
