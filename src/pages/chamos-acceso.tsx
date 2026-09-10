@@ -7,6 +7,7 @@ import type { Database } from '@/lib/database.types'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
 import toast from 'react-hot-toast'
 import { useTenant } from '@/context/TenantContext'
+import { getServerAccess, persistAppSession } from '@/lib/server-access'
 
 function Login() {
   const session = useSession()
@@ -20,10 +21,39 @@ function Login() {
   const [password, setPassword] = useState('')
   const [signingIn, setSigningIn] = useState(false)
 
+  const redirectForAccess = async (access: Awaited<ReturnType<typeof getServerAccess>>) => {
+    const user = access.user
+
+    console.log('[AuthAccess] Access granted', {
+      email: user.email,
+      role: user.rol,
+      source: access.accessSource,
+    })
+
+    if (user.rol === 'admin') {
+      await router.push('/admin')
+      return
+    }
+
+    if (user.rol === 'barbero') {
+      if (user.barbero_id) setExternalId(user.barbero_id)
+      await router.push('/barbero-panel')
+      return
+    }
+
+    if (user.rol === 'cajero') {
+      await router.push('/pos')
+      return
+    }
+
+    throw new Error('Rol no reconocido.')
+  }
+
   const handleSignIn = async (e: FormEvent) => {
     e.preventDefault()
     if (signingIn) return
     setSigningIn(true)
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password })
       if (error || !data?.user) {
@@ -31,66 +61,43 @@ function Login() {
         return
       }
 
-      const userEmail = data.user.email || email
-      const {
-        data: adminRows,
-        error: adminErr,
-        status: adminStatus,
-        statusText: adminStatusText,
-      } = await supabase
-        .from('admin_users')
-        .select('rol, barbero_id, activo')
-        .eq('email', userEmail)
-        .eq('activo', true)
-        .limit(2)
-        .setHeader('Accept', 'application/json')
+      const accessToken = (supabase as any).tokenManager?.getAccessToken?.() ?? null
+      const refreshToken = (supabase as any).tokenManager?.getRefreshToken?.() ?? null
 
-      const adminRowCount = Array.isArray(adminRows) ? adminRows.length : 0
-      console.log('[AuthDiag] admin_users after sign-in', {
-        email: userEmail,
-        rowCount: adminRowCount,
-        status: adminStatus,
-        statusText: adminStatusText,
-        errorCode: adminErr?.code ?? null,
-        errorMessage: adminErr?.message ?? null,
-      })
-
-      if (adminErr || adminRowCount !== 1) {
-        if (!adminErr && adminRowCount === 0) {
-          console.warn('[AuthDiag] No visible active admin_users row for authenticated email')
-        } else if (!adminErr && adminRowCount > 1) {
-          console.warn('[AuthDiag] Multiple active admin_users rows found for authenticated email', {
-            rowCount: adminRowCount,
-          })
-        }
-        toast.error('Sin permisos de acceso. Contacta al administrador.')
-        await supabase.auth.signOut()
-        return
+      if (!accessToken) {
+        throw new Error('No se recibió un token de sesión válido.')
       }
 
-      const adminUser = adminRows[0]
+      // Persist the app-domain cookie before navigating. The previous bridge
+      // fired this request in the background, so navigation could race it.
+      await persistAppSession(accessToken, refreshToken)
 
-      if (adminUser.rol === 'admin') {
-        router.push('/admin')
-      } else if (adminUser.rol === 'barbero') {
-        if (adminUser.barbero_id) setExternalId(adminUser.barbero_id)
-        router.push('/barbero-panel')
-      } else {
-        toast.error('Rol no reconocido. Contacta al administrador.')
-        await supabase.auth.signOut()
-      }
+      // Authorization is resolved on our server with project_admin access.
+      // No direct browser query to admin_users is performed here.
+      const access = await getServerAccess(accessToken)
+      await redirectForAccess(access)
     } catch (err: any) {
-      console.error('[AuthDiag] Sign-in access check threw', {
+      console.error('[AuthAccess] Sign-in access check failed', {
+        code: err?.code ?? null,
+        status: err?.status ?? null,
         message: err?.message ?? String(err),
       })
-      toast.error(err?.message || 'Error al iniciar sesión')
+
+      if (err?.code === 'ACCESS_CONFIG_MISSING') {
+        toast.error('Falta configuración del servidor para verificar el acceso.')
+      } else if (err?.code === 'ACCESS_NOT_FOUND') {
+        toast.error('Usuario autenticado, pero sin permiso de acceso activo.')
+      } else {
+        toast.error(err?.message || 'Error al iniciar sesión')
+      }
+
+      await supabase.auth.signOut().catch(() => {})
     } finally {
       setSigningIn(false)
     }
   }
 
   useEffect(() => {
-    // Si hay sesión y el usuario es admin, redirigir al admin panel
     if (session?.user) {
       checkAdminAccess()
     }
@@ -100,78 +107,17 @@ function Login() {
     if (!session?.user?.email) return
 
     try {
-      console.log('🔍 Verificando acceso para:', session.user.email)
-      console.log('🆔 User ID:', session.user.id)
-
-      const {
-        data: adminRows,
-        error,
-        status,
-        statusText,
-      } = await supabase
-        .from('admin_users')
-        .select('*')
-        .eq('email', session.user.email)
-        .eq('activo', true)
-        .limit(2)
-        .setHeader('Accept', 'application/json')
-
-      const rowCount = Array.isArray(adminRows) ? adminRows.length : 0
-      console.log('[AuthDiag] admin_users existing-session check', {
-        email: session.user.email,
-        rowCount,
-        status,
-        statusText,
-        errorCode: error?.code ?? null,
-        errorMessage: error?.message ?? null,
-      })
-
-      if (error) {
-        console.error('❌ Error checking user access:', error)
-        toast.error(`Sin permisos de acceso. Contacta al administrador.`)
-        await supabase.auth.signOut()
-        return
-      }
-
-      if (rowCount !== 1) {
-        if (rowCount === 0) {
-          console.warn('[AuthDiag] No visible active admin_users row for existing session')
-        } else {
-          console.warn('[AuthDiag] Multiple active admin_users rows found for existing session', {
-            rowCount,
-          })
-        }
-        toast.error('Usuario no autorizado. Contacta al administrador.')
-        await supabase.auth.signOut()
-        return
-      }
-
-      const adminUser = adminRows[0]
-
-      if (adminUser) {
-        console.log('✅ Usuario encontrado:', adminUser.email, 'Rol:', adminUser.rol)
-        // Redirigir según el rol
-        if (adminUser.rol === 'admin') {
-          console.log('➡️ Redirigiendo a /admin')
-          router.push('/admin')
-        } else if (adminUser.rol === 'barbero') {
-          console.log('🔔 [Login] Vinculando OneSignal para barbero:', adminUser.barbero_id)
-          if (adminUser.barbero_id) {
-            setExternalId(adminUser.barbero_id)
-          }
-          console.log('➡️ Redirigiendo a /barbero-panel')
-          router.push('/barbero-panel')
-        } else {
-          toast.error('Rol no reconocido. Contacta al administrador.')
-          await supabase.auth.signOut()
-        }
-      }
+      const accessToken = session.access_token || (supabase as any).tokenManager?.getAccessToken?.() || null
+      const access = await getServerAccess(accessToken)
+      await redirectForAccess(access)
     } catch (error: any) {
-      console.error('💥 Error checking access:', {
+      console.error('[AuthAccess] Existing-session access check failed', {
+        code: error?.code ?? null,
+        status: error?.status ?? null,
         message: error?.message ?? String(error),
       })
-      toast.error('Error al verificar permisos. Intenta nuevamente.')
-      await supabase.auth.signOut()
+      toast.error('No se pudo verificar el acceso. Inicia sesión nuevamente.')
+      await supabase.auth.signOut().catch(() => {})
     }
   }
 
@@ -417,7 +363,6 @@ function Login() {
             border-color: transparent !important;
             box-shadow: 0 0 20px var(--tenant-primary, rgba(212, 175, 55, 0.4)) !important;
           }
-
           .supabase-auth-ui_ui-label {
             color: rgba(255, 255, 255, 0.8) !important;
             font-size: 0.875rem !important;
