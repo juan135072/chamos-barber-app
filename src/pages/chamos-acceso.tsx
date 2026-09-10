@@ -32,18 +32,43 @@ function Login() {
       }
 
       const userEmail = data.user.email || email
-      const { data: adminUser, error: adminErr } = await supabase
+      const {
+        data: adminRows,
+        error: adminErr,
+        status: adminStatus,
+        statusText: adminStatusText,
+      } = await supabase
         .from('admin_users')
         .select('rol, barbero_id, activo')
         .eq('email', userEmail)
         .eq('activo', true)
-        .single()
+        .limit(2)
+        .setHeader('Accept', 'application/json')
 
-      if (adminErr || !adminUser) {
+      const adminRowCount = Array.isArray(adminRows) ? adminRows.length : 0
+      console.log('[AuthDiag] admin_users after sign-in', {
+        email: userEmail,
+        rowCount: adminRowCount,
+        status: adminStatus,
+        statusText: adminStatusText,
+        errorCode: adminErr?.code ?? null,
+        errorMessage: adminErr?.message ?? null,
+      })
+
+      if (adminErr || adminRowCount !== 1) {
+        if (!adminErr && adminRowCount === 0) {
+          console.warn('[AuthDiag] No visible active admin_users row for authenticated email')
+        } else if (!adminErr && adminRowCount > 1) {
+          console.warn('[AuthDiag] Multiple active admin_users rows found for authenticated email', {
+            rowCount: adminRowCount,
+          })
+        }
         toast.error('Sin permisos de acceso. Contacta al administrador.')
         await supabase.auth.signOut()
         return
       }
+
+      const adminUser = adminRows[0]
 
       if (adminUser.rol === 'admin') {
         router.push('/admin')
@@ -55,6 +80,9 @@ function Login() {
         await supabase.auth.signOut()
       }
     } catch (err: any) {
+      console.error('[AuthDiag] Sign-in access check threw', {
+        message: err?.message ?? String(err),
+      })
       toast.error(err?.message || 'Error al iniciar sesión')
     } finally {
       setSigningIn(false)
@@ -75,14 +103,28 @@ function Login() {
       console.log('🔍 Verificando acceso para:', session.user.email)
       console.log('🆔 User ID:', session.user.id)
 
-      const { data: adminUser, error } = await supabase
+      const {
+        data: adminRows,
+        error,
+        status,
+        statusText,
+      } = await supabase
         .from('admin_users')
         .select('*')
         .eq('email', session.user.email)
         .eq('activo', true)
-        .single()
+        .limit(2)
+        .setHeader('Accept', 'application/json')
 
-      console.log('📊 Resultado de consulta:', { adminUser, error })
+      const rowCount = Array.isArray(adminRows) ? adminRows.length : 0
+      console.log('[AuthDiag] admin_users existing-session check', {
+        email: session.user.email,
+        rowCount,
+        status,
+        statusText,
+        errorCode: error?.code ?? null,
+        errorMessage: error?.message ?? null,
+      })
 
       if (error) {
         console.error('❌ Error checking user access:', error)
@@ -90,6 +132,21 @@ function Login() {
         await supabase.auth.signOut()
         return
       }
+
+      if (rowCount !== 1) {
+        if (rowCount === 0) {
+          console.warn('[AuthDiag] No visible active admin_users row for existing session')
+        } else {
+          console.warn('[AuthDiag] Multiple active admin_users rows found for existing session', {
+            rowCount,
+          })
+        }
+        toast.error('Usuario no autorizado. Contacta al administrador.')
+        await supabase.auth.signOut()
+        return
+      }
+
+      const adminUser = adminRows[0]
 
       if (adminUser) {
         console.log('✅ Usuario encontrado:', adminUser.email, 'Rol:', adminUser.rol)
@@ -108,14 +165,11 @@ function Login() {
           toast.error('Rol no reconocido. Contacta al administrador.')
           await supabase.auth.signOut()
         }
-      } else {
-        // Si no existe en admin_users, cerrar sesión
-        console.log('⚠️ Usuario no encontrado en admin_users')
-        toast.error('Usuario no autorizado. Contacta al administrador.')
-        await supabase.auth.signOut()
       }
-    } catch (error) {
-      console.error('💥 Error checking access:', error)
+    } catch (error: any) {
+      console.error('💥 Error checking access:', {
+        message: error?.message ?? String(error),
+      })
       toast.error('Error al verificar permisos. Intenta nuevamente.')
       await supabase.auth.signOut()
     }
