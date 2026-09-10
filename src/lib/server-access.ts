@@ -30,6 +30,39 @@ export class ServerAccessError extends Error {
 }
 
 /**
+ * Persist the browser's freshly-issued InsForge token on the Chamos domain
+ * before navigating away from the login page. This removes the race where
+ * the old bridge fired /api/auth/set-session without awaiting the response.
+ */
+export async function persistAppSession(
+  accessToken: string,
+  refreshToken?: string | null
+): Promise<void> {
+  const response = await fetch('/api/auth/set-session', {
+    method: 'POST',
+    credentials: 'same-origin',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      accessToken,
+      refreshToken: refreshToken || '',
+    }),
+  })
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null)
+    throw new ServerAccessError(
+      payload?.error || 'No se pudo guardar la sesión del usuario.',
+      response.status,
+      'SESSION_PERSIST_FAILED'
+    )
+  }
+}
+
+/**
  * Resolve the authenticated user's Chamos role through our own Next.js API.
  * The browser never reads admin_users/usuarios_con_permisos directly, so
  * legacy Supabase RLS policies cannot hide the migrated InsForge account.
