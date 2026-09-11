@@ -1,23 +1,6 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
-import { generateChatResponse } from '@/lib/ai-agent';
+import type { NextApiRequest, NextApiResponse } from 'next'
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-    try {
-        const response = await generateChatResponse('Hola ChamoBot, ¿estás vivo?');
-
-        return res.status(200).json({
-            success: true,
-            message: 'ChamoBot está en línea y respondiendo.',
-            aiResponse: response,
-            config: {
-                apiKeyFound: !!process.env.GOOGLE_GENERATIVE_AI_API_KEY,
-                modelUsed: 'gemini-flash-latest'
-            }
-        });
-    } catch (error: any) {
-        return res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
+// Diagnostic actions must never send notifications or incur AI usage in production.
+export default function handler(_req: NextApiRequest, res: NextApiResponse) {
+  return res.status(404).json({ error: 'Not found' })
 }

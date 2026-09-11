@@ -19,16 +19,15 @@ export default function OneSignalDebug() {
   const [isSubscribed, setIsSubscribed] = useState(false)
   const [tags, setTags] = useState<any>({})
 
-  // Solo en desarrollo
-  if (process.env.NODE_ENV !== 'development') {
-    return null
-  }
-
   useEffect(() => {
+    if (process.env.NODE_ENV !== 'development') return
     checkOneSignalStatus()
     const interval = setInterval(checkOneSignalStatus, 3000)
     return () => clearInterval(interval)
   }, [])
+
+  // Keep hook order stable while hiding the diagnostic panel in production.
+  if (process.env.NODE_ENV !== 'development') return null
 
   const checkOneSignalStatus = async () => {
     const OneSignal = (window as any).OneSignal

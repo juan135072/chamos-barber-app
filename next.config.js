@@ -48,7 +48,6 @@ const nextConfig = {
   // Variables de entorno
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'chamos-barber-secret-key-development-only',
   },
 
   // Configuración para VPS / contenedor Docker (Coolify)
@@ -84,7 +83,7 @@ const nextConfig = {
           // Permissions Policy (deshabilitar funciones no usadas)
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            value: 'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
           },
           // Content Security Policy
           {

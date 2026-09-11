@@ -14,7 +14,7 @@
 import bcrypt from 'bcryptjs'
 import { createClient as createInsforgeClient } from '@insforge/sdk'
 
-const BASE_URL = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
+const BASE_URL = process.env.INSFORGE_INTERNAL_URL || process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
 const ANON_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY
 const API_KEY = process.env.INSFORGE_API_KEY
 

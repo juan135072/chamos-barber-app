@@ -88,7 +88,7 @@ export default function ServicesSection({ servicios }: ServicesSectionProps) {
                 />
               </div>
               <div className="p-8">
-                <div className="font-mono text-[10px] mb-4" style={{ color: 'var(--tenant-primary, #d4af37)' }}>0{i + 1} // {svc.categoria.toUpperCase()}</div>
+                <div className="font-mono text-[10px] mb-4" style={{ color: 'var(--tenant-primary, #d4af37)' }}>0{i + 1}{' // '}{svc.categoria.toUpperCase()}</div>
                 <h3 className="text-xl font-bold tracking-widest uppercase mb-4 text-white">{svc.nombre}</h3>
                 <p className="text-white/40 text-xs leading-relaxed mb-8 h-12">
                   {svc.descripcion || `Servicio profesional con la calidad garantizada de ${tenant?.nombre || 'nuestra barbería'}.`}

@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/server-authorization'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
 
@@ -6,7 +7,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: 'Método no permitido' })
     }
 
-    const supabase = createPagesAdminClient()
     const { facturaId, motivo_anulacion, usuario_id, claveSeguridad } = req.body
 
     if (!facturaId) {
@@ -14,24 +14,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 0. Autenticar al usuario llamante
-        const authHeader = req.headers.authorization
-        const token = authHeader?.replace('Bearer ', '')
-        const { data: { user } } = await getUserFromBearer(token)
-
-        if (!user) {
-            return res.status(401).json({ message: 'No autenticado' })
-        }
-
-        const { data: adminUser } = await supabase
-            .from('admin_users')
-            .select('comercio_id, rol')
-            .eq('id', user.id)
-            .single()
-
-        if (!adminUser?.comercio_id) {
-            return res.status(403).json({ message: 'Sin permisos' })
-        }
+        const actor = await requireStaff(req, res, ['admin', 'cajero'])
+        if (!actor) return
+        const supabase = actor.admin
+        const adminUser = actor.access
 
         // 1. Obtener la factura y verificar que pertenece al tenant del usuario
         const { data: factura, error: facturaError } = await supabase
@@ -74,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 anulada: true,
                 fecha_anulacion: new Date().toISOString(),
                 motivo_anulacion: motivo_anulacion || 'Anulación por el cajero',
-                anulada_por: esUUIDValido ? usuario_id : null,
+                anulada_por: adminUser.id,
                 updated_at: new Date().toISOString()
             })
             .eq('id', facturaId)

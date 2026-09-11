@@ -9,6 +9,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({ status: 'active', message: 'Chatwoot Webhook is ready' });
     }
 
+    const webhookSecret = process.env.CHATWOOT_WEBHOOK_SECRET
+    if (!webhookSecret || req.headers['x-chatwoot-token'] !== webhookSecret) {
+        return res.status(401).json({ error: 'Unauthorized' })
+    }
+
     try {
         const body = req.body;
         console.log('[BOT-DEBUG] (Pages) Recibido webhook de Chatwoot:', JSON.stringify({

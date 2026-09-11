@@ -1,3 +1,4 @@
+import { applyRateLimit } from '@/lib/security/rateLimit'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
 import type { Database } from '@/lib/database.types'
@@ -21,6 +22,8 @@ export default async function handler(
   // const { applyRateLimit } = await import('../../../lib/security/rateLimit')
   // const rateLimitResult = await applyRateLimit(req, res)
   // if (!rateLimitResult.allowed) return
+
+  if (!(await applyRateLimit(req, res)).allowed) return
 
   // 🛡️ Validación mejorada
   let { telefono, comercio_id } = req.query

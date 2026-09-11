@@ -116,20 +116,12 @@ export default function MarcarAsistencia({ barberoId }: Props) {
                     longitud = position.coords.longitude
                     toast.success('✓ Ubicación obtenida', { id: 'gps' })
                 } catch (gpsError) {
-                    // ⚠️ GPS falló pero continuamos (modo pruebas)
-                    console.warn('⚠️ GPS no disponible, continuando sin ubicación:', gpsError)
                     toast.dismiss('gps')
-                    toast('⚠️ Continuando sin GPS (modo pruebas)', { icon: '📍' })
+                    throw new Error('Permite el acceso a tu ubicación para marcar asistencia')
                 }
+            } else {
+                throw new Error('Este navegador no permite obtener tu ubicación')
             }
-
-            // 🔐 PASO 2: Enviar asistencia con ubicación (o sin ella)
-            console.log('🧪 [DEBUG] Intentando marcar asistencia:', {
-                clave: clave.trim().toUpperCase(),
-                latitud,
-                longitud,
-                ubicacion_id: ubicacionId
-            })
 
             const response = await fetch('/api/asistencia/marcar', {
                 method: 'POST',

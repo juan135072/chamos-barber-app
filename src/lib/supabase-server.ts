@@ -211,7 +211,7 @@ export function createPagesAdminClient() {
     }
     const client = createInsforgeClient({
         baseUrl: BASE_URL,
-        accessToken: API_KEY,
+        edgeFunctionToken: API_KEY,
         isServerMode: true,
         autoRefreshToken: false,
     } as Parameters<typeof createInsforgeClient>[0])

@@ -1,188 +1,34 @@
-// ================================================================
-// API: Completar Cita con Cobro
-// Completa una cita y registra el cobro en el sistema
-// ================================================================
-
-import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient } from '@/lib/supabase-server'
-import { createPagesServerClient } from '@/lib/supabase-server'
-
-const supabase = createPagesAdminClient()
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { requireStaff } from '@/lib/server-authorization'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Método no permitido' })
+  if (req.method !== 'POST') return res.status(405).end()
+  const actor = await requireStaff(req, res, ['admin', 'cajero', 'barbero'])
+  if (!actor) return
+  const { cita_id, monto_cobrado, metodo_pago, notas_tecnicas, foto_resultado_url } = req.body ?? {}
+  if (typeof monto_cobrado !== 'number' || !Number.isFinite(monto_cobrado) || monto_cobrado <= 0 || monto_cobrado > 100000000 || !['efectivo', 'tarjeta', 'transferencia'].includes(metodo_pago)) {
+    return res.status(400).json({ error: 'Monto o método de pago inválido' })
   }
-
-  const supabaseAuth = createPagesServerClient(req, res)
-  const { data: { session } } = await supabaseAuth.auth.getSession()
-  if (!session) {
-    return res.status(401).json({ error: 'No autorizado' })
-  }
-
   try {
-    const { cita_id, monto_cobrado, metodo_pago, barbero_id, notas_tecnicas, foto_resultado_url } = req.body
-
-    // Validar parámetros requeridos
-    if (!cita_id || !monto_cobrado || !metodo_pago || !barbero_id) {
-      return res.status(400).json({
-        success: false,
-        error: 'Faltan parámetros requeridos'
-      })
-    }
-
-    // Validar monto
-    if (typeof monto_cobrado !== 'number' || monto_cobrado <= 0) {
-      return res.status(400).json({
-        success: false,
-        error: 'El monto debe ser un número mayor a 0'
-      })
-    }
-
-    // Validar método de pago
-    if (!['efectivo', 'tarjeta'].includes(metodo_pago)) {
-      return res.status(400).json({
-        success: false,
-        error: 'Método de pago inválido'
-      })
-    }
-
-    // 1. Obtener información completa de la cita
-    const { data: cita, error: citaError } = await supabase
-      .from('citas')
-      .select(`
-        *,
-        servicios (
-          id,
-          nombre,
-          precio,
-          categoria
-        ),
-        barberos (
-          id,
-          nombre,
-          apellido,
-          porcentaje_comision
-        )
-      `)
-      .eq('id', cita_id)
-      .single()
-
-    if (citaError || !cita) {
-      console.error('Error obteniendo cita:', citaError)
-      return res.status(404).json({
-        success: false,
-        error: 'Cita no encontrada'
-      })
-    }
-
-    // Verificar que el barbero de la cita coincide con el que hace la solicitud
-    if (cita.barbero_id !== barbero_id) {
-      return res.status(403).json({
-        success: false,
-        error: 'No tienes permisos para completar esta cita'
-      })
-    }
-
-    // Verificar que la cita no esté ya completada o cancelada
-    if (cita.estado === 'completada') {
-      return res.status(400).json({
-        success: false,
-        error: 'Esta cita ya fue completada'
-      })
-    }
-
-    if (cita.estado === 'cancelada') {
-      return res.status(400).json({
-        success: false,
-        error: 'Esta cita está cancelada'
-      })
-    }
-
-    // 2. Calcular comisión
-    const porcentaje_comision = cita.barberos?.porcentaje_comision || 50
-    const comision = Math.round(monto_cobrado * (porcentaje_comision / 100))
-
-    // 3. Actualizar estado de la cita a 'completada'
-    const { error: updateCitaError } = await supabase
-      .from('citas')
-      .update({
-        estado: 'completada',
-        notas_tecnicas: notas_tecnicas || null,
-        foto_resultado_url: foto_resultado_url || null,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', cita_id)
-
-    if (updateCitaError) {
-      console.error('Error actualizando cita:', updateCitaError)
-      return res.status(500).json({
-        success: false,
-        error: 'Error al actualizar la cita'
-      })
-    }
-
-    // Realtime: notificar pantallas suscritas (panel admin, otros barberos viendo)
-    try {
-      const { publishCitaChange } = await import('@/lib/realtime-publish')
-      await publishCitaChange(supabase, 'UPDATE', {
-        id: cita_id,
-        barbero_id: (cita as any).barbero_id,
-        comercio_id: (cita as any).comercio_id,
-        estado: 'completada',
-      })
-    } catch (rtErr) {
-      console.warn('[completar-cita] realtime publish skipped:', rtErr)
-    }
-
-    // 4. Registrar el cobro en la tabla de facturas (si existe)
-    try {
-      const { error: facturaError } = await supabase
-        .from('facturas')
-        .insert({
-          cita_id: cita_id,
-          barbero_id: barbero_id,
-          comercio_id: (cita as any).comercio_id,
-          cliente_nombre: cita.cliente_nombre,
-          servicio_nombre: cita.servicios?.nombre || 'Servicio',
-          monto_total: monto_cobrado,
-          metodo_pago: metodo_pago,
-          fecha: new Date().toISOString().split('T')[0],
-          hora: new Date().toTimeString().split(' ')[0],
-          estado: 'pagado',
-          comision_barbero: comision,
-          porcentaje_comision: porcentaje_comision,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        })
-
-      if (facturaError) {
-        console.warn('Advertencia: No se pudo crear factura:', facturaError.message)
-        // No fallar si la tabla facturas no existe, solo advertir
-      }
-    } catch (facturaErr) {
-      console.warn('Tabla facturas no disponible:', facturaErr)
-    }
-
-    // 5. Responder con éxito
-    return res.status(200).json({
-      success: true,
-      message: 'Cita completada y cobro registrado exitosamente',
-      data: {
-        cita_id,
-        monto_cobrado,
-        metodo_pago,
-        comision,
-        porcentaje_comision
-      }
-    })
-
-  } catch (error: any) {
-    console.error('Error en completar-cita-con-cobro:', error)
-    return res.status(500).json({
-      success: false,
-      error: 'Error interno del servidor',
-      details: error.message
-    })
+    const { data: cita, error } = await actor.admin.from('citas')
+      .select('*, barberos(porcentaje_comision), servicios(nombre)')
+      .eq('id', cita_id).eq('comercio_id', actor.access.comercio_id).single()
+    if (error || !cita) return res.status(404).json({ error: 'Cita no encontrada' })
+    if (actor.access.rol === 'barbero' && cita.barbero_id !== actor.access.barbero_id) return res.status(403).json({ error: 'No puedes cobrar la cita de otro barbero' })
+    const porcentaje = Number(cita.barberos?.porcentaje_comision ?? 50)
+    const comision = Math.round(monto_cobrado * porcentaje / 100)
+    const { error: saleError } = await actor.admin.rpc('app_record_sale', { p_data: {
+      cita_id, comercio_id: actor.access.comercio_id, barbero_id: cita.barbero_id,
+      created_by: actor.user.id, cajero_id: actor.access.id, cliente_nombre: cita.cliente_nombre,
+      tipo_documento: 'boleta', metodo_pago, subtotal: monto_cobrado, descuento: 0, total: monto_cobrado,
+      monto_recibido: monto_cobrado, cambio: 0, porcentaje_comision: porcentaje,
+      comision_barbero: comision, ingreso_casa: monto_cobrado - comision,
+      items: [{ servicio_id: cita.servicio_id, nombre: cita.servicios?.nombre, cantidad: 1, precio: monto_cobrado, subtotal: monto_cobrado }],
+      notas_tecnicas, foto_resultado_url,
+    } })
+    if (saleError) return res.status(409).json({ error: 'No se pudo registrar el cobro; comprueba si la cita ya fue cobrada' })
+    return res.status(200).json({ success: true, message: 'Cita completada y cobro registrado', data: { cita_id, monto_cobrado, metodo_pago, comision, porcentaje_comision: porcentaje } })
+  } catch {
+    return res.status(500).json({ error: 'No se pudo registrar el cobro' })
   }
 }

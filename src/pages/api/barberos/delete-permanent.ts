@@ -1,3 +1,4 @@
+import { requireStaff, barberFields } from '@/lib/server-authorization'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
 // API Route para eliminar barbero PERMANENTEMENTE
@@ -12,6 +13,8 @@ export default async function handler(
   }
 
   try {
+    const actor = await requireStaff(req, res, ['admin'])
+    if (!actor) return
     const { barberoId } = req.body
 
     console.log('🔍 DELETE PERMANENT REQUEST:', {
@@ -25,16 +28,18 @@ export default async function handler(
     }
 
     // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = createPagesAdminClient()
+    const supabase = actor.admin
 
     // 0. Obtener comercio_id del barbero antes de eliminar (necesario para filtros de seguridad)
     const { data: barberoData } = await supabase
       .from('barberos')
       .select('comercio_id')
       .eq('id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
       .single()
 
-    const comercioId = barberoData?.comercio_id
+    if (!barberoData) return res.status(404).json({ error: 'Barbero no encontrado' })
+    const comercioId = actor.access.comercio_id
 
     // 1. Desvincular CITAS (poner barbero_id a NULL para no perder el historial del cliente)
     console.log('🔗 Desvinculando citas del barbero:', barberoId)
@@ -42,6 +47,7 @@ export default async function handler(
       .from('citas')
       .update({ barbero_id: null })
       .eq('barbero_id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
 
     if (citasUpdateError) {
       console.warn('⚠️ Error unlink citas:', citasUpdateError)
@@ -53,6 +59,7 @@ export default async function handler(
       .from('facturas')
       .update({ barbero_id: null })
       .eq('barbero_id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
 
     if (facturasUpdateError) {
       console.warn('⚠️ Error unlink facturas:', facturasUpdateError)
@@ -74,6 +81,7 @@ export default async function handler(
         .from(table)
         .delete()
         .eq('barbero_id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
 
       if (deleteError) {
         console.warn(`⚠️ Error eliminando en ${table}:`, deleteError)
@@ -86,6 +94,7 @@ export default async function handler(
       .from('admin_users')
       .delete()
       .eq('barbero_id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
 
     if (comercioId) {
       adminDeleteQuery = adminDeleteQuery.eq('comercio_id', comercioId)
@@ -103,6 +112,7 @@ export default async function handler(
       .from('barberos')
       .delete()
       .eq('id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
       .select()
 
     if (barberoError) {

@@ -117,84 +117,28 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
         usuario_id: usuario.id
       })
 
-      // Generar número de factura
-      const numeroFactura = `FAC-${Date.now()}`
-
-      // Calcular comisiones sobre el MONTO A COBRAR (editado o no)
-      const barbero = cita.barbero
-      const porcentajeComision = barbero.porcentaje_comision || 50 // Obtener de la BD o default 50%
-
-      // LÓGICA CORRECTA:
-      // - La comisión se calcula sobre montoTotal (Monto a Cobrar)
-      // - Este puede ser el precio original O el editado (descuento/propina)
-      // - El "Monto Recibido" es solo para el cambio
-      const comisionBarbero = Math.floor(montoTotal * (porcentajeComision / 100))
-      const ingresoCasa = montoTotal - comisionBarbero
-
-      // Preparar items de la factura
-      const items = [{
-        servicio: cita.servicio.nombre,
-        precio: montoTotal,
-        cantidad: 1
-      }]
-
-      // Insertar factura directamente con el esquema correcto
-      // Schema real: numero_factura, cita_id, barbero_id, cliente_nombre, cliente_telefono,
-      // subtotal, descuento, total, metodo_pago, monto_recibido, cambio,
-      // porcentaje_comision, comision_barbero, ingreso_casa, anulada, created_by, items
-      const facturaPayload = {
-        numero_factura: numeroFactura,
-        cita_id: cita.id,
-        barbero_id: cita.barbero_id || cita.barbero?.id || null,  // Fix: null en lugar de ''
-        cliente_nombre: cita.cliente_nombre,
-        cliente_telefono: cita.cliente_telefono || null,
-        items: items,
-        subtotal: montoTotal,  // Precio del servicio (editado o no)
-        descuento: 0,
-        total: montoTotal,     // Base para la comisión
-        metodo_pago: metodoPago,
-        monto_recibido: montoTotal, // Asumimos pago exacto
-        cambio: 0,
-        porcentaje_comision: porcentajeComision,
-        comision_barbero: comisionBarbero,  // Calculado sobre montoTotal (Monto a Cobrar)
-        ingreso_casa: ingresoCasa,           // Calculado sobre montoTotal (Monto a Cobrar)
-        anulada: false,
-        created_by: usuario.id
-      }
-
-      const { data: facturaData, error: facturaError } = await (supabase as any)
-        .from('facturas')
-        .insert(facturaPayload)
-        .select()
-        .single()
-
-      if (facturaError) {
-        console.error('❌ Error al crear factura:', facturaError)
-        throw facturaError
-      }
-
-      console.log('✅ Factura creada:', facturaData)
-
-      // Actualizar estado de pago de la cita
-      const citaUpdate = {
-        estado_pago: 'pagado',
-        estado: 'completada',
-        updated_at: new Date().toISOString()
-      }
-
-      const { error: citaError } = await (supabase as any)
-        .from('citas')
-        .update(citaUpdate)
-        .eq('id', cita.id)
-
-      if (citaError) {
-        console.warn('⚠️ Error al actualizar cita:', citaError)
-      }
+      const response = await fetch('/api/pos/registrar-venta', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          cita_id: cita.id,
+          barbero_id: cita.barbero_id || cita.barbero.id,
+          cliente_nombre: cita.cliente_nombre,
+          tipo_documento: 'boleta',
+          items: [{ servicio_id: cita.servicio_id || cita.servicio.id, cantidad: 1 }],
+          monto_cobrado: montoTotal,
+          metodo_pago: metodoPago,
+          monto_recibido: montoTotal,
+        }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.message || 'No se pudo registrar el cobro')
+      const facturaData = result.factura
 
       // Guardar resultado del cobro exitoso
       setCobroExitoso({
         facturaId: facturaData.id,
-        numeroFactura: numeroFactura
+        numeroFactura: facturaData.numero_factura
       })
 
       // ✅ Refrescar POS inmediatamente (sin esperar cierre del modal)

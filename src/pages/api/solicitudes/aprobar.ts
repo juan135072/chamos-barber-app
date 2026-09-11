@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/server-authorization'
 // API Route: Aprobar Solicitud de Barbero
 // Migrado a InsForge 2026-05-12: adminCreateUser + adminDeleteUser
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -13,19 +14,22 @@ export default async function handler(
   }
 
   try {
+    const actor = await requireStaff(req, res, ['admin'])
+    if (!actor) return
     const { solicitudId } = req.body
 
     if (!solicitudId) {
       return res.status(400).json({ error: 'Faltan datos: solicitudId' })
     }
 
-    const supabaseAdmin = createPagesAdminClient()
+    const supabaseAdmin = actor.admin
 
     // PASO 0: Obtener datos de la solicitud
     const { data: solicitud, error: solicitudError } = await supabaseAdmin
       .from('solicitudes_barberos')
       .select('email, nombre, apellido')
       .eq('id', solicitudId)
+      .eq('comercio_id', actor.access.comercio_id)
       .single()
 
     if (solicitudError || !solicitud) {

@@ -1,3 +1,4 @@
+import { requireStaff } from '@/lib/server-authorization'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
 
@@ -6,7 +7,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(405).json({ message: 'Método no permitido' })
     }
 
-    const supabase = createPagesAdminClient()
     const { facturaId, nuevoBarberoId, nuevoServicioId, nuevoMetodoPago, claveSeguridad } = req.body
 
     if (!facturaId) {
@@ -14,24 +14,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-        // 0. Autenticar al usuario llamante
-        const authHeader = req.headers.authorization
-        const token = authHeader?.replace('Bearer ', '')
-        const { data: { user } } = await getUserFromBearer(token)
-
-        if (!user) {
-            return res.status(401).json({ message: 'No autenticado' })
-        }
-
-        const { data: adminUser } = await supabase
-            .from('admin_users')
-            .select('comercio_id')
-            .eq('id', user.id)
-            .single()
-
-        if (!adminUser?.comercio_id) {
-            return res.status(403).json({ message: 'Sin permisos' })
-        }
+        const actor = await requireStaff(req, res, ['admin', 'cajero'])
+        if (!actor) return
+        const supabase = actor.admin
+        const adminUser = actor.access
 
         // 1. Obtener datos de la factura original y verificar tenant
         const { data: factura, error: facturaError } = await supabase
@@ -71,10 +57,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from('barberos')
                 .select('porcentaje_comision')
                 .eq('id', nuevoBarberoId)
+                .eq('comercio_id', adminUser.comercio_id)
                 .single()
 
-            if (!barberoError && barbero) {
-                porcentajeComision = barbero.porcentaje_comision || 50
+            if (barberoError || !barbero) return res.status(400).json({ message: 'Barbero no disponible en este comercio' })
+            if (barbero) {
+                porcentajeComision = barbero.porcentaje_comision ?? 50
             }
         }
 
@@ -84,9 +72,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .from('servicios')
                 .select('nombre, precio')
                 .eq('id', nuevoServicioId)
+                .eq('comercio_id', adminUser.comercio_id)
                 .single()
 
-            if (!servicioError && servicio) {
+            if (servicioError || !servicio) return res.status(400).json({ message: 'Servicio no disponible en este comercio' })
+            if (servicio) {
                 total = servicio.precio
                 // Actualizar el primer item (asumimos que es el servicio principal)
                 if (items.length > 0) {

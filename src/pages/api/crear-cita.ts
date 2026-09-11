@@ -1,3 +1,5 @@
+import { validateBookingInput, appointmentDuration, localWallTimestamp } from '@/lib/booking-validation'
+import { applyRateLimit } from '@/lib/security/rateLimit'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
 import type { Database } from '@/lib/database.types'
@@ -23,11 +25,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // 🛡️ Rate Limiting está implementado en src/lib/security/rateLimit.ts
-  // Para activarlo, descomentar:
-  // const { applyRateLimit } = await import('../../../lib/security/rateLimit')
-  // const rateLimitResult = await applyRateLimit(req, res)
-  // if (!rateLimitResult.allowed) return
+  if (!(await applyRateLimit(req, res)).allowed) return
+  const invalidInput = validateBookingInput(req.body)
+  if (invalidInput) return res.status(400).json({ error: invalidInput })
 
   try {
     devLog('🔵 [crear-cita] Creating Supabase client...')
@@ -56,6 +56,7 @@ export default async function handler(
       .eq('id', citaData.barbero_id)
       .single()
     const comercioId = (barberoTenant as any)?.comercio_id
+    if (!comercioId) return res.status(400).json({ error: 'Barbero no disponible' })
 
     // Obtener fecha y hora actual en Santiago de Chile
     const { getChileAhora, getChileHoy } = await import('../../lib/date-utils');
@@ -74,6 +75,7 @@ export default async function handler(
 
     if (errorActivas) {
       console.error('❌ [crear-cita] Error checking active appointments:', errorActivas)
+      return res.status(503).json({ error: 'No se pudo verificar la disponibilidad' })
     } else {
       devLog('✅ [crear-cita] Active future appointments:', citasActivasFuturas?.length || 0)
     }
@@ -138,11 +140,11 @@ export default async function handler(
     // IMPORTANTE: Sumar duración por cada ocurrencia en el array serviciosIds
     const totalServiciosMinutos = serviciosIds.reduce((sum: number, id: string) => {
       const s = servMap.get(id)
-      return sum + (s?.duracion_minutos || 30)
+      return sum + (s?.duracion_minutos ?? 30)
     }, 0)
 
     // Usamos el buffer máximo de los servicios seleccionados como margen de limpieza final
-    const tiempoBuffer = (serviciosData as any[]).reduce((max: number, s: any) => Math.max(max, s.tiempo_buffer || 5), 0)
+    const tiempoBuffer = (serviciosData as any[]).reduce((max: number, s: any) => Math.max(max, s.tiempo_buffer ?? 5), 0)
 
     const duracionNuevaCita = totalServiciosMinutos + tiempoBuffer
     const [hStart, mStart] = citaData.hora.split(':').map(Number)
@@ -153,7 +155,7 @@ export default async function handler(
 
     // 4. Verificar Horario de Atención (horarios_atencion)
     const diaSemana = new Date(citaData.fecha + 'T12:00:00').getDay()
-    const { data: horarioAtencion } = await supabase
+    const { data: horarioAtencion, error: horarioError } = await supabase
       .from('horarios_atencion')
       .select('hora_inicio, hora_fin, activo')
       .eq('barbero_id', citaData.barbero_id)
@@ -161,6 +163,7 @@ export default async function handler(
       .eq('activo', true)
       .single()
 
+    if (horarioError || !horarioAtencion) return res.status(400).json({ error: 'El barbero no atiende ese día', code: 'FUERA_DE_HORARIO' })
     if (horarioAtencion) {
       const hAtStartStr = (horarioAtencion as any).hora_inicio
       const hAtEndStr = (horarioAtencion as any).hora_fin
@@ -178,19 +181,22 @@ export default async function handler(
     }
 
     // 5. Verificar Solapamientos con Citas Existentes (Rango)
-    const { data: citasDelDia } = await supabase
+    const { data: citasDelDia, error: citasError } = await supabase
       .from('citas')
-      .select('id, hora, notas, servicio_id')
+      .select('id, hora, items, servicio_id')
       .eq('barbero_id', citaData.barbero_id)
       .eq('fecha', citaData.fecha)
       .in('estado', ['pendiente', 'confirmada'])
 
+    if (citasError) return res.status(503).json({ error: 'No se pudo verificar la disponibilidad' })
+
     // Obtener servicios del tenant para validar duraciones exactas de citas existentes
-    const { data: allServices } = await supabase
+    const { data: allServices, error: servicesError } = await supabase
       .from('servicios')
       .select('id, duracion_minutos, tiempo_buffer')
       .eq('comercio_id', comercioId)
 
+    if (servicesError) return res.status(503).json({ error: 'No se pudieron comprobar los servicios' })
     const servicesMap = new Map<string, any>(allServices?.map((s: any) => [s.id, s]) || [])
 
     for (const cita of (citasDelDia || [])) {
@@ -198,13 +204,7 @@ export default async function handler(
       const [hCita, mCita] = citaAny.hora.split(':').map(Number)
       const minCitaInicio = hCita * 60 + mCita
 
-      let duracionExistente = 30
-      if (citaAny.notas && citaAny.notas.includes('[SERVICIOS SOLICITADOS:')) {
-        duracionExistente = 60 + 5 // Estimación con buffer
-      } else {
-        const sInfo = servicesMap.get(citaAny.servicio_id)
-        duracionExistente = (sInfo?.duracion_minutos || 30) + (sInfo?.tiempo_buffer || 5)
-      }
+      const duracionExistente = appointmentDuration(citaAny, servicesMap)
 
       const minCitaFin = minCitaInicio + duracionExistente
 
@@ -217,28 +217,19 @@ export default async function handler(
     }
 
     // 6. Verificar Solapamientos con Horarios Bloqueados (Descansos, etc)
-    const { data: bloqueos } = await supabase
+    const { data: bloqueos, error: bloqueosError } = await supabase
       .from('horarios_bloqueados')
       .select('fecha_hora_inicio, fecha_hora_fin')
       .eq('barbero_id', citaData.barbero_id)
 
-    const bloqueosDelDia = (bloqueos || []).filter((b: any) => {
-      const inicio = new Date((b as any).fecha_hora_inicio)
-      return inicio.toISOString().split('T')[0] === citaData.fecha
-    })
-
-    for (const bloqueo of bloqueosDelDia) {
-      const bAny = bloqueo as any
-      const dInicio = new Date(bAny.fecha_hora_inicio)
-      const dFin = new Date(bAny.fecha_hora_fin)
-      const minBlInicio = dInicio.getHours() * 60 + dInicio.getMinutes()
-      const minBlFin = dFin.getHours() * 60 + dFin.getMinutes()
-
-      if (totalMinutosInicio < minBlFin && totalMinutosFin > minBlInicio) {
-        return res.status(409).json({
-          error: '⚠️ El barbero tiene este horario bloqueado (descanso o compromiso).',
-          code: 'HORARIO_BLOQUEADO'
-        })
+    if (bloqueosError) return res.status(503).json({ error: 'No se pudieron comprobar los bloqueos' })
+    const reservationStart = Date.parse(`${citaData.fecha}T${citaData.hora}:00Z`)
+    const reservationEnd = reservationStart + duracionNuevaCita * 60000
+    for (const bloqueo of (bloqueos || [])) {
+      const start = localWallTimestamp(new Date((bloqueo as any).fecha_hora_inicio), 'America/Santiago')
+      const end = localWallTimestamp(new Date((bloqueo as any).fecha_hora_fin), 'America/Santiago')
+      if (reservationStart < end && reservationEnd > start) {
+        return res.status(409).json({ error: 'El barbero tiene este horario bloqueado', code: 'HORARIO_BLOQUEADO' })
       }
     }
 
@@ -261,13 +252,15 @@ export default async function handler(
       return acc
     }, {} as Record<string, number>)
 
-    const items = citaData.items || Object.entries(counts).map(([id, quantity]) => {
+    const items = Object.entries(counts).map(([id, quantity]) => {
       const s = servMap.get(id)
       return {
         servicio_id: id,
         nombre: s?.nombre || 'Servicio',
         precio: s?.precio || 0,
         cantidad: quantity,
+        duracion_minutos: s?.duracion_minutos ?? 30,
+        tiempo_buffer: s?.tiempo_buffer ?? 5,
         subtotal: (s?.precio || 0) * quantity
       }
     })
@@ -291,9 +284,9 @@ export default async function handler(
       cliente_telefono: citaData.cliente_telefono,
       cliente_email: citaData.cliente_email || null,
       notas: notasCompletas || null,
-      estado: citaData.estado || 'pendiente',
+      estado: 'pendiente',
       items: items,
-      precio_final: citaData.precio_final || totalCalculado
+      precio_final: totalCalculado
     }
 
     devLog('💾 [crear-cita] Inserting appointment...')
@@ -308,7 +301,7 @@ export default async function handler(
       console.error('❌ [crear-cita] Error inserting appointment:', insertError)
 
       // Manejar error de constraint único (race condition)
-      if (insertError.code === '23505') {
+      if (['23505', '23P01'].includes(insertError.code)) {
         return res.status(409).json({
           error: '⚠️ Este horario fue reservado mientras completabas el formulario. Por favor selecciona otro horario.',
           code: 'RACE_CONDITION'
@@ -365,18 +358,6 @@ export default async function handler(
     //   logApiError('/api/crear-cita', 'POST', error, clientIp as string)
     // }
 
-    // Manejo de error más detallado
-    let errorMessage = 'Error interno del servidor'
-    let errorDetails = 'Unknown error'
-
-    if (error instanceof Error) {
-      errorMessage = error.message
-      errorDetails = error.stack || error.message
-    }
-
-    return res.status(500).json({
-      error: errorMessage,
-      details: errorDetails
-    })
+    return res.status(500).json({ error: 'Error interno al crear la cita' })
   }
 }

@@ -1,3 +1,4 @@
+import { requireStaff, barberFields } from '@/lib/server-authorization'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
 // API Route para desactivar/activar barbero (soft delete)
@@ -12,6 +13,8 @@ export default async function handler(
   }
 
   try {
+    const actor = await requireStaff(req, res, ['admin'])
+    if (!actor) return
     const { barberoId, activo } = req.body
 
     console.log('🔍 TOGGLE ACTIVE REQUEST:', {
@@ -30,7 +33,7 @@ export default async function handler(
     }
 
     // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = createPagesAdminClient()
+    const supabase = actor.admin
 
     // Actualizar estado del barbero (soft delete)
     console.log(`🔄 Actualizando barbero id: ${barberoId} a activo: ${activo}`)
@@ -38,6 +41,7 @@ export default async function handler(
       .from('barberos')
       .update({ activo })
       .eq('id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
       .select()
       .single()
 
@@ -58,6 +62,7 @@ export default async function handler(
         .from('admin_users')
         .update({ activo })
         .eq('barbero_id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
         .select()
       
       console.log('✅ Admin_users actualizado:', updatedAdmin)
