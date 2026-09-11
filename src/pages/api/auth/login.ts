@@ -2,7 +2,7 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 import { createClient as createInsforgeClient } from '@insforge/sdk'
 import { setAuthCookies } from '@/lib/supabase-server'
 
-const BASE_URL = process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
+const BASE_URL = process.env.INSFORGE_INTERNAL_URL || process.env.NEXT_PUBLIC_INSFORGE_BASE_URL
 const ANON_KEY = process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {

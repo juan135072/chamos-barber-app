@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesServerClient } from '@/lib/supabase-server'
+import { createPagesServerClient, createPagesAdminClient } from '@/lib/supabase-server'
 
 /**
  * =====================================================
@@ -21,7 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ubicacion_id
         })
 
-        if (!clave || typeof clave !== 'string') {
+        if (!clave || typeof clave !== 'string' || !/^[a-zA-Z0-9 -]{3,40}$/.test(clave)) {
             return res.status(400).json({ error: 'Clave requerida' })
         }
 
@@ -29,7 +29,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const supabase = createPagesServerClient(req, res)
 
         // 1. Verificar autenticación
-        const { data: { user }, error: authError } = await supabase.auth.getUser()
+        const { data: { session }, error: authError } = await supabase.auth.getSession()
+        const user = session?.user
 
         if (authError || !user) {
             console.error('❌ [marcar-asistencia] No autenticado. Error:', authError)
@@ -134,30 +135,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(403).json({ error: 'La clave ingresada es incorrecta o ha expirado' })
         }
 
-        // 🌍 5. Validar Geolocalización (GPS)
-        // ⚠️ TEMPORALMENTE DESACTIVADO PARA PRUEBAS - REACTIVAR EN PRODUCCIÓN
-        /*
-        if (!latitud || !longitud || !ubicacion_id) {
-            return res.status(400).json({
-                error: 'Se requiere información de ubicación (GPS) para marcar asistencia'
-            })
+        if (typeof latitud !== 'number' || !Number.isFinite(latitud) || Math.abs(latitud)>90 ||
+            typeof longitud !== 'number' || !Number.isFinite(longitud) || Math.abs(longitud)>180 || !ubicacion_id) {
+            return res.status(400).json({ error: 'Activa tu ubicación GPS para marcar asistencia' })
         }
-
-        const { data: ubicacionValida, error: gpsError } = await supabase
-            .rpc('ubicacion_es_valida', {
-                p_latitud: latitud,
-                p_longitud: longitud,
-                p_ubicacion_id: ubicacion_id
-            })
-
-        if (gpsError || !ubicacionValida) {
-            console.error('❌ [GPS] Error o ubicación fuera de rango:', gpsError)
-            return res.status(403).json({
-                error: 'No estás en la zona permitida de la barbería para marcar asistencia'
-            })
+        const { data: gpsRows, error: gpsError } = await supabase.rpc('ubicacion_es_valida', {
+            p_latitud: latitud, p_longitud: longitud, p_ubicacion_id: ubicacion_id,
+        })
+        if (gpsError || !Array.isArray(gpsRows) || gpsRows[0]?.es_valida !== true) {
+            return res.status(403).json({ error: 'No estás en la zona permitida de la barbería' })
         }
-        */
-        console.log('⚠️ [GPS] Validación GPS DESACTIVADA temporalmente para pruebas')
 
         // Obtener la distancia para registrarla (metadatos) - solo si hay coordenadas
         let infoDistancia = null
@@ -206,7 +193,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const dispositivo = req.headers['user-agent'] || 'Desconocido'
 
         // 7. Registrar Asistencia (CON comercio_id)
-        const { data: nuevaAsistencia, error: insertError } = await supabase
+        const { data: nuevaAsistencia, error: insertError } = await createPagesAdminClient()
             .from('asistencias')
             .insert({
                 barbero_id: realBarberoId,
@@ -217,8 +204,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 estado: estado,
                 dispositivo: dispositivo,
                 ip_address: typeof ipAddress === 'string' ? ipAddress : null,
-                latitud_registrada: latitud || null,
-                longitud_registrada: longitud || null,
+                latitud_registrada: latitud,
+                longitud_registrada: longitud,
                 distancia_metros: typeof infoDistancia === 'number' ? infoDistancia : null,
                 ubicacion_barberia_id: ubicacion_id || null
             })

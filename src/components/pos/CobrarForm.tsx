@@ -293,7 +293,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
       // REGISTRAR VENTA EN LA SESIÓN DE CAJA
       if (sesionCaja && registrarVentaCaja) {
-        await registrarVentaCaja(total, factura.id, metodoPago)
+        await registrarVentaCaja(Number(factura.total), factura.id, metodoPago)
       }
 
       // Éxito
@@ -321,26 +321,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
         }
       }
 
-      // Descontar stock de productos vendidos
-      const productosEnCarrito = carrito.filter(item => item.tipo === 'producto' && item.producto_id)
-      for (const item of productosEnCarrito) {
-        try {
-          await fetch('/api/inventario/movimientos', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              producto_id: item.producto_id,
-              tipo: 'salida',
-              cantidad: item.cantidad,
-              motivo: `Venta POS - Factura ${factura.numero_factura}`,
-            }),
-          })
-        } catch (e) {
-          console.warn('Error descontando stock:', e)
-        }
-      }
+      // Stock and invoice are committed together by the server.
 
       // Limpiar y resetear
       setClienteNombre('')

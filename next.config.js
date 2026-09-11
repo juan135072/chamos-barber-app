@@ -48,7 +48,6 @@ const nextConfig = {
   // Variables de entorno
   env: {
     NEXTAUTH_URL: process.env.NEXTAUTH_URL || 'http://localhost:3000',
-    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || 'chamos-barber-secret-key-development-only',
   },
 
   // Configuración para VPS / contenedor Docker (Coolify)
@@ -84,7 +83,7 @@ const nextConfig = {
           // Permissions Policy (deshabilitar funciones no usadas)
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=(), interest-cohort=()',
+            value: 'camera=(), microphone=(), geolocation=(self), interest-cohort=()',
           },
           // Content Security Policy
           {
@@ -112,6 +111,9 @@ const nextConfig = {
   // Redirects para mantener compatibilidad con URLs antiguas
   async redirects() {
     return [
+      { source: '/login', destination: '/chamos-acceso', permanent: true },
+      { source: '/consultar-citas', destination: '/consultar', permanent: true },
+      { source: '/barbero', destination: '/barbero-panel', permanent: true },
       {
         source: '/index.html',
         destination: '/',
@@ -129,12 +131,12 @@ const nextConfig = {
       },
       {
         source: '/consultar-citas.html',
-        destination: '/consultar-citas',
+        destination: '/consultar',
         permanent: true,
       },
       {
         source: '/barbero.html',
-        destination: '/barbero',
+        destination: '/barbero-panel',
         permanent: true,
       },
       {
@@ -144,7 +146,7 @@ const nextConfig = {
       },
       {
         source: '/login.html',
-        destination: '/login',
+        destination: '/chamos-acceso',
         permanent: true,
       },
     ];

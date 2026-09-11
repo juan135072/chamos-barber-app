@@ -19,11 +19,9 @@ interface UseCitasReturn {
   refetch: () => Promise<void>
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function useCitas(options: UseCitasOptions = {}): { citas: any[]; loading: boolean; error: string | null; refetch: () => Promise<void> } {
   const { filters, autoFetch = true } = options
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [citas, setCitas] = useState<any[]>([])
   const [loading, setLoading] = useState(autoFetch)
   const [error, setError] = useState<string | null>(null)

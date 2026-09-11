@@ -1,3 +1,4 @@
+import { requireStaff, barberFields } from '@/lib/server-authorization'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
 import { createPagesServerClient } from '@/lib/supabase-server'
@@ -10,13 +11,9 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  const supabaseAuth = createPagesServerClient(req, res)
-  const { data: { session } } = await supabaseAuth.auth.getSession()
-  if (!session) {
-    return res.status(401).json({ error: 'No autorizado' })
-  }
-
   try {
+    const actor = await requireStaff(req, res, ['admin'])
+    if (!actor) return
     const barberoData = req.body
 
     console.log('🎯 CREATE BARBERO REQUEST:', {
@@ -30,13 +27,13 @@ export default async function handler(
     }
 
     // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = createPagesAdminClient()
+    const supabase = actor.admin
 
     // Crear barbero
     console.log('💾 Insertando barbero en base de datos...')
     const { data: barbero, error: barberoError } = await supabase
       .from('barberos')
-      .insert([barberoData])
+      .insert([{ ...barberFields(barberoData), comercio_id: actor.access.comercio_id }])
       .select()
       .single()
 

@@ -27,7 +27,7 @@ setInterval(() => {
       requestStore.delete(key)
     }
   }
-}, 10 * 60 * 1000) // 10 minutos
+}, 10 * 60 * 1000).unref() // Do not keep tests/build workers alive.
 
 /**
  * Configuración de rate limit por endpoint

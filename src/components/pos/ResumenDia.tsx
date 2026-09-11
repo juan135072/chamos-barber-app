@@ -86,7 +86,6 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
 
       // Calcular totales
       const totalVentas = facturas?.length || 0
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const sumField = (arr: any[], getVal: (f: any) => number) =>
         (arr ?? []).reduce((sum: number, f: any) => sum + getVal(f), 0)
 

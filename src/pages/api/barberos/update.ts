@@ -1,3 +1,4 @@
+import { requireStaff, barberFields } from '@/lib/server-authorization'
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
 // API Route para actualizar barbero
@@ -12,7 +13,14 @@ export default async function handler(
   }
 
   try {
+    const actor = await requireStaff(req, res, ['admin', 'barbero'])
+    if (!actor) return
     const { barberoId, updates } = req.body
+    if (actor.access.rol === 'barbero' && barberoId !== actor.access.barbero_id) {
+      return res.status(403).json({ error: 'Solo puedes editar tu perfil' })
+    }
+    const allowedUpdates = actor.access.rol === 'admin' ? barberFields(updates) :
+      Object.fromEntries(Object.entries(updates ?? {}).filter(([key]) => ['telefono', 'instagram', 'descripcion', 'imagen_url'].includes(key)))
 
     console.log('🎯 UPDATE BARBERO REQUEST:', {
       barberoId,
@@ -28,14 +36,15 @@ export default async function handler(
     }
 
     // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = createPagesAdminClient()
+    const supabase = actor.admin
 
     // Actualizar barbero
     console.log('💾 Actualizando barbero en base de datos...')
     const { data: barbero, error: barberoError } = await supabase
       .from('barberos')
-      .update({ ...updates, updated_at: new Date().toISOString() })
+      .update({ ...allowedUpdates, updated_at: new Date().toISOString() })
       .eq('id', barberoId)
+      .eq('comercio_id', actor.access.comercio_id)
       .select()
       .single()
 

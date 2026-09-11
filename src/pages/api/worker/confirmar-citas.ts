@@ -8,7 +8,7 @@ const supabase = createPagesAdminClient();
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     // Protección del worker — requerir secret key
-    if (req.headers['x-api-key'] !== process.env.WORKER_SECRET_KEY) {
+    if (!process.env.WORKER_SECRET_KEY || req.headers['x-api-key'] !== process.env.WORKER_SECRET_KEY) {
         return res.status(401).json({ error: 'Unauthorized' })
     }
 

@@ -12,6 +12,14 @@ function sessionFromMemory(): any | null {
 
     if (!nativeSession?.accessToken || !nativeSession?.user) return null
 
+    // Memory can outlive the 15-minute access token. Restore through the app
+    // server before reusing an expired token (the refresh cookie stays httpOnly).
+    try {
+        const part = nativeSession.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+        const payload = JSON.parse(atob(part))
+        if (!payload.exp || payload.exp * 1000 <= Date.now() + 30000) return null
+    } catch { return null }
+
     return {
         user: nativeSession.user,
         access_token: nativeSession.accessToken,

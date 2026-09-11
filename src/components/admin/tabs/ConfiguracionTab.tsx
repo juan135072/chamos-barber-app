@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import toast from 'react-hot-toast'
+import { getAppSession } from '@/lib/app-session'
+import { validateSettings } from '@/lib/settings-validation'
 
 interface ConfigItem {
   clave: string
@@ -30,7 +32,8 @@ const ConfiguracionTab: React.FC = () => {
     { clave: 'horario_cierre', label: 'Hora Cierre Lun–Vie', tipo: 'time', placeholder: '20:30', icon: 'fas fa-clock' },
     { clave: 'horario_sabado_apertura', label: 'Hora Apertura Sábado', tipo: 'time', placeholder: '10:00', icon: 'fas fa-clock' },
     { clave: 'horario_sabado_cierre', label: 'Hora Cierre Sábado', tipo: 'time', placeholder: '21:00', icon: 'fas fa-clock' },
-    { clave: 'horario_domingo', label: 'Horario Domingo (dejar vacío = Cerrado)', tipo: 'texto', placeholder: 'Cerrado', icon: 'fas fa-clock' },
+    { clave: 'horario_domingo_apertura', label: 'Hora Apertura Domingo', tipo: 'time', placeholder: '10:30', icon: 'fas fa-clock' },
+    { clave: 'horario_domingo_cierre', label: 'Hora Cierre Domingo', tipo: 'time', placeholder: '20:00', icon: 'fas fa-clock' },
     { clave: 'intervalo_citas', label: 'Intervalo Citas (Minutos)', tipo: 'number', placeholder: '30', icon: 'fas fa-stopwatch' },
     { clave: 'sitio_moneda', label: 'Moneda del Sistema (ej. CLP, USD)', tipo: 'texto', placeholder: 'CLP', icon: 'fas fa-money-bill' }
   ]
@@ -51,6 +54,11 @@ const ConfiguracionTab: React.FC = () => {
           configMap[item.clave] = item.valor || ''
         })
       }
+      for (const prefix of ['horario_sabado', 'horario_domingo']) {
+        configMap[`${prefix}_apertura`] ||= configMap.horario_apertura || '10:30'
+        configMap[`${prefix}_cierre`] ||= configMap.horario_cierre || '20:00'
+      }
+      configMap.horario_domingo_activo ||= 'false'
       setConfig(configMap)
     } catch (error) {
       console.error('Error loading data:', error)
@@ -68,15 +76,19 @@ const ConfiguracionTab: React.FC = () => {
     try {
       setSaving(true)
 
-      // Guardar Configuración General
-      for (const item of configItems) {
-        const valor = config[item.clave] || ''
-        await chamosSupabase.updateConfiguracion(item.clave, valor)
-      }
-
-      // Guardar Timezone (si se cambió)
-      const timezone = config['sitio_timezone'] || 'America/Santiago'
-      await chamosSupabase.updateConfiguracion('sitio_timezone', timezone)
+      const values = Object.fromEntries(configItems.map(item => [item.clave, config[item.clave] || '']))
+      values.sitio_timezone = config.sitio_timezone || 'America/Santiago'
+      values.horario_domingo_activo = config.horario_domingo_activo || 'false'
+      const invalid = validateSettings(values)
+      if (invalid) throw new Error(invalid)
+      const session = await getAppSession()
+      if (!session) throw new Error('Inicia sesión nuevamente')
+      const response = await fetch('/api/admin/configuracion', {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify(values),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Error al guardar configuración')
 
       toast.success('Configuración guardada exitosamente')
     } catch (error: any) {
@@ -102,7 +114,7 @@ const ConfiguracionTab: React.FC = () => {
         {item.label}
       </label>
       <input
-        type={item.tipo === 'url' ? 'text' : item.tipo}
+        type={item.clave === 'pos_clave_seguridad' ? 'password' : item.tipo === 'url' || item.tipo === 'texto' ? 'text' : item.tipo}
         value={config[item.clave] || ''}
         onChange={(e) => handleChange(item.clave, e.target.value)}
         placeholder={item.placeholder}
@@ -271,12 +283,17 @@ const ConfiguracionTab: React.FC = () => {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {configItems.slice(9, 12).map(renderInput)}
+            {configItems.slice(9).map(renderInput)}
+            <label className="flex items-center gap-3">
+              <input type="checkbox" checked={config.horario_domingo_activo === 'true'}
+                onChange={e => handleChange('horario_domingo_activo', String(e.target.checked))} />
+              Abrir los domingos
+            </label>
           </div>
           <div className="flex items-start p-3 rounded-lg mt-6" style={{ backgroundColor: 'rgba(16, 185, 129, 0.05)', border: '1px dashed #10B981' }}>
             <i className="fas fa-info-circle mr-2 mt-0.5" style={{ color: '#10B981' }}></i>
             <p className="text-[11px]" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-              <strong>Nota sobre Horarios:</strong> El sistema de agendamiento permitirá reservas dentro de este rango base. Si un barbero tiene un horario de trabajo más acotado (ej. entra más tarde), prevalecerá el horario del barbero.
+              <strong>Nota sobre Horarios:</strong> Al guardar, estos horarios se aplican a todos los barberos. Los días de descanso, pausas y bloqueos de cada barbero se conservan. Puedes modificarlos en Horarios.
             </p>
           </div>
         </div>

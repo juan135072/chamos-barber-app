@@ -1,3 +1,4 @@
+import { requireStaff, barberFields } from '@/lib/server-authorization'
 // API Route: Crear Barbero con Cuenta de Usuario desde Admin
 // Migrado a InsForge 2026-05-12: adminGetUserById / adminCreateUser / adminDeleteUser
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -13,9 +14,11 @@ export default async function handler(
   }
 
   try {
-    const { barberoData, crearCuenta, adminId } = req.body
+    const actor = await requireStaff(req, res, ['admin'])
+    if (!actor) return
+    const { barberoData, crearCuenta } = req.body
 
-    if (!barberoData || !adminId) {
+    if (!barberoData) {
       return res.status(400).json({ error: 'Faltan datos requeridos' })
     }
 
@@ -24,33 +27,12 @@ export default async function handler(
       crearCuenta
     })
 
-    const supabaseAdmin = createPagesAdminClient()
-
-    // PASO 0: Verificar que el solicitante existe y es admin
-    const { data: authData, error: authError } = await adminGetUserById(adminId)
-
-    if (authError || !authData.user) {
-      return res.status(403).json({ error: 'No se pudo verificar tu identidad' })
-    }
-
-    const { data: adminUser, error: adminError } = await supabaseAdmin
-      .from('admin_users')
-      .select('id, rol')
-      .eq('id', adminId)
-      .single()
-
-    if (adminError || !adminUser || adminUser.rol !== 'admin') {
-      return res.status(403).json({
-        error: 'No tienes permisos para realizar esta acción'
-      })
-    }
-
-    console.log('✅ [Crear Barbero] Admin verificado:', authData.user.email)
+    const supabaseAdmin = actor.admin
 
     // PASO 1: Crear barbero
     const { data: nuevoBarbero, error: barberoError } = await supabaseAdmin
       .from('barberos')
-      .insert([barberoData])
+      .insert([{ ...barberFields(barberoData), comercio_id: actor.access.comercio_id }])
       .select()
       .single()
 
@@ -97,6 +79,7 @@ export default async function handler(
             nombre: `${barberoData.nombre} ${barberoData.apellido}`,
             rol: 'barbero',
             barbero_id: nuevoBarbero.id,
+            comercio_id: actor.access.comercio_id,
             activo: true
           })
 

@@ -7,7 +7,6 @@ const devLog = (...args: unknown[]) => {
 
 // Alias sin tipo estricto para operaciones sobre tablas no presentes en los tipos
 // generados (cierres_caja, caja_sesiones, movimientos_caja) o RPCs no tipados.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any
 
 // Tipos de base de datos

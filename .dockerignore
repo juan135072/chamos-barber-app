@@ -28,6 +28,9 @@ Thumbs.db
 # Environment files (secrets)
 .env*.local
 .env.production.local
+.env
+.env.production
+.env.development
 
 # Test files
 **/*.test.ts
