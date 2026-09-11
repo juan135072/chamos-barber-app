@@ -1,10 +1,11 @@
-import { useState, useEffect, useReducer } from 'react'
+import { useState, useEffect, useReducer, useRef } from 'react'
 import { supabase, UsuarioConPermisos, Database } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { Clock, User, Scissors } from 'lucide-react'
 import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
+import { posRequest } from '@/lib/pos-client'
 import { useBarberos } from '@/hooks/useBarberos'
 import { useServicios } from '@/hooks/useServicios'
 
@@ -114,6 +115,8 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
   const [cargandoAdicional, setCargandoAdicional] = useState(true)
   const cargando = cargandoBarberos || cargandoServicios || cargandoAdicional
   const [subPaso2, setSubPaso2] = useState<'servicios' | 'productos'>('servicios')
+  const requestId = useRef<string | null>(null)
+  const submitting = useRef(false)
   const [guardando, setGuardando] = useState(false)
   const formatCurrency = useFormatCurrency()
 
@@ -173,34 +176,9 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
     const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
 
-    try {
-      const { data, error } = await (supabase as any)
-        .rpc('calcular_comisiones_factura', {
-          p_barbero_id: barberoId,
-          p_total: total
-        })
-
-      if (error) throw error
-
-      if (data && data.length > 0) {
-        const comision = data[0]
-        setComisionInfo({
-          porcentaje: parseFloat(comision.porcentaje),
-          comisionBarbero: parseFloat(comision.comision_barbero),
-          ingresoCasa: parseFloat(comision.ingreso_casa)
-        })
-      }
-    } catch (error) {
-      console.error('Error calculando comisión:', error)
-      // Usar valores por defecto si falla el RPC
-      const comisionBarbero = total * 0.5
-      const ingresoCasa = total * 0.5
-      setComisionInfo({
-        porcentaje: 50,
-        comisionBarbero,
-        ingresoCasa
-      })
-    }
+    const porcentaje = Number(barberos.find(b => b.id === barberoId)?.porcentaje_comision ?? 50)
+    const comisionBarbero = Math.round(total * porcentaje / 100)
+    setComisionInfo({ porcentaje, comisionBarbero, ingresoCasa: total - comisionBarbero })
   }
 
   const agregarAlCarrito = (servicioId: string) => {
@@ -227,6 +205,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     setBarberoId(cita.barbero_id)
     setClienteNombre(cita.cliente_nombre || '')
     setCitaId(cita.id)
+    dispatch({ type: 'RESET' })
 
     if (cita.items && cita.items.length > 0) {
       dispatch({ type: 'LOAD_FROM_CITA', items: cita.items })
@@ -240,6 +219,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
 
   const handleCobrar = async () => {
+    if (submitting.current) return
     // Validaciones
     if (!barberoId) {
       toast.error('Selecciona un barbero')
@@ -259,100 +239,88 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
     const total = carrito.reduce((sum, item) => sum + item.subtotal, 0)
 
     try {
+      submitting.current = true
       setGuardando(true)
 
-      const res = await fetch('/api/pos/registrar-venta', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          barbero_id: barberoId,
-          cliente_nombre: clienteNombre.trim() || 'Consumidor Final',
-          cliente_rut: tipoDocumento === 'factura' ? rut.trim() : null,
-          tipo_documento: tipoDocumento,
-          items: carrito,
-          subtotal: total,
-          total: total,
-          metodo_pago: metodoPago,
-          monto_recibido: montoRecibido ? parseFloat(montoRecibido) : total,
-          cambio: montoRecibido ? Math.max(0, parseFloat(montoRecibido) - total) : 0,
-          porcentaje_comision: comisionInfo.porcentaje,
-          comision_barbero: comisionInfo.comisionBarbero,
-          ingreso_casa: comisionInfo.ingresoCasa,
-          cita_id: citaId,
-        }),
+      requestId.current ??= crypto.randomUUID()
+      const { factura } = await posRequest('/api/pos/registrar-venta', {
+        barbero_id: barberoId, cliente_nombre: clienteNombre.trim() || 'Consumidor Final',
+        cliente_rut: tipoDocumento === 'factura' ? rut.trim() : null,
+        tipo_documento: tipoDocumento, items: carrito, metodo_pago: metodoPago,
+        monto_recibido: montoRecibido ? Number(montoRecibido) : total,
+        cita_id: citaId, caja_sesion_id: sesionCaja?.id, request_id: requestId.current,
       })
-
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}))
-        throw new Error(errBody.message || 'Error al registrar la venta')
-      }
-
-      const { factura } = await res.json()
-
-      // REGISTRAR VENTA EN LA SESIÓN DE CAJA
-      if (sesionCaja && registrarVentaCaja) {
-        await registrarVentaCaja(Number(factura.total), factura.id, metodoPago)
-      }
-
-      // Éxito
-      const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'
-
-      let impresionExitosa = false
+      // Clear the paid basket immediately. Printer/refresh errors must never
+      // make a successful payment look unpaid or invite a second charge.
+      requestId.current = null
+      dispatch({ type: 'RESET' })
+      setCitaId(null)
+      onVentaCreada()
       try {
-        const datosFactura = await obtenerDatosFactura(factura.id, supabase)
-        if (datosFactura) {
-          impresionExitosa = await generarEImprimirFactura(datosFactura, 'imprimir')
+        // REGISTRAR VENTA EN LA SESIÓN DE CAJA
+        if (sesionCaja && registrarVentaCaja) {
+          await registrarVentaCaja(Number(factura.total), factura.id, metodoPago)
         }
-      } catch (err) {
-        console.warn('Error en impresión automática:', err)
-      }
 
-      if (impresionExitosa) {
-        toast.success(`¡Venta registrada y ticket impreso! ${tipoDoc} #${factura.numero_factura}`)
-      } else {
-        const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}\n\n¿Deseas imprimir la factura?`)
-        if (confirmar) {
+        // Éxito
+        const tipoDoc = tipoDocumento === 'boleta' ? 'Boleta' : 'Factura'
+
+        let impresionExitosa = false
+        try {
           const datosFactura = await obtenerDatosFactura(factura.id, supabase)
           if (datosFactura) {
-            await generarEImprimirFactura(datosFactura, 'imprimir')
+            impresionExitosa = await generarEImprimirFactura(datosFactura, 'imprimir')
+          }
+        } catch (err) {
+          console.warn('Error en impresión automática:', err)
+        }
+
+        if (impresionExitosa) {
+          toast.success(`¡Venta registrada y comprobante preparado! ${tipoDoc} #${factura.numero_factura}`)
+        } else {
+          const confirmar = window.confirm(`¡Venta registrada exitosamente!\n\n${tipoDoc}: ${factura.numero_factura}\nTotal: $${total.toFixed(2)}\n\n¿Deseas imprimir la factura?`)
+          if (confirmar) {
+            const datosFactura = await obtenerDatosFactura(factura.id, supabase)
+            if (datosFactura) {
+              await generarEImprimirFactura(datosFactura, 'imprimir')
+            }
           }
         }
-      }
 
-      // Stock and invoice are committed together by the server.
+        // Stock and invoice are committed together by the server.
 
-      // Limpiar y resetear
-      setClienteNombre('')
-      setTipoDocumento('boleta')
-      setRut('')
-      setBarberoId('')
-      dispatch({ type: 'RESET' })
-      setMetodoPago('efectivo')
-      setMontoRecibido('')
-      setCitaId(null)
-      setPaso(1)
-      setSubPaso2('servicios')
-      onVentaCreada()
+        // Limpiar y resetear
+        setClienteNombre('')
+        setTipoDocumento('boleta')
+        setRut('')
+        setBarberoId('')
+        dispatch({ type: 'RESET' })
+        setMetodoPago('efectivo')
+        setMontoRecibido('')
+        setCitaId(null)
+        setPaso(1)
+        setSubPaso2('servicios')
+        onVentaCreada()
 
-      // Recargar citas hoy (por si hay más)
-      const nuevasCitas = await chamosSupabase.getCitasHoyPendientes()
-      setCitasHoy(nuevasCitas || [])
+        // Recargar citas hoy (por si hay más)
+        const nuevasCitas = await chamosSupabase.getCitasHoyPendientes()
+        setCitasHoy(nuevasCitas || [])
 
-      // Recargar productos (stock actualizado)
-      try {
-        const resProd = await fetch('/api/inventario/productos?activo=true')
-        if (resProd.ok) {
-          const prodData = await resProd.json()
-          setProductos(prodData.filter((p: any) => p.stock_actual > 0))
-        }
-      } catch (e) { }
+        // Recargar productos (stock actualizado)
+        try {
+          const resProd = await fetch('/api/inventario/productos?activo=true')
+          if (resProd.ok) {
+            const prodData = await resProd.json()
+            setProductos(prodData.filter((p: any) => p.stock_actual > 0))
+          }
+        } catch (e) { }
 
+      } catch { toast('Venta registrada. Actualiza el POS para consultar el comprobante.', { icon: '✓' }) }
     } catch (error) {
       console.error('Error al crear venta:', error)
-      toast.error('Error al registrar la venta.')
+      toast.error(error instanceof Error ? error.message : 'Error al registrar la venta.')
     } finally {
+      submitting.current = false
       setGuardando(false)
     }
   }

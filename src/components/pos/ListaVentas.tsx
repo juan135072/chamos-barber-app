@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
-import { getChileHoy } from '@/lib/date-utils'
+import { getChileHoy, chileDateRange } from '@/lib/date-utils'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import ModalCobrarCita from './ModalCobrarCita'
 import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
@@ -10,6 +10,8 @@ import { useFormatCurrency } from '@/context/ConfigContext'
 interface ListaVentasProps {
   usuario: UsuarioConPermisos
   recargar: number
+  onActualizado?: () => void
+  sesionCaja?: { id: string } | null
 }
 
 interface Venta {
@@ -49,7 +51,7 @@ interface Cita {
   }
 }
 
-export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
+export default function ListaVentas({ usuario, recargar, onActualizado, sesionCaja }: ListaVentasProps) {
   const [ventas, setVentas] = useState<Venta[]>([])
   const [citasPendientes, setCitasPendientes] = useState<Cita[]>([])
   const [cargando, setCargando] = useState(true)
@@ -68,8 +70,8 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
 
   const cargarDatos = async () => {
     try {
-      setCargando(true)
       const hoy = getChileHoy()
+      const range = chileDateRange(hoy, hoy)
 
       // Cargar ventas del día
       const { data: ventasData, error: ventasError } = await (supabase as any)
@@ -77,6 +79,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         .select(`
           id,
           numero_factura,
+          items,
           cliente_nombre,
           total,
           metodo_pago,
@@ -87,14 +90,12 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
             apellido
           )
         `)
-        .gte('created_at', `${hoy}T00:00:00`)
-        .lte('created_at', `${hoy}T23:59:59`)
+        .gte('created_at', range.start)
+        .lt('created_at', range.end)
         .eq('anulada', false)
         .order('created_at', { ascending: false })
         .limit(20)
 
-      console.log('📊 Ventas cargadas:', ventasData)
-      console.log('❌ Error ventas:', ventasError)
 
       if (ventasError) {
         console.error('Error cargando ventas:', ventasError)
@@ -113,6 +114,8 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
           fecha,
           hora,
           estado_pago,
+          items,
+          precio_final,
           barbero:barberos!citas_barbero_id_fkey (
             id,
             nombre,
@@ -133,7 +136,6 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         .order('hora', { ascending: true })
         .limit(10)
 
-      console.log('🔍 Citas cargadas:', citasData)
 
       if (citasError) throw citasError
 
@@ -160,13 +162,10 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         setServicios(serviciosData || [])
       }
 
-      console.log('💾 Estado ANTES de actualizar - ventas:', ventas.length, 'citas:', citasPendientes.length)
-      console.log('💾 ACTUALIZANDO estado con:', ventasFinales.length, 'ventas y', citasConHora.length, 'citas')
 
       setVentas(ventasFinales)
       setCitasPendientes(citasConHora)
 
-      console.log('✅ setVentas() y setCitasPendientes() llamados')
     } catch (error) {
       console.error('Error cargando datos:', error)
     } finally {
@@ -203,6 +202,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       if (response.ok && result.success) {
         toast.success('Venta anulada exitosamente')
         cargarDatos()
+        onActualizado?.()
       } else {
         throw new Error(result.message || 'Error al anular venta')
       }
@@ -222,7 +222,6 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
       }
       const exito = await generarEImprimirFactura(datosFactura, accion)
       if (exito) {
-        console.log(`✅ Factura ${accion === 'imprimir' ? 'reimpresa' : 'descargada'} correctamente`)
       } else {
         toast.error('Error al procesar la factura')
       }
@@ -268,14 +267,6 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
     )
   }
 
-  // Log del estado actual antes de renderizar
-  console.log('🎨 RENDERIZANDO con estado:', {
-    ventas: ventas.length,
-    citasPendientes: citasPendientes.length,
-    mostrarCitas,
-    cargando
-  })
-
   return (
     <>
       {/* Modal para cobrar cita */}
@@ -283,10 +274,11 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
         <ModalCobrarCita
           cita={citaACobrar}
           usuario={usuario}
+          sesionCajaId={sesionCaja?.id}
           onClose={() => setCitaACobrar(null)}
           onCobrado={() => {
-            setCitaACobrar(null)
             cargarDatos()
+            onActualizado?.()
           }}
         />
       )}
@@ -301,6 +293,7 @@ export default function ListaVentas({ usuario, recargar }: ListaVentasProps) {
           onSuccess={() => {
             setVentaAEditar(null)
             cargarDatos()
+            onActualizado?.()
           }}
         />
       )}

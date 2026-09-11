@@ -269,6 +269,8 @@ export class FacturaTermica {
     // Totales con mejor formato
     if (datos.subtotal !== datos.total) {
       this.addItemLine('Subtotal:', `$${datos.subtotal.toLocaleString('es-CL')}`)
+      const ajuste = Number(datos.subtotal) - Number(datos.total)
+      this.addItemLine(ajuste > 0 ? 'Descuento:' : 'Adicional:', `$${Math.abs(ajuste).toLocaleString('es-CL')}`)
       this.addSpace(0.2)
     }
 
@@ -380,7 +382,7 @@ export class FacturaTermica {
     this.pdf.save(nombre)
   }
 
-  imprimir(): void {
+  imprimir(): boolean {
     // Generar Blob URL del PDF
     const pdfBlob = this.pdf.output('blob')
     const pdfUrl = URL.createObjectURL(pdfBlob)
@@ -403,10 +405,12 @@ export class FacturaTermica {
           }
         }, 1000)
       }
+      return true
     } else {
       // Si el popup está bloqueado, mostrar alert
       toast.error('Por favor, permite ventanas emergentes para imprimir boletas.')
       URL.revokeObjectURL(pdfUrl)
+      return false
     }
   }
 
@@ -431,7 +435,7 @@ export async function generarEImprimirFactura(datos: DatosFactura, accion: 'impr
 
       // Si falla la directa, usar el método clásico del navegador
       if (!impresaDirecto) {
-        factura.imprimir()
+        if (!factura.imprimir()) return false
       }
     }
 

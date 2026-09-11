@@ -16,7 +16,7 @@ export default function POSPage() {
   const router = useRouter()
   const { usuario, cargando, puedeAccederPOS, esAdmin, esCajero } = usePermissions()
   const [recargarVentas, setRecargarVentas] = useState(0)
-  const { sesion, loading: loadingCaja, abrirCaja, cerrarCaja, registrarVenta } = useCashRegister(usuario)
+  const { sesion, loading: loadingCaja, abrirCaja, cerrarCaja, registrarVenta, refreshSession, error: errorCaja } = useCashRegister(usuario)
 
   useEffect(() => {
     if (cargando) return
@@ -61,6 +61,7 @@ export default function POSPage() {
   const handleVentaCreada = () => {
     // Incrementar para recargar las ventas
     setRecargarVentas(prev => prev + 1)
+    void refreshSession()
   }
 
   if (cargando || (loadingCaja && usuario)) {
@@ -237,6 +238,8 @@ export default function POSPage() {
               <ListaVentas
                 usuario={usuario}
                 recargar={recargarVentas}
+                onActualizado={handleVentaCreada}
+                sesionCaja={sesion}
               />
             </div>
 
@@ -253,7 +256,8 @@ export default function POSPage() {
         </main>
 
         {/* Modal de Apertura Forzada */}
-        {!sesion && !loadingCaja && (
+        {errorCaja && <div role="alert" className="p-6 text-center"><p>{errorCaja}</p><button onClick={() => void refreshSession()}>Reintentar conexión con la caja</button></div>}
+        {!sesion && !loadingCaja && !errorCaja && (
           <OpenRegisterModal
             usuario={usuario}
             onOpen={abrirCaja}

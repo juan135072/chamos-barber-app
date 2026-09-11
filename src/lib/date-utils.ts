@@ -49,6 +49,26 @@ export const getDynamicHoy = (timeZone: string = 'America/Santiago'): string => 
 
 export const getChileHoy = () => getDynamicHoy('America/Santiago');
 
+/** Half-open UTC boundaries for Chilean calendar dates, including DST days. */
+export function chileDateRange(first: string, last: string) {
+    const formatter = new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Santiago', year: 'numeric', month: '2-digit', day: '2-digit' })
+    const boundary = (day: string) => {
+        const utc = Date.parse(day + 'T00:00:00Z')
+        if (!Number.isFinite(utc)) throw new Error('Fecha inválida')
+        let low = utc - 18 * 3600000, high = utc + 30 * 3600000
+        while (high - low > 1) {
+            const mid = Math.floor((low + high) / 2)
+            const parts = Object.fromEntries(formatter.formatToParts(mid).map(p => [p.type, p.value]))
+            const local = `${parts.year}-${parts.month}-${parts.day}`
+            if (local < day) low = mid
+            else high = mid
+        }
+        return new Date(high).toISOString()
+    }
+    const next = new Date(Date.parse(last + 'T00:00:00Z') + 86400000).toISOString().slice(0, 10)
+    return { start: boundary(first), end: boundary(next) }
+}
+
 /**
  * Obtiene la hora actual en formato HH:mm ajustada a la zona horaria.
  */

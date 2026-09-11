@@ -1,6 +1,7 @@
 import { requireStaff } from '@/lib/server-authorization'
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
+import { respondPosError } from '@/lib/pos-errors'
+import { PAYMENT_METHODS } from '@/lib/pos-values'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -9,7 +10,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { facturaId, nuevoBarberoId, nuevoServicioId, nuevoMetodoPago, claveSeguridad } = req.body
 
-    if (nuevoMetodoPago && !['efectivo','tarjeta','transferencia','otro'].includes(nuevoMetodoPago)) return res.status(400).json({ message: 'Método de pago inválido' })
+    if (nuevoMetodoPago && !PAYMENT_METHODS.includes(nuevoMetodoPago)) return res.status(400).json({ message: 'Método de pago inválido' })
     if (!facturaId) {
         return res.status(400).json({ message: 'Falta el ID de la factura' })
     }
@@ -37,14 +38,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 2. Verificar clave de seguridad del tenant correcto
-        const { data: configClave, error: configError } = await supabase
-            .from('sitio_configuracion')
-            .select('valor')
-            .eq('clave', 'pos_clave_seguridad')
-            .eq('comercio_id', adminUser.comercio_id)
-            .single()
-
-        if (configError || !configClave?.valor || configClave.valor !== claveSeguridad) {
+        const { data: pinValido, error: pinError } = await supabase.rpc('app_verify_pos_pin', {
+            p_comercio: adminUser.comercio_id,
+            p_pin: typeof claveSeguridad === 'string' ? claveSeguridad : null,
+        })
+        if (pinError) return respondPosError(res, pinError, 'validar-clave')
+        if (pinValido !== true) {
             return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
         }
 
@@ -58,6 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const { data: barbero, error: barberoError } = await supabase
                 .from('barberos')
                 .select('porcentaje_comision')
+                .eq('activo', true)
                 .eq('id', nuevoBarberoId)
                 .eq('comercio_id', adminUser.comercio_id)
                 .single()
@@ -69,10 +69,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 3. Si hay nuevo servicio, obtener su precio y actualizar items
-        if (nuevoServicioId) {
+        const servicioCambiado = nuevoServicioId && nuevoServicioId !== items.find((item: any) => !item.producto_id && item.tipo !== 'producto')?.servicio_id
+        if (servicioCambiado) {
             const { data: servicio, error: servicioError } = await supabase
                 .from('servicios')
                 .select('nombre, precio')
+                .eq('activo', true)
                 .eq('id', nuevoServicioId)
                 .eq('comercio_id', adminUser.comercio_id)
                 .single()
@@ -99,10 +101,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             p_comercio: adminUser.comercio_id, p_invoice: factura.id, p_actor: actor.user.id, p_action: 'correct',
             p_data: { barbero_id, servicio_id: nuevoServicioId || null, porcentaje_comision: porcentajeComision,
                 comision_barbero: comisionBarbero, ingreso_casa: ingresoCasa, total,
-                subtotal: nuevoServicioId ? total : factura.subtotal, descuento: nuevoServicioId ? 0 : factura.descuento ?? 0,
-                items, metodo_pago: nuevoMetodoPago || factura.metodo_pago },
+                subtotal: servicioCambiado ? total : factura.subtotal, descuento: servicioCambiado ? 0 : factura.descuento ?? 0,
+                items, metodo_pago: nuevoMetodoPago || factura.metodo_pago, expected_updated_at: factura.updated_at },
         })
-        if (changeError) return res.status(409).json({ message: 'No se pudo corregir la venta; comprueba si está anulada, cerrada o liquidada' })
+        if (changeError) return respondPosError(res, changeError, 'corregir-venta')
 
         return res.status(200).json({
             success: true,
@@ -114,7 +116,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
     } catch (error: any) {
-        console.error('Error en corregir-venta:', error)
-        return res.status(500).json({ message: 'Error interno del servidor', error: error.message })
+        return respondPosError(res, error, 'corregir-venta')
     }
 }

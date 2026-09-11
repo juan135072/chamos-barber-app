@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
+import { posRequest } from '@/lib/pos-client'
 import toast from 'react-hot-toast'
 
 interface Barbero {
@@ -63,9 +63,11 @@ export default function ModalEditarBarberoVenta({
         if (esCita) {
             setNuevoServicioId(venta.servicio_id || venta.servicio?.id || '')
         } else {
-            // Para facturas, intentamos encontrar el ID del servicio por nombre si es posible, 
+            // Resolve the saved service ID; retain name lookup for legacy receipts.
             // o lo dejamos vacío para que el usuario seleccione.
-            const nombreServicio = venta.items?.[0]?.servicio
+            const itemActual = venta.items?.find(item => !item.producto_id)
+            if (itemActual?.servicio_id) { setNuevoServicioId(itemActual.servicio_id); return }
+            const nombreServicio = itemActual?.nombre || itemActual?.servicio
             if (nombreServicio) {
                 const s = servicios.find(s => s.nombre === nombreServicio)
                 if (s) setNuevoServicioId(s.id)
@@ -80,9 +82,9 @@ export default function ModalEditarBarberoVenta({
         }
 
         const barberoActualId = venta.barbero_id || venta.barbero?.id
-        const servicioActualId = esCita ? (venta.servicio_id || venta.servicio?.id) : nuevoServicioId // Simplificación
+        const servicioActualId = esCita ? (venta.servicio_id || venta.servicio?.id) : (venta.items?.find(item => !item.producto_id)?.servicio_id || '')
 
-        if (nuevoBarberoId === barberoActualId && nuevoServicioId === servicioActualId) {
+        if (nuevoBarberoId === barberoActualId && nuevoServicioId === servicioActualId && (esCita || nuevoMetodoPago === venta.metodo_pago)) {
             onClose()
             return
         }
@@ -91,40 +93,20 @@ export default function ModalEditarBarberoVenta({
             setProcesando(true)
 
             if (esCita) {
-                // Actualizar directamente en la tabla de citas
-                const { error } = await (supabase as any)
-                    .from('citas')
-                    .update({
-                        barbero_id: nuevoBarberoId,
-                        servicio_id: nuevoServicioId,
-                        updated_at: new Date().toISOString()
-                    })
-                    .eq('id', venta.id)
-
-                if (error) throw error
+                await posRequest('/api/pos/corregir-cita', { cita_id: venta.id, barbero_id: nuevoBarberoId, servicio_id: nuevoServicioId })
 
                 toast.success('Datos de la cita actualizados')
                 onSuccess()
                 onClose()
             } else {
                 // Usar el endpoint de corrección para facturas (ahora permite servicio)
-                const response = await fetch('/api/pos/corregir-venta', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        facturaId: venta.id,
-                        nuevoBarberoId: nuevoBarberoId,
-                        nuevoServicioId: nuevoServicioId,
-                        nuevoMetodoPago: nuevoMetodoPago,
-                        claveSeguridad: claveSeguridad
-                    }),
+                const result = await posRequest('/api/pos/corregir-venta', {
+                  facturaId: venta.id, nuevoBarberoId,
+                  nuevoServicioId: nuevoServicioId !== servicioActualId ? nuevoServicioId : undefined,
+                  nuevoMetodoPago, claveSeguridad,
                 })
 
-                const result = await response.json()
-
-                if (response.ok && result.success) {
+                if (result.success) {
                     toast.success('Venta actualizada correctamente')
                     onSuccess()
                     onClose()

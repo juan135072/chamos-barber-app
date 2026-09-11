@@ -1,6 +1,6 @@
 import { requireStaff } from '@/lib/server-authorization'
 import { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient, getUserFromBearer } from '@/lib/supabase-server'
+import { respondPosError } from '@/lib/pos-errors'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -40,14 +40,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 2. Verificar clave de seguridad del tenant correcto
-        const { data: configClave, error: configError } = await supabase
-            .from('sitio_configuracion')
-            .select('valor')
-            .eq('clave', 'pos_clave_seguridad')
-            .eq('comercio_id', adminUser.comercio_id)
-            .single()
-
-        if (configError || !configClave?.valor || configClave.valor !== claveSeguridad) {
+        const { data: pinValido, error: pinError } = await supabase.rpc('app_verify_pos_pin', {
+            p_comercio: adminUser.comercio_id,
+            p_pin: typeof claveSeguridad === 'string' ? claveSeguridad : null,
+        })
+        if (pinError) return respondPosError(res, pinError, 'validar-clave')
+        if (pinValido !== true) {
             return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
         }
 
@@ -55,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             p_comercio: adminUser.comercio_id, p_invoice: factura.id, p_actor: actor.user.id,
             p_action: 'cancel', p_data: { motivo: typeof motivo_anulacion === 'string' ? motivo_anulacion.slice(0,2000) : 'Anulación por el cajero' },
         })
-        if (changeError) return res.status(409).json({ message: 'No se pudo anular la venta; comprueba si ya está anulada, cerrada o liquidada' })
+        if (changeError) return respondPosError(res, changeError, 'anular-venta')
 
         return res.status(200).json({
             success: true,
@@ -63,7 +61,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
 
     } catch (error: any) {
-        console.error('Error en anular-venta:', error)
-        return res.status(500).json({ message: 'Error interno del servidor', error: error.message })
+        return respondPosError(res, error, 'anular-venta')
     }
 }

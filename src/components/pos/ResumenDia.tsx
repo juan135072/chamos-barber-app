@@ -3,9 +3,10 @@ import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { getBarberosResumen, BarberoResumen, formatCLP } from '@/lib/supabase-liquidaciones'
 import { Users, DollarSign, Calculator, Clock } from 'lucide-react'
-import { getChileHoy } from '@/lib/date-utils'
+import { getChileHoy, chileDateRange } from '@/lib/date-utils'
 import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
+import { posRequest } from '@/lib/pos-client'
 
 interface ResumenDiaProps {
   usuario: UsuarioConPermisos
@@ -37,6 +38,7 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
     otros: 0
   })
   const [cargando, setCargando] = useState(true)
+  const [turnoActual, setTurnoActual] = useState<any>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
   const [montoRealEfectivo, setMontoRealEfectivo] = useState('')
   const [notas, setNotas] = useState('')
@@ -67,12 +69,14 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
       const cierre = await chamosSupabase.getCierreCajaPorRango(fechaInicio, fechaFin)
       setCierreExistente(cierre)
 
+      const range = chileDateRange(fechaInicio, fechaFin)
       // Obtener facturas del rango seleccionado
       let queryByDate = (supabase as any)
         .from('facturas')
         .select('id, total, metodo_pago, comision_barbero, ingreso_casa, cierre_caja_id')
-        .gte('created_at', `${fechaInicio}T00:00:00`)
-        .lte('created_at', `${fechaFin}T23:59:59`)
+        .eq('comercio_id', usuario.comercio_id)
+        .gte('created_at', range.start)
+        .lt('created_at', range.end)
         .eq('anulada', false)
 
       // Si es hoy o no hay cierre seleccionado, solo mostrar lo que NO está cerrado aún
@@ -414,7 +418,7 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
       {/* Botón cerrar caja */}
       {(usuario.rol === 'admin' || usuario.rol === 'cajero') && tabActiva === 'resumen' && (
         <div className="pt-4 mt-6" style={{ borderTop: '1px solid var(--border-color)' }}>
-          {sesionCaja?.estado === 'cerrada' || cierreExistente ? (
+          {(sesionCaja ? sesionCaja.estado === 'cerrada' : !!cierreExistente) ? (
             <div className="p-4 rounded-lg text-center" style={{ backgroundColor: 'rgba(52, 211, 153, 0.1)', border: '1px solid #34d399' }}>
               <i className="fas fa-check-circle text-green-500 mr-2"></i>
               <span className="font-semibold text-green-500">Caja Cerrada</span>
@@ -424,7 +428,12 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
             </div>
           ) : (
             <button
-              onClick={() => setModalAbierto(true)}
+              onClick={async () => {
+                try {
+                  if (sesionCaja) setTurnoActual(await posRequest('/api/pos/caja'))
+                  setModalAbierto(true)
+                } catch (error: any) { toast.error(error.message) }
+              }}
               className="w-full px-4 py-3 rounded-lg font-semibold transition-all shadow-lg hover:scale-[1.02] active:scale-95"
               style={{ backgroundColor: 'var(--accent-color)', color: 'var(--bg-primary)' }}
             >
@@ -457,12 +466,12 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                   <div className="text-xs opacity-70" style={{ color: 'var(--text-primary)' }}>Efectivo Esperado</div>
                   <div className="text-lg font-bold" style={{ color: 'var(--accent-color)' }}>
-                    {formatCurrency(sesionCaja ? sesionCaja.monto_final_esperado : resumen.efectivo)}
+                    {formatCurrency(turnoActual?.sesion?.monto_final_esperado ?? resumen.efectivo)}
                   </div>
                 </div>
                 <div className="p-3 rounded-lg" style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
                   <div className="text-xs opacity-70" style={{ color: 'var(--text-primary)' }}>Total Ventas</div>
-                  <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(resumen.totalCobrado)}</div>
+                  <div className="text-lg font-bold" style={{ color: 'var(--text-primary)' }}>{formatCurrency(turnoActual?.total_ventas ?? resumen.totalCobrado)}</div>
                 </div>
               </div>
 

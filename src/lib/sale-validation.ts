@@ -1,10 +1,12 @@
+import { PAYMENT_METHODS } from './pos-values'
+
 export class SaleValidationError extends Error {}
 const money = (n: number) => Math.round(n * 100) / 100
 const fail = (message: string): never => { throw new SaleValidationError(message) }
 
 export function calculateSale(body: any, barber: any, catalog: Map<string, any>) {
   if (!Array.isArray(body.items) || !body.items.length || body.items.length > 100) fail('Agrega entre 1 y 100 artículos')
-  if (!['efectivo', 'tarjeta', 'transferencia', 'otro'].includes(body.metodo_pago)) fail('Método de pago inválido')
+  if (!PAYMENT_METHODS.includes(body.metodo_pago)) fail('Método de pago inválido')
   if (!['boleta', 'factura'].includes(body.tipo_documento)) fail('Tipo de documento inválido')
   if (body.tipo_documento === 'factura' && (typeof body.cliente_rut !== 'string' || !body.cliente_rut.trim())) fail('La factura requiere RUT')
   const items = body.items.map((item: any) => {

@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
+import { appointmentCharge } from '@/lib/pos-values'
+import { posRequest } from '@/lib/pos-client'
 
 interface Cita {
   id: string
@@ -11,6 +13,8 @@ interface Cita {
   fecha: string
   hora: string  // Campo real de la BD
   estado_pago: string
+  items?: any[]
+  precio_final?: number | null
   barbero_id?: string
   barbero: {
     id?: string
@@ -32,11 +36,15 @@ interface ModalCobrarCitaProps {
   usuario: UsuarioConPermisos
   onClose: () => void
   onCobrado: () => void
+  sesionCajaId?: string
 }
 
-export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: ModalCobrarCitaProps) {
+export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado, sesionCajaId }: ModalCobrarCitaProps) {
+  const charge = appointmentCharge(cita)
+  const requestId = useRef<string | null>(null)
+  const submitting = useRef(false)
   const [metodoPago, setMetodoPago] = useState('efectivo')
-  const [montoCobrar, setMontoCobrar] = useState(Math.floor(cita.servicio.precio).toString())
+  const [montoCobrar, setMontoCobrar] = useState(charge.total.toString())
   const [montoRecibido, setMontoRecibido] = useState('')
   const [procesando, setProcesando] = useState(false)
   const [cobroExitoso, setCobroExitoso] = useState<{
@@ -64,75 +72,42 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
     checkService()
   }, [])
 
-  const montoTotal = parseInt(montoCobrar) || Math.floor(cita.servicio.precio)
-  const cambio = 0 // Ya no calculamos cambio en UI
+  const montoTotal = Number(montoCobrar)
+  const recibido = montoRecibido === '' ? montoTotal : Number(montoRecibido)
+  const cambio = metodoPago === 'efectivo' ? Math.max(0, recibido - montoTotal) : 0
 
   // Calcular comisión en tiempo real basada en el porcentaje del barbero
   // LÓGICA CORRECTA:
   // - La comisión se calcula sobre el "Monto a Cobrar" (montoTotal)
   // - Este puede ser el precio original O el precio editado (descuento/propina)
   // - El "Monto Recibido" es solo para calcular el cambio
-  const porcentajeComision = cita.barbero.porcentaje_comision || 50
-  const comisionBarberoRealTime = Math.floor(montoTotal * (porcentajeComision / 100))
+  const porcentajeComision = cita.barbero.porcentaje_comision ?? 50
+  const comisionBarberoRealTime = Math.round(montoTotal * (porcentajeComision / 100))
   const ingresoCasaRealTime = montoTotal - comisionBarberoRealTime
 
-  // DEBUG: Log para verificar cálculos
-  console.log('🔍 DEBUG Comisión:', {
-    montoCobrar,
-    montoTotal,
-    montoRecibido,
-    porcentajeComision,
-    comisionBarberoRealTime,
-    ingresoCasaRealTime,
-    precioServicio: cita.servicio.precio
-  })
-
   const handleCobrar = async () => {
+    if (submitting.current || cobroExitoso) return
+    submitting.current = true
     try {
       setProcesando(true)
 
       // Validar monto a cobrar
-      if (!montoCobrar || parseFloat(montoCobrar) <= 0) {
+      if (!montoCobrar || !Number.isFinite(montoTotal) || montoTotal <= 0) {
         toast.error('El monto a cobrar debe ser mayor a $0')
         setProcesando(false)
+        submitting.current = false
         return
       }
 
-      // Validación adicional para efectivo (ELIMINADA)
-      /*
-      if (metodoPago === 'efectivo' && montoRecibido) {
-        const recibido = parseFloat(montoRecibido)
-        if (recibido < montoTotal) {
-          alert(`El monto recibido ($${recibido.toFixed(2)}) es menor al total a cobrar ($${montoTotal.toFixed(2)})`)
-          setProcesando(false)
-          return
-        }
-      }
-      */
-
-      console.log('🔍 DEBUG: Cobrando cita', {
-        cita_id: cita.id,
-        monto_total: montoTotal,
-        metodo_pago: metodoPago,
-        usuario_id: usuario.id
+      if (metodoPago === 'efectivo' && (!Number.isFinite(recibido) || recibido < montoTotal)) throw new Error('Monto recibido insuficiente')
+      requestId.current ??= crypto.randomUUID()
+      const result = await posRequest('/api/pos/registrar-venta', {
+        cita_id: cita.id, barbero_id: cita.barbero_id || cita.barbero.id,
+        cliente_nombre: cita.cliente_nombre, tipo_documento: 'boleta',
+        items: charge.items, monto_cobrado: montoTotal, metodo_pago: metodoPago,
+        monto_recibido: metodoPago === 'efectivo' ? recibido : montoTotal,
+        caja_sesion_id: sesionCajaId, request_id: requestId.current,
       })
-
-      const response = await fetch('/api/pos/registrar-venta', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          cita_id: cita.id,
-          barbero_id: cita.barbero_id || cita.barbero.id,
-          cliente_nombre: cita.cliente_nombre,
-          tipo_documento: 'boleta',
-          items: [{ servicio_id: cita.servicio_id || cita.servicio.id, cantidad: 1 }],
-          monto_cobrado: montoTotal,
-          metodo_pago: metodoPago,
-          monto_recibido: montoTotal,
-        }),
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.message || 'No se pudo registrar el cobro')
       const facturaData = result.factura
 
       // Guardar resultado del cobro exitoso
@@ -187,13 +162,14 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
       } else if (rawMsg.includes('timeout') || rawMsg.includes('aborted')) {
         errorMessage = 'La operación tardó demasiado. Intenta nuevamente.'
       } else {
-        errorMessage = 'Ocurrió un error inesperado al procesar el cobro. Intenta nuevamente.'
+        errorMessage = error.message || 'No se pudo registrar el cobro. Intenta nuevamente.'
       }
 
       toast.error(errorMessage)
 
       // Dejar el modal abierto para que el usuario pueda intentar de nuevo
     } finally {
+      submitting.current = false
       setProcesando(false)
     }
   }
@@ -464,7 +440,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
                 </button>
                 <button
                   type="button"
-                  onClick={() => setMontoCobrar(Math.floor(cita.servicio.precio).toString())}
+                  onClick={() => setMontoCobrar(charge.total.toString())}
                   className="px-3 py-1 text-sm rounded transition-all"
                   style={{
                     backgroundColor: 'var(--bg-primary)',
@@ -487,12 +463,12 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
                   +$1
                 </button>
               </div>
-              {parseInt(montoCobrar) !== Math.floor(cita.servicio.precio) && (
+              {parseInt(montoCobrar) !== charge.total && (
                 <p className="mt-2 text-sm" style={{ color: 'var(--accent-color)' }}>
-                  {parseInt(montoCobrar) < Math.floor(cita.servicio.precio) ? (
-                    <span><i className="fas fa-arrow-down mr-1"></i>Descuento: ${Math.floor(cita.servicio.precio) - parseInt(montoCobrar)}</span>
+                  {parseInt(montoCobrar) < charge.total ? (
+                    <span><i className="fas fa-arrow-down mr-1"></i>Descuento: ${charge.total - parseInt(montoCobrar)}</span>
                   ) : (
-                    <span><i className="fas fa-arrow-up mr-1"></i>Incremento: ${parseInt(montoCobrar) - Math.floor(cita.servicio.precio)}</span>
+                    <span><i className="fas fa-arrow-up mr-1"></i>Incremento: ${parseInt(montoCobrar) - charge.total}</span>
                   )}
                 </p>
               )}
@@ -541,6 +517,14 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado }: M
               </select>
             </div>
 
+            {metodoPago === 'efectivo' && (
+              <div>
+                <label htmlFor="cita-recibido" className="block text-sm mb-2">Efectivo recibido</label>
+                <input id="cita-recibido" type="number" min={montoTotal} step="1" className="form-input"
+                  value={montoRecibido} onChange={e => setMontoRecibido(e.target.value)} placeholder={String(montoTotal)} />
+                <p className="mt-2">Vuelto: {formatCurrency(cambio)}</p>
+              </div>
+            )}
             {/* Botones */}
             <div className="flex gap-3">
               <button
