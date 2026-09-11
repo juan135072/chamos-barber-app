@@ -41,8 +41,8 @@ const Footer: React.FC = () => {
     whatsapp: '',
   })
   const [horarios, setHorarios] = useState<Horarios>({
-    semana: '10:00 — 20:30',
-    sabado: '10:00 — 21:00',
+    semana: 'Cargando…',
+    sabado: 'Cargando…',
     domingo: '',
   })
 
@@ -62,11 +62,13 @@ const Footer: React.FC = () => {
           whatsapp:  cfg.whatsapp_numero    || prev.whatsapp,
         }))
 
-        const apertura = cfg.horario_apertura         || '10:00'
-        const cierre   = cfg.horario_cierre           || '20:30'
+        const apertura = cfg.horario_apertura         || '10:30'
+        const cierre   = cfg.horario_cierre           || '20:00'
         const sabAper  = cfg.horario_sabado_apertura  || apertura
         const sabCier  = cfg.horario_sabado_cierre    || cierre
-        const domingo  = cfg.horario_domingo          || ''
+        const domingo = cfg.horario_domingo_activo === 'true'
+          ? `${cfg.horario_domingo_apertura || apertura} — ${cfg.horario_domingo_cierre || cierre}`
+          : ''
 
         setHorarios({
           semana: `${apertura} — ${cierre}`,

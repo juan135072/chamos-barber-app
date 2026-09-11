@@ -1,4 +1,4 @@
-import { validateBookingInput, appointmentDuration, localWallTimestamp } from '@/lib/booking-validation'
+import { validateBookingInput } from '@/lib/booking-validation'
 import { applyRateLimit } from '@/lib/security/rateLimit'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { createPagesAdminClient } from '@/lib/supabase-server'
@@ -147,100 +147,14 @@ export default async function handler(
     const tiempoBuffer = (serviciosData as any[]).reduce((max: number, s: any) => Math.max(max, s.tiempo_buffer ?? 5), 0)
 
     const duracionNuevaCita = totalServiciosMinutos + tiempoBuffer
-    const [hStart, mStart] = citaData.hora.split(':').map(Number)
-    const totalMinutosInicio = hStart * 60 + mStart
-    const totalMinutosFin = totalMinutosInicio + duracionNuevaCita
-
-    devLog(`⏱️ [crear-cita] Validando rango: ${citaData.hora} (${totalMinutosInicio}m) -> Serv: ${totalServiciosMinutos}m + Buff: ${tiempoBuffer}m -> Final: (${totalMinutosFin}m)`)
-
-    // 4. Verificar Horario de Atención (horarios_atencion)
-    const diaSemana = new Date(citaData.fecha + 'T12:00:00').getDay()
-    const { data: horarioAtencion, error: horarioError } = await supabase
-      .from('horarios_atencion')
-      .select('hora_inicio, hora_fin, activo')
-      .eq('barbero_id', citaData.barbero_id)
-      .eq('dia_semana', diaSemana)
-      .eq('activo', true)
-      .single()
-
-    if (horarioError || !horarioAtencion) return res.status(400).json({ error: 'El barbero no atiende ese día', code: 'FUERA_DE_HORARIO' })
-    if (horarioAtencion) {
-      const hAtStartStr = (horarioAtencion as any).hora_inicio
-      const hAtEndStr = (horarioAtencion as any).hora_fin
-      const [hAtStart, mAtStart] = hAtStartStr.split(':').map(Number)
-      const [hAtEnd, mAtEnd] = hAtEndStr.split(':').map(Number)
-      const minAtStart = hAtStart * 60 + mAtStart
-      const minAtEnd = hAtEnd * 60 + mAtEnd
-
-      if (totalMinutosInicio < minAtStart || totalMinutosFin > minAtEnd) {
-        return res.status(400).json({
-          error: `⚠️ El barbero no atiende en este horario o el servicio excede su hora de salida (${hAtEndStr}).`,
-          code: 'FUERA_DE_HORARIO'
-        })
-      }
-    }
-
-    // 5. Verificar Solapamientos con Citas Existentes (Rango)
-    const { data: citasDelDia, error: citasError } = await supabase
-      .from('citas')
-      .select('id, hora, items, servicio_id')
-      .eq('barbero_id', citaData.barbero_id)
-      .eq('fecha', citaData.fecha)
-      .in('estado', ['pendiente', 'confirmada'])
-
-    if (citasError) return res.status(503).json({ error: 'No se pudo verificar la disponibilidad' })
-
-    // Obtener servicios del tenant para validar duraciones exactas de citas existentes
-    const { data: allServices, error: servicesError } = await supabase
-      .from('servicios')
-      .select('id, duracion_minutos, tiempo_buffer')
-      .eq('comercio_id', comercioId)
-
-    if (servicesError) return res.status(503).json({ error: 'No se pudieron comprobar los servicios' })
-    const servicesMap = new Map<string, any>(allServices?.map((s: any) => [s.id, s]) || [])
-
-    for (const cita of (citasDelDia || [])) {
-      const citaAny = cita as any
-      const [hCita, mCita] = citaAny.hora.split(':').map(Number)
-      const minCitaInicio = hCita * 60 + mCita
-
-      const duracionExistente = appointmentDuration(citaAny, servicesMap)
-
-      const minCitaFin = minCitaInicio + duracionExistente
-
-      if (totalMinutosInicio < minCitaFin && totalMinutosFin > minCitaInicio) {
-        return res.status(409).json({
-          error: '⚠️ Este horario se solapa con otra cita ya reservada. Por favor selecciona otro horario.',
-          code: 'HORARIO_OCUPADO_SOLAPAMIENTO'
-        })
-      }
-    }
-
-    // 6. Verificar Solapamientos con Horarios Bloqueados (Descansos, etc)
-    const { data: bloqueos, error: bloqueosError } = await supabase
-      .from('horarios_bloqueados')
-      .select('fecha_hora_inicio, fecha_hora_fin')
-      .eq('barbero_id', citaData.barbero_id)
-
-    if (bloqueosError) return res.status(503).json({ error: 'No se pudieron comprobar los bloqueos' })
-    const reservationStart = Date.parse(`${citaData.fecha}T${citaData.hora}:00Z`)
-    const reservationEnd = reservationStart + duracionNuevaCita * 60000
-    for (const bloqueo of (bloqueos || [])) {
-      const start = localWallTimestamp(new Date((bloqueo as any).fecha_hora_inicio), 'America/Santiago')
-      const end = localWallTimestamp(new Date((bloqueo as any).fecha_hora_fin), 'America/Santiago')
-      if (reservationStart < end && reservationEnd > start) {
-        return res.status(409).json({ error: 'El barbero tiene este horario bloqueado', code: 'HORARIO_BLOQUEADO' })
-      }
-    }
-
-    // 7. Verificar que no sea una hora pasada (Diferencia horaria Chile)
-    const fechaHoraReserva = new Date(`${citaData.fecha}T${citaData.hora}:00`)
-
-    if (fechaHoraReserva <= currentChileTime) {
-      return res.status(400).json({
-        error: '⚠️ No puedes reservar una cita en el pasado. Por favor selecciona otra fecha u hora.',
-        code: 'FECHA_PASADA'
-      })
+    // Use the same database rules as the booking calendar, including Sunday
+    // closures, pauses, full service duration and the business timezone.
+    const { data: slots, error: availabilityError } = await supabase.rpc('get_horarios_disponibles', {
+      p_barbero_id: citaData.barbero_id, p_fecha: citaData.fecha, p_duracion_minutos: duracionNuevaCita,
+    })
+    if (availabilityError || !Array.isArray(slots)) return res.status(503).json({ error: 'No se pudo verificar la disponibilidad' })
+    if (!slots.some((slot: any) => slot.hora === citaData.hora && slot.disponible === true)) {
+      return res.status(409).json({ error: 'El horario ya no está disponible. Selecciona otro horario.', code: 'HORARIO_NO_DISPONIBLE' })
     }
 
     // PREPARAR DATOS PARA INSERTAR
