@@ -242,45 +242,10 @@ export function useCashRegister(usuario: any) {
         }
     }
 
-    const registrarVenta = async (monto: number, referenciaId: string, metodoPago: string) => {
-        if (!sesion) {
-            console.warn('Venta registrada sin sesión de caja activa')
-            return
-        }
-
-        try {
-            devLog(`📝 Registrando venta de ${monto} en sesión ${sesion.id}`)
-
-            // Running total persistido en caja_sesiones.monto_final_esperado
-            // para que sobreviva al refresh del POS.
-            const nuevoEsperado = (sesion.monto_final_esperado || 0) + monto
-            await (supabase
-                .from('caja_sesiones') as any)
-                .update({ monto_final_esperado: nuevoEsperado })
-                .eq('id', sesion.id)
-
-            // movimientos_caja solo expone descripcion/tipo/monto — el método
-            // de pago y la referencia a la factura van embebidos en descripcion.
-            // facturas.cierre_caja_id NO se actualiza aquí: esa FK apunta a
-            // cierres_caja y solo se debe poblar cuando se genere un cierre real.
-            const movementPayload: any = {
-                sesion_id: sesion.id,
-                comercio_id: usuario.comercio_id,
-                tipo: 'venta',
-                monto: monto,
-                descripcion: `Venta ${metodoPago} - factura:${referenciaId}`,
-            }
-
-            const { error: moveError } = await (supabase.from('movimientos_caja') as any).insert([movementPayload])
-            if (moveError) {
-                console.warn('⚠️ Error al registrar movimiento de venta en caja:', moveError)
-            }
-
-            setSesion(prev => prev ? { ...prev, monto_final_esperado: nuevoEsperado } : null)
-            devLog('✅ Venta registrada en la sesión correctamente')
-        } catch (error) {
-            console.error('Error al registrar venta en caja:', error)
-        }
+    // The sale, stock and cash movement are committed together by app_record_sale.
+    // Refresh only; a second browser-side insert would duplicate the cash entry.
+    const registrarVenta = async (_monto: number, _referenciaId: string, _metodoPago: string) => {
+        await checkActiveSession()
     }
 
     return {

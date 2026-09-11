@@ -24,6 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from('facturas')
             .select('*')
             .eq('id', facturaId)
+            .eq('comercio_id', adminUser.comercio_id)
             .single()
 
         if (facturaError || !factura) {
@@ -39,50 +40,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 2. Verificar clave de seguridad del tenant correcto
-        const { data: configClave } = await supabase
+        const { data: configClave, error: configError } = await supabase
             .from('sitio_configuracion')
             .select('valor')
             .eq('clave', 'pos_clave_seguridad')
             .eq('comercio_id', adminUser.comercio_id)
             .single()
 
-        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
+        if (configError || !configClave?.valor || configClave.valor !== claveSeguridad) {
             return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
         }
 
-        // 3. Anular la factura
-        // Validamos que usuario_id sea un UUID válido o null
-        const esUUIDValido = usuario_id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(usuario_id)
-
-        const { error: updateFacturaError } = await supabase
-            .from('facturas')
-            .update({
-                anulada: true,
-                fecha_anulacion: new Date().toISOString(),
-                motivo_anulacion: motivo_anulacion || 'Anulación por el cajero',
-                anulada_por: adminUser.id,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', facturaId)
-
-        if (updateFacturaError) throw updateFacturaError
-
-        // 3. Si tiene cita asociada, revertir el estado de pago
-        if (factura.cita_id) {
-            const { error: updateCitaError } = await supabase
-                .from('citas')
-                .update({
-                    estado_pago: 'pendiente',
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', factura.cita_id)
-
-            if (updateCitaError) {
-                console.error('Error al revertir estado de cita:', updateCitaError)
-                // No lanzamos error para no fallar la anulación de la factura, 
-                // pero lo registramos.
-            }
-        }
+        const { error: changeError } = await supabase.rpc('app_change_sale', {
+            p_comercio: adminUser.comercio_id, p_invoice: factura.id, p_actor: actor.user.id,
+            p_action: 'cancel', p_data: { motivo: typeof motivo_anulacion === 'string' ? motivo_anulacion.slice(0,2000) : 'Anulación por el cajero' },
+        })
+        if (changeError) return res.status(409).json({ message: 'No se pudo anular la venta; comprueba si ya está anulada, cerrada o liquidada' })
 
         return res.status(200).json({
             success: true,

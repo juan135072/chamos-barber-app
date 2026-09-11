@@ -293,7 +293,7 @@ export default function CobrarForm({ usuario, onVentaCreada, sesionCaja, registr
 
       // REGISTRAR VENTA EN LA SESIÓN DE CAJA
       if (sesionCaja && registrarVentaCaja) {
-        await registrarVentaCaja(total, factura.id, metodoPago)
+        await registrarVentaCaja(Number(factura.total), factura.id, metodoPago)
       }
 
       // Éxito

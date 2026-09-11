@@ -9,6 +9,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const { facturaId, nuevoBarberoId, nuevoServicioId, nuevoMetodoPago, claveSeguridad } = req.body
 
+    if (nuevoMetodoPago && !['efectivo','tarjeta','transferencia','otro'].includes(nuevoMetodoPago)) return res.status(400).json({ message: 'Método de pago inválido' })
     if (!facturaId) {
         return res.status(400).json({ message: 'Falta el ID de la factura' })
     }
@@ -24,6 +25,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             .from('facturas')
             .select('*')
             .eq('id', facturaId)
+            .eq('comercio_id', adminUser.comercio_id)
             .single()
 
         if (facturaError || !factura) {
@@ -35,14 +37,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         // 2. Verificar clave de seguridad del tenant correcto
-        const { data: configClave } = await supabase
+        const { data: configClave, error: configError } = await supabase
             .from('sitio_configuracion')
             .select('valor')
             .eq('clave', 'pos_clave_seguridad')
             .eq('comercio_id', adminUser.comercio_id)
             .single()
 
-        if (configClave && configClave.valor && configClave.valor !== claveSeguridad) {
+        if (configError || !configClave?.valor || configClave.valor !== claveSeguridad) {
             return res.status(403).json({ success: false, message: 'Clave de seguridad incorrecta' })
         }
 
@@ -77,59 +79,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             if (servicioError || !servicio) return res.status(400).json({ message: 'Servicio no disponible en este comercio' })
             if (servicio) {
-                total = servicio.precio
-                // Actualizar el primer item (asumimos que es el servicio principal)
-                if (items.length > 0) {
-                    items[0] = {
-                        ...items[0],
-                        servicio: servicio.nombre,
-                        precio: total
-                    }
-                } else {
-                    items = [{
-                        servicio: servicio.nombre,
-                        precio: total,
-                        cantidad: 1
-                    }]
-                }
+                const index = items.findIndex((item: any) => !item.producto_id && item.tipo !== 'producto')
+                const quantity = index >= 0 ? Number(items[index].cantidad ?? 1) : 1
+                if (!Number.isInteger(quantity) || quantity < 1) return res.status(409).json({ message: 'La cantidad del servicio requiere revisión' })
+                const updatedItem = { servicio_id: nuevoServicioId, tipo: 'servicio', nombre: servicio.nombre, precio: Number(servicio.precio), cantidad: quantity, subtotal: Number(servicio.precio)*quantity }
+                if (index >= 0) items[index] = updatedItem
+                else items.push(updatedItem)
+                total = items.reduce((sum: number, item: any) => sum + Number(item.precio) * Number(item.cantidad ?? 1), 0)
+                if (!Number.isFinite(total) || total < 0) return res.status(409).json({ message: 'Los importes de la venta requieren revisión' })
+
             }
         }
 
         // 4. Recalcular comisiones
-        const comisionBarbero = Math.floor(total * (porcentajeComision / 100))
+        const comisionBarbero = Math.round(total * (porcentajeComision / 100))
         const ingresoCasa = total - comisionBarbero
 
-        // 5. Actualizar factura
-        const { error: updateFacturaError } = await supabase
-            .from('facturas')
-            .update({
-                barbero_id: barbero_id,
-                porcentaje_comision: porcentajeComision,
-                comision_barbero: comisionBarbero,
-                ingreso_casa: ingresoCasa,
-                total: total,
-                subtotal: total,
-                items: items,
-                metodo_pago: nuevoMetodoPago || factura.metodo_pago,
-                updated_at: new Date().toISOString()
-            })
-            .eq('id', facturaId)
-
-        if (updateFacturaError) throw updateFacturaError
-
-        // 6. Actualizar cita asociada si existe
-        if (factura.cita_id) {
-            const updateCita: any = {
-                updated_at: new Date().toISOString()
-            }
-            if (nuevoBarberoId) updateCita.barbero_id = nuevoBarberoId
-            if (nuevoServicioId) updateCita.servicio_id = nuevoServicioId
-
-            await supabase
-                .from('citas')
-                .update(updateCita)
-                .eq('id', factura.cita_id)
-        }
+        const { error: changeError } = await supabase.rpc('app_change_sale', {
+            p_comercio: adminUser.comercio_id, p_invoice: factura.id, p_actor: actor.user.id, p_action: 'correct',
+            p_data: { barbero_id, servicio_id: nuevoServicioId || null, porcentaje_comision: porcentajeComision,
+                comision_barbero: comisionBarbero, ingreso_casa: ingresoCasa, total,
+                subtotal: nuevoServicioId ? total : factura.subtotal, descuento: nuevoServicioId ? 0 : factura.descuento ?? 0,
+                items, metodo_pago: nuevoMetodoPago || factura.metodo_pago },
+        })
+        if (changeError) return res.status(409).json({ message: 'No se pudo corregir la venta; comprueba si está anulada, cerrada o liquidada' })
 
         return res.status(200).json({
             success: true,

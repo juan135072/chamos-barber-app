@@ -15,7 +15,7 @@ DECLARE
   v_comercio uuid := (p_data->>'comercio_id')::uuid;
   v_cita uuid := NULLIF(p_data->>'cita_id','')::uuid;
   v_num bigint; v_invoice public.facturas; v_item jsonb; v_product public.productos;
-  v_quantity numeric;
+  v_quantity numeric; v_session uuid;
 BEGIN
   IF v_cita IS NOT NULL THEN
     PERFORM 1 FROM public.citas WHERE id=v_cita AND comercio_id=v_comercio
@@ -51,6 +51,14 @@ BEGIN
       VALUES(v_product.id,'salida',v_quantity,v_product.stock_actual,v_product.stock_actual-v_quantity,
         'Venta POS - Factura '||v_invoice.numero_factura,(p_data->>'created_by')::uuid,v_comercio);
   END LOOP;
+  SELECT id INTO v_session FROM public.caja_sesiones WHERE comercio_id=v_comercio
+    AND usuario_id=(p_data->>'created_by')::uuid AND estado='abierta'
+    ORDER BY fecha_apertura DESC LIMIT 1 FOR UPDATE;
+  IF v_session IS NOT NULL THEN
+    UPDATE public.caja_sesiones SET monto_final_esperado=monto_final_esperado+v_invoice.total WHERE id=v_session;
+    INSERT INTO public.movimientos_caja(sesion_id,comercio_id,tipo,monto,descripcion)
+      VALUES(v_session,v_comercio,'venta',v_invoice.total,'Venta '||v_invoice.metodo_pago||' - factura:'||v_invoice.id);
+  END IF;
   IF v_cita IS NOT NULL THEN
     UPDATE public.citas SET estado='completada',estado_pago='pagado',metodo_pago=p_data->>'metodo_pago',
       precio_final=(p_data->>'total')::numeric,
