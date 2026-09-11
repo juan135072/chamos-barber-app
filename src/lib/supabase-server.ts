@@ -101,12 +101,15 @@ function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: N
                                 (refreshResult as any)?.data?.refreshToken || refreshToken
 
                             if (newToken) {
-                                setAuthCookies(res, newToken, newRefreshToken)
-                                // Retry getCurrentUser with the new token
+                                // Server-mode refresh does not update the SDK's
+                                // token manager. Install the new bearer before
+                                // getCurrentUser reads that manager again.
+                                client.setAccessToken(newToken)
                                 const retry = await client.auth.getCurrentUser()
                                 const retryRaw = (retry?.data?.user as any) ?? null
                                 const retryUser = retryRaw && UUID_RE.test(retryRaw.id) ? retryRaw : null
                                 if (retryUser) {
+                                    setAuthCookies(res, newToken, newRefreshToken)
                                     return {
                                         data: {
                                             session: {
@@ -192,6 +195,7 @@ export function createPagesServerClient(req: NextApiRequest, res: NextApiRespons
         anonKey: ANON_KEY,
         isServerMode: true,
         edgeFunctionToken: accessToken,
+        autoRefreshToken: false,
     } as Parameters<typeof createInsforgeClient>[0])
     return makeSupabaseShape(client, req, res)
 }
@@ -238,6 +242,7 @@ export async function getUserFromBearer(
         anonKey: ANON_KEY,
         isServerMode: true,
         edgeFunctionToken: token,
+        autoRefreshToken: false,
     } as Parameters<typeof createInsforgeClient>[0])
     const result = await client.auth.getCurrentUser()
     return { data: { user: (result?.data?.user as any) ?? null }, error: result?.error ?? null }

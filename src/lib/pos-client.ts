@@ -1,7 +1,7 @@
-import { supabase } from './supabase'
+import { getAppSession } from './app-session'
 
 export async function posRequest(path: string, body?: unknown) {
-  const token = (supabase as any)._insforge?.auth?.getAccessToken?.()
+  const token = (await getAppSession())?.access_token
   const response = await fetch(path, {
     method: body === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
