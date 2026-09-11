@@ -111,6 +111,9 @@ const nextConfig = {
   // Redirects para mantener compatibilidad con URLs antiguas
   async redirects() {
     return [
+      { source: '/login', destination: '/chamos-acceso', permanent: true },
+      { source: '/consultar-citas', destination: '/consultar', permanent: true },
+      { source: '/barbero', destination: '/barbero-panel', permanent: true },
       {
         source: '/index.html',
         destination: '/',
@@ -128,12 +131,12 @@ const nextConfig = {
       },
       {
         source: '/consultar-citas.html',
-        destination: '/consultar-citas',
+        destination: '/consultar',
         permanent: true,
       },
       {
         source: '/barbero.html',
-        destination: '/barbero',
+        destination: '/barbero-panel',
         permanent: true,
       },
       {
@@ -143,7 +146,7 @@ const nextConfig = {
       },
       {
         source: '/login.html',
-        destination: '/login',
+        destination: '/chamos-acceso',
         permanent: true,
       },
     ];
