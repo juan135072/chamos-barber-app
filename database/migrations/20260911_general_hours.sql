@@ -36,7 +36,7 @@ DROP TRIGGER IF EXISTS app_new_barber_hours ON public.barberos;
 CREATE TRIGGER app_new_barber_hours AFTER INSERT ON public.barberos FOR EACH ROW EXECUTE FUNCTION public.app_new_barber_hours();
 
 CREATE OR REPLACE FUNCTION public.app_save_settings(p_comercio uuid,p_values jsonb) RETURNS void
-LANGUAGE plpgsql SET search_path='' AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE h record;
 BEGIN
   IF jsonb_typeof(p_values)<>'object' THEN RAISE EXCEPTION 'Configuración inválida'; END IF;
