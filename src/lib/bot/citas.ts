@@ -1,6 +1,50 @@
+import type { NextApiResponse } from 'next'
 import { appointmentCharge } from '@/lib/pos-values'
 import { localWallTimestamp } from '@/lib/booking-validation'
-import { changeDeadline, formatWallClock, isActiveEstado, isWithinChangeWindow, wallClock } from '@/lib/booking/change-policy'
+import { CHANGE_DEADLINE_HOURS, changeDeadline, formatWallClock, isActiveEstado, isWithinChangeWindow, wallClock } from '@/lib/booking/change-policy'
+import type { ChangeFailure } from '@/lib/booking/change'
+import type { CreateBookingFailure } from '@/lib/booking/create'
+import { sendBotError, type BotTenant } from './api'
+
+/** Marker kept at the start of the notes of bot bookings (find-ai-citas.js searches for it). */
+export const BOT_NOTE_PREFIX = '[RESERVA WHATSAPP/IA]'
+
+export function botBookingNotes(notas: unknown): string {
+  const text = typeof notas === 'string' ? notas.trim() : ''
+  return text ? `${BOT_NOTE_PREFIX} ${text}` : BOT_NOTE_PREFIX
+}
+
+/** Maps shared booking failures to the bot error contract (see docs/bot-api.md). */
+export function sendBookingFailure(res: NextApiResponse, failure: CreateBookingFailure | ChangeFailure) {
+  switch (failure.code) {
+    case 'BARBERO_SIN_COMERCIO':
+    case 'BARBERO_NO_DISPONIBLE':
+      return sendBotError(res, 400, 'BARBERO_NO_DISPONIBLE', 'El barbero seleccionado no está disponible.')
+    case 'SERVICIO_NO_DISPONIBLE':
+      return sendBotError(res, 400, 'SERVICIO_NO_DISPONIBLE', failure.message)
+    case 'MISMO_HORARIO':
+      return sendBotError(res, 400, 'DATOS_INVALIDOS', 'La cita ya está agendada en ese horario.')
+    case 'CITA_NO_ENCONTRADA':
+      return sendBotError(res, 404, 'CITA_NO_ENCONTRADA', 'No encontramos esa cita para este teléfono.')
+    case 'CITA_NO_MODIFICABLE':
+      return sendBotError(res, 409, 'CITA_NO_MODIFICABLE', failure.estado
+        ? `La cita está ${failure.estado} y ya no se puede modificar.`
+        : 'La cita cambió de estado y ya no se puede modificar.')
+    case 'FUERA_DE_PLAZO':
+      return sendBotError(res, 409, 'FUERA_DE_PLAZO',
+        `Las citas solo se pueden cambiar o cancelar hasta ${CHANGE_DEADLINE_HOURS} horas antes. Para cambios de último momento comunícate directamente con la barbería.`)
+    case 'LIMITE_CITAS_ALCANZADO':
+      return sendBotError(res, 409, 'LIMITE_CITAS_ALCANZADO', failure.message)
+    case 'HORARIO_NO_DISPONIBLE':
+      return sendBotError(res, 409, 'HORARIO_NO_DISPONIBLE', 'Ese horario no está disponible. Elige otro.')
+    case 'RACE_CONDITION':
+      return sendBotError(res, 409, 'RACE_CONDITION', 'Ese horario se acaba de ocupar. Elige otro.')
+    case 'VERIFICACION_FALLIDA':
+    case 'ERROR_INSERCION':
+      console.error('[bot-api] booking failed:', failure)
+      return sendBotError(res, 500, 'ERROR_INTERNO', 'Error interno. Intenta nuevamente en unos minutos.')
+  }
+}
 
 /** Columns the bot reads from a cita. Contact data and notes are never selected. */
 export const BOT_CITA_COLUMNS =
@@ -44,6 +88,21 @@ export function presentCita(cita: any, timeZone: string, now: Date = new Date(),
     modificable: isActiveEstado(cita.estado) && isWithinChangeWindow(cita.fecha, hora, timeZone, now),
     modificable_hasta: formatWallClock(changeDeadline(cita.fecha, hora)),
   }
+}
+
+/**
+ * Presents a booking that was just written, re-read with the bot columns so
+ * older rows still show their service names.
+ */
+export async function presentStoredCita(db: any, tenant: BotTenant, cita: any, barbero?: BarberRef | null) {
+  const { data, error } = await db
+    .from('citas')
+    .select(BOT_CITA_COLUMNS)
+    .eq('id', cita.id)
+    .eq('comercio_id', tenant.id)
+    .limit(1)
+  const stored = !error && Array.isArray(data) && data[0] ? data[0] : cita
+  return presentCita(stored, tenant.timezone, new Date(), barbero)
 }
 
 /**
