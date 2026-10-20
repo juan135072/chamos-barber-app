@@ -5,14 +5,15 @@
  * - the booking must belong to the tenant AND to the customer's phone;
  *   otherwise it is reported as not found, never as "exists but not yours";
  * - only pendiente/confirmada bookings can change;
- * - the 2 h deadline of the terms (change-policy.ts) is enforced here;
+ * - a booking can change until its current start time, with no earlier
+ *   cutoff (change-policy.ts); once it started or passed it is locked;
  * - a rescheduled booking returns to 'pendiente' so the barber confirms again.
  *
  * Database failures throw; callers turn them into a generic 500.
  */
 import { appointmentDuration, localWallTimestamp } from '@/lib/booking-validation'
 import { fetchSlots } from './availability'
-import { ACTIVE_ESTADOS, isActiveEstado, isWithinChangeWindow, wallClock } from './change-policy'
+import { ACTIVE_ESTADOS, isActiveEstado, isBeforeStart, wallClock } from './change-policy'
 import { isSlotConflict } from './create'
 import { notifyBookingCancelled, notifyBookingRescheduled } from './notify'
 
@@ -21,8 +22,8 @@ const DAY_MS = 86_400_000
 
 export type ChangeFailure =
   | { code: 'CITA_NO_ENCONTRADA' }
-  | { code: 'CITA_NO_MODIFICABLE'; estado?: string }
-  | { code: 'FUERA_DE_PLAZO' }
+  /** `estado`: not pendiente/confirmada; `started`: its start time already arrived. */
+  | { code: 'CITA_NO_MODIFICABLE'; estado?: string; started?: true }
   | { code: 'BARBERO_NO_DISPONIBLE' }
   | { code: 'MISMO_HORARIO' }
   | { code: 'HORARIO_NO_DISPONIBLE' }
@@ -75,7 +76,7 @@ function changeBlocker(cita: any, timeZone: string, now?: Date): ChangeFailure |
   if (!cita) return { code: 'CITA_NO_ENCONTRADA' }
   if (!isActiveEstado(cita.estado)) return { code: 'CITA_NO_MODIFICABLE', estado: cita.estado }
   // Measured from the CURRENT start time, not the requested one.
-  if (!isWithinChangeWindow(cita.fecha, String(cita.hora), timeZone, now)) return { code: 'FUERA_DE_PLAZO' }
+  if (!isBeforeStart(cita.fecha, String(cita.hora), timeZone, now)) return { code: 'CITA_NO_MODIFICABLE', started: true }
   return null
 }
 

@@ -15,8 +15,9 @@ const cancelar = require('../src/pages/api/bot/citas/cancelar.ts').default
 const { getDynamicHoy } = require('../src/lib/date-utils.ts')
 const { localWallTimestamp } = require('../src/lib/booking-validation.ts')
 const { addDays } = require('../src/lib/bot/validation.ts')
-const { isWithinChangeWindow, wallClock } = require('../src/lib/booking/change-policy.ts')
+const { isBeforeStart, wallClock } = require('../src/lib/booking/change-policy.ts')
 const { isRangeFree } = require('../src/lib/booking/change.ts')
+const { presentCita } = require('../src/lib/bot/citas.ts')
 
 const KEY = 'test-bot-key-0123456789-abcdefghijklmnop'
 const TZ = 'America/Santiago'
@@ -86,11 +87,22 @@ test.beforeEach(() => {
   seed()
 })
 
-test('2 h rule compares wall clocks in the tenant timezone', () => {
+test('changes are allowed until the start, compared as wall clocks in the tenant timezone', () => {
   // 2026-01-15 is summer time in Santiago (UTC-3).
-  assert.equal(isWithinChangeWindow('2026-01-15', '10:00', TZ, new Date('2026-01-15T10:59:00Z')), true) // 07:59 local
-  assert.equal(isWithinChangeWindow('2026-01-15', '10:00:00', TZ, new Date('2026-01-15T11:00:00Z')), false) // 08:00 local
-  assert.equal(isWithinChangeWindow('2026-07-15', '10:00', TZ, new Date('2026-07-15T11:59:00Z')), true) // winter UTC-4: 07:59
+  assert.equal(isBeforeStart('2026-01-15', '10:00', TZ, new Date('2026-01-15T11:30:00Z')), true) // 08:30 local
+  assert.equal(isBeforeStart('2026-01-15', '10:00', TZ, new Date('2026-01-15T12:59:00Z')), true) // 09:59 local
+  assert.equal(isBeforeStart('2026-01-15', '10:00:00', TZ, new Date('2026-01-15T13:00:00Z')), false) // 10:00 local: started
+  assert.equal(isBeforeStart('2026-07-15', '10:00', TZ, new Date('2026-07-15T13:59:00Z')), true) // winter UTC-4: 09:59
+  assert.equal(isBeforeStart('2026-07-15', '10:00', TZ, new Date('2026-07-15T14:00:00Z')), false) // winter UTC-4: 10:00
+})
+
+test('the cita shape is modificable until its start, which is modificable_hasta', () => {
+  const cita = { id: mine, fecha: '2026-01-15', hora: '10:00:00', estado: 'confirmada', barbero_id: carlos, items: [corteItem], precio_final: 10000 }
+  const at = (iso) => presentCita(cita, TZ, new Date(iso))
+  assert.deepEqual([at('2026-01-15T12:30:00Z').modificable, at('2026-01-15T12:30:00Z').modificable_hasta], [true, '2026-01-15 10:00']) // 30 min before
+  assert.equal(at('2026-01-15T13:00:00Z').modificable, false) // started
+  assert.equal(at('2026-01-16T13:00:00Z').modificable, false) // past
+  assert.equal(presentCita({ ...cita, estado: 'cancelada' }, TZ, new Date('2026-01-15T12:30:00Z')).modificable, false)
 })
 
 test('range check treats touching ranges as free', () => {
@@ -114,7 +126,7 @@ test('create books through the shared rules with a normalized phone and the bot 
     id: row.id, fecha: day, hora: '15:00', estado: 'pendiente',
     barbero: { id: carlos, nombre: 'Carlos', apellido: 'Pérez' },
     servicios: [{ id: corte, nombre: 'Corte', cantidad: 1, precio: 10000 }, { id: barba, nombre: 'Barba', cantidad: 1, precio: 6000 }],
-    precio_final: 16000, modificable: true, modificable_hasta: `${day} 13:00`,
+    precio_final: 16000, modificable: true, modificable_hasta: `${day} 15:00`,
   })
   assert.ok(db.calls.published.some(p => p.channel === `citas:barbero:${carlos}` && p.payload.eventType === 'INSERT'))
   assert.equal(pushes[0].title, 'Nueva Reserva ✂️')
@@ -173,14 +185,33 @@ test('reschedule and cancel never reveal bookings of another phone or tenant', a
   assert.equal(citaRow(theirs).estado, 'pendiente')
 })
 
-test('changes are refused from 2 hours before the current start time', async () => {
-  Object.assign(citaRow(mine), startsIn(90))
-  for (const [handler, body] of [[reagendar, { telefono: phone, cita_id: mine, fecha: day, hora: '16:00' }], [cancelar, { telefono: phone, cita_id: mine }]]) {
-    const res = await post(handler, body)
-    assert.equal(res.statusCode, 409)
-    assert.equal(res.body.code, 'FUERA_DE_PLAZO')
+test('reschedule and cancel still work 30 minutes before the start', async () => {
+  Object.assign(citaRow(mine), startsIn(30))
+  slots[`${carlos}|${day}`] = [{ hora: '16:00', disponible: true }]
+  let res = await post(reagendar, { telefono: phone, cita_id: mine, fecha: day, hora: '16:00' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(db.calls.updates[0].patch, { fecha: day, hora: '16:00', barbero_id: carlos, estado: 'pendiente' })
+  assert.equal(res.body.data.modificable, true)
+  assert.equal(res.body.data.modificable_hasta, `${day} 16:00`)
+
+  seed()
+  Object.assign(citaRow(mine), startsIn(30))
+  res = await post(cancelar, { telefono: phone, cita_id: mine })
+  assert.equal(res.statusCode, 200)
+  assert.equal(citaRow(mine).estado, 'cancelada')
+})
+
+test('changes are refused once the current start time arrived or passed', async () => {
+  for (const start of [startsIn(0), startsIn(-1), startsIn(-90), { fecha: addDays(today, -1), hora: '10:00:00' }]) {
+    seed()
+    Object.assign(citaRow(mine), start)
+    for (const [handler, body] of [[reagendar, { telefono: phone, cita_id: mine, fecha: day, hora: '16:00' }], [cancelar, { telefono: phone, cita_id: mine }]]) {
+      const res = await post(handler, body)
+      assert.equal(res.statusCode, 409, JSON.stringify(start))
+      assert.deepEqual(res.body, { success: false, code: 'CITA_NO_MODIFICABLE', message: 'La cita ya comenzó o ya pasó y no se puede modificar.' })
+    }
+    assert.equal(db.calls.updates.length, 0)
   }
-  assert.equal(db.calls.updates.length, 0)
 })
 
 test('cancelled or completed bookings cannot change', async () => {

@@ -220,7 +220,7 @@ test('citas returns only this customer upcoming bookings plus history', async ()
     id: 'up-1', fecha: future, hora: '10:00', estado: 'confirmada',
     barbero: { id: carlos, nombre: 'Carlos', apellido: 'Pérez' },
     servicios: [{ id: corte, nombre: 'Corte', cantidad: 2, precio: 10000 }],
-    precio_final: 20000, modificable: true, modificable_hasta: `${future} 08:00`,
+    precio_final: 20000, modificable: true, modificable_hasta: `${future} 10:00`,
   }])
   assert.deepEqual(data.historial, {
     cliente_nombre: 'Ana',

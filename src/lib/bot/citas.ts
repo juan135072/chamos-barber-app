@@ -1,7 +1,7 @@
 import type { NextApiResponse } from 'next'
 import { appointmentCharge } from '@/lib/pos-values'
 import { localWallTimestamp } from '@/lib/booking-validation'
-import { CHANGE_DEADLINE_HOURS, changeDeadline, formatWallClock, isActiveEstado, isWithinChangeWindow, wallClock } from '@/lib/booking/change-policy'
+import { formatWallClock, isActiveEstado, isBeforeStart, wallClock } from '@/lib/booking/change-policy'
 import type { ChangeFailure } from '@/lib/booking/change'
 import type { CreateBookingFailure } from '@/lib/booking/create'
 import { sendBotError, type BotTenant } from './api'
@@ -27,12 +27,10 @@ export function sendBookingFailure(res: NextApiResponse, failure: CreateBookingF
     case 'CITA_NO_ENCONTRADA':
       return sendBotError(res, 404, 'CITA_NO_ENCONTRADA', 'No encontramos esa cita para este teléfono.')
     case 'CITA_NO_MODIFICABLE':
+      if (failure.started) return sendBotError(res, 409, 'CITA_NO_MODIFICABLE', 'La cita ya comenzó o ya pasó y no se puede modificar.')
       return sendBotError(res, 409, 'CITA_NO_MODIFICABLE', failure.estado
         ? `La cita está ${failure.estado} y ya no se puede modificar.`
         : 'La cita cambió de estado y ya no se puede modificar.')
-    case 'FUERA_DE_PLAZO':
-      return sendBotError(res, 409, 'FUERA_DE_PLAZO',
-        `Las citas solo se pueden cambiar o cancelar hasta ${CHANGE_DEADLINE_HOURS} horas antes. Para cambios de último momento comunícate directamente con la barbería.`)
     case 'LIMITE_CITAS_ALCANZADO':
       return sendBotError(res, 409, 'LIMITE_CITAS_ALCANZADO', failure.message)
     case 'HORARIO_NO_DISPONIBLE':
@@ -84,9 +82,9 @@ export function presentCita(cita: any, timeZone: string, now: Date = new Date(),
       precio: Number(item.precio ?? 0),
     })),
     precio_final: total,
-    // Server-side 2 h rule, exposed so the agent can answer before trying.
-    modificable: isActiveEstado(cita.estado) && isWithinChangeWindow(cita.fecha, hora, timeZone, now),
-    modificable_hasta: formatWallClock(changeDeadline(cita.fecha, hora)),
+    // Changes are allowed until the booking starts; exposed so the agent can answer before trying.
+    modificable: isActiveEstado(cita.estado) && isBeforeStart(cita.fecha, hora, timeZone, now),
+    modificable_hasta: formatWallClock(wallClock(cita.fecha, hora)),
   }
 }
 

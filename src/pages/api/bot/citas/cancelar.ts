@@ -5,7 +5,7 @@ import { isUuid } from '@/lib/booking-validation'
 import { cancelBooking } from '@/lib/booking/change'
 import { normalizeCustomerPhone, phoneLookupVariants } from '@/lib/booking/phone'
 
-/** POST /api/bot/citas/cancelar — cancels the customer's booking (2 h rule applies). */
+/** POST /api/bot/citas/cancelar — cancels the customer's booking (allowed until it starts). */
 export default botRoute({
   POST: async (req, res, { db, tenant }) => {
     const body = readJsonBody(req)

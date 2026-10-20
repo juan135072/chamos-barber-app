@@ -54,8 +54,8 @@ Request handling order: key check (`503`/`401`) → method (`405`) → tenant
 | 400 | `BARBERO_NO_DISPONIBLE` | Barber unknown, inactive or from another business. | Offer `GET /api/bot/barberos`. |
 | 400 | `SERVICIO_NO_DISPONIBLE` | A service is unknown, inactive or from another business. | Offer `GET /api/bot/servicios`. |
 | 404 | `CITA_NO_ENCONTRADA` | No booking with that id for this phone in this business. Also returned when the id belongs to someone else. | Re-read `GET /api/bot/citas`. |
-| 409 | `CITA_NO_MODIFICABLE` | Booking is already `cancelada`/`completada`, or changed state meanwhile. | Explain; offer a new booking. |
-| 409 | `FUERA_DE_PLAZO` | Less than 2 hours before the booking's current start. | Tell the customer to contact the shop directly. |
+| 409 | `CITA_NO_MODIFICABLE` | Booking is already `cancelada`/`completada`, changed state meanwhile, or has already started / is in the past (message `La cita ya comenzó o ya pasó y no se puede modificar.`). | Explain; offer a new booking. |
+| 409 | `FUERA_DE_PLAZO` | **Deprecated — no longer returned.** Older versions sent it for changes close to the start; that cutoff was removed. | Treat it like `CITA_NO_MODIFICABLE`. |
 | 409 | `HORARIO_NO_DISPONIBLE` | The time is not offered by availability. | Call `POST /api/bot/horarios` again and offer other times. |
 | 409 | `RACE_CONDITION` | Someone took the slot between check and write. | Same as above. |
 | 409 | `LIMITE_CITAS_ALCANZADO` | Phone already has 5 upcoming `pendiente`/`confirmada` bookings. | Explain; offer to move or cancel one. |
@@ -69,20 +69,25 @@ Request handling order: key check (`503`/`401`) → method (`405`) → tenant
 
 ## Business rules
 
-### 2-hour rule (change and cancel)
+### Change and cancel: allowed until the booking starts
 
-Terms §4.2: a booking can be changed or cancelled free of charge up to 2 hours
-before it starts. The server enforces it on the booking's **current** start
-time, in the business timezone:
+A `pendiente`/`confirmada` booking can be rescheduled or cancelled at any
+moment before it starts; there is no earlier cutoff. The server checks the
+booking's **current** start time, in the business timezone:
 
-- allowed while `now < start − 2 h`;
-- from `start − 2 h` on (including exactly 2 h before) → `409 FUERA_DE_PLAZO`.
+- allowed while `now < start`;
+- from the start on (including exactly at the start time) or for a past
+  booking → `409 CITA_NO_MODIFICABLE` with the message
+  `La cita ya comenzó o ya pasó y no se puede modificar.`
 
-Each booking returned by the API carries `modificable` (already includes state
-and the 2 h rule) and `modificable_hasta` (`YYYY-MM-DD HH:MM`, last moment to
-change), so the agent can answer before calling. Times are compared as wall
-clocks, like the availability function; on a DST-switch day the window can be
-one real hour longer or shorter.
+Each booking returned by the API carries `modificable` (state and "not started
+yet") and `modificable_hasta` (`YYYY-MM-DD HH:MM`, the booking start: changes
+are accepted strictly before it), so the agent can answer before calling.
+Times are compared as wall clocks, like the availability function; on a
+DST-switch day the comparison can be off by one real hour.
+
+`FUERA_DE_PLAZO` is no longer returned. It stays in the error table as
+deprecated so older clients still recognize it.
 
 ### Rescheduling inside the booking's own time
 
@@ -127,7 +132,7 @@ Returned by `GET /api/bot/citas` (inside `citas`), `POST /api/bot/citas`,
   ],
   "precio_final": 20000,
   "modificable": true,
-  "modificable_hasta": "2026-10-23 08:00"
+  "modificable_hasta": "2026-10-23 10:00"
 }
 ```
 
@@ -137,6 +142,8 @@ Returned by `GET /api/bot/citas` (inside `citas`), `POST /api/bot/citas`,
 | `barbero` | `null` only for legacy bookings without barber; `nombre`/`apellido` may be `null` on legacy rows. |
 | `servicios[].precio` | Unit price at booking time. |
 | `precio_final` | Total agreed for the booking. |
+| `modificable` | `true` while the booking is `pendiente`/`confirmada` and has not started yet. |
+| `modificable_hasta` | The booking start (`fecha` + `hora`, business timezone). Changes are accepted strictly before it. |
 
 ## Routes
 
@@ -307,8 +314,8 @@ Moves a booking of this customer.
 with the updated `Cita` (`estado: "pendiente"` again).
 
 Checks, in order: ownership (`404 CITA_NO_ENCONTRADA`), state
-(`409 CITA_NO_MODIFICABLE`), 2 h rule on the current start
-(`409 FUERA_DE_PLAZO`), barber (`400 BARBERO_NO_DISPONIBLE`), same slot
+(`409 CITA_NO_MODIFICABLE`), current start not reached yet
+(`409 CITA_NO_MODIFICABLE`), barber (`400 BARBERO_NO_DISPONIBLE`), same slot
 (`400 DATOS_INVALIDOS`), availability (`409 HORARIO_NO_DISPONIBLE`), write
 (`409 RACE_CONDITION`).
 
@@ -321,8 +328,9 @@ Cancels a booking of this customer.
 ```
 
 Response: `200` with the `Cita` (`estado: "cancelada"`, `modificable: false`).
-Errors: `DATOS_INVALIDOS`, `CITA_NO_ENCONTRADA`, `CITA_NO_MODIFICABLE`,
-`FUERA_DE_PLAZO`.
+Allowed until the booking starts. Errors: `DATOS_INVALIDOS`,
+`CITA_NO_ENCONTRADA`, `CITA_NO_MODIFICABLE` (also once the booking has started
+or is in the past).
 
 ## Example
 

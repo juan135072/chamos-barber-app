@@ -7,8 +7,8 @@ import { normalizeCustomerPhone, phoneLookupVariants } from '@/lib/booking/phone
 
 /**
  * POST /api/bot/citas/reagendar — moves the customer's booking to a new
- * date/time (and optionally another barber). See docs/bot-api.md for the 2 h
- * rule and how the booking's own slot is handled.
+ * date/time (and optionally another barber) while it has not started yet. See
+ * docs/bot-api.md for the change rules and how the booking's own slot is handled.
  */
 export default botRoute({
   POST: async (req, res, { db, tenant }) => {
