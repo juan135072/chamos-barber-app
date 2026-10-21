@@ -543,7 +543,7 @@ const ConsultarPage: React.FC = () => {
                       </p>
                       <div className="flex flex-wrap gap-4 justify-center">
                         <a
-                          href="https://wa.me/56983588553"
+                          href="https://wa.me/56937644277"
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center gap-2 bg-gradient-to-r from-[#25D366] to-[#128C7E] text-white px-6 py-3 rounded-xl font-bold hover:shadow-[0_0_20px_rgba(37,211,102,0.4)] transition-all hover:-translate-y-1"
