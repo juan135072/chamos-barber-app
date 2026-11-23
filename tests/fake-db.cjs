@@ -1,16 +1,18 @@
 // In-memory stand-in for the Supabase-shaped InsForge client that API routes
 // receive from createPagesAdminClient(). It evaluates the simple filters the
-// booking code uses and records every write, RPC call and realtime publish.
+// booking and barber code uses and records every write, delete, RPC call and
+// realtime publish.
 const { randomUUID } = require('node:crypto')
 
-function createFakeDb({ tables = {}, rpc, fail = {}, onInsert, onUpdate } = {}) {
-  const calls = { inserts: [], updates: [], rpc: [], published: [], or: [], selects: [] }
+function createFakeDb({ tables = {}, rpc, fail = {}, onInsert, onUpdate, onDelete } = {}) {
+  const calls = { inserts: [], updates: [], deletes: [], rpc: [], published: [], or: [], selects: [] }
   const db = {
     tables,
     calls,
     fail,
     onInsert,
     onUpdate,
+    onDelete,
     from: (table) => new Query(db, table),
     async rpc(name, args) {
       calls.rpc.push({ name, args })
@@ -39,6 +41,7 @@ class Query {
   select(columns) { this.columns = columns; return this }
   insert(rows) { this.mode = 'insert'; this.payload = rows; return this }
   update(patch) { this.mode = 'update'; this.payload = patch; return this }
+  delete() { this.mode = 'delete'; return this }
   eq(column, value) { this.filters.push([column, 'eq', value, (row) => row[column] === value]); return this }
   neq(column, value) { this.filters.push([column, 'neq', value, (row) => row[column] !== value]); return this }
   in(column, values) { this.filters.push([column, 'in', values, (row) => values.includes(row[column])]); return this }
@@ -90,6 +93,14 @@ class Query {
       if (error) return { data: null, error }
       for (const row of matched) Object.assign(row, structuredClone(this.payload))
       this.db.calls.updates.push({ table: this.table, patch: structuredClone(this.payload), ids: matched.map((r) => r.id), filters: this.filters.map(([c, op, v]) => [c, op, v]) })
+      return this.shape(matched)
+    }
+    if (this.mode === 'delete') {
+      const matched = this.rows().filter((row) => this.matches(row))
+      const error = this.db.onDelete?.(this.table, matched)
+      if (error) return { data: null, error }
+      this.db.tables[this.table] = this.rows().filter((row) => !matched.includes(row))
+      this.db.calls.deletes.push({ table: this.table, ids: matched.map((r) => r.id), filters: this.filters.map(([c, op, v]) => [c, op, v]) })
       return this.shape(matched)
     }
     this.db.calls.selects.push({ table: this.table, filters: this.filters.map(([c, op, v]) => [c, op, v]) })

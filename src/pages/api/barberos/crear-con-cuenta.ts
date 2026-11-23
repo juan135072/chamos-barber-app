@@ -1,9 +1,17 @@
 import { requireStaff, barberFields } from '@/lib/server-authorization'
 // API Route: Crear Barbero con Cuenta de Usuario desde Admin
 // Migrado a InsForge 2026-05-12: adminGetUserById / adminCreateUser / adminDeleteUser
+// 2026-11-23: normalized emails, unique slug, clear 409s and full rollback.
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { adminGetUserById, adminCreateUser, adminDeleteUser } from '@/lib/insforge-admin'
-import { createPagesAdminClient } from '@/lib/supabase-server'
+import {
+  checkAccountEmail,
+  findEmailConflict,
+  insertBarber,
+  normalizeEmail,
+  openBarberAccount,
+  removeBarber,
+  sendCredentialsEmail,
+} from '@/lib/staff-accounts'
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,125 +24,91 @@ export default async function handler(
   try {
     const actor = await requireStaff(req, res, ['admin'])
     if (!actor) return
-    const { barberoData, crearCuenta } = req.body
+    const { barberoData, crearCuenta } = req.body ?? {}
 
-    if (!barberoData) {
+    if (!barberoData || typeof barberoData !== 'object') {
       return res.status(400).json({ error: 'Faltan datos requeridos' })
     }
 
-    console.log('🔄 [Crear Barbero] Iniciando creación:', {
-      nombre: barberoData.nombre,
-      crearCuenta
+    const fields = barberFields(barberoData)
+    if (!fields.nombre || !fields.apellido) {
+      return res.status(400).json({ error: 'Nombre y apellido son requeridos' })
+    }
+
+    const email = normalizeEmail(fields.email)
+    if (crearCuenta && !email) {
+      return res.status(400).json({ error: 'Ingresa un email para crear la cuenta de acceso' })
+    }
+    // An inactive barber cannot log in, so it gets no account (nor its email).
+    if (crearCuenta && fields.activo === false) {
+      return res.status(400).json({ error: 'Para crear su acceso, el barbero debe estar activo. Créalo activo o sin cuenta.' })
+    }
+
+    const admin = actor.admin
+    const comercioId = actor.access.comercio_id
+
+    // Check every conflict before writing anything.
+    if (email) {
+      const conflict = await findEmailConflict(admin, comercioId, email)
+      if (conflict) return res.status(409).json({ error: conflict })
+    }
+    if (crearCuenta) {
+      const check = await checkAccountEmail(admin, comercioId, email!)
+      if (!check.ok) return res.status(check.status).json({ error: check.error })
+    }
+
+    const created = await insertBarber(admin, comercioId, { ...fields, email })
+    if (!created.ok) return res.status(created.status).json({ error: created.error })
+    const nuevoBarbero = created.barbero
+
+    if (!crearCuenta) {
+      return res.status(200).json({
+        success: true,
+        barbero: nuevoBarbero,
+        cuenta_creada: false,
+        email,
+        message: 'Barbero creado exitosamente (sin cuenta de usuario)'
+      })
+    }
+
+    const account = await openBarberAccount(admin, {
+      comercioId,
+      barbero: nuevoBarbero,
+      email: email!,
     })
 
-    const supabaseAdmin = actor.admin
-
-    // PASO 1: Crear barbero
-    const { data: nuevoBarbero, error: barberoError } = await supabaseAdmin
-      .from('barberos')
-      .insert([{ ...barberFields(barberoData), comercio_id: actor.access.comercio_id }])
-      .select()
-      .single()
-
-    if (barberoError || !nuevoBarbero) {
-      console.error('❌ [Crear Barbero] Error creando barbero:', barberoError)
-      throw new Error('Error creando barbero en base de datos')
-    }
-
-    console.log('✅ [Crear Barbero] Barbero creado:', nuevoBarbero.id)
-
-    let password: string | null = null
-    let authUserId: string | null = null
-
-    // PASO 2: Si se solicita crear cuenta, crear usuario auth
-    if (crearCuenta && barberoData.email) {
-      password = `Chamos${Math.random().toString(36).slice(-8)}!${Date.now().toString(36).slice(-4)}`
-
-      console.log('🔑 [Crear Barbero] Creando cuenta de usuario en InsForge auth')
-
-      const { data: authUser, error: authUserError } = await adminCreateUser({
-        email: barberoData.email,
-        password: password,
-        email_confirm: true,
-        user_metadata: {
-          nombre: barberoData.nombre,
-          apellido: barberoData.apellido,
-          rol: 'barbero'
-        }
+    if (!account.ok) {
+      // No account means no barber either: undo the insert.
+      const removed = await removeBarber(admin, comercioId, nuevoBarbero.id)
+      if (removed) return res.status(account.status).json({ error: account.error })
+      // The UI refreshes the list so the barber that stayed is visible.
+      return res.status(account.status).json({
+        error: `${account.error} El barbero quedó guardado sin acceso; revísalo en la lista.`,
+        barbero_guardado: true
       })
-
-      if (authUserError || !authUser.user) {
-        console.error('❌ [Crear Barbero] Error creando usuario en Auth:', authUserError)
-        console.warn('⚠️ [Crear Barbero] Barbero creado pero sin cuenta de usuario')
-      } else {
-        authUserId = authUser.user.id
-        console.log('✅ [Crear Barbero] Usuario Auth creado:', authUserId)
-
-        // PASO 3: Crear entrada en admin_users
-        const { error: adminUserError } = await supabaseAdmin
-          .from('admin_users')
-          .insert({
-            id: authUserId,
-            email: barberoData.email,
-            nombre: `${barberoData.nombre} ${barberoData.apellido}`,
-            rol: 'barbero',
-            barbero_id: nuevoBarbero.id,
-            comercio_id: actor.access.comercio_id,
-            activo: true
-          })
-
-        if (adminUserError) {
-          console.error('❌ [Crear Barbero] Error creando admin_user:', adminUserError)
-          // Rollback: eliminar usuario auth
-          try {
-            await adminDeleteUser(authUserId)
-            console.log('🔄 [Crear Barbero] Rollback: Usuario Auth eliminado')
-          } catch (rollbackError) {
-            console.error('❌ [Crear Barbero] Error en rollback:', rollbackError)
-          }
-          throw new Error('Error creando cuenta de usuario')
-        }
-
-        console.log('✅ [Crear Barbero] Entrada admin_users creada')
-
-        // PASO 4: Enviar email con credenciales (opcional)
-        if (password) {
-          try {
-            const { emailService } = await import('../../../../lib/email-service')
-            const emailSent = await emailService.sendCredentials({
-              email: barberoData.email,
-              password: password,
-              nombre: barberoData.nombre,
-              apellido: barberoData.apellido
-            })
-
-            if (emailSent) {
-              console.log('✅ [Crear Barbero] Email enviado exitosamente')
-            } else {
-              console.warn('⚠️ [Crear Barbero] Email no se pudo enviar')
-            }
-          } catch (emailError) {
-            console.error('❌ [Crear Barbero] Error sending email (no crítico):', emailError)
-          }
-        }
-      }
     }
 
+    // Best-effort: the account stays and the admin sees the password either way.
+    const emailEnviado = await sendCredentialsEmail({
+      email: account.email,
+      password: account.password,
+      nombre: nuevoBarbero.nombre,
+      apellido: nuevoBarbero.apellido,
+    })
+
+    res.setHeader('Cache-Control', 'no-store')
     return res.status(200).json({
       success: true,
       barbero: nuevoBarbero,
-      cuenta_creada: !!authUserId,
-      email: barberoData.email,
-      password: password,
-      message: crearCuenta && authUserId
-        ? 'Barbero y cuenta de usuario creados exitosamente'
-        : 'Barbero creado exitosamente (sin cuenta de usuario)'
+      cuenta_creada: true,
+      email: account.email,
+      password: account.password,
+      email_enviado: emailEnviado,
+      message: 'Barbero y cuenta de usuario creados exitosamente'
     })
 
   } catch (error: any) {
-    console.error('❌ [Crear Barbero] Error:', error)
-    return res.status(500).json({
-      error: error.message || 'Error creando barbero'
-    })
+    console.error('❌ [Crear Barbero] Error:', error?.message ?? error)
+    return res.status(500).json({ error: 'No se pudo crear el barbero. Intenta de nuevo.' })
   }
 }

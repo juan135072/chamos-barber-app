@@ -150,6 +150,33 @@ export const chamosSupabase = {
     return await response.json()
   },
 
+  // Cuentas de acceso de los barberos del comercio (solo admin)
+  getCuentasBarberos: async () => {
+    const response = await fetch('/api/barberos/cuentas')
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok) {
+      throw new Error(result.error || 'No se pudieron cargar las cuentas de acceso')
+    }
+    return result.cuentas as Array<{ barbero_id: string; email: string; activo: boolean; rol: string }>
+  },
+
+  // Crea el acceso de un barbero ('crear') o le genera una contraseña temporal
+  // nueva ('nueva'). La contraseña solo viene en esta respuesta.
+  generarCredencialesBarbero: async (barberoId: string, accion: 'crear' | 'nueva') => {
+    const response = await fetch('/api/barberos/credenciales', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ barberoId, accion })
+    })
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok || !result.password) {
+      throw new Error(result.error || 'No se pudieron generar las credenciales')
+    }
+    return { email: result.email as string, password: result.password as string, accion, emailEnviado: result.email_enviado === true }
+  },
+
   // Servicios
   getServicios: async (activo?: boolean) => {
     let query = supabase.from('servicios').select('*')

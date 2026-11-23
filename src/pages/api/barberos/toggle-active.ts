@@ -55,14 +55,17 @@ export default async function handler(
       })
     }
 
-    // También actualizar el usuario admin asociado
+    // También actualizar la cuenta de acceso del barbero: solo rol 'barbero',
+    // nunca la del admin que hace el cambio ni otro rol vinculado.
     console.log('🔄 Actualizando admin_users con barbero_id:', barberoId)
     try {
       const { data: updatedAdmin, error: adminError } = await supabase
         .from('admin_users')
         .update({ activo })
         .eq('barbero_id', barberoId)
-      .eq('comercio_id', actor.access.comercio_id)
+        .eq('comercio_id', actor.access.comercio_id)
+        .eq('rol', 'barbero')
+        .neq('id', actor.user.id)
         .select()
       
       console.log('✅ Admin_users actualizado:', updatedAdmin)

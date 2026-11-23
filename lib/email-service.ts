@@ -22,14 +22,11 @@ export class EmailService {
    */
   async sendCredentials(credentials: EmailCredentials): Promise<boolean> {
     try {
-      // Si no hay API key configurada, solo loggeamos (modo desarrollo)
+      // Si no hay API key configurada, solo loggeamos (modo desarrollo).
+      // Never log the password or any other secret.
       if (!this.apiKey) {
         console.log('⚠️ [Email] RESEND_API_KEY no configurada - Modo desarrollo')
-        console.log('📧 [Email] Credenciales que se enviarían:')
-        console.log('   - To:', credentials.email)
-        console.log('   - Nombre:', credentials.nombre, credentials.apellido)
-        console.log('   - Password:', credentials.password)
-        console.log('   - Login URL: https://chamosbarber.com/login')
+        console.log('📧 [Email] Se habría enviado un email de credenciales a:', credentials.email)
         return true // Retornar éxito en desarrollo
       }
 
@@ -73,8 +70,8 @@ export class EmailService {
     try {
       if (!this.apiKey) {
         console.log('⚠️ [Email] RESEND_API_KEY no configurada - Modo desarrollo')
-        console.log('📧 [Email] Reset password que se enviaría a:', credentials.email)
-        console.log('   - Nueva contraseña:', credentials.password)
+        // Never log the new password.
+        console.log('📧 [Email] Se habría enviado un email de reset de contraseña a:', credentials.email)
         return true
       }
 

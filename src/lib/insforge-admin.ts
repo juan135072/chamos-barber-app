@@ -99,6 +99,50 @@ export async function adminGetUserById(
 }
 
 /**
+ * Look up an auth user by email, case-insensitively (auth.users has an index
+ * on lower(email)). Pass a trimmed, lowercased address.
+ */
+export async function adminGetUserByEmail(
+    email: string
+): Promise<{ data: { user: AdminUser | null }; error: Error | null }> {
+    try {
+        const { rows } = await adminRawSql<AdminUser>(
+            `SELECT id, email, email_verified, created_at, updated_at,
+                    profile, metadata, COALESCE(is_anonymous,false) AS is_anonymous,
+                    COALESCE(is_project_admin,false) AS is_project_admin
+             FROM auth.users WHERE lower(email) = $1 LIMIT 1`,
+            [email]
+        )
+        return { data: { user: rows[0] ?? null }, error: null }
+    } catch (err: any) {
+        return { data: { user: null }, error: err }
+    }
+}
+
+/**
+ * Set a user's password directly by storing its bcrypt hash in auth.users,
+ * the hash InsForge sign-in and adminVerifyPassword compare against.
+ * Never changes a project admin. `updated` is false when no user matched.
+ */
+export async function adminSetUserPassword(
+    userId: string,
+    password: string
+): Promise<{ updated: boolean; error: Error | null }> {
+    try {
+        const hash = await bcrypt.hash(password, 10)
+        const { rows } = await adminRawSql<{ id: string }>(
+            `UPDATE auth.users SET password = $2, updated_at = now()
+             WHERE id = $1 AND NOT COALESCE(is_project_admin, false)
+             RETURNING id`,
+            [userId, hash]
+        )
+        return { updated: (rows?.length ?? 0) > 0, error: null }
+    } catch (err: any) {
+        return { updated: false, error: err }
+    }
+}
+
+/**
  * Create a user via the InsForge SDK signUp endpoint.
  * Drop-in for `supabase.auth.admin.createUser({email, password, ...})`.
  *
