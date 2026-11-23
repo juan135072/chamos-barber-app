@@ -1,12 +1,13 @@
 // API Route: login credentials for an existing barber (admin only).
-// accion 'crear': creates a new account for a barber that has none;
+// accion 'crear': creates a new account for an active barber that has none;
 //   an email that already has an auth user is refused, never adopted.
-// accion 'nueva': generates a new temporary password for its account.
+// accion 'nueva': generates a new temporary password for its barber account.
 // Either way the password is returned once, in this response only.
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { requireStaff } from '@/lib/server-authorization'
 import { adminSetUserPassword } from '@/lib/insforge-admin'
 import {
+  barberLogins,
   checkAccountEmail,
   generateTemporaryPassword,
   normalizeEmail,
@@ -52,6 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (accion === 'nueva') return res.status(409).json({ error: 'Este barbero aún no tiene acceso. Usa "Crear acceso".' })
       const email = normalizeEmail(barbero.email)
       if (!email) return res.status(400).json({ error: 'Agrega un email al barbero antes de crear su acceso.' })
+      // An inactive barber cannot log in: no account and no "you have access" email.
+      if (barbero.activo === false) return res.status(409).json({ error: 'Activa al barbero antes de crear su acceso.' })
 
       const check = await checkAccountEmail(admin, comercioId, email)
       if (!check.ok) return res.status(check.status).json({ error: check.error })
@@ -68,13 +71,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (accion === 'crear') return res.status(409).json({ error: 'Este barbero ya tiene acceso. Usa "Nueva contraseña".' })
-    const cuenta = pickBarberAccount(cuentas as Array<{ id: string; email: string; rol: string }>, barbero.email)
+    // Only barber logins, never the actor's own account or another role.
+    const logins = barberLogins(cuentas as Array<{ id: string; email: string; rol: string }>, actor.user.id)
+    if (!logins.length) {
+      return res.status(409).json({ error: 'Esta cuenta no es de un barbero, así que su contraseña no se cambia desde aquí.' })
+    }
+    const cuenta = pickBarberAccount(logins, barbero.email)
     if (!cuenta) {
       return res.status(409).json({ error: 'Este barbero tiene más de una cuenta de acceso. Revisa sus cuentas antes de generar una contraseña.' })
-    }
-    // Only barber accounts: owners and staff change their own password.
-    if (cuenta.rol !== 'barbero' || cuenta.id === actor.user.id) {
-      return res.status(409).json({ error: 'Esta cuenta no es de un barbero. Su contraseña se cambia desde su propio perfil.' })
     }
 
     const password = generateTemporaryPassword()

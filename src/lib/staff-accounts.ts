@@ -8,7 +8,8 @@
  *
  * A login is only ever created fresh: an email that already has an auth user
  * is refused, never adopted, so a shop admin can never take over (or receive
- * the password of) an account it did not create.
+ * the password of) an account it did not create. Barber actions only touch
+ * accounts with rol 'barbero' and never the acting user's own account.
  */
 import { randomInt } from 'crypto'
 import {
@@ -169,6 +170,11 @@ export async function checkAccountEmail(
     return { ok: true }
 }
 
+/** The barber logins among linked accounts: rol 'barbero', never the actor. */
+export function barberLogins<T extends { id: string; rol?: string | null }>(accounts: T[], actorId: string): T[] {
+    return accounts.filter((account) => account.rol === 'barbero' && account.id !== actorId)
+}
+
 /**
  * The login account to act on among those linked to a barber: the only one,
  * or the one with the barber's email. Null when it is ambiguous or missing.
@@ -294,14 +300,16 @@ export async function deleteOrphanAuthUsers(
 
 // One statement, so the barber email, its login row and its auth user change
 // together or not at all (a unique violation aborts all three). The target
-// CTE requires the account to be linked to the barber in the shop and not to
-// be a project admin; otherwise nothing is updated.
+// CTE requires the account to be a barber login ($4, rol 'barbero') linked to
+// the barber ($1) in the shop ($2), not the acting user ($5) and not a project
+// admin; otherwise nothing is updated.
 const CHANGE_EMAIL_SQL = `
 WITH target AS (
     SELECT au.id
     FROM public.admin_users au
     JOIN auth.users uu ON uu.id = au.id
     WHERE au.id = $4 AND au.barbero_id = $1 AND au.comercio_id = $2
+      AND au.rol = 'barbero' AND au.id <> $5
       AND NOT COALESCE(uu.is_project_admin, false)
 ), b AS (
     UPDATE public.barberos SET email = $3, updated_at = now()
@@ -333,13 +341,14 @@ export async function changeBarberEmail(input: {
     comercioId: string
     barberoId: string
     accountId: string
+    actorId: string
     email: string
 }): Promise<{ ok: true } | Failure> {
-    const { comercioId, barberoId, accountId, email } = input
+    const { comercioId, barberoId, accountId, actorId, email } = input
     try {
         const { rows } = await adminRawSql<{ barberos: number; cuentas: number; usuarios: number }>(
             CHANGE_EMAIL_SQL,
-            [barberoId, comercioId, email, accountId]
+            [barberoId, comercioId, email, accountId, actorId]
         )
         const counts = rows?.[0]
         if (counts?.barberos === 1 && counts.cuentas === 1 && counts.usuarios === 1) return { ok: true }

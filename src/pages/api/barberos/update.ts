@@ -38,13 +38,18 @@ export default async function handler(
     const supabase = actor.admin
     const comercioId = actor.access.comercio_id
     const isAdmin = actor.access.rol === 'admin'
+    // An email that moves together with the barber login, after the other fields.
+    let emailMove: { accountId: string; email: string } | null = null
+    let changeBarberEmail: typeof import('@/lib/staff-accounts').changeBarberEmail | null = null
 
     // Admin edits can change the slug, the email and activo, which must stay
     // consistent with the rest of the shop and with the barber's login account.
+    // Every refusal below happens before anything is written.
     if (isAdmin) {
       // Loaded only here: barber profile edits never need the admin auth helpers.
-      const { changeBarberEmail, findEmailConflict, normalizeEmail, pickBarberAccount, uniqueBarberSlug } =
-        await import('@/lib/staff-accounts')
+      const staff = await import('@/lib/staff-accounts')
+      const { barberLogins, findEmailConflict, normalizeEmail, pickBarberAccount, uniqueBarberSlug } = staff
+      changeBarberEmail = staff.changeBarberEmail
       const { data: actual, error: actualError } = await supabase
         .from('barberos')
         .select('id, email')
@@ -68,21 +73,22 @@ export default async function handler(
           }
           const { data: cuentas, error: cuentasError } = await supabase
             .from('admin_users')
-            .select('id, email')
+            .select('id, email, rol')
             .eq('barbero_id', barberoId)
             .eq('comercio_id', comercioId)
           if (cuentasError) throw cuentasError
-          if (cuentas?.length) {
+          // Only a barber login moves; an admin or the actor keeps its email.
+          const logins = barberLogins((cuentas ?? []) as Array<{ id: string; email: string | null; rol: string }>, actor.user.id)
+          if (logins.length) {
             if (!email) {
               return res.status(409).json({ error: 'Este barbero tiene una cuenta de acceso: su email no puede quedar vacío.' })
             }
-            const cuenta = pickBarberAccount(cuentas as Array<{ id: string; email: string | null }>, actual.email)
+            const cuenta = pickBarberAccount(logins, actual.email)
             if (!cuenta) {
               return res.status(409).json({ error: 'Este barbero tiene más de una cuenta de acceso; no se puede cambiar su email automáticamente.' })
             }
-            const changed = await changeBarberEmail({ comercioId, barberoId, accountId: cuenta.id, email })
-            if (!changed.ok) return res.status(changed.status).json({ error: changed.error })
-            // Already written together with the login row and the auth user.
+            // Written after the other fields, together with the login row and the auth user.
+            emailMove = { accountId: cuenta.id, email }
             delete allowedUpdates.email
           }
         }
@@ -110,17 +116,28 @@ export default async function handler(
       })
     }
 
-    // Deactivating a barber also blocks its login, like toggle-active.
+    // Deactivating a barber also blocks its login, like toggle-active: only
+    // barber logins, never the acting admin's own row or another role.
     if (isAdmin && typeof allowedUpdates.activo === 'boolean') {
       const { error: accesoError } = await supabase
         .from('admin_users')
         .update({ activo: allowedUpdates.activo })
         .eq('barbero_id', barberoId)
         .eq('comercio_id', comercioId)
+        .eq('rol', 'barbero')
+        .neq('id', actor.user.id)
       if (accesoError) {
         console.error('❌ Error updating admin_users.activo:', { barberoId, code: accesoError.code ?? null, message: accesoError.message ?? null })
         return res.status(500).json({ error: 'El barbero se guardó, pero no se pudo actualizar su acceso. Intenta de nuevo.' })
       }
+    }
+
+    if (emailMove && changeBarberEmail) {
+      const changed = await changeBarberEmail({ comercioId, barberoId, accountId: emailMove.accountId, actorId: actor.user.id, email: emailMove.email })
+      if (!changed.ok) {
+        return res.status(409).json({ error: `Se guardaron los demás cambios, pero no el email: ${changed.error}` })
+      }
+      barbero.email = emailMove.email
     }
 
     console.log('✅ Barbero actualizado:', barbero?.id)

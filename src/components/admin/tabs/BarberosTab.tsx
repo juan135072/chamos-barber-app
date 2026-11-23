@@ -35,7 +35,13 @@ const BarberosTab: React.FC = () => {
     chamosSupabase.getCuentasBarberos()
       .then((lista) => {
         if (cancelled) return
-        setCuentas(Object.fromEntries(lista.map((cuenta) => [cuenta.barbero_id, cuenta])))
+        // One account per barber; a barber login wins over another role.
+        const porBarbero: Record<string, CuentaBarbero> = {}
+        for (const cuenta of lista) {
+          const actual = porBarbero[cuenta.barbero_id]
+          if (!actual || (actual.rol !== 'barbero' && cuenta.rol === 'barbero')) porBarbero[cuenta.barbero_id] = cuenta
+        }
+        setCuentas(porBarbero)
         setCuentasError(null)
       })
       .catch((error: any) => {
@@ -132,6 +138,9 @@ const BarberosTab: React.FC = () => {
       setAccesoPendiente(null)
     } catch (error: any) {
       toast.error(error.message || 'No se pudieron generar las credenciales')
+      // A refusal usually means the access state shown is stale: reload it.
+      setAccesoPendiente(null)
+      reloadCuentas()
     } finally {
       setGenerandoAcceso(false)
     }
@@ -324,7 +333,11 @@ const BarberosTab: React.FC = () => {
                       </button>
 
                       {/* Acceso: crear la cuenta o generar una contraseña temporal */}
-                      {cuentas && (cuentas[barbero.id] ? (
+                      {cuentas && (cuentas[barbero.id] && cuentas[barbero.id].rol !== 'barbero' ? (
+                        <span className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                          Acceso con rol {cuentas[barbero.id].rol}
+                        </span>
+                      ) : cuentas[barbero.id] ? (
                         <button
                           onClick={() => setAccesoPendiente({ barbero, accion: 'nueva' })}
                           className="text-blue-400 hover:text-blue-300 text-xs"
@@ -334,6 +347,10 @@ const BarberosTab: React.FC = () => {
                           <i className="fas fa-key mr-1"></i>
                           Nueva contraseña
                         </button>
+                      ) : !barbero.activo ? (
+                        <span className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                          Activa al barbero para crear su acceso
+                        </span>
                       ) : barbero.email ? (
                         <button
                           onClick={() => setAccesoPendiente({ barbero, accion: 'crear' })}
@@ -448,7 +465,7 @@ const BarberosTab: React.FC = () => {
       {/* Confirmación de "Crear acceso" / "Nueva contraseña" */}
       <ConfirmDialog
         isOpen={!!accesoPendiente}
-        onClose={() => setAccesoPendiente(null)}
+        onClose={() => { if (!generandoAcceso) setAccesoPendiente(null) }}
         onConfirm={confirmAcceso}
         title={accesoPendiente?.accion === 'nueva' ? 'Nueva contraseña' : 'Crear acceso'}
         message={accesoPendiente?.accion === 'nueva'

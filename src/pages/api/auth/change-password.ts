@@ -42,6 +42,13 @@ export default async function handler(
       })
     }
 
+    // bcrypt only uses the first 72 bytes: a longer password would be truncated.
+    if (Buffer.byteLength(newPassword, 'utf8') > 72) {
+      return res.status(400).json({
+        error: 'La nueva contraseña es demasiado larga. Usa como máximo 72 caracteres (menos si lleva tildes o símbolos).'
+      })
+    }
+
     // PASO 1: Verificar que el usuario exista (y que no sea un admin del proyecto)
     const { data: getUserData, error: getUserError } = await adminGetUserById(userId)
 

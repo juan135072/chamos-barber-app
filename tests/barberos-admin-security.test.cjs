@@ -131,3 +131,35 @@ test('P2 a session issued before the account was requested never becomes a barbe
   const after = await call('update', { barberoId: randomUUID(), updates: { telefono: '+56 9 0000 0000' } }, { method: 'PATCH', token: 'attacker' })
   assert.equal(after.statusCode, 403, 'the pre-existing session is still not staff')
 })
+
+// P3: deleting a barber never deletes the login of the actor or of a
+// non-barber role linked to that barber record.
+test('P3 delete-permanent never deletes the auth user of an admin or of the actor', async () => {
+  const b = barbero()
+  const cajero = cuentaDe(b, { rol: 'cajero', email: 'caja@chamos.test' })
+  setup({ barberos: [b], admin_users: [cajero], users: [{ id: ADMIN, email: 'admin@chamos.test', is_project_admin: false }, usuarioDe(cajero)], rpc: deleteRpc() })
+  Object.assign(db.tables.admin_users[0], { barbero_id: b.id })
+  const res = await call('delete-permanent', { barberoId: b.id }, { method: 'DELETE' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(auth.deleted, [], 'no admin, cajero or actor auth user is deleted')
+})
+
+// P4: an edit never moves the login email of a non-barber account linked to
+// the barber, nor the actor's own login email.
+test('P4 an email edit never changes the login email of an admin or of the actor', async () => {
+  const b = barbero()
+  const otroAdmin = cuentaDe(b, { rol: 'admin' })
+  setup({ barberos: [b], admin_users: [otroAdmin], users: [usuarioDe(otroAdmin)] })
+  let res = await call('update', { barberoId: b.id, updates: { email: 'nuevo@example.com' } }, { method: 'PATCH' })
+  assert.equal(auth.users.find((u) => u.id === otroAdmin.id).email, otroAdmin.email, `status ${res.statusCode}: the admin's auth email was changed`)
+  assert.equal(db.tables.admin_users.find((a) => a.id === otroAdmin.id).email, otroAdmin.email)
+  assert.equal(res.statusCode, 200)
+  assert.equal(db.tables.barberos[0].email, 'nuevo@example.com', 'the barber record still gets the new email')
+
+  // The acting admin linked to the barber it edits keeps its login email too.
+  setup({ barberos: [b], users: [{ id: ADMIN, email: 'admin@chamos.test', is_project_admin: false }] })
+  Object.assign(db.tables.admin_users[0], { barbero_id: b.id })
+  res = await call('update', { barberoId: b.id, updates: { email: 'otro@example.com' } }, { method: 'PATCH' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual([auth.users[0].email, db.tables.admin_users[0].email], ['admin@chamos.test', 'admin@chamos.test'], "the actor's own login email is unchanged")
+})

@@ -78,8 +78,8 @@ stubModule('../src/lib/insforge-admin.ts', {
 
 // Emulates the single statement that moves a barber's email together with
 // its login row and auth user, including the unique constraints it can hit.
-function changeEmails([barberoId, comercioId, email, accountId]) {
-  const account = db.tables.admin_users.find((a) => a.id === accountId && a.barbero_id === barberoId && a.comercio_id === comercioId)
+function changeEmails([barberoId, comercioId, email, accountId, actorId]) {
+  const account = db.tables.admin_users.find((a) => a.id === accountId && a.barbero_id === barberoId && a.comercio_id === comercioId && a.rol === 'barbero' && a.id !== actorId)
   const user = auth.users.find((u) => u.id === accountId && !u.is_project_admin)
   const barbero = db.tables.barberos.find((b) => b.id === barberoId && b.comercio_id === comercioId)
   if (!account || !user || !barbero) return { rows: [{ barberos: 0, cuentas: 0, usuarios: 0 }], rowCount: 1 }
@@ -256,6 +256,14 @@ test('an email that already has an auth user is refused, whoever owns it, and no
   }
 })
 
+test('an account cannot be created for a deactivated barber', async () => {
+  setup()
+  const res = await call('crear-con-cuenta', { barberoData: { ...nuevo, activo: false }, crearCuenta: true })
+  assert.equal(res.statusCode, 400)
+  assert.match(res.body.error, /debe estar activo/)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length, mail.sent.length], [0, 0, 0])
+})
+
 test('if the login row cannot be saved, the barber, its schedules and the new auth user are removed', async () => {
   setup({ fail: { 'admin_users.insert': { code: 'XX000', message: 'insert failed' } } })
   const { result: res, logged } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
@@ -289,6 +297,7 @@ test('a failed rollback is logged and the error says the barber was kept', async
   assert.equal(res.statusCode, 500)
   assert.equal(res.body.password, undefined)
   assert.match(res.body.error, /quedó guardado sin acceso/)
+  assert.equal(res.body.barbero_guardado, true)
   assert.ok(JSON.stringify(logged).includes('rollback'), 'the failed rollback is logged')
 })
 
@@ -342,14 +351,21 @@ test('a barber without an account gets one, and its password is returned once', 
   assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
 })
 
-test('creating access refuses an email that already has an auth user', async () => {
+test('creating access refuses an email that already has an auth user, or a deactivated barber', async () => {
   const b = barbero()
-  setup({ barberos: [b], users: [{ id: randomUUID(), email: b.email, is_project_admin: false }] })
+  for (const extra of [{ users: [{ id: randomUUID(), email: b.email, is_project_admin: false }] }, { users: [{ id: randomUUID(), email: b.email, is_project_admin: false }], admin_users: [] }]) {
+    setup({ barberos: [b], ...extra })
+    const res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+    assert.equal(res.statusCode, 409)
+    assert.equal(res.body.error, TAKEN)
+    assert.equal(res.body.password, undefined)
+    assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length, mail.sent.length], [0, 0, 0, 0])
+  }
+  setup({ barberos: [barbero({ ...b, activo: false })] })
   const res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
   assert.equal(res.statusCode, 409)
-  assert.equal(res.body.error, TAKEN)
-  assert.equal(res.body.password, undefined)
-  assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length, mail.sent.length], [0, 0, 0, 0])
+  assert.match(res.body.error, /Activa al barbero/)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length, mail.sent.length], [0, 0, 0])
 })
 
 test('a barber without an email gets a hint to add one first', async () => {
@@ -382,7 +398,7 @@ test('no password is generated for another role, the admin itself, or another sh
     if (cuenta.id === ADMIN) Object.assign(db.tables.admin_users[0], { barbero_id: b.id })
     const res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
     assert.equal(res.statusCode, 409)
-    assert.match(res.body.error, /propio perfil/)
+    assert.match(res.body.error, /no es de un barbero/)
     assert.equal(res.body.password, undefined)
     assert.deepEqual(auth.passwords, [])
   }
@@ -391,6 +407,17 @@ test('no password is generated for another role, the admin itself, or another sh
   const res = await call('credenciales', { barberoId: ajeno.id, accion: 'nueva' })
   assert.equal(res.statusCode, 404)
   assert.deepEqual([auth.passwords.length, db.calls.inserts.length], [0, 0])
+})
+
+test('"Nueva contraseña" only considers barber accounts, never an admin linked to the barber', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b, { email: 'ana.barbera@chamos.test' })
+  const admin = cuentaDe(b, { rol: 'admin' })
+  setup({ barberos: [b], admin_users: [admin, cuenta], users: [usuarioDe(admin), usuarioDe(cuenta)] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(auth.passwords, [{ id: cuenta.id, password: res.body.password }])
+  assert.equal(res.body.email, cuenta.email)
 })
 
 test('the requested action must match whether the barber has an account', async () => {
@@ -494,14 +521,27 @@ test('a barber with history gets the "tiene historial" 409 and nothing is delete
 test('any other delete failure is logged and reported as a 500, not as history', async () => {
   const b = barbero()
   const cuenta = cuentaDe(b)
-  const fk = { code: '23503', message: 'update or delete on table "admin_users" violates foreign key constraint "caja_sesiones_usuario_id_fkey"' }
-  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc({ error: fk }) })
+  const other = { code: 'XX000', message: 'internal error' }
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc({ error: other }) })
   const { result: res, logged } = await capturingErrors(() => borrar(b.id))
   assert.equal(res.statusCode, 500)
   assert.doesNotMatch(res.body.error, /historial/)
   assert.match(res.body.error, /No se pudo eliminar el barbero/)
-  assert.ok(JSON.stringify(logged).includes('23503'), 'the real error is logged')
+  assert.ok(JSON.stringify(logged).includes('XX000'), 'the real error is logged')
   assert.deepEqual(auth.deleted, [])
+})
+
+test('a barber with cash or expense records gets a 409 that says to deactivate it', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  for (const constraint of ['caja_sesiones_usuario_id_fkey', 'gastos_registrado_por_fkey', 'solicitudes_barberos_revisada_por_fkey']) {
+    const fk = { code: '23503', message: `update or delete on table "admin_users" violates foreign key constraint "${constraint}"` }
+    setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc({ error: fk }) })
+    const res = await borrar(b.id)
+    assert.equal(res.statusCode, 409)
+    assert.equal(res.body.error, 'El barbero tiene registros de caja o gastos asociados. Desactívalo para conservar sus registros.')
+    assert.deepEqual([auth.deleted, db.tables.barberos.length], [[], 1])
+  }
 })
 
 test('if the login account cannot be deleted, the result is partial and logged', async () => {
@@ -529,6 +569,17 @@ test('deactivating a barber also deactivates its login account, only in the shop
   assert.equal(db.tables.admin_users.find((a) => a.id === ajena.id).activo, true)
 })
 
+test('deactivating a barber never deactivates the acting admin or a non-barber login', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  const cajero = cuentaDe(b, { rol: 'cajero', email: 'caja@chamos.test' })
+  setup({ barberos: [b], admin_users: [cuenta, cajero] })
+  db.tables.admin_users.find((a) => a.id === ADMIN).barbero_id = b.id
+  const res = await call('toggle-active', { barberoId: b.id, activo: false })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(['ADMIN', cuenta.id, cajero.id].map((id) => db.tables.admin_users.find((a) => a.id === (id === 'ADMIN' ? ADMIN : id)).activo), [true, false, true])
+})
+
 // --- T5 / S4: edits through the server -------------------------------------
 
 const editar = (barberoId, updates) => call('update', { barberoId, updates }, { method: 'PUT' })
@@ -552,10 +603,15 @@ test('an email change of a barber with an account moves the three emails in one 
   const res = await editar(b.id, { nombre: 'Ana', email: '  Ana.Nueva@Chamos.TEST ' })
   assert.equal(res.statusCode, 200)
   assert.equal(auth.sql.length, 1)
-  assert.deepEqual(auth.sql[0].params, [b.id, TENANT, 'ana.nueva@chamos.test', cuenta.id])
-  assert.match(auth.sql[0].query, /UPDATE public\.barberos SET email = \$3/)
-  assert.match(auth.sql[0].query, /UPDATE public\.admin_users SET email = \$3/)
-  assert.match(auth.sql[0].query, /UPDATE auth\.users SET email = \$3/)
+  assert.deepEqual(auth.sql[0].params, [b.id, TENANT, 'ana.nueva@chamos.test', cuenta.id, ADMIN])
+  const query = auth.sql[0].query.replace(/\s+/g, ' ')
+  const target = query.match(/WITH target AS \((.*?)\), b AS/)[1]
+  for (const guard of ['au.id = $4', 'au.barbero_id = $1', 'au.comercio_id = $2', "au.rol = 'barbero'", 'au.id <> $5', 'NOT COALESCE(uu.is_project_admin, false)', 'JOIN auth.users uu ON uu.id = au.id']) {
+    assert.ok(target.includes(guard), `target CTE keeps the guard ${guard}`)
+  }
+  assert.ok(query.includes('UPDATE public.barberos SET email = $3, updated_at = now() WHERE id = $1 AND comercio_id = $2 AND EXISTS (SELECT 1 FROM target)'))
+  assert.ok(query.includes('UPDATE public.admin_users SET email = $3, updated_at = now() WHERE id IN (SELECT id FROM target)'))
+  assert.ok(query.includes('UPDATE auth.users SET email = $3, updated_at = now() WHERE id IN (SELECT id FROM target)'))
   assert.deepEqual([db.tables.barberos[0].email, db.tables.admin_users.find((a) => a.id === cuenta.id).email, auth.users[0].email], ['ana.nueva@chamos.test', 'ana.nueva@chamos.test', 'ana.nueva@chamos.test'])
   assert.equal(res.body.barbero.email, 'ana.nueva@chamos.test')
 })
@@ -576,15 +632,26 @@ test('an email used by another barber or account gives a 409 and changes nothing
   }
 })
 
-test('a unique violation inside the email statement gives a 409 and changes nothing', async () => {
+test('a failing email step keeps the other changes and says the email was not saved', async () => {
   const b = barbero()
   const cuenta = cuentaDe(b)
   setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta), { id: randomUUID(), email: 'huerfano@chamos.test', is_project_admin: false }] })
   const { result: res } = await capturingErrors(() => editar(b.id, { email: 'huerfano@chamos.test', nombre: 'Otra' }))
   assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /^Se guardaron los demás cambios, pero no el email/)
   assert.match(res.body.error, /otra cuenta de acceso/)
-  assert.deepEqual(db.calls.updates, [])
-  assert.deepEqual([db.tables.barberos[0].email, db.tables.barberos[0].nombre, auth.users[0].email], [b.email, b.nombre, b.email])
+  assert.deepEqual([db.tables.barberos[0].nombre, db.tables.barberos[0].email, db.tables.admin_users.find((a) => a.id === cuenta.id).email, auth.users[0].email], ['Otra', b.email, b.email, b.email])
+})
+
+test('an activo edit never deactivates the acting admin or a non-barber login', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  const cajero = cuentaDe(b, { rol: 'cajero', email: 'caja@chamos.test' })
+  setup({ barberos: [b], admin_users: [cuenta, cajero] })
+  db.tables.admin_users.find((a) => a.id === ADMIN).barbero_id = b.id
+  const res = await editar(b.id, { nombre: 'Ana', activo: false })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual([ADMIN, cuenta.id, cajero.id].map((id) => db.tables.admin_users.find((a) => a.id === id).activo), [true, false, true])
 })
 
 test('an email change of a barber without an account only updates the barber, normalized', async () => {
@@ -699,7 +766,60 @@ test('without RESEND_API_KEY the email service never prints passwords', async ()
   assert.ok(!output.some((line) => line.includes('Chamossecreto!1234')), 'no password in the console')
 })
 
-// --- Verifier probe: no adoption -------------------------------------------
+// --- Verifier probes: data integrity ----------------------------------------
+
+test('V1 S4: a failed edit does not leave the email changed behind an error', async () => {
+  const b = barbero()
+  const acc = { id: randomUUID(), email: 'ana@chamos.test', nombre: 'Ana Pérez', rol: 'barbero', activo: true, comercio_id: TENANT, barbero_id: b.id }
+  setup({ barberos: [b], admin_users: [acc], users: [{ id: acc.id, email: acc.email, is_project_admin: false }] })
+  db.fail['barberos.update'] = { code: '22P02', message: 'invalid input syntax' }
+  const { result: res } = await capturingErrors(() => call('update', { barberoId: b.id, updates: { email: 'nueva@chamos.test', telefono: 'x' } }, { method: 'PUT' }))
+  assert.notEqual(res.statusCode, 200)
+  assert.equal(db.tables.barberos[0].email, 'ana@chamos.test', `edit reported ${res.statusCode} ${JSON.stringify(res.body)} but the email changed`)
+  assert.deepEqual(auth.sql, [])
+})
+
+test('V2 S3: permanent delete never deletes a non-barber (admin) auth user', async () => {
+  const b = barbero()
+  setup({
+    barberos: [b],
+    users: [{ id: ADMIN, email: 'admin@chamos.test', is_project_admin: false }],
+    rpc: async (name, args, fake) => {
+      fake.tables.admin_users = fake.tables.admin_users.filter((a) => a.barbero_id !== args.p_barber)
+      fake.tables.barberos = fake.tables.barberos.filter((x) => x.id !== args.p_barber)
+      return { data: { success: true }, error: null }
+    },
+  })
+  db.tables.admin_users[0].barbero_id = b.id
+  const res = await call('delete-permanent', { barberoId: b.id }, { method: 'DELETE' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(auth.deleted, [], 'the owner/admin auth user was deleted')
+})
+
+test('V3 S3: a foreign-key refusal is not reported as a transient failure', async () => {
+  const b = barbero()
+  setup({ barberos: [b], rpc: async () => ({ data: null, error: { code: '23503', message: 'update or delete on table "admin_users" violates foreign key constraint "caja_sesiones_abierta_por_fkey" on table "caja_sesiones"' } }) })
+  const res = await call('delete-permanent', { barberoId: b.id }, { method: 'DELETE' })
+  assert.doesNotMatch(String(res.body.error), /Intenta de nuevo/, `${res.statusCode} ${res.body.error}`)
+  assert.equal(res.statusCode, 409)
+})
+
+test('V5 S1: auth creation failure leaves no barber row and no schedules', async () => {
+  setup()
+  auth.failCreate = new Error('boom')
+  const { result: res } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+  assert.equal(res.statusCode, 500)
+  assert.deepEqual([db.tables.barberos.length, db.tables.horarios_atencion.length, auth.users.length], [0, 0, 0])
+  assert.equal(res.body.password, undefined)
+})
+
+test('V6 S1: link failure deletes the created auth user and the barber', async () => {
+  setup()
+  db.fail['admin_users.insert'] = { code: '42501', message: 'permission denied' }
+  const { result: res } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+  assert.equal(res.statusCode, 500)
+  assert.deepEqual([db.tables.barberos.length, db.tables.horarios_atencion.length, auth.users.length], [0, 0, 0])
+})
 
 test('V7 S1: an existing auth user is neither adopted nor deleted, and no barber is left', async () => {
   const orphan = { id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }
@@ -709,4 +829,83 @@ test('V7 S1: an existing auth user is neither adopted nor deleted, and no barber
   assert.equal(res.statusCode, 409)
   assert.deepEqual([auth.deleted, auth.passwords, auth.users.map((u) => u.id)], [[], [], [orphan.id]])
   assert.equal(db.tables.barberos.length, 0)
+})
+
+test('V8 S4: email change of a barber with two accounts moves only the matching one', async () => {
+  const b = barbero({ email: 'gus@chamos.test', nombre: 'Gustavo', slug: 'gustavo' })
+  const a1 = { id: randomUUID(), email: 'gus@chamos.test', nombre: 'G', rol: 'barbero', activo: true, comercio_id: TENANT, barbero_id: b.id }
+  const a2 = { id: randomUUID(), email: 'gus.old@chamos.test', nombre: 'G', rol: 'barbero', activo: true, comercio_id: TENANT, barbero_id: b.id }
+  setup({ barberos: [b], admin_users: [a1, a2], users: [{ id: a1.id, email: a1.email }, { id: a2.id, email: a2.email }] })
+  const res = await call('update', { barberoId: b.id, updates: { email: ' Gus.New@Chamos.test ' } }, { method: 'PUT' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(db.tables.admin_users.filter((a) => a.barbero_id === b.id).map((a) => a.email).sort(), ['gus.new@chamos.test', 'gus.old@chamos.test'])
+  assert.equal(db.tables.barberos[0].email, 'gus.new@chamos.test')
+  const { result: res2 } = await capturingErrors(() => call('update', { barberoId: b.id, updates: { email: 'gus.old@chamos.test' } }, { method: 'PUT' }))
+  assert.equal(res2.statusCode, 409)
+  assert.equal(db.tables.barberos[0].email, 'gus.new@chamos.test')
+})
+
+test('V9 S3: delete reads account ids before the RPC and frees them', async () => {
+  const b = barbero()
+  const acc = { id: randomUUID(), email: 'ana@chamos.test', nombre: 'Ana', rol: 'barbero', activo: true, comercio_id: TENANT, barbero_id: b.id }
+  setup({
+    barberos: [b], admin_users: [acc], users: [{ id: acc.id, email: acc.email, is_project_admin: false }],
+    rpc: async (name, args, fake) => { fake.tables.admin_users = fake.tables.admin_users.filter((a) => a.barbero_id !== args.p_barber); return { data: { success: true }, error: null } },
+  })
+  const res = await call('delete-permanent', { barberoId: b.id }, { method: 'DELETE' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(auth.deleted, [acc.id])
+})
+
+test('V10 S4: deactivating via edit syncs the barber account and leaves the admin active', async () => {
+  const b = barbero()
+  const acc = { id: randomUUID(), email: 'ana@chamos.test', nombre: 'Ana', rol: 'barbero', activo: true, comercio_id: TENANT, barbero_id: b.id }
+  setup({ barberos: [b], admin_users: [acc], users: [{ id: acc.id, email: acc.email }] })
+  const res = await call('update', { barberoId: b.id, updates: { activo: false, telefono: '1' } }, { method: 'PUT' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(db.tables.admin_users.find((a) => a.id === acc.id).activo, false)
+  assert.equal(db.tables.admin_users.find((a) => a.id === ADMIN).activo, true)
+})
+
+// --- Verifier probes: regressions -------------------------------------------
+
+test('clearing the email of a barber with an account gives a 409 and changes nothing', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)] })
+  const res = await editar(b.id, { nombre: 'Otra', email: '   ' })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /no puede quedar vacío/)
+  assert.deepEqual([auth.sql.length, db.calls.updates.length], [0, 0])
+  assert.deepEqual([db.tables.barberos[0].email, db.tables.barberos[0].nombre, db.tables.admin_users.find((a) => a.id === cuenta.id).email], [b.email, b.nombre, cuenta.email])
+})
+
+test('a barber or account of another shop with the same email neither blocks nor leaks its name', async () => {
+  const ajeno = barbero({ nombre: 'Secreto', apellido: 'Ajeno', email: 'ana.perez@example.com', slug: 'ana-perez', comercio_id: OTHER_TENANT })
+  const cuentaAjena = { id: randomUUID(), email: 'ana.perez@example.com', nombre: 'Ajena', rol: 'cajero', activo: true, comercio_id: OTHER_TENANT, barbero_id: null }
+  setup({ barberos: [ajeno], admin_users: [cuentaAjena] })
+  const res = await call('create', nuevo)
+  assert.equal(res.statusCode, 201)
+  assert.doesNotMatch(JSON.stringify(res.body), /Secreto/)
+  assert.equal(inserts('barberos')[0].slug, 'ana-perez', 'the slug of another shop is not taken')
+})
+
+test('"Nueva contraseña" only acts on accounts of the shop', async () => {
+  const b = barbero()
+  const ajena = cuentaDe(b, { comercio_id: OTHER_TENANT, email: 'ana.otra@chamos.test' })
+  setup({ barberos: [b], admin_users: [ajena], users: [usuarioDe(ajena)] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /aún no tiene acceso/)
+  assert.equal(res.body.password, undefined)
+  assert.deepEqual(auth.passwords, [])
+})
+
+test('PROBE P7: editing a barber never deactivates the acting admin\'s own login', async () => {
+  const b = barbero()
+  setup({ barberos: [b] })
+  db.tables.admin_users.find((a) => a.id === ADMIN).barbero_id = b.id
+  const res = await call('update', { barberoId: b.id, updates: { nombre: 'Ana', apellido: 'Pérez', email: b.email, slug: 'ana-perez', activo: false } }, { method: 'PUT' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(db.tables.admin_users.find((a) => a.id === ADMIN).activo, true, 'own admin login kept active')
 })

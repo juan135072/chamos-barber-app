@@ -103,6 +103,15 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
   })
 
   const emailValue = watch('email')
+  // An inactive barber cannot log in, so it never gets an account here.
+  const activoValue = watch('activo') !== false
+  const conCuenta = crearCuenta && !!emailValue && activoValue
+
+  // The modal stays open while a request is in flight (it may return the
+  // one-time password).
+  const closeIfIdle = () => {
+    if (!loading) onClose()
+  }
 
   const agregarEspecialidad = (especialidad: string) => {
     const especialidadTrim = especialidad.trim()
@@ -226,7 +235,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         onClose()
       } else {
         // Crear nuevo barbero (el servidor verifica la sesión del admin)
-        if (crearCuenta && data.email) {
+        if (crearCuenta && data.email && data.activo !== false) {
           // Crear con cuenta de usuario
           const response = await fetch('/api/barberos/crear-con-cuenta', {
             method: 'POST',
@@ -240,6 +249,8 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
           const result = await response.json()
 
           if (!response.ok) {
+            // The barber was kept without access: refresh the list to show it.
+            if (result.barbero_guardado === true) onSuccess()
             throw new Error(result.error || 'Error creando barbero')
           }
 
@@ -278,7 +289,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
   return (
     <Modal
       isOpen={isOpen}
-      onClose={onClose}
+      onClose={closeIfIdle}
       title={isEdit ? 'Editar Barbero' : 'Nuevo Barbero'}
       size="lg"
     >
@@ -704,7 +715,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                 type="checkbox"
                 checked={crearCuenta}
                 onChange={(e) => setCrearCuenta(e.target.checked)}
-                disabled={!emailValue || loading}
+                disabled={!emailValue || loading || !activoValue}
                 className="mt-1"
                 style={{ accentColor: 'var(--accent-color)' }}
               />
@@ -714,9 +725,11 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                   Crear cuenta de usuario para este barbero
                 </span>
                 <p className="mt-1 text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  {emailValue
-                    ? 'Se generará una contraseña temporal que verás una sola vez'
-                    : 'Debes ingresar un email válido para crear la cuenta de usuario'
+                  {!activoValue
+                    ? 'Un barbero inactivo no puede tener acceso. Márcalo como activo para crear su cuenta.'
+                    : emailValue
+                      ? 'Se generará una contraseña temporal que verás una sola vez y que también se enviará al email del barbero'
+                      : 'Debes ingresar un email válido para crear la cuenta de usuario'
                   }
                 </p>
               </div>
@@ -752,7 +765,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
           >
             {loading && <i className="fas fa-spinner fa-spin"></i>}
             {isEdit ? 'Actualizar' : 'Crear'} Barbero
-            {!isEdit && crearCuenta && emailValue && ' + Cuenta'}
+            {!isEdit && conCuenta && ' + Cuenta'}
           </button>
         </div>
       </form>
@@ -782,6 +795,16 @@ interface CredencialesModalProps {
   password: string
   /** The server also emailed these credentials to the barber. */
   emailEnviado?: boolean
+}
+
+/** Copies to the clipboard and confirms only a copy that really happened. */
+async function copiar(texto: string, confirmacion: string) {
+  try {
+    await navigator.clipboard.writeText(texto)
+    toast.success(confirmacion)
+  } catch {
+    toast.error('No se pudo copiar. Selecciona el texto y cópialo a mano.')
+  }
 }
 
 /** Shows a login email and its temporary password once. */
@@ -830,10 +853,7 @@ export const CredencialesModal: React.FC<CredencialesModalProps> = ({ isOpen, on
             />
             <button
               type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(email)
-                toast.success('Email copiado')
-              }}
+              onClick={() => copiar(email, 'Email copiado')}
               className="px-4 py-2 rounded-md"
               style={{ 
                 backgroundColor: 'var(--bg-secondary)',
@@ -864,10 +884,7 @@ export const CredencialesModal: React.FC<CredencialesModalProps> = ({ isOpen, on
             />
             <button
               type="button"
-              onClick={() => {
-                navigator.clipboard.writeText(password)
-                toast.success('Contraseña copiada')
-              }}
+              onClick={() => copiar(password, 'Contraseña copiada')}
               className="px-4 py-2 rounded-md"
               style={{ 
                 backgroundColor: 'var(--accent-color)',

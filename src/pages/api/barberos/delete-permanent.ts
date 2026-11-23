@@ -1,12 +1,20 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { requireStaff } from '@/lib/server-authorization'
-import { deleteOrphanAuthUsers } from '@/lib/staff-accounts'
+import { barberLogins, deleteOrphanAuthUsers } from '@/lib/staff-accounts'
 
 const GENERIC_ERROR = 'No se pudo eliminar el barbero. Intenta de nuevo más tarde.'
 
 /** The exception app_delete_unused_barber raises for a barber with history. */
 function isHistoryError(error: any): boolean {
   return String(error?.message ?? '').includes('tiene historial')
+}
+
+/**
+ * A staff row of the barber is still referenced (caja_sesiones, gastos or
+ * solicitudes_barberos.revisada_por have no ON DELETE clause): permanent.
+ */
+function isForeignKeyError(error: any): boolean {
+  return error?.code === '23503'
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -19,24 +27,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     // The RPC deletes the barber's admin_users rows but never auth.users:
-    // read the account ids first so their emails can be reused afterwards.
+    // read the barber logins first so their emails can be reused afterwards.
+    // Only rol 'barbero' and never the actor: an admin or cajero linked to
+    // the barber keeps its auth user.
     const { data: cuentas, error: cuentasError } = await actor.admin
       .from('admin_users')
-      .select('id')
+      .select('id, rol')
       .eq('barbero_id', barberoId)
       .eq('comercio_id', comercioId)
     if (cuentasError) throw cuentasError
+    const logins = barberLogins((cuentas ?? []) as Array<{ id: string; rol: string }>, actor.user.id)
 
     const { error } = await actor.admin.rpc('app_delete_unused_barber', { p_comercio: comercioId, p_barber: barberoId })
     if (error) {
       if (isHistoryError(error)) {
         return res.status(409).json({ error: 'El barbero tiene historial. Desactívalo para conservar sus registros.' })
       }
+      if (isForeignKeyError(error)) {
+        console.warn('[barberos/delete-permanent] barber has related records', { barberoId, message: error.message ?? null })
+        return res.status(409).json({ error: 'El barbero tiene registros de caja o gastos asociados. Desactívalo para conservar sus registros.' })
+      }
       console.error('[barberos/delete-permanent] delete failed', { barberoId, code: error.code ?? null, message: error.message ?? null })
       return res.status(500).json({ error: GENERIC_ERROR })
     }
 
-    const { deleted, failed } = await deleteOrphanAuthUsers(actor.admin, (cuentas ?? []).map((row: any) => row.id))
+    const { deleted, failed } = await deleteOrphanAuthUsers(actor.admin, logins.map((row) => row.id))
     if (failed.length > 0) {
       console.error('[barberos/delete-permanent] barber deleted but its auth users were not', { barberoId, authUserIds: failed })
       return res.status(200).json({

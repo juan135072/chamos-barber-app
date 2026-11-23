@@ -118,13 +118,12 @@ test('creating without an account goes through /api/barberos/create, not a brows
   assert.ok(toasts.some(([kind]) => kind === 'success'))
 })
 
-test('the credentials modal shows the created password once and promises no email', () => {
+test('the credentials modal shows the created password once and claims no email it did not send', () => {
   reset(); formValues = datos
   const credenciales = { email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234' }
   const { tree } = render(BarberoModal, modalProps, { [CREDENCIALES]: credenciales })
   const shown = find(tree, (n) => n.type === CredencialesModal)
   assert.deepEqual([shown.props.email, shown.props.password], [credenciales.email, credenciales.password])
-  assert.ok(!/se enviará al email/i.test(JSON.stringify(tree)))
   assert.equal(find(render(BarberoModal, modalProps).tree, (n) => n.type === CredencialesModal), null, 'nothing shown without credentials')
 
   const text = JSON.stringify(CredencialesModal({ isOpen: true, onClose() {}, titulo: 'Acceso', mensaje: 'Listo', ...credenciales }))
@@ -151,7 +150,7 @@ const ConfirmDialog = require('../src/components/admin/shared/ConfirmDialog.tsx'
 // BarberosTab useState order: selectedBarbero, showModal, showDeleteDialog,
 // showPermanentDeleteModal, barberoToDelete, deleting, cuentas, cuentasError,
 // cuentasVersion, accesoPendiente, generandoAcceso, credenciales.
-const TAB = { CUENTAS: 6, CUENTAS_ERROR: 7, ACCESO: 9, CREDENCIALES: 11 }
+const TAB = { CUENTAS: 6, CUENTAS_ERROR: 7, CUENTAS_VERSION: 8, ACCESO: 9, GENERANDO: 10, CREDENCIALES: 11 }
 const conCuenta = { id: 'b-con', nombre: 'Gustavo', apellido: 'Díaz', email: 'gustavo@chamos.test', activo: true }
 const sinCuenta = { id: 'b-sin', nombre: 'Franco', apellido: 'Soto', email: 'franco@chamos.test', activo: true }
 const sinEmail = { id: 'b-email', nombre: 'Hingover', apellido: 'Ruiz', email: null, activo: true }
@@ -286,4 +285,152 @@ test('the credential helper reports whether the email was sent', async () => {
   const { chamosSupabase } = require('../lib/supabase-helpers.ts')
   global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ success: true, accion: 'crear', email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234', email_enviado: true }) })
   assert.deepEqual(await chamosSupabase.generarCredencialesBarbero('b1', 'crear'), { email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234', accion: 'crear', emailEnviado: true })
+})
+
+// --- Correction batch and verifier probes (UI) --------------------------------
+
+const Modal = require('../src/components/admin/shared/Modal.tsx').default
+
+test('PROBE P1: a refused "Crear acceso" reloads the account state', async () => {
+  reset(); barberosHook = { barberos: [sinCuenta], loading: false, error: null, refetch: async () => {} }
+  helpers.generarCredencialesBarbero = async () => { throw new Error('Este barbero ya tiene acceso. Usa "Nueva contraseña".') }
+  const { tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: {}, [TAB.ACCESO]: { barbero: sinCuenta, accion: 'crear' } })
+  await find(tree, (n) => n.type === ConfirmDialog && n.props.title === 'Crear acceso').props.onConfirm()
+  assert.ok(toasts.some(([k, m]) => k === 'error' && /Nueva contraseña/.test(m)))
+  assert.ok(setters.some(([i]) => i === TAB.CUENTAS_VERSION), 'cuentas reloaded after a 409')
+  assert.deepEqual(setters.filter(([i]) => i === TAB.CREDENCIALES), [])
+})
+
+test('PROBE P2: a deactivated barber is not offered "Crear acceso" and is told to activate it first', () => {
+  reset()
+  const inactivo = { ...sinCuenta, activo: false }
+  barberosHook = { barberos: [inactivo], loading: false, error: null, refetch: async () => {} }
+  const { tree } = render(BarberosTab, {}, { [TAB.CUENTAS]: {} })
+  assert.equal(find(tree, (n) => n.type === 'button' && n.props.title === 'Crear acceso'), null)
+  assert.match(JSON.stringify(tree), /Activa al barbero para crear su acceso/)
+})
+
+test('PROBE P2: the create modal does not create an account for an inactive barber', async () => {
+  reset(); formValues = { ...datos, activo: false }
+  const created = []
+  helpers.createBarbero = async (data) => { created.push(data); return { id: 'b1', ...data } }
+  const sent = respond(200, { success: true, cuenta_creada: true, email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234' })
+  const { tree } = render(BarberoModal, modalProps)
+  const checkbox = find(tree, (n) => n.type === 'input' && n.props.type === 'checkbox' && 'checked' in n.props)
+  assert.equal(checkbox.props.disabled, true, 'the account checkbox is disabled for an inactive barber')
+  assert.match(JSON.stringify(tree), /Un barbero inactivo no puede tener acceso/)
+  await find(tree, (n) => n.type === 'form').props.onSubmit({ preventDefault() {} })
+  assert.deepEqual([sent.length, created.length], [0, 1])
+})
+
+test('PROBE P3: a create that left the barber saved refreshes the list', async () => {
+  reset(); formValues = { nombre: 'Ana', apellido: 'Pérez', email: 'ana@chamos.test', telefono: '', descripcion: '', instagram: '', imagen_url: '', porcentaje_comision: 50, activo: true }
+  respond(500, { error: 'No se pudo crear la cuenta de acceso. Intenta de nuevo. El barbero quedó guardado sin acceso; revísalo en la lista.', barbero_guardado: true })
+  let refreshed = 0
+  await submit({ ...modalProps, onSuccess() { refreshed++ } })
+  assert.ok(toasts.some(([k, m]) => k === 'error' && /revísalo en la lista/.test(m)))
+  assert.equal(refreshed, 1, 'list refreshed so the saved barber is visible')
+
+  reset()
+  respond(409, { error: 'Ese correo ya tiene una cuenta de acceso creada antes. Pide al administrador del sistema que la libere o usa otro correo.' })
+  refreshed = 0
+  await submit({ ...modalProps, onSuccess() { refreshed++ } })
+  assert.equal(refreshed, 0, 'nothing to refresh when nothing was saved')
+})
+
+test('PROBE P4: a non-barber account linked to a barber is not offered "Nueva contraseña"', () => {
+  reset()
+  const dueno = { id: 'b-dueno', nombre: 'Dueño', apellido: 'X', email: 'dueno@chamos.test', activo: true }
+  barberosHook = { barberos: [dueno], loading: false, error: null, refetch: async () => {} }
+  const { tree } = render(BarberosTab, {}, { [TAB.CUENTAS]: { 'b-dueno': { barbero_id: 'b-dueno', email: 'dueno@chamos.test', activo: true, rol: 'admin' } } })
+  assert.equal(find(tree, (n) => n.type === 'button' && n.props.title === 'Nueva contraseña'), null)
+  assert.equal(find(tree, (n) => n.type === 'button' && n.props.title === 'Crear acceso'), null)
+})
+
+test('the account map keeps the barber login when a barber also has a non-barber one', async () => {
+  reset(); barberosHook = lista
+  const map = []
+  helpers.getCuentasBarberos = async () => [
+    { barbero_id: 'b-con', email: 'gustavo@chamos.test', activo: true, rol: 'barbero' },
+    { barbero_id: 'b-con', email: 'dueno@chamos.test', activo: true, rol: 'admin' },
+  ]
+  const effects = []
+  const originalState = React.useState, originalEffect = React.useEffect
+  let index = 0
+  React.useState = (initial) => { const i = index++; return [typeof initial === 'function' ? initial() : initial, (next) => { if (i === TAB.CUENTAS) map.push(next) }] }
+  React.useEffect = (fn) => { effects.push(fn) }
+  try { BarberosTab({}) } finally { React.useState = originalState; React.useEffect = originalEffect }
+  effects.forEach((fn) => fn())
+  await new Promise((r) => setTimeout(r, 0))
+  assert.equal(map[0]['b-con'].rol, 'barbero')
+})
+
+test('PROBE P5: the create modal cannot be dismissed while saving', () => {
+  reset()
+  let closed = 0
+  const onClose = () => { closed++ }
+  const { tree } = render(BarberoModal, { ...modalProps, onClose }, { 0: true })
+  const modal = find(tree, (n) => n.type === Modal)
+  assert.notEqual(modal.props.onClose, onClose, 'dismiss guarded while loading')
+  modal.props.onClose()
+  assert.equal(closed, 0)
+  find(render(BarberoModal, { ...modalProps, onClose }).tree, (n) => n.type === Modal).props.onClose()
+  assert.equal(closed, 1, 'closes normally when idle')
+})
+
+test('the access dialog cannot be dismissed while the request is in flight', () => {
+  reset(); barberosHook = lista
+  const pendiente = { barbero: sinCuenta, accion: 'crear' }
+  let { tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: {}, [TAB.ACCESO]: pendiente, [TAB.GENERANDO]: true })
+  find(tree, (n) => n.type === ConfirmDialog && n.props.title === 'Crear acceso').props.onClose()
+  assert.deepEqual(setters.filter(([i]) => i === TAB.ACCESO), [])
+  ;({ tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: {}, [TAB.ACCESO]: pendiente }))
+  find(tree, (n) => n.type === ConfirmDialog && n.props.title === 'Crear acceso').props.onClose()
+  assert.deepEqual(setters.filter(([i]) => i === TAB.ACCESO).map(([, v]) => v), [null])
+})
+
+function copyButtons(tree) {
+  const found = []
+  ;(function walk(n) {
+    if (!n || typeof n !== 'object') return
+    if (Array.isArray(n)) return n.forEach(walk)
+    if (n.type === 'button' && /fa-copy/.test(JSON.stringify(n.props.children))) found.push(n)
+    walk(React.Children.toArray(n.props?.children))
+  })(tree)
+  return found
+}
+
+test('PROBE P6: the copy buttons report a failed copy and confirm only a real one', async () => {
+  const credenciales = { isOpen: true, onClose() {}, titulo: 't', mensaje: 'm', email: 'a@b.test', password: 'Chamosabcdefgh!1234' }
+  const saved = Object.getOwnPropertyDescriptor(globalThis, 'navigator')
+  try {
+    for (const [writeText, expected] of [
+      [() => Promise.reject(new Error('denied')), [['error'], ['error']]],
+      [async () => {}, [['success', 'Email copiado'], ['success', 'Contraseña copiada']]],
+    ]) {
+      Object.defineProperty(globalThis, 'navigator', { value: { clipboard: { writeText } }, configurable: true })
+      const buttons = copyButtons(CredencialesModal(credenciales))
+      assert.equal(buttons.length, 2)
+      const got = []
+      for (const button of buttons) {
+        reset()
+        await button.props.onClick()
+        got.push(toasts.map(([k, m]) => (k === 'error' ? k : [k, m])).flat())
+      }
+      assert.deepEqual(got, expected)
+    }
+  } finally {
+    if (saved) Object.defineProperty(globalThis, 'navigator', saved)
+  }
+})
+
+test('the account checkbox says the password is also emailed', () => {
+  reset(); formValues = datos
+  assert.match(JSON.stringify(render(BarberoModal, modalProps).tree), /también se enviará al email del barbero/)
+})
+
+test('the credential helper rejects a success response without a password', async () => {
+  const { chamosSupabase } = require('../lib/supabase-helpers.ts')
+  global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ success: true, accion: 'nueva', email: 'ana@chamos.test' }) })
+  await assert.rejects(chamosSupabase.generarCredencialesBarbero('b1', 'nueva'), /No se pudieron generar las credenciales/)
 })

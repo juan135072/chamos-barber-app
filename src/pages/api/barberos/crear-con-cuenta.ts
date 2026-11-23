@@ -39,6 +39,10 @@ export default async function handler(
     if (crearCuenta && !email) {
       return res.status(400).json({ error: 'Ingresa un email para crear la cuenta de acceso' })
     }
+    // An inactive barber cannot log in, so it gets no account (nor its email).
+    if (crearCuenta && fields.activo === false) {
+      return res.status(400).json({ error: 'Para crear su acceso, el barbero debe estar activo. Créalo activo o sin cuenta.' })
+    }
 
     const admin = actor.admin
     const comercioId = actor.access.comercio_id
@@ -76,10 +80,11 @@ export default async function handler(
     if (!account.ok) {
       // No account means no barber either: undo the insert.
       const removed = await removeBarber(admin, comercioId, nuevoBarbero.id)
+      if (removed) return res.status(account.status).json({ error: account.error })
+      // The UI refreshes the list so the barber that stayed is visible.
       return res.status(account.status).json({
-        error: removed
-          ? account.error
-          : `${account.error} El barbero quedó guardado sin acceso; revísalo en la lista.`
+        error: `${account.error} El barbero quedó guardado sin acceso; revísalo en la lista.`,
+        barbero_guardado: true
       })
     }
 

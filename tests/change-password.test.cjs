@@ -148,6 +148,21 @@ test('the existing validation still applies, and an inactive account is refused'
   assert.deepEqual(sql, [])
 })
 
+test('a new password longer than 72 bytes is refused, since bcrypt would ignore the rest', async () => {
+  setup()
+  const before = hashOf(SELF)
+  for (const newPassword of ['A1!' + 'a'.repeat(70), 'Ñandú!1' + 'ñ'.repeat(33)]) {
+    assert.ok(Buffer.byteLength(newPassword, 'utf8') > 72)
+    const res = await call({ currentPassword: ACTUAL, newPassword })
+    assert.equal(res.statusCode, 400)
+    assert.match(res.body.error, /demasiado larga/)
+  }
+  assert.deepEqual(writes(), [])
+  assert.equal(hashOf(SELF), before)
+  const res = await call({ currentPassword: ACTUAL, newPassword: 'A1!' + 'a'.repeat(69) })
+  assert.equal(res.statusCode, 200, 'exactly 72 bytes is accepted')
+})
+
 test('the panel form sends only the passwords, never a user id', async () => {
   stubModule('../src/lib/insforge-react.ts', { useSession: () => ({ user: { id: OTHER } }) })
   const toasts = []
