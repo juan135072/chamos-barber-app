@@ -3,6 +3,8 @@
 require('./load-typescript.cjs')
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 const { stubModule } = require('./fake-db.cjs')
 const {
   getChileHoy, getDynamicHoy, getDynamicHora, fechaEnZona, horaEnZona, chileDateRange,
@@ -144,4 +146,34 @@ test('liquidation dates: DATE columns keep their day, timestamps show the Chile 
   assert.equal(formatFecha('2026-11-30'), '30 de noviembre de 2026')
   assert.equal(formatFechaCorta('2026-11-01'), '01-11-2026')
   assert.equal(formatFecha('2026-11-24T00:30:00+00:00'), '23 de noviembre de 2026')
+})
+
+// Guard: the patterns that caused the bug must not come back. Each one turns a
+// UTC instant or UTC midnight into the wrong Chile day.
+const FORBIDDEN = [
+  [/toISOString\(\)\.split\(['"]T['"]\)/, 'UTC date of an instant: use getChileHoy()/fechaEnZona()'],
+  [/new Date\(\s*[\w.?!]+\.(fecha|fecha_inicio|fecha_fin|ultima_cita|ultima_liquidacion_fecha)\s*\)/, 'DATE column parsed as UTC midnight: use formatFechaSolo()'],
+  [/created_at\.split\(/, 'UTC date of created_at: use fechaEnZona()'],
+  [/T23:59:59/, 'offset-less end of day: use chileDateRange()'],
+  [/new Date\(`\$\{[^}]+\}T\$\{/, 'Chile wall time parsed in the runtime zone: use instanteDesdeHoraLocal()'],
+]
+function sourceFiles(dir) {
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const full = path.join(dir, entry.name)
+    if (entry.isDirectory()) return entry.name === 'node_modules' ? [] : sourceFiles(full)
+    return /\.tsx?$/.test(entry.name) ? [full] : []
+  })
+}
+test('no UTC-day date handling is left in src/ and lib/', () => {
+  const root = path.join(__dirname, '..')
+  const found = []
+  for (const file of [...sourceFiles(path.join(root, 'src')), ...sourceFiles(path.join(root, 'lib'))]) {
+    fs.readFileSync(file, 'utf8').split(/\r?\n/).forEach((line, index) => {
+      if (/^\s*(\*|\/\/)/.test(line)) return // comments may name the patterns
+      for (const [pattern, hint] of FORBIDDEN) {
+        if (pattern.test(line)) found.push(`${path.relative(root, file)}:${index + 1} ${hint}`)
+      }
+    })
+  }
+  assert.deepEqual(found, [])
 })
