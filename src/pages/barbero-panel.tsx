@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { useSession, useSupabaseClient } from '@/lib/insforge-react'
@@ -13,6 +13,8 @@ import { Bell, BellOff } from 'lucide-react'
 import DashboardSection from '../components/barbero/DashboardSection'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
 import OneSignalResetButton from '../components/barbero/OneSignalResetButton'
+import { logoutOneSignal } from '@/lib/onesignal-client'
+import { checkAppSession, isNoRowsError } from '@/lib/app-session'
 import { BarberoProvider, type BarberoProfile } from '../context/BarberoContext'
 
 
@@ -26,19 +28,34 @@ const BarberoPanelPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias' | 'seguridad' | 'dashboard' | 'asistencia'>('dashboard')
   const [isStandalone, setIsStandalone] = useState(false)
 
-  const { triggerPrompt, setExternalId } = useOneSignal()
+  const { triggerPrompt, setExternalId, permissionStatus } = useOneSignal()
+  // Primera carga completa de esta página: vincular OneSignal y mostrar el aviso una sola vez.
+  const loadedOnce = useRef(false)
+  // La primera carga falló (p. ej. sin red): al volver o reconectar se reintenta completa.
+  const firstLoadFailed = useRef(false)
+  const userId: string | undefined = session?.user?.id
 
-  const loadBarberoData = useCallback(async () => {
-    if (!session?.user?.id) return
+  // background: refresco al volver a la app, sin spinner de pantalla completa y
+  // sin tocar el perfil que ya se muestra si la red falla.
+  const loadBarberoData = useCallback(async ({ background = false }: { background?: boolean } = {}) => {
+    if (!userId) return
     try {
-      setLoading(true)
+      if (!background) setLoading(true)
+      // Al volver tras un rato en segundo plano el token en memoria pudo vencer y
+      // useSession lo restaura en este mismo evento: esperar esa restauración.
+      if ((await checkAppSession()).status !== 'signed-in') {
+        if (!loadedOnce.current) firstLoadFailed.current = true
+        return
+      }
       const { data: adminUser, error: adminError } = await supabase
         .from('admin_users')
         .select('barbero_id, rol')
-        .eq('id', session.user.id)
+        .eq('id', userId)
         .single()
 
-      if (adminError || !adminUser || adminUser.rol !== 'barbero') {
+      // Solo una respuesta real niega el acceso; un fallo de red se reintenta.
+      if (adminError && !isNoRowsError(adminError)) throw adminError
+      if (!adminUser || adminUser.rol !== 'barbero') {
         toast.error('No tienes permisos para acceder a este panel')
         router.push('/chamos-acceso')
         return
@@ -53,15 +70,25 @@ const BarberoPanelPage: React.FC = () => {
       if (barberoError) throw barberoError
 
       setProfile(barbero)
-      setExternalId(barbero.id)
-      setTimeout(() => triggerPrompt(), 5000)
+      firstLoadFailed.current = false
+      if (!loadedOnce.current) {
+        loadedOnce.current = true
+        // Vincula este dispositivo al barbero (external_id), haya o no permiso de notificaciones.
+        setExternalId(barbero.id)
+        setTimeout(() => triggerPrompt(), 5000)
+      }
     } catch (error) {
+      if (background) {
+        console.warn('[barbero-panel] Refresco en segundo plano omitido:', error)
+        return
+      }
       console.error('Error loading data:', error)
+      if (!loadedOnce.current) firstLoadFailed.current = true
       toast.error('Error al cargar tus datos')
     } finally {
-      setLoading(false)
+      if (!background) setLoading(false)
     }
-  }, [session?.user?.id])
+  }, [userId])
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -70,28 +97,43 @@ const BarberoPanelPage: React.FC = () => {
         document.referrer.includes('android-app://')
       setIsStandalone(isPWA)
     }
+  }, [])
+
+  // Depende del usuario, no del objeto de sesión: renovar el token no recarga el panel.
+  const sessionState = session === undefined ? 'loading' : session ? 'signed-in' : 'signed-out'
+  useEffect(() => {
     // Wait for useSession() to finish its async check (returns undefined while
-    // loading). Without this guard we'd redirect during the loading window.
-    if (session === undefined) return
-    if (!session) {
+    // loading, and while it retries after a network error). Without this guard
+    // we'd redirect during the loading window.
+    if (sessionState === 'loading') return
+    if (sessionState === 'signed-out') {
       router.push('/chamos-acceso')
       return
     }
     loadBarberoData()
-  }, [session])
+  }, [sessionState, userId])
 
-  // Obtener estado de OneSignal
-  const { permissionStatus, triggerPrompt: osTriggerPrompt, repairSubscription } = useOneSignal()
+  // Al volver a la app o recuperar la conexión, refrescar los datos en segundo plano
+  // (o reintentar la primera carga si falló).
+  useEffect(() => {
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return
+      if (loadedOnce.current) loadBarberoData({ background: true })
+      else if (firstLoadFailed.current) loadBarberoData()
+    }
+    document.addEventListener('visibilitychange', refresh)
+    window.addEventListener('online', refresh)
+    return () => {
+      document.removeEventListener('visibilitychange', refresh)
+      window.removeEventListener('online', refresh)
+    }
+  }, [loadBarberoData])
 
   // Icono dinámico según el estado de permisos
   const NotificationBell = () => {
     return (
       <button
-        onClick={() => {
-          console.log('🔔 Clic manual en campana')
-          triggerPrompt()
-        }}
-        onDoubleClick={repairSubscription}
+        onClick={triggerPrompt}
         style={{
           padding: '0.5rem',
           borderRadius: '50%',
@@ -108,7 +150,8 @@ const BarberoPanelPage: React.FC = () => {
           cursor: 'pointer',
           animation: permissionStatus === 'default' ? 'pulse 2s infinite' : 'none'
         }}
-        title="Estado de notificaciones (Doble clic para reparar)"
+        title={permissionStatus === 'granted' ? 'Notificaciones activas' : 'Activar notificaciones'}
+        aria-label="Estado de notificaciones"
       >
         {permissionStatus === 'granted' ? <Bell size={20} /> : <BellOff size={20} />}
       </button>
@@ -117,6 +160,8 @@ const BarberoPanelPage: React.FC = () => {
 
 
   const handleLogout = async () => {
+    // Desvincular este dispositivo del barbero antes de limpiar datos (acotado, nunca bloquea).
+    await logoutOneSignal()
     try {
       // Limpiar datos locales preventivamente
       if (typeof window !== 'undefined') {
@@ -171,7 +216,10 @@ const BarberoPanelPage: React.FC = () => {
             gap: '2rem'
           }}>
             <h2 style={{ color: 'var(--text-primary)' }}>No se pudo cargar tu perfil</h2>
-            <button onClick={() => router.push('/chamos-acceso')} className="btn btn-primary">
+            <button onClick={() => loadBarberoData()} className="btn btn-primary">
+              Reintentar
+            </button>
+            <button onClick={() => router.push('/chamos-acceso')} className="btn btn-secondary">
               Volver al Login
             </button>
           </div>
@@ -181,7 +229,7 @@ const BarberoPanelPage: React.FC = () => {
   }
 
   return (
-    <BarberoProvider value={{ profile, barberoId: profile.id, refetchProfile: loadBarberoData, handleLogout }}>
+    <BarberoProvider value={{ profile, barberoId: profile.id, refetchProfile: () => loadBarberoData({ background: true }), handleLogout }}>
     <>
       <Head>
         <title>{`Panel de ${profile.nombre} - Chamos Barber`}</title>
@@ -363,7 +411,7 @@ const BarberoPanelPage: React.FC = () => {
             </nav>
           )}
 
-          {/* OneSignal Reset Button */}
+          {/* OneSignal Reset Button (solo con ?debug=true o en desarrollo) */}
           <OneSignalResetButton />
         </div>
       </div>

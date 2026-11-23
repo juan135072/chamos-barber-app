@@ -10,6 +10,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
 import BarberoLiquidacionesPanel from '@/components/liquidaciones/BarberoLiquidacionesPanel'
 import { supabase } from '@/lib/supabase'
+import { logoutOneSignal } from '@/lib/onesignal-client'
 import Logo from '@/components/shared/Logo'
 import Head from 'next/head'
 
@@ -130,6 +131,7 @@ export default function BarberoLiquidacionesPage() {
                   </span>
                   <button
                     onClick={async () => {
+                      await logoutOneSignal()
                       await supabase.auth.signOut()
                       router.push('/chamos-acceso')
                     }}

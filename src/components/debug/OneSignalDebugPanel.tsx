@@ -66,7 +66,8 @@ export default function OneSignalDebugPanel({ appId = '63aa14ec-de8c-46b3-8949-e
         try {
           if (OneSignal.User) {
             userTags = await OneSignal.User.getTags()
-            setOptedOut(OneSignal.User.PushSubscription?.optedOut || false)
+            // v16 has no optedOut property; optedIn is the documented flag.
+            setOptedOut(OneSignal.User.PushSubscription?.optedIn !== true)
           }
         } catch (e) {
           console.warn('OneSignal getTags not ready')

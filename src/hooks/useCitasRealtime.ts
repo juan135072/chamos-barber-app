@@ -4,7 +4,9 @@
 // ================================================================
 
 import { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import { checkAppSession } from '../lib/app-session'
 import { getChileHoy } from '../lib/date-utils'
 import type { Cita, RealtimePayload } from '../types/barber-app'
 
@@ -14,16 +16,23 @@ export function useCitasRealtime(barberoId: string | null) {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
-  // Función para obtener citas de hoy
-  const fetchCitasHoy = useCallback(async () => {
+  // Función para obtener citas de hoy.
+  // silent: recarga en segundo plano (al volver a la app), sin spinner ni error en pantalla.
+  const fetchCitasHoy = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!barberoId) {
       setLoading(false)
       return
     }
 
     try {
-      setLoading(true)
-      setError(null)
+      if (!silent) {
+        setLoading(true)
+        setError(null)
+      }
+
+      // Al volver tras un rato en segundo plano el token en memoria pudo vencer y
+      // se restaura en este mismo evento: esperar esa restauración antes de consultar.
+      if (silent && (await checkAppSession()).status !== 'signed-in') return
 
       const hoy = getChileHoy()
 
@@ -38,11 +47,16 @@ export function useCitasRealtime(barberoId: string | null) {
 
       setCitas((data || []) as any)
       setLastUpdate(new Date())
+      if (silent) setError(null)
     } catch (err: any) {
+      if (silent) {
+        console.warn('No se pudieron recargar las citas en segundo plano:', err)
+        return
+      }
       console.error('Error al obtener citas:', err)
       setError(err.message || 'Error al cargar citas')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [barberoId])
 
@@ -50,6 +64,21 @@ export function useCitasRealtime(barberoId: string | null) {
   useEffect(() => {
     fetchCitasHoy()
   }, [fetchCitasHoy])
+
+  // Con la app en segundo plano o sin conexión el canal de Realtime pudo perder
+  // eventos (o cambió el día): recargar al volver o al recuperar la conexión.
+  useEffect(() => {
+    if (!barberoId) return
+    const resync = () => {
+      if (document.visibilityState === 'visible') fetchCitasHoy({ silent: true })
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('online', resync)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('online', resync)
+    }
+  }, [barberoId, fetchCitasHoy])
 
   // Configurar Supabase Realtime
   useEffect(() => {
@@ -122,8 +151,12 @@ export function useCitasRealtime(barberoId: string | null) {
           })
           setLastUpdate(new Date())
 
-          // Mostrar notificación (opcional)
-          showNotification('Nueva cita', `${newRecord.cliente_nombre}`)
+          // Con la app a la vista, un aviso dentro de la app. Sin notificación del
+          // sistema: el push de OneSignal ya avisa de la reserva (serían dos) y el
+          // service worker de OneSignal no sabe abrir una notificación que no es suya.
+          if (document.visibilityState === 'visible') {
+            toast(`Nueva cita: ${newRecord.cliente_nombre}`, { icon: '✂️' })
+          }
         }
         break
 
@@ -148,19 +181,6 @@ export function useCitasRealtime(barberoId: string | null) {
           setLastUpdate(new Date())
         }
         break
-    }
-  }
-
-  // Función auxiliar para notificaciones
-  const showNotification = (title: string, body: string) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
-        body,
-        icon: '/android-chrome-192x192.png',
-        badge: '/favicon-32x32.png',
-        tag: 'barber-app-cita',
-        requireInteraction: false
-      })
     }
   }
 

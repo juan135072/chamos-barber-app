@@ -520,7 +520,8 @@ async function executeCreateAppointment(args: any) {
     try {
       const { sendNotificationToBarber } = await import('./onesignal');
       const barberoIdStr = args.barbero_id || args.barro_id || args.bartero_id || args.barrera_id || args.barbero;
-      await sendNotificationToBarber(String(barberoIdStr), 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
+      // Sin await: la respuesta al cliente no espera a OneSignal (el envío registra si no llegó).
+      void sendNotificationToBarber(String(barberoIdStr), 'Nueva Reserva ✂️', `Hola, tienes una nueva reserva de ${args.cliente_nombre} para el ${args.fecha} a las ${args.hora}.`);
     } catch (e) { }
 
     return { success: true, message: "Cita creada exitosamente", id: nuevaCita.id };

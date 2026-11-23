@@ -3,7 +3,7 @@
 // Página principal mobile-first para barberos
 // ================================================================
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useBarberAppAuth } from '../../hooks/useBarberAppAuth'
@@ -40,30 +40,31 @@ export default function BarberAppPage() {
   const [modalCobroOpen, setModalCobroOpen] = useState(false)
 
   const { setExternalId, triggerPrompt, sendTags, permissionStatus } = useOneSignal()
+  const barberoNombre = barbero ? `${barbero.nombre} ${barbero.apellido}` : null
+  // Leído al disparar el aviso, sin volver a programarlo cada vez que cambia.
+  const permissionStatusRef = useRef(permissionStatus)
+  permissionStatusRef.current = permissionStatus
 
-  // Configurar OneSignal con datos del barbero
+  // Configurar OneSignal con datos del barbero: cada carga vincula este
+  // dispositivo (external_id = barberos.id), haya o no permiso de notificaciones.
   useEffect(() => {
-    if (!session?.barberoId || !barbero) return
+    if (!session?.barberoId || !barberoNombre) return
 
-    // Usar el provider central para vincular el ID
     setExternalId(session.barberoId)
-
-    // Enviar tags
     sendTags({
       barbero_id: session.barberoId,
-      barbero_nombre: `${barbero.nombre} ${barbero.apellido}`,
+      barbero_nombre: barberoNombre,
       rol: 'barbero',
       email: session.email
     })
 
-    // Mostrar el prompt después de un pequeño delay si no hay permisos
-    if (permissionStatus === 'default') {
-      const timer = setTimeout(() => {
-        triggerPrompt()
-      }, 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [session?.barberoId, barbero, setExternalId, triggerPrompt, sendTags, permissionStatus])
+    // Solo si aún no eligió: quien las bloqueó no recibe el aviso en cada visita
+    // (la campana sigue abriéndolo a mano).
+    const timer = setTimeout(() => {
+      if (permissionStatusRef.current === 'default') triggerPrompt()
+    }, 3000)
+    return () => clearTimeout(timer)
+  }, [session?.barberoId, session?.email, barberoNombre, setExternalId, triggerPrompt, sendTags])
 
   // Handlers para las acciones de citas
   const handleCheckIn = async (citaId: string) => {
