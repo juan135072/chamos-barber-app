@@ -58,6 +58,10 @@ export default function RegistrarWalkInModal({
   useEffect(() => {
     if (isOpen) {
       loadDatosReserva()
+      // The modal stays mounted inside its tab: an admin page left open from
+      // yesterday would otherwise propose yesterday's date and an old time.
+      setFechaReserva(getChileHoy())
+      setHoraReserva(getDynamicHora())
 
       if (initialData) {
         setFormData({

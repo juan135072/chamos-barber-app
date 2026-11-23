@@ -112,6 +112,28 @@ test('manual walk-in booking opened at 21:30 Chile defaults to today, not tomorr
   assert.ok(!text.includes('2026-11-24'))
 }))
 
+test('opening the walk-in modal again refreshes a stale date and time to now in Chile', () => at(CHILE_2130, () => {
+  const RegistrarWalkInModal = require('../src/components/walkin/RegistrarWalkInModal.tsx').default
+  // Same as render(), but keeps the effects so they can run after the render.
+  const setters = []
+  const effects = []
+  const originalState = React.useState, originalEffect = React.useEffect, originalRef = React.useRef
+  React.useState = (initial) => {
+    const value = typeof initial === 'function' ? initial() : initial
+    return [value, (next) => setters.push(typeof next === 'function' ? next(value) : next)]
+  }
+  React.useEffect = (fn) => { effects.push(fn) }
+  React.useRef = (current) => ({ current })
+  try {
+    RegistrarWalkInModal({ isOpen: true, onClose() {}, onSuccess() {} })
+  } finally {
+    React.useState = originalState; React.useEffect = originalEffect; React.useRef = originalRef
+  }
+  effects.forEach((fn) => { try { fn() } catch { /* data loading is not under test */ } })
+  assert.ok(setters.includes('2026-11-23'), 'opening sets the date to today in Chile')
+  assert.ok(setters.includes('21:30'), 'opening sets the time to now in Chile')
+}))
+
 test('a new expense entered at 21:30 Chile is stored with today', () => at(CHILE_2130, async () => {
   db = createFakeDb()
   const AdminGastosManager = require('../src/components/admin/gastos/AdminGastosManager.tsx').default
