@@ -2,6 +2,8 @@
  * Side effects after an appointment write, shared by every booking channel:
  * a realtime event for the open dashboards and a push to the barber.
  * Failures are logged and swallowed because the write already succeeded.
+ * Pushes are not awaited: the booking response never waits for OneSignal
+ * (the send is bounded by its own timeout and logs non-delivery itself).
  */
 import { publishCitaChange, type CitaChangeEventType } from '@/lib/realtime-publish'
 import { sendNotificationToBarber } from '@/lib/onesignal'
@@ -17,12 +19,13 @@ async function publishSafely(db: any, eventType: CitaChangeEventType, cita: any,
   }
 }
 
-async function pushSafely(barberoId: string | null | undefined, title: string, buildMessage: () => string) {
+function pushSafely(barberoId: string | null | undefined, title: string, buildMessage: () => string): void {
   if (!barberoId) return
+  const failed = (error: unknown) => console.error('[booking] push notification failed:', error)
   try {
-    await sendNotificationToBarber(barberoId, title, buildMessage())
+    void sendNotificationToBarber(barberoId, title, buildMessage()).catch(failed)
   } catch (error) {
-    console.error('[booking] push notification failed:', error)
+    failed(error)
   }
 }
 
@@ -37,7 +40,7 @@ export interface CreatedBookingNotice {
 
 export async function notifyBookingCreated(db: any, cita: any, notice: CreatedBookingNotice): Promise<void> {
   await publishSafely(db, 'INSERT', cita)
-  await pushSafely(notice.barberoId, 'Nueva Reserva ✂️', () =>
+  pushSafely(notice.barberoId, 'Nueva Reserva ✂️', () =>
     `Hola ${notice.barberoNombre || 'Barbero'}, tienes una nueva reserva de ${notice.clienteNombre} para el ${formatFechaDynamic(notice.fecha, notice.timeZone || DEFAULT_TIMEZONE)} a las ${notice.hora}.`)
 }
 
@@ -58,16 +61,16 @@ export async function notifyBookingRescheduled(
     // received the UPDATE above, so only that barber's channel gets a DELETE
     // (comercio_id null keeps the tenant channel out of it).
     await publishSafely(db, 'DELETE', { id: previous.id, barbero_id: previous.barbero_id, comercio_id: null }, { ...previous, comercio_id: null })
-    await pushSafely(previous.barbero_id, 'Cita reasignada 🔄', () =>
+    pushSafely(previous.barbero_id, 'Cita reasignada 🔄', () =>
       `La cita de ${previous.cliente_nombre} del ${formatFechaDynamic(previous.fecha, timeZone)} a las ${shortHora(previous.hora)} fue reasignada a otro barbero.`)
   }
 
-  await pushSafely(updated.barbero_id, 'Cita reagendada 🔄', () =>
+  pushSafely(updated.barbero_id, 'Cita reagendada 🔄', () =>
     `Hola ${notice.barberoNombre || 'Barbero'}, la cita de ${updated.cliente_nombre} quedó para el ${formatFechaDynamic(updated.fecha, timeZone)} a las ${shortHora(updated.hora)}. Queda pendiente de tu confirmación.`)
 }
 
 export async function notifyBookingCancelled(db: any, previous: any, updated: any, timeZone: string = DEFAULT_TIMEZONE): Promise<void> {
   await publishSafely(db, 'UPDATE', updated, previous)
-  await pushSafely(updated.barbero_id, 'Cita cancelada ❌', () =>
+  pushSafely(updated.barbero_id, 'Cita cancelada ❌', () =>
     `${updated.cliente_nombre} canceló su cita del ${formatFechaDynamic(updated.fecha, timeZone)} a las ${shortHora(updated.hora)}.`)
 }
