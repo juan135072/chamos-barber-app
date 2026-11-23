@@ -104,8 +104,14 @@ const BarberosTab: React.FC = () => {
       setDeleting(true)
       const result = await chamosSupabase.permanentlyDeleteBarbero(barberoToDelete.id)
       console.log('✅ FRONTEND: Resultado de eliminación:', result)
-      toast.success('Barbero eliminado permanentemente')
+      if (result?.partial) {
+        // The barber is gone, but its login account (and email) was left behind.
+        toast.error(result.message)
+      } else {
+        toast.success('Barbero eliminado permanentemente')
+      }
       loadBarberos()
+      reloadCuentas()
       setShowPermanentDeleteModal(false)
       setBarberoToDelete(null)
     } catch (error: any) {

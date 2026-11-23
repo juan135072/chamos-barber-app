@@ -440,3 +440,100 @@ test('reset-password no longer promises an email that cannot be completed', asyn
   assert.equal(res.statusCode, 410)
   assert.match(res.body.error, /Nueva contraseña/)
 })
+
+// --- T4 / S3: permanent delete and deactivation -----------------------------
+
+const HISTORY = { code: 'P0001', message: 'El barbero tiene historial. Desactívalo para conservar sus registros' }
+/** Stand-in for app_delete_unused_barber: deletes the barber and its staff rows, never auth.users. */
+function deleteRpc({ error = null, keep = () => false } = {}) {
+  return async (name, args, fake) => {
+    if (error) return { data: null, error }
+    fake.tables.admin_users = fake.tables.admin_users.filter((a) => keep(a) || !(a.barbero_id === args.p_barber && a.comercio_id === args.p_comercio))
+    fake.tables.barberos = fake.tables.barberos.filter((b) => !(b.id === args.p_barber && b.comercio_id === args.p_comercio))
+    return { data: null, error: null }
+  }
+}
+const borrar = (barberoId) => call('delete-permanent', { barberoId }, { method: 'DELETE' })
+
+test('permanently deleting a barber without history also deletes its login accounts', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc() })
+  const res = await borrar(b.id)
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { success: true, message: 'Barbero eliminado', cuentas_eliminadas: 1 })
+  assert.deepEqual(db.calls.rpc, [{ name: 'app_delete_unused_barber', args: { p_comercio: TENANT, p_barber: b.id } }])
+  assert.deepEqual(auth.deleted, [cuenta.id])
+  assert.deepEqual([auth.users, db.tables.barberos], [[], []])
+})
+
+test('deleting a barber without an account keeps its previous response', async () => {
+  const b = barbero()
+  setup({ barberos: [b], rpc: deleteRpc() })
+  const res = await borrar(b.id)
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.body.success, true)
+  assert.equal(res.body.message, 'Barbero eliminado')
+  assert.deepEqual([auth.deleted, db.tables.barberos], [[], []])
+})
+
+test('auth users that keep a staff row, or are project admins, are never deleted', async () => {
+  const b = barbero()
+  const enlazada = cuentaDe(b)
+  const proyecto = cuentaDe(b, { email: 'proyecto@chamos.test' })
+  setup({ barberos: [b], admin_users: [enlazada, proyecto], users: [usuarioDe(enlazada), usuarioDe(proyecto, { is_project_admin: true })], rpc: deleteRpc({ keep: (a) => a.id === enlazada.id }) })
+  const res = await borrar(b.id)
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.body.cuentas_eliminadas, 0)
+  assert.deepEqual(auth.deleted, [])
+  assert.equal(auth.users.length, 2)
+})
+
+test('a barber with history gets the "tiene historial" 409 and nothing is deleted', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc({ error: HISTORY }) })
+  const res = await borrar(b.id)
+  assert.equal(res.statusCode, 409)
+  assert.equal(res.body.error, 'El barbero tiene historial. Desactívalo para conservar sus registros.')
+  assert.deepEqual(auth.deleted, [])
+  assert.equal(db.tables.barberos.length, 1)
+})
+
+test('any other delete failure is logged and reported as a 500, not as history', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  const fk = { code: '23503', message: 'update or delete on table "admin_users" violates foreign key constraint "caja_sesiones_usuario_id_fkey"' }
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc({ error: fk }) })
+  const { result: res, logged } = await capturingErrors(() => borrar(b.id))
+  assert.equal(res.statusCode, 500)
+  assert.doesNotMatch(res.body.error, /historial/)
+  assert.match(res.body.error, /No se pudo eliminar el barbero/)
+  assert.ok(JSON.stringify(logged).includes('23503'), 'the real error is logged')
+  assert.deepEqual(auth.deleted, [])
+})
+
+test('if the login account cannot be deleted, the result is partial and logged', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)], rpc: deleteRpc() })
+  auth.failDelete = new Error('rawsql unavailable')
+  const { result: res, logged } = await capturingErrors(() => borrar(b.id))
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.body.success, true)
+  assert.equal(res.body.partial, true)
+  assert.match(res.body.message, /cuenta de acceso/)
+  assert.ok(JSON.stringify(logged).includes(cuenta.id), 'the account left behind is logged')
+})
+
+test('deactivating a barber also deactivates its login account, only in the shop', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  const ajena = cuentaDe(b, { comercio_id: OTHER_TENANT, email: 'ajena@otro.test' })
+  setup({ barberos: [b], admin_users: [cuenta, ajena] })
+  const res = await call('toggle-active', { barberoId: b.id, activo: false })
+  assert.equal(res.statusCode, 200)
+  assert.equal(db.tables.barberos[0].activo, false)
+  assert.equal(db.tables.admin_users.find((a) => a.id === cuenta.id).activo, false)
+  assert.equal(db.tables.admin_users.find((a) => a.id === ajena.id).activo, true)
+})

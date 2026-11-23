@@ -11,6 +11,7 @@ import {
     adminCreateUser,
     adminDeleteUser,
     adminGetUserByEmail,
+    adminGetUserById,
     adminSetUserPassword,
 } from '@/lib/insforge-admin'
 
@@ -248,4 +249,36 @@ export async function openBarberAccount(
             : { ok: false, status: 500, error: ACCOUNT_FAILED }
     }
     return { ok: true, userId, email, password }
+}
+
+/**
+ * Deletes the auth users of `userIds` that are left with no admin_users row
+ * and are not project admins (after their barber was deleted), so their
+ * emails can be reused. Returns the ids deleted and the ids that failed.
+ */
+export async function deleteOrphanAuthUsers(
+    admin: AdminClient,
+    userIds: string[]
+): Promise<{ deleted: string[]; failed: string[] }> {
+    const deleted: string[] = []
+    const failed: string[] = []
+    for (const userId of userIds) {
+        const { data, error } = await adminGetUserById(userId)
+        if (error) {
+            failed.push(userId)
+            continue
+        }
+        if (!data.user || data.user.is_project_admin) continue
+        // Same cross-shop guard as checkAccountEmail: any staff row keeps the user.
+        const { data: linked, error: linkedError } = await admin.from('admin_users').select('id').eq('id', userId).limit(1)
+        if (linkedError) {
+            failed.push(userId)
+            continue
+        }
+        if ((linked ?? []).length > 0) continue
+        const { error: deleteError } = await adminDeleteUser(userId)
+        if (deleteError) failed.push(userId)
+        else deleted.push(userId)
+    }
+    return { deleted, failed }
 }

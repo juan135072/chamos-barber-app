@@ -229,3 +229,25 @@ test('the credential helpers call the admin endpoints and surface their errors',
   await assert.rejects(chamosSupabase.generarCredencialesBarbero('b-con', 'crear'), /ya tiene acceso/)
   assert.deepEqual(sent, [['/api/barberos/cuentas', 'GET', undefined], ['/api/barberos/credenciales', 'POST', { barberoId: 'b-con', accion: 'crear' }]])
 })
+
+// --- T4 / S3: permanent delete in the list ----------------------------------
+
+const PermanentDeleteModal = require('../src/components/admin/modals/PermanentDeleteModal.tsx').default
+const BARBERO_TO_DELETE = 4
+
+test('a partial permanent delete warns that the login account was left behind', async () => {
+  for (const [result, kind] of [
+    [{ success: true, partial: true, message: 'Barbero eliminado, pero no se pudo borrar su cuenta de acceso.' }, 'error'],
+    [{ success: true, message: 'Barbero eliminado', cuentas_eliminadas: 1 }, 'success'],
+  ]) {
+    reset()
+    let reloads = 0
+    barberosHook = { ...lista, refetch: async () => { reloads++ } }
+    helpers.permanentlyDeleteBarbero = async () => result
+    const { tree } = render(BarberosTab, {}, { [BARBERO_TO_DELETE]: sinCuenta })
+    await find(tree, (n) => n.type === PermanentDeleteModal).props.onConfirm()
+    assert.deepEqual(toasts.map(([k]) => k), [kind])
+    if (result.partial) assert.equal(toasts[0][1], result.message)
+    assert.equal(reloads, 1)
+  }
+})
