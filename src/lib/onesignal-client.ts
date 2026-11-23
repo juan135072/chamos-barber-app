@@ -11,6 +11,9 @@
  */
 
 export const ONESIGNAL_APP_ID = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || '63aa14ec-de8c-46b3-8949-e9fd221f8d70'
+// With the dashboard integration set to "Custom Code", Safari on macOS takes its
+// web ID from init() instead of the dashboard. Public value, from the app's web config.
+export const ONESIGNAL_SAFARI_WEB_ID = 'web.onesignal.auto.34cabfa2-ddd9-46d0-b8b2-6fad793020e0'
 export const ONESIGNAL_SDK_SRC = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js'
 
 const isDev = process.env.NODE_ENV === 'development'
@@ -106,6 +109,7 @@ function initOnce(OneSignal: any, appId: string): Promise<any | null> {
     initCall = Promise.resolve()
       .then(() => OneSignal.init({
         appId,
+        safari_web_id: ONESIGNAL_SAFARI_WEB_ID,
         allowLocalhostAsSecureOrigin: isDev,
         // Re-registers the device if the browser lost its push token.
         autoResubscribe: true,

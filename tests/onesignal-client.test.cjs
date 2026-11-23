@@ -50,6 +50,22 @@ test('the SDK script is added once and every caller shares one init', async () =
   assert.deepEqual(sdk.calls, [['init', client.ONESIGNAL_APP_ID]])
 })
 
+test('init carries the Custom Code settings, including the Safari web ID', async () => {
+  const { client } = freshClient()
+  const sdk = fakeSdk()
+  let options = null
+  sdk.init = async (received) => { options = received }
+  const loading = client.loadOneSignal()
+  await bootSdk(sdk)
+  await loading
+  assert.equal(options.appId, client.ONESIGNAL_APP_ID)
+  assert.equal(options.safari_web_id, client.ONESIGNAL_SAFARI_WEB_ID)
+  assert.match(options.safari_web_id, /^web\.onesignal\.auto\./)
+  assert.deepEqual(options.notifyButton, { enable: false })
+  assert.deepEqual(options.welcomeNotification, { disable: true })
+  assert.equal(options.serviceWorkerPath, '/OneSignalSDKWorker.js')
+})
+
 test('a failed download is retried later without a second init', async () => {
   const { client, scripts } = freshClient()
   const sdk = fakeSdk()
