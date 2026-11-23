@@ -1,9 +1,7 @@
 import React, { useState } from 'react'
-import { useSession } from '@/lib/insforge-react'
 import toast from 'react-hot-toast'
 
 const ChangePasswordSection: React.FC = () => {
-  const session = useSession()
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -39,11 +37,11 @@ const ChangePasswordSection: React.FC = () => {
     try {
       setLoading(true)
 
+      // The server changes the password of the signed-in user only.
       const response = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: session?.user?.id,
           currentPassword,
           newPassword
         })

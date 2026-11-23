@@ -1,12 +1,15 @@
-// API Route: Cambiar Contraseña (desde panel del barbero)
-// Migrado a InsForge 2026-05-12: usa adminVerifyPassword + adminUpdateUserById
+// API Route: Cambiar Contraseña (desde el panel del propio usuario)
+// Migrado a InsForge 2026-05-12: usa adminVerifyPassword
+// 2026-11-23: authenticated with requireStaff. It only changes the caller's own
+// password (any userId in the body must match it) and stores the new bcrypt
+// hash with adminSetUserPassword, instead of sending a reset email.
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { requireStaff } from '@/lib/server-authorization'
 import {
   adminGetUserById,
-  adminUpdateUserById,
+  adminSetUserPassword,
   adminVerifyPassword,
 } from '@/lib/insforge-admin'
-import { createPagesAdminClient } from '@/lib/supabase-server'
 
 export default async function handler(
   req: NextApiRequest,
@@ -16,12 +19,20 @@ export default async function handler(
     return res.status(405).json({ error: 'Método no permitido' })
   }
 
-  try {
-    const { userId, currentPassword, newPassword } = req.body
+  const actor = await requireStaff(req, res, ['admin', 'cajero', 'barbero'])
+  if (!actor) return
+  const userId = actor.user.id
 
-    if (!userId || !currentPassword || !newPassword) {
+  try {
+    const { userId: requestedUserId, currentPassword, newPassword } = req.body ?? {}
+
+    if (requestedUserId != null && requestedUserId !== userId) {
+      return res.status(403).json({ error: 'Solo puedes cambiar tu propia contraseña' })
+    }
+
+    if (typeof currentPassword !== 'string' || typeof newPassword !== 'string' || !currentPassword || !newPassword) {
       return res.status(400).json({
-        error: 'Faltan datos: userId, currentPassword, newPassword son requeridos'
+        error: 'Faltan datos: currentPassword y newPassword son requeridos'
       })
     }
 
@@ -31,49 +42,43 @@ export default async function handler(
       })
     }
 
-    console.log('🔐 [Change Password] Procesando cambio para usuario:', userId)
-
-    // PASO 1: Verificar que el usuario exista
+    // PASO 1: Verificar que el usuario exista (y que no sea un admin del proyecto)
     const { data: getUserData, error: getUserError } = await adminGetUserById(userId)
 
     if (getUserError || !getUserData.user) {
-      console.error('❌ [Change Password] Usuario no encontrado:', getUserError)
+      console.error('❌ [Change Password] Usuario no encontrado:', { userId, message: getUserError?.message ?? null })
       return res.status(404).json({ error: 'Usuario no encontrado' })
+    }
+
+    if (getUserData.user.is_project_admin) {
+      return res.status(403).json({ error: 'Esta cuenta no puede cambiar su contraseña desde aquí' })
     }
 
     // PASO 2: Verificar contraseña actual (compara bcrypt hash)
     const { valid, error: verifyError } = await adminVerifyPassword(userId, currentPassword)
 
     if (verifyError) {
-      console.error('❌ [Change Password] Error verificando contraseña:', verifyError)
+      console.error('❌ [Change Password] Error verificando contraseña:', { userId, message: verifyError.message })
       return res.status(500).json({ error: 'Error verificando contraseña actual' })
     }
 
     if (!valid) {
-      console.error('❌ [Change Password] Contraseña actual incorrecta')
       return res.status(401).json({ error: 'La contraseña actual es incorrecta' })
     }
 
-    console.log('✅ [Change Password] Contraseña actual verificada')
-
-    // PASO 3: Actualizar a la nueva contraseña (bcrypt hash interno)
-    const { error: updateError } = await adminUpdateUserById(userId, {
-      password: newPassword
-    })
+    // PASO 3: Guardar el hash bcrypt de la nueva contraseña
+    const { updated, error: updateError } = await adminSetUserPassword(userId, newPassword)
 
     if (updateError) {
-      console.error('❌ [Change Password] Error actualizando contraseña:', updateError)
-      throw new Error(`Error actualizando contraseña: ${updateError.message}`)
+      console.error('❌ [Change Password] Error actualizando contraseña:', { userId, message: updateError.message })
+      return res.status(500).json({ error: 'Error actualizando contraseña' })
     }
 
-    console.log('✅ [Change Password] Contraseña actualizada exitosamente')
+    if (!updated) {
+      return res.status(403).json({ error: 'Esta cuenta no puede cambiar su contraseña desde aquí' })
+    }
 
-    // PASO 4: Tocar el timestamp en la tabla de barberos
-    const supabaseAdmin = createPagesAdminClient()
-    await supabaseAdmin
-      .from('barberos')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('id', userId)
+    console.log('✅ [Change Password] Contraseña actualizada:', userId)
 
     return res.status(200).json({
       success: true,
@@ -81,9 +86,9 @@ export default async function handler(
     })
 
   } catch (error: any) {
-    console.error('❌ [Change Password] Error:', error)
+    console.error('❌ [Change Password] Error:', { userId, message: error?.message ?? String(error) })
     return res.status(500).json({
-      error: error.message || 'Error cambiando contraseña'
+      error: 'Error cambiando contraseña'
     })
   }
 }
