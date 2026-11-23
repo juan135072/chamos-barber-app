@@ -9,7 +9,7 @@
 
 'use client'
 
-import React, { useEffect, useState, createContext, useContext, useCallback } from 'react'
+import React, { useEffect, useRef, useState, createContext, useContext, useCallback } from 'react'
 import { Bell, BellOff, Smartphone, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
@@ -66,9 +66,10 @@ const isDev = process.env.NODE_ENV === 'development'
 
 // Only for the UI: past this the overlay offers a retry instead of waiting.
 const SDK_UI_TIMEOUT_MS = 20000
-// An SDK that never finished starting (e.g. IndexedDB unavailable on iOS) never
-// settles its requests: past this the button is freed again.
-const PERMISSION_STUCK_MS = 30000
+// The browser prompt can stay open as long as the barber wants, and an SDK that
+// never finished starting (e.g. IndexedDB unavailable on iOS) never settles its
+// requests: past this the overlay only adds a neutral hint, no error.
+const PERMISSION_SLOW_MS = 30000
 
 export default function OneSignalProvider({
   children,
@@ -82,7 +83,10 @@ export default function OneSignalProvider({
   const [subscribed, setSubscribed] = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
+  const [requestSlow, setRequestSlow] = useState(false)
   const [loadAttempt, setLoadAttempt] = useState(0)
+  // Set inside the tap itself, so a second tap sees it before React re-renders.
+  const requestInFlight = useRef(false)
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith('/admin')
 
@@ -162,14 +166,14 @@ export default function OneSignalProvider({
   // Runs inside the tap: browsers ignore permission requests made after an await.
   const requestPermission = useCallback(() => {
     const OneSignal = getReadyOneSignal()
-    if (!OneSignal || isRequesting) return
+    // One request at a time: a second tap while the browser prompt may still be
+    // open must not ask again nor add a second outcome toast.
+    if (!OneSignal || requestInFlight.current) return
+    requestInFlight.current = true
     const request = startPermissionRequest(OneSignal)
 
     setIsRequesting(true)
-    const stuck = setTimeout(() => {
-      setIsRequesting(false)
-      toast.error('Las notificaciones no responden. Cierra la app y vuelve a abrirla.')
-    }, PERMISSION_STUCK_MS)
+    const slow = setTimeout(() => setRequestSlow(true), PERMISSION_SLOW_MS)
     request
       .then((accepted) => {
         const status = resolvePermissionStatus(OneSignal.Notifications.permission, readNativePermission())
@@ -194,10 +198,12 @@ export default function OneSignalProvider({
         toast.error('No pudimos activar las notificaciones. Inténtalo de nuevo.')
       })
       .finally(() => {
-        clearTimeout(stuck)
+        clearTimeout(slow)
+        requestInFlight.current = false
         setIsRequesting(false)
+        setRequestSlow(false)
       })
-  }, [isRequesting])
+  }, [])
 
   // Función para cerrar el prompt
   const dismissPrompt = useCallback(() => {
@@ -304,9 +310,16 @@ export default function OneSignalProvider({
       icon: <Bell size={48} />,
       title: 'Activa las notificaciones',
       body: (
-        <p className="onesignal-prompt-message">
-          Recibe un aviso al instante cada vez que te reserven, reagenden o cancelen una cita.
-        </p>
+        <>
+          <p className="onesignal-prompt-message">
+            Recibe un aviso al instante cada vez que te reserven, reagenden o cancelen una cita.
+          </p>
+          {requestSlow && (
+            <p className="onesignal-prompt-hint" role="status">
+              Si no ves el aviso del navegador para permitir las notificaciones, cierra la app y vuelve a abrirla.
+            </p>
+          )}
+        </>
       ),
       actions: (
         <>
@@ -445,6 +458,14 @@ export default function OneSignalProvider({
           color: rgba(255, 255, 255, 0.8);
           text-align: center;
           margin-bottom: 2rem;
+        }
+
+        .onesignal-prompt-hint {
+          font-size: 0.875rem;
+          line-height: 1.5;
+          color: rgba(255, 255, 255, 0.65);
+          text-align: center;
+          margin: -1.25rem 0 1.5rem;
         }
 
         .onesignal-prompt-steps {

@@ -169,6 +169,50 @@ function withTimers(run) {
   }
 }
 
+test('a tap asks the browser at once, and a second tap while it is open does not ask again', withTimers(async () => {
+  browser()
+  const sdk = fakeSdk()
+  const provider = await readyProvider(sdk)
+  const button = primaryButton(provider.tree)
+  assert.equal(textOf(button), 'Permitir notificaciones')
+
+  // Called synchronously from the tap: browsers ignore a prompt asked after an await.
+  button.props.onClick()
+  assert.deepEqual(sdk.calls, ['requestPermission'])
+  // A fast double tap, before React re-rendered the disabled button.
+  button.props.onClick()
+  assert.deepEqual(sdk.calls, ['requestPermission'])
+  assert.equal(primaryButton(provider.render()).props.disabled, true)
+}))
+
+test('a browser prompt left open past 30 s shows a neutral hint, and its answer gives one toast', withTimers(async () => {
+  browser()
+  const sdk = fakeSdk()
+  const provider = await readyProvider(sdk)
+  primaryButton(provider.tree).props.onClick()
+
+  mock.timers.tick(30000)
+  await flush()
+  provider.render()
+  assert.deepEqual(toasts, [])
+  assert.match(textOf(overlay(provider.tree)), /Si no ves el aviso del navegador/)
+  // Still waiting on the same request: tapping again asks nothing new.
+  const waiting = primaryButton(provider.tree)
+  assert.equal(waiting.props.disabled, true)
+  waiting.props.onClick()
+  assert.deepEqual(sdk.calls, ['requestPermission'])
+
+  // The barber finally answers the browser prompt.
+  sdk.allow()
+  sdk.pending[0].resolve(true)
+  await flush()
+  mock.timers.tick(60000)
+  await flush()
+  provider.render()
+  assert.deepEqual(toasts, [['success', '¡Listo! Te avisaremos cuando tengas nuevas citas.']])
+  assert.equal(overlay(provider.tree), null)
+}))
+
 test('allowed but without a push token: opt in, subscribe, and offer a retry if it still fails', withTimers(async () => {
   browser({ nativePermission: 'granted' })
   const sdk = fakeSdk({ permission: true, optedIn: false })
