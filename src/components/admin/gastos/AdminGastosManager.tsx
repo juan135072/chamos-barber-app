@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'react-hot-toast'
-import { format } from 'date-fns'
+import { finDeMes, formatFechaSoloNumerica, getChileHoy, inicioDeMes } from '@/lib/date-utils'
 import { es } from 'date-fns/locale'
 
 type Gasto = {
@@ -23,7 +23,8 @@ export default function AdminGastosManager() {
     const [gastos, setGastos] = useState<Gasto[]>([])
     const [loading, setLoading] = useState(true)
     const [categorias, setCategorias] = useState<Categoria[]>([])
-    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0])
+    // Día de hoy en Chile: también es la fecha con que se guarda un movimiento nuevo
+    const [filterDate, setFilterDate] = useState(getChileHoy)
     const [showForm, setShowForm] = useState(false)
 
     // Form State
@@ -53,9 +54,9 @@ export default function AdminGastosManager() {
             // Construir rango del mes para la vista principal si se desea,
             // pero por ahora filtremos por fecha exacta o permitamos ver todo el mes.
             // Simplificación: Cargar los del mes de la fecha seleccionada.
-            const dateObj = new Date(filterDate)
-            const startOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth(), 1).toISOString()
-            const endOfMonth = new Date(dateObj.getFullYear(), dateObj.getMonth() + 1, 0).toISOString()
+            // gastos.fecha es DATE: el mes se calcula sobre el texto YYYY-MM-DD
+            const startOfMonth = inicioDeMes(filterDate)
+            const endOfMonth = finDeMes(filterDate)
 
             const { data, error } = await (supabase as any)
                 .from('gastos')
@@ -266,7 +267,7 @@ export default function AdminGastosManager() {
                                 gastos.map((gasto) => (
                                     <tr key={gasto.id} className="hover:bg-white/5 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-300">
-                                            {format(new Date(gasto.fecha), 'dd/MM/yyyy')}
+                                            {formatFechaSoloNumerica(gasto.fecha)}
                                         </td>
                                         <td className="px-6 py-4 text-sm text-white">
                                             {gasto.descripcion}

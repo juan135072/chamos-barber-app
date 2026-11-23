@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
+import { addDays, fechaEnZona, getChileHoy, horaEnZona, instanteDesdeHoraLocal } from '@/lib/date-utils'
 
 type HorarioBloqueado = Database['public']['Tables']['horarios_bloqueados']['Row']
 
@@ -17,24 +18,19 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ isOpen, bloqueo, barberoId,
   const supabase = useSupabaseClient<Database>()
   const [loading, setLoading] = useState(false)
 
-  // Función para formatear fecha y hora desde timestamp
+  // Fecha y hora del bloqueo (timestamptz) tal como se ven en Chile
   const formatDateTime = (timestamp: string | null) => {
     if (!timestamp) return { date: '', time: '' }
-    
-    const dt = new Date(timestamp)
-    const date = dt.toISOString().split('T')[0]
-    const time = dt.toTimeString().split(' ')[0].substring(0, 5)
-    
-    return { date, time }
+    return { date: fechaEnZona(timestamp), time: horaEnZona(timestamp) }
   }
 
   const inicio = formatDateTime(bloqueo?.fecha_hora_inicio || null)
   const fin = formatDateTime(bloqueo?.fecha_hora_fin || null)
 
   const [formData, setFormData] = useState({
-    fecha_inicio: inicio.date || new Date().toISOString().split('T')[0],
+    fecha_inicio: inicio.date || getChileHoy(),
     hora_inicio: inicio.time || '09:00',
-    fecha_fin: fin.date || new Date().toISOString().split('T')[0],
+    fecha_fin: fin.date || getChileHoy(),
     hora_fin: fin.time || '19:00',
     motivo: bloqueo?.motivo || ''
   })
@@ -77,8 +73,8 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ isOpen, bloqueo, barberoId,
 
     // Validar que fecha/hora fin sea mayor que fecha/hora inicio
     if (formData.fecha_inicio && formData.hora_inicio && formData.fecha_fin && formData.hora_fin) {
-      const inicioTimestamp = new Date(`${formData.fecha_inicio}T${formData.hora_inicio}:00`).getTime()
-      const finTimestamp = new Date(`${formData.fecha_fin}T${formData.hora_fin}:00`).getTime()
+      const inicioTimestamp = instanteDesdeHoraLocal(formData.fecha_inicio, formData.hora_inicio)?.getTime() ?? NaN
+      const finTimestamp = instanteDesdeHoraLocal(formData.fecha_fin, formData.hora_fin)?.getTime() ?? NaN
 
       if (finTimestamp <= inicioTimestamp) {
         newErrors.fecha_fin = 'La fecha/hora de fin debe ser mayor a la de inicio'
@@ -100,10 +96,15 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ isOpen, bloqueo, barberoId,
     setLoading(true)
 
     try {
+      // La hora del formulario es hora de Chile. Se envía el instante con zona
+      // (ISO con Z) para no depender de la zona horaria de la sesión de la base.
+      const instanteInicio = instanteDesdeHoraLocal(formData.fecha_inicio, formData.hora_inicio)
+      const instanteFin = instanteDesdeHoraLocal(formData.fecha_fin, formData.hora_fin)
+      if (!instanteInicio || !instanteFin) throw new Error('Fecha u hora inválida')
       const bloqueoData = {
         barbero_id: barberoId,
-        fecha_hora_inicio: `${formData.fecha_inicio}T${formData.hora_inicio}:00`,
-        fecha_hora_fin: `${formData.fecha_fin}T${formData.hora_fin}:00`,
+        fecha_hora_inicio: instanteInicio.toISOString(),
+        fecha_hora_fin: instanteFin.toISOString(),
         motivo: formData.motivo || null
       }
 
@@ -139,7 +140,7 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ isOpen, bloqueo, barberoId,
 
   // Funciones de accesos rápidos
   const setHoyCompleto = () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     setFormData({
       ...formData,
       fecha_inicio: hoy,
@@ -150,29 +151,25 @@ const BloqueoModal: React.FC<BloqueoModalProps> = ({ isOpen, bloqueo, barberoId,
   }
 
   const setProximos3Dias = () => {
-    const hoy = new Date()
-    const en3Dias = new Date(hoy)
-    en3Dias.setDate(hoy.getDate() + 2)
-    
+    const hoy = getChileHoy()
+
     setFormData({
       ...formData,
-      fecha_inicio: hoy.toISOString().split('T')[0],
+      fecha_inicio: hoy,
       hora_inicio: '00:00',
-      fecha_fin: en3Dias.toISOString().split('T')[0],
+      fecha_fin: addDays(hoy, 2),
       hora_fin: '23:59'
     })
   }
 
   const setProximaSemana = () => {
-    const hoy = new Date()
-    const en7Dias = new Date(hoy)
-    en7Dias.setDate(hoy.getDate() + 7)
-    
+    const hoy = getChileHoy()
+
     setFormData({
       ...formData,
-      fecha_inicio: hoy.toISOString().split('T')[0],
+      fecha_inicio: hoy,
       hora_inicio: '00:00',
-      fecha_fin: en7Dias.toISOString().split('T')[0],
+      fecha_fin: addDays(hoy, 7),
       hora_fin: '23:59'
     })
   }

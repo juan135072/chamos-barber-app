@@ -8,6 +8,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { formatFechaSolo } from '@/lib/date-utils'
 
 interface Asistencia {
     id: string
@@ -132,7 +133,7 @@ export default function HistorialAsistencia({ barberoId }: Props) {
                             >
                                 <div>
                                     <div className="font-bold text-white tracking-wide">
-                                        {new Date(asistencia.fecha).toLocaleDateString('es-CL', {
+                                        {formatFechaSolo(asistencia.fecha, {
                                             weekday: 'short',
                                             day: 'numeric',
                                             month: 'short'

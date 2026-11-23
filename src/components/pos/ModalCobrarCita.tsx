@@ -5,6 +5,7 @@ import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
 import { appointmentCharge } from '@/lib/pos-values'
 import { posRequest } from '@/lib/pos-client'
+import { formatFechaSoloNumerica } from '@/lib/date-utils'
 
 interface Cita {
   id: string
@@ -373,7 +374,7 @@ export default function ModalCobrarCita({ cita, usuario, onClose, onCobrado, ses
                 <div className="flex justify-between">
                   <span style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Fecha/Hora:</span>
                   <span className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                    {new Date(cita.fecha).toLocaleDateString('es-ES')} - {cita.hora}
+                    {formatFechaSoloNumerica(cita.fecha)} - {cita.hora}
                   </span>
                 </div>
                 <div className="flex justify-between">

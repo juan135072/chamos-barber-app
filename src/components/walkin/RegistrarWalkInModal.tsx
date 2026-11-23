@@ -13,6 +13,7 @@ import { createWalkInClient, type CreateWalkInClientParams, type WalkInClient } 
 import { supabase } from '@/lib/supabase'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import toast from 'react-hot-toast'
+import { getChileHoy, getDynamicHora } from '@/lib/date-utils'
 
 interface RegistrarWalkInModalProps {
   isOpen: boolean
@@ -46,10 +47,10 @@ export default function RegistrarWalkInModal({
   const [servicios, setServicios] = useState<any[]>([])
   const [selectedBarbero, setSelectedBarbero] = useState('')
   const [selectedServicios, setSelectedServicios] = useState<string[]>([])
-  const [fechaReserva, setFechaReserva] = useState(new Date().toISOString().split('T')[0])
-  const [horaReserva, setHoraReserva] = useState(
-    new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false })
-  )
+  // Día y hora de Chile: con el día en UTC, desde las 21:00 (20:00 en invierno)
+  // la reserva manual quedaba guardada para mañana.
+  const [fechaReserva, setFechaReserva] = useState(getChileHoy)
+  const [horaReserva, setHoraReserva] = useState(() => getDynamicHora())
 
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -243,6 +244,8 @@ export default function RegistrarWalkInModal({
       setFormData({ nombre: '', telefono: '', email: '', notas: '' })
       setSelectedServicios([])
       setSelectedBarbero('')
+      setFechaReserva(getChileHoy())
+      setHoraReserva(getDynamicHora())
       onSuccess()
       onClose()
     } catch (err) {

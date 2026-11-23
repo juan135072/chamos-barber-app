@@ -15,6 +15,10 @@ import {
   pagarLiquidacion,
   formatCLP
 } from '@/lib/supabase-liquidaciones'
+import { formatFechaSolo } from '@/lib/date-utils'
+
+// fecha_inicio y fecha_fin son DATE: se muestran como dd-mm-aaaa sin convertir zona
+const PERIODO: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' }
 
 interface Props {
   liquidacion: Liquidacion
@@ -150,8 +154,8 @@ export default function PagarLiquidacionModal({
               <div>
                 <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Período</p>
                 <p className="font-medium" style={{ color: 'var(--text-primary)' }}>
-                  {new Date(liquidacion.fecha_inicio).toLocaleDateString('es-CL')} -{' '}
-                  {new Date(liquidacion.fecha_fin).toLocaleDateString('es-CL')}
+                  {formatFechaSolo(liquidacion.fecha_inicio, PERIODO)} -{' '}
+                  {formatFechaSolo(liquidacion.fecha_fin, PERIODO)}
                 </p>
               </div>
               <div>

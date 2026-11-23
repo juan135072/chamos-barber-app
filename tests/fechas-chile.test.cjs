@@ -3,6 +3,7 @@
 require('./load-typescript.cjs')
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const { stubModule } = require('./fake-db.cjs')
 const {
   getChileHoy, getDynamicHoy, getDynamicHora, fechaEnZona, horaEnZona, chileDateRange,
   parseFechaSolo, formatFechaSolo, formatFechaSoloNumerica, formatInstante, formatFechaChile,
@@ -134,4 +135,13 @@ test('wall time round-trips through the block form fields', () => {
 test('a full Chile day block starts at local midnight in UTC terms', () => {
   assert.equal(instanteDesdeHoraLocal('2026-11-23', '00:00').toISOString(), chileDateRange('2026-11-23', '2026-11-23').start)
   assert.equal(instanteDesdeHoraLocal('2026-07-15', '00:00').toISOString(), chileDateRange('2026-07-15', '2026-07-15').start)
+})
+
+test('liquidation dates: DATE columns keep their day, timestamps show the Chile day', () => {
+  stubModule('../src/lib/supabase.ts', { supabase: {} })
+  const { formatFecha, formatFechaCorta } = require('../src/lib/supabase-liquidaciones.ts')
+  assert.equal(formatFecha('2026-11-01'), '1 de noviembre de 2026')
+  assert.equal(formatFecha('2026-11-30'), '30 de noviembre de 2026')
+  assert.equal(formatFechaCorta('2026-11-01'), '01-11-2026')
+  assert.equal(formatFecha('2026-11-24T00:30:00+00:00'), '23 de noviembre de 2026')
 })

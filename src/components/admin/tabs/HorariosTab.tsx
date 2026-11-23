@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
+import { addDays, chileDateRange, getChileHoy } from '@/lib/date-utils'
 import HorarioModal from '../modals/HorarioModal'
 import BloqueoModal from '../modals/BloqueoModal'
 import CrearBloqueoModal from '../modals/CrearBloqueoModal'
@@ -36,7 +37,7 @@ const HorariosTab: React.FC = () => {
   const { horarios: horariosAtencion, refetch: refetchHorarios } = useHorariosAtencion(selectedBarbero)
 
   // Estado para visualización de reservas
-  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0])
+  const [selectedDate, setSelectedDate] = useState<string>(getChileHoy)
   const [citasDelDia, setCitasDelDia] = useState<Cita[]>([])
   const [loadingCitas, setLoadingCitas] = useState(false)
 
@@ -84,15 +85,15 @@ const HorariosTab: React.FC = () => {
     if (!selectedBarbero || !selectedDate) return
 
     try {
-      const inicioDia = `${selectedDate}T00:00:00`
-      const finDia = `${selectedDate}T23:59:59`
+      // Día completo de Chile como instantes UTC (sin depender de la zona de la base)
+      const dia = chileDateRange(selectedDate, selectedDate)
 
       const { data, error } = await supabase
         .from('horarios_bloqueados')
         .select('*')
         .eq('barbero_id', selectedBarbero)
-        .gte('fecha_hora_inicio', inicioDia)
-        .lte('fecha_hora_inicio', finDia)
+        .gte('fecha_hora_inicio', dia.start)
+        .lt('fecha_hora_inicio', dia.end)
         .order('fecha_hora_inicio')
 
       if (error) throw error
@@ -179,19 +180,15 @@ const HorariosTab: React.FC = () => {
 
   // Funciones de navegación por semanas
   const handlePrevWeek = () => {
-    const date = new Date(selectedDate + 'T00:00:00')
-    date.setDate(date.getDate() - 7)
-    setSelectedDate(date.toISOString().split('T')[0])
+    setSelectedDate(addDays(selectedDate, -7))
   }
 
   const handleNextWeek = () => {
-    const date = new Date(selectedDate + 'T00:00:00')
-    date.setDate(date.getDate() + 7)
-    setSelectedDate(date.toISOString().split('T')[0])
+    setSelectedDate(addDays(selectedDate, 7))
   }
 
   const handleToday = () => {
-    setSelectedDate(new Date().toISOString().split('T')[0])
+    setSelectedDate(getChileHoy())
   }
 
   const getWeekRange = () => {

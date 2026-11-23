@@ -10,6 +10,7 @@
 import { useState, useEffect } from 'react'
 import { useSupabaseClient } from '@/lib/insforge-react'
 import toast from 'react-hot-toast'
+import { getChileHoy } from '@/lib/date-utils'
 
 interface AsistenciaHoy {
     fecha: string
@@ -60,7 +61,6 @@ export default function MarcarAsistencia({ barberoId }: Props) {
 
         setVerificandoAsistencia(true)
         try {
-            const { getChileHoy } = await import('@/lib/date-utils')
             const fechaHoy = getChileHoy()
 
             const { data, error } = await supabase
@@ -157,7 +157,7 @@ export default function MarcarAsistencia({ barberoId }: Props) {
 
             // Actualizar estado local para mostrar el ticket de éxito
             setAsistenciaHoy({
-                fecha: data.asistencia?.fecha || new Date().toISOString().split('T')[0],
+                fecha: data.asistencia?.fecha || getChileHoy(),
                 hora: data.asistencia?.hora || new Date().toLocaleTimeString(),
                 estado: data.asistencia?.estado || 'normal'
             })

@@ -3,6 +3,7 @@ import { X, Clock, Coffee, AlertTriangle } from 'lucide-react'
 import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
+import { instanteDesdeHoraLocal } from '@/lib/date-utils'
 
 interface CrearBloqueoModalProps {
   isOpen: boolean
@@ -48,13 +49,14 @@ export default function CrearBloqueoModal({
     setLoading(true)
 
     try {
-      // Calcular fecha fin
-      const fechaHoraInicio = new Date(`${fecha}T${horaInicio}:00`)
+      // La hora elegida es hora de Chile; se envía el instante ISO con Z para no
+      // depender de la zona horaria del navegador ni de la sesión de la base.
+      const fechaHoraInicio = instanteDesdeHoraLocal(fecha, horaInicio)
+      if (!fechaHoraInicio) throw new Error('Fecha u hora inválida')
       const fechaHoraFin = new Date(fechaHoraInicio.getTime() + duracion * 60000)
 
-      // Formato para DB: YYYY-MM-DDTHH:mm:ss
-      const inicioISO = fechaHoraInicio.toISOString().slice(0, 19) // Sin timezone para simplificar local
-      const finISO = fechaHoraFin.toISOString().slice(0, 19)
+      const inicioISO = fechaHoraInicio.toISOString()
+      const finISO = fechaHoraFin.toISOString()
 
       // Insertar en horarios_bloqueados
       const { error } = await supabase

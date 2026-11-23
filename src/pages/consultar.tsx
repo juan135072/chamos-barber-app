@@ -3,6 +3,7 @@ import Layout from '../components/Layout'
 import { formatPhoneInput, normalizePhone, getPhonePlaceholder, getPhoneHint } from '@/lib/phone-utils'
 import PhoneInput from '../components/PhoneInput'
 import toast from 'react-hot-toast'
+import { instanteDesdeHoraLocal } from '@/lib/date-utils'
 
 // Build Version: 2025-11-09-v6 - Multiple services with individual prices and duration
 interface Cita {
@@ -158,9 +159,10 @@ const ConsultarPage: React.FC = () => {
     })
   }
 
+  // hora llega como 'HH:MM:SS' y es hora de Chile, sea cual sea la zona del navegador
   const isPastDate = (dateStr: string, timeStr: string) => {
-    const appointmentDate = new Date(`${dateStr}T${timeStr}:00`)
-    return appointmentDate < new Date()
+    const appointmentDate = instanteDesdeHoraLocal(dateStr, timeStr)
+    return appointmentDate !== null && appointmentDate < new Date()
   }
 
   // Separar citas próximas de historial

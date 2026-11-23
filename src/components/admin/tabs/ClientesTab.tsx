@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { format } from 'date-fns'
+import { formatFechaSolo, formatFechaSoloNumerica } from '@/lib/date-utils'
 import RegistrarWalkInModal from '../../walkin/RegistrarWalkInModal'
 import { Calendar } from 'lucide-react'
 
@@ -54,7 +55,7 @@ export default function ClientesTab() {
         const key = cita.cliente_telefono
         const existing = clientesMap.get(key)
 
-        if (!existing || new Date(cita.fecha) > new Date(existing.ultima_cita)) {
+        if (!existing || cita.fecha > existing.ultima_cita) {
           const categoriaInfo = calcularCategoriaCliente(cita.fecha)
 
           clientesMap.set(key, {
@@ -107,8 +108,9 @@ export default function ClientesTab() {
     return clientes.filter(c => c.categoria === cat).length
   }
 
+  // ultima_cita es citas.fecha (DATE): se muestra sin convertir zona horaria
   const formatearFecha = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString('es-ES', {
+    return formatFechaSolo(fecha, {
       year: 'numeric',
       month: 'short',
       day: 'numeric'
@@ -151,7 +153,7 @@ export default function ClientesTab() {
 
       // Tabla de Citas
       const tableData = citasCliente?.map((cita: any) => [
-        format(new Date(cita.fecha), 'dd/MM/yyyy'),
+        formatFechaSoloNumerica(cita.fecha),
         cita.hora,
         cita.servicios?.nombre || 'Servicio no especificado',
         cita.barberos ? `${cita.barberos.nombre} ${cita.barberos.apellido || ''}` : 'No asignado',
@@ -183,7 +185,7 @@ export default function ClientesTab() {
       doc.setFontSize(12)
       doc.setTextColor(0, 0, 0)
       doc.text(`Total de Citas: ${cliente.total_citas}`, 14, finalY)
-      doc.text(`Última Cita: ${format(new Date(cliente.ultima_cita), 'dd/MM/yyyy')}`, 14, finalY + 7)
+      doc.text(`Última Cita: ${formatFechaSoloNumerica(cliente.ultima_cita)}`, 14, finalY + 7)
 
       // Guardar PDF
       const fileName = `historial_${cliente.cliente_nombre.replace(/\s+/g, '_')}_${format(new Date(), 'yyyyMMdd')}.pdf`

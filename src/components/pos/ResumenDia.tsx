@@ -3,7 +3,7 @@ import { supabase, UsuarioConPermisos } from '@/lib/supabase'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import { getBarberosResumen, BarberoResumen, formatCLP } from '@/lib/supabase-liquidaciones'
 import { Users, DollarSign, Calculator, Clock } from 'lucide-react'
-import { getChileHoy, chileDateRange } from '@/lib/date-utils'
+import { getChileHoy, chileDateRange, lunesDeSemana } from '@/lib/date-utils'
 import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
 import { posRequest } from '@/lib/pos-client'
@@ -186,13 +186,9 @@ export default function ResumenDia({ usuario, recargar, sesionCaja, onCerrarCaja
   }
 
   const setRangoSemanal = () => {
-    const hoy = new Date()
-    const diaSemana = hoy.getDay() // 0 (Dom) - 6 (Sab)
-    const diff = hoy.getDate() - diaSemana + (diaSemana === 0 ? -6 : 1) // Lunes
-    const lunes = new Date(hoy.setDate(diff))
-
-    setFechaInicio(lunes.toISOString().split('T')[0])
-    setFechaFin(getChileHoy())
+    const hoy = getChileHoy()
+    setFechaInicio(lunesDeSemana(hoy))
+    setFechaFin(hoy)
     setTipoRango('semanal')
   }
 
