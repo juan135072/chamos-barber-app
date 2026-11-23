@@ -3,7 +3,7 @@
 // Página principal mobile-first para barberos
 // ================================================================
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { useBarberAppAuth } from '../../hooks/useBarberAppAuth'
@@ -39,8 +39,11 @@ export default function BarberAppPage() {
   const [citaParaCobrar, setCitaParaCobrar] = useState<any>(null)
   const [modalCobroOpen, setModalCobroOpen] = useState(false)
 
-  const { setExternalId, triggerPrompt, sendTags } = useOneSignal()
+  const { setExternalId, triggerPrompt, sendTags, permissionStatus } = useOneSignal()
   const barberoNombre = barbero ? `${barbero.nombre} ${barbero.apellido}` : null
+  // Leído al disparar el aviso, sin volver a programarlo cada vez que cambia.
+  const permissionStatusRef = useRef(permissionStatus)
+  permissionStatusRef.current = permissionStatus
 
   // Configurar OneSignal con datos del barbero: cada carga vincula este
   // dispositivo (external_id = barberos.id), haya o no permiso de notificaciones.
@@ -55,9 +58,10 @@ export default function BarberAppPage() {
       email: session.email
     })
 
-    // El overlay no aparece si las notificaciones ya están activas
+    // Solo si aún no eligió: quien las bloqueó no recibe el aviso en cada visita
+    // (la campana sigue abriéndolo a mano).
     const timer = setTimeout(() => {
-      triggerPrompt()
+      if (permissionStatusRef.current === 'default') triggerPrompt()
     }, 3000)
     return () => clearTimeout(timer)
   }, [session?.barberoId, session?.email, barberoNombre, setExternalId, triggerPrompt, sendTags])

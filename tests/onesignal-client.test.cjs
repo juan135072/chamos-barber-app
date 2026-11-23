@@ -58,12 +58,41 @@ test('a failed download is retried later without a second init', async () => {
   assert.equal(await offline, null)
   assert.equal(scripts.length, 0)
 
+  assert.equal(client.canRetryOneSignalLoad(), true)
   const retry = client.loadOneSignal()
   assert.equal(scripts.length, 1)
   // Both queued callbacks run once the SDK finally loads.
   await bootSdk(sdk)
   assert.equal(await retry, sdk)
   assert.equal(sdk.calls.filter(([name]) => name === 'init').length, 1)
+})
+
+test('an SDK that arrived but failed to start can only be retried with a reload', async () => {
+  const { client } = freshClient()
+  const sdk = fakeSdk()
+  sdk.init = async () => { throw new Error('Can only be used on: https://chamosbarber.com') }
+  const loading = client.loadOneSignal()
+  // Still downloading (or stuck): a new call would only wait on the same attempt.
+  assert.equal(client.canRetryOneSignalLoad(), false)
+  const realError = console.error
+  console.error = () => {}
+  try {
+    await bootSdk(sdk)
+    assert.equal(await loading, null)
+  } finally {
+    console.error = realError
+  }
+  assert.equal(client.canRetryOneSignalLoad(), false)
+})
+
+test('only a push token counts as an active subscription', () => {
+  const { client } = freshClient()
+  const withSubscription = (subscription) => ({ User: { PushSubscription: subscription } })
+  // optedIn stays true when subscribing failed and no token was created.
+  assert.equal(client.hasPushSubscription(withSubscription({ optedIn: true, token: null })), false)
+  assert.equal(client.hasPushSubscription(withSubscription({ optedIn: false, token: 'push-token' })), false)
+  assert.equal(client.hasPushSubscription(withSubscription({ optedIn: true, token: 'push-token' })), true)
+  assert.equal(client.hasPushSubscription(null), false)
 })
 
 test('login runs right after init without notification permission, once per barber', async () => {
@@ -113,6 +142,20 @@ test('logout waits for init, unlinks the device and allows linking again', async
   await client.logoutOneSignal(1000)
   await client.linkOneSignalUser('barbero-1')
   assert.deepEqual(sdk.calls.slice(2), [['login', 'barbero-1'], ['logout'], ['login', 'barbero-1']])
+})
+
+test('logout is not held behind a login that has not finished', async () => {
+  const { client } = freshClient()
+  const sdk = fakeSdk()
+  // First login of a fresh install while offline: the SDK keeps it pending.
+  sdk.login = (id) => { sdk.calls.push(['login', id]); return new Promise(() => {}) }
+  const ready = client.loadOneSignal()
+  await bootSdk(sdk)
+  await ready
+  void client.linkOneSignalUser('barbero-1')
+  await new Promise((resolve) => setImmediate(resolve))
+  await client.logoutOneSignal(200)
+  assert.deepEqual(sdk.calls.slice(1), [['login', 'barbero-1'], ['logout']])
 })
 
 test('logout never holds the caller when the SDK does not answer', async () => {

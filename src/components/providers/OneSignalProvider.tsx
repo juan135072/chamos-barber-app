@@ -14,8 +14,10 @@ import { usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
   ONESIGNAL_APP_ID,
+  canRetryOneSignalLoad,
   detectPushSupport,
   getReadyOneSignal,
+  hasPushSubscription,
   linkOneSignalUser,
   loadOneSignal,
   readNativePermission,
@@ -30,7 +32,7 @@ type SdkState = 'idle' | 'loading' | 'ready' | 'unsupported' | 'failed'
 
 interface OneSignalContextType {
   initialized: boolean
-  /** 'granted' only when the browser allows it and OneSignal has an active subscription. */
+  /** 'granted' only when the browser allows it and this device has a OneSignal push token. */
   permissionStatus: PermissionStatus
   pushSupport: PushSupport
   showPrompt: boolean
@@ -60,6 +62,9 @@ const isDev = process.env.NODE_ENV === 'development'
 
 // Only for the UI: past this the overlay offers a retry instead of waiting.
 const SDK_UI_TIMEOUT_MS = 20000
+// An SDK that never finished starting (e.g. IndexedDB unavailable on iOS) never
+// settles its requests: past this the button is freed again.
+const PERMISSION_STUCK_MS = 30000
 
 export default function OneSignalProvider({
   children,
@@ -70,7 +75,7 @@ export default function OneSignalProvider({
   const [sdkState, setSdkState] = useState<SdkState>('idle')
   const [pushSupport, setPushSupport] = useState<PushSupport>('supported')
   const [permission, setPermission] = useState<PermissionStatus>('default')
-  const [optedIn, setOptedIn] = useState(false)
+  const [subscribed, setSubscribed] = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -109,7 +114,7 @@ export default function OneSignalProvider({
 
       const sync = () => {
         setPermission(resolvePermissionStatus(OneSignal.Notifications?.permission, readNativePermission()))
-        setOptedIn(OneSignal.User?.PushSubscription?.optedIn === true)
+        setSubscribed(hasPushSubscription(OneSignal))
       }
       OneSignal.Notifications?.addEventListener?.('permissionChange', sync)
       OneSignal.User?.PushSubscription?.addEventListener?.('change', sync)
@@ -124,6 +129,7 @@ export default function OneSignalProvider({
         console.log('📊 [OneSignal Status]', {
           permission: OneSignal.Notifications?.permission,
           optedIn: OneSignal.User?.PushSubscription?.optedIn,
+          hasToken: Boolean(OneSignal.User?.PushSubscription?.token),
           subscriptionId: OneSignal.User?.PushSubscription?.id,
           externalId: OneSignal.User?.externalId,
         })
@@ -137,9 +143,10 @@ export default function OneSignalProvider({
     }
   }, [appId, enabled, loadAttempt])
 
-  // Allowed by the browser but OneSignal has no active subscription yet:
-  // the barber still has to tap "Activar" for pushes to reach this device.
-  const permissionStatus: PermissionStatus = permission === 'granted' && !optedIn ? 'default' : permission
+  // Allowed by the browser but this device has no push token in OneSignal
+  // (subscribing failed or the barber opted out): the overlay stays available
+  // so the barber can tap "Activar" again.
+  const permissionStatus: PermissionStatus = permission === 'granted' && !subscribed ? 'default' : permission
 
   // Manejar autoPrompt (desactivado explícitamente en admin para evitar molestias)
   useEffect(() => {
@@ -153,24 +160,41 @@ export default function OneSignalProvider({
     const OneSignal = getReadyOneSignal()
     if (!OneSignal || isRequesting) return
 
+    // Resolves false when the browser allowed notifications but the device
+    // could not subscribe (no push service, worker download failed).
     let request: Promise<unknown>
     try {
-      request = Promise.resolve(OneSignal.Notifications.permission === true
-        ? OneSignal.User.PushSubscription.optIn()
-        : OneSignal.Notifications.requestPermission())
+      if (OneSignal.Notifications.permission === true) {
+        // Already allowed, so no browser prompt and awaiting is fine. optIn() only
+        // clears an opt-out; requestPermission() is what subscribes the device,
+        // and it does not ask again once permission is granted.
+        const subscription = OneSignal.User.PushSubscription
+        request = Promise.resolve(subscription.optedIn ? undefined : subscription.optIn())
+          .then(() => hasPushSubscription(OneSignal) || OneSignal.Notifications.requestPermission())
+      } else {
+        request = Promise.resolve(OneSignal.Notifications.requestPermission())
+      }
     } catch (error) {
       request = Promise.reject(error)
     }
 
     setIsRequesting(true)
+    const stuck = setTimeout(() => {
+      setIsRequesting(false)
+      toast.error('Las notificaciones no responden. Cierra la app y vuelve a abrirla.')
+    }, PERMISSION_STUCK_MS)
     request
-      .then(() => {
+      .then((accepted) => {
         const status = resolvePermissionStatus(OneSignal.Notifications.permission, readNativePermission())
+        const active = hasPushSubscription(OneSignal)
         setPermission(status)
-        setOptedIn(OneSignal.User?.PushSubscription?.optedIn === true)
-        if (status === 'granted') {
+        setSubscribed(active)
+        if (status === 'granted' && accepted !== false && (active || accepted === true)) {
           setShowPrompt(false)
           toast.success('¡Listo! Te avisaremos cuando tengas nuevas citas.')
+        } else if (status === 'granted') {
+          // Allowed, but there is still no push token: keep the overlay to retry.
+          toast.error('No pudimos activar las notificaciones en este dispositivo. Inténtalo de nuevo.')
         } else if (status === 'default') {
           // The barber closed the browser prompt without choosing.
           setShowPrompt(false)
@@ -180,7 +204,10 @@ export default function OneSignalProvider({
         console.error('❌ [OneSignal] Error solicitando permisos:', error)
         toast.error('No pudimos activar las notificaciones. Inténtalo de nuevo.')
       })
-      .finally(() => setIsRequesting(false))
+      .finally(() => {
+        clearTimeout(stuck)
+        setIsRequesting(false)
+      })
   }, [isRequesting])
 
   // Función para cerrar el prompt
@@ -194,6 +221,12 @@ export default function OneSignalProvider({
   }, [])
 
   const retryLoad = useCallback(() => {
+    // A failed download is retried in place; an SDK that arrived but did not
+    // start (or is stuck) only starts again with a new page load.
+    if (!canRetryOneSignalLoad()) {
+      window.location.reload()
+      return
+    }
     setLoadAttempt((attempt) => attempt + 1)
   }, [])
 

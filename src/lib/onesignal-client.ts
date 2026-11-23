@@ -22,7 +22,7 @@ let desiredExternalId: string | null = null
 let linkedExternalId: string | null = null
 let desiredTags: Record<string, any> | null = null
 let sentTags: string | null = null
-// login, tags and logout run one after another, in the order they were asked.
+// login and tags run one after another, in the order they were asked.
 let userSync: Promise<void> = Promise.resolve()
 
 // ----------------------------------------------------------------
@@ -87,6 +87,16 @@ export function readNativePermission(): string | null {
   return (window as any).Notification.permission ?? null
 }
 
+/**
+ * `PushSubscription.optedIn` only says the browser allows notifications and the
+ * device did not opt out; it stays true when subscribing failed. Only a push
+ * token means OneSignal can reach this device.
+ */
+export function hasPushSubscription(sdk: any): boolean {
+  const subscription = sdk?.User?.PushSubscription
+  return subscription?.optedIn === true && Boolean(subscription?.token)
+}
+
 // ----------------------------------------------------------------
 // SDK lifecycle
 // ----------------------------------------------------------------
@@ -100,7 +110,9 @@ function initOnce(OneSignal: any, appId: string): Promise<any | null> {
         // Re-registers the device if the browser lost its push token.
         autoResubscribe: true,
         notifyButton: { enable: false },
-        // Our own Spanish overlay asks first; the slidedown never opens by itself.
+        // Our own Spanish overlay asks first. These options (no auto slidedown, no
+        // welcome push) only apply with the dashboard integration set to "Custom
+        // Code"; under "Typical Site" the dashboard settings win.
         promptOptions: {
           slidedown: {
             prompts: [{
@@ -115,6 +127,7 @@ function initOnce(OneSignal: any, appId: string): Promise<any | null> {
           },
         },
         // The default welcome push is in English and adds nothing for barbers.
+        // Also ignored unless the dashboard integration is "Custom Code".
         welcomeNotification: { disable: true },
         serviceWorkerParam: { scope: '/' },
         serviceWorkerPath: '/OneSignalSDKWorker.js',
@@ -162,6 +175,15 @@ export function loadOneSignal(appId: string = ONESIGNAL_APP_ID): Promise<any | n
   })
   sdkPromise = attempt
   return attempt
+}
+
+/**
+ * True when a new `loadOneSignal()` call can download the SDK again (the
+ * script failed to download). Once the script arrived, an SDK that did not
+ * start only starts again with a new page load: it refuses a second init.
+ */
+export function canRetryOneSignalLoad(): boolean {
+  return sdkPromise === null
 }
 
 /** The SDK if init already finished, for code that must not await (user gestures). */
@@ -235,12 +257,14 @@ export async function logoutOneSignal(timeoutMs = 2000): Promise<void> {
   // Without web push there is no subscription on this device to unlink.
   if (!sdkPromise && detectPushSupport(readPushEnvironment()) !== 'supported') return
 
-  const work = loadOneSignal().then((sdk) => enqueueUserTask(async () => {
-    if (!sdk?.logout) return
-    await sdk.logout()
-    linkedExternalId = null
-    sentTags = null
-  }))
+  // Not queued behind a pending login: the SDK already runs login and logout in
+  // call order and keeps them queued while offline, so the logout is recorded
+  // even if the page closes before OneSignal answers.
+  const work = loadOneSignal()
+    .then(async (sdk) => {
+      if (sdk?.logout) await sdk.logout()
+    })
+    .catch((error) => console.warn('[OneSignal] logout failed:', error))
 
   let timer: ReturnType<typeof setTimeout> | undefined
   const limit = new Promise<void>((resolve) => { timer = setTimeout(resolve, timeoutMs) })
