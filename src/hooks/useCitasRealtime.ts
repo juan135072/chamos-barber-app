@@ -14,16 +14,19 @@ export function useCitasRealtime(barberoId: string | null) {
   const [error, setError] = useState<string | null>(null)
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date())
 
-  // Función para obtener citas de hoy
-  const fetchCitasHoy = useCallback(async () => {
+  // Función para obtener citas de hoy.
+  // silent: recarga en segundo plano (al volver a la app), sin spinner ni error en pantalla.
+  const fetchCitasHoy = useCallback(async ({ silent = false }: { silent?: boolean } = {}) => {
     if (!barberoId) {
       setLoading(false)
       return
     }
 
     try {
-      setLoading(true)
-      setError(null)
+      if (!silent) {
+        setLoading(true)
+        setError(null)
+      }
 
       const hoy = getChileHoy()
 
@@ -38,11 +41,16 @@ export function useCitasRealtime(barberoId: string | null) {
 
       setCitas((data || []) as any)
       setLastUpdate(new Date())
+      if (silent) setError(null)
     } catch (err: any) {
+      if (silent) {
+        console.warn('No se pudieron recargar las citas en segundo plano:', err)
+        return
+      }
       console.error('Error al obtener citas:', err)
       setError(err.message || 'Error al cargar citas')
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }, [barberoId])
 
@@ -50,6 +58,21 @@ export function useCitasRealtime(barberoId: string | null) {
   useEffect(() => {
     fetchCitasHoy()
   }, [fetchCitasHoy])
+
+  // Con la app en segundo plano o sin conexión el canal de Realtime pudo perder
+  // eventos (o cambió el día): recargar al volver o al recuperar la conexión.
+  useEffect(() => {
+    if (!barberoId) return
+    const resync = () => {
+      if (document.visibilityState === 'visible') fetchCitasHoy({ silent: true })
+    }
+    document.addEventListener('visibilitychange', resync)
+    window.addEventListener('online', resync)
+    return () => {
+      document.removeEventListener('visibilitychange', resync)
+      window.removeEventListener('online', resync)
+    }
+  }, [barberoId, fetchCitasHoy])
 
   // Configurar Supabase Realtime
   useEffect(() => {
@@ -151,17 +174,20 @@ export function useCitasRealtime(barberoId: string | null) {
     }
   }
 
-  // Función auxiliar para notificaciones
+  // Función auxiliar para notificaciones.
+  // `new Notification()` lanza "Illegal constructor" en Chrome Android: se usa el
+  // service worker registrado (OneSignal) y, si no hay ninguno, no se muestra nada.
   const showNotification = (title: string, body: string) => {
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(title, {
+    if (!('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return
+    navigator.serviceWorker.getRegistration()
+      .then((registration) => registration?.showNotification(title, {
         body,
         icon: '/android-chrome-192x192.png',
         badge: '/favicon-32x32.png',
         tag: 'barber-app-cita',
         requireInteraction: false
-      })
-    }
+      }))
+      .catch((err) => console.warn('Notificación local omitida:', err))
   }
 
   // Función para refrescar manualmente

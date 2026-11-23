@@ -1,6 +1,18 @@
 import { supabase } from '@/lib/supabase'
 
-let restoreInFlight: Promise<any | null> | null = null
+/**
+ * Result of asking whether the user is signed in:
+ *   signed-in  → session restored (memory or app cookie)
+ *   signed-out → the server answered that there is no session
+ *   unknown    → no answer (offline, timeout, 5xx during a deploy). Callers
+ *                must not treat this as a logout.
+ */
+export type AppSessionCheck =
+    | { status: 'signed-in'; session: any }
+    | { status: 'signed-out' }
+    | { status: 'unknown' }
+
+let restoreInFlight: Promise<AppSessionCheck> | null = null
 
 function getTokenManager(): any {
     return (supabase as any)?._insforge?.tokenManager ?? null
@@ -56,11 +68,11 @@ function hydrateMemorySession(session: any) {
  * /api/auth/refresh endpoint. Chamos manages refresh tokens on the Next.js
  * server instead, so that path returns 401. This helper avoids that path.
  */
-export async function getAppSession(): Promise<any | null> {
+export async function checkAppSession(): Promise<AppSessionCheck> {
     const memorySession = sessionFromMemory()
-    if (memorySession) return memorySession
+    if (memorySession) return { status: 'signed-in', session: memorySession }
 
-    if (typeof window === 'undefined') return null
+    if (typeof window === 'undefined') return { status: 'signed-out' }
 
     if (!restoreInFlight) {
         restoreInFlight = fetch('/api/auth/session', {
@@ -69,16 +81,19 @@ export async function getAppSession(): Promise<any | null> {
             cache: 'no-store',
             headers: { Accept: 'application/json' },
         })
-            .then(async (response) => {
-                if (!response.ok) return null
+            .then(async (response): Promise<AppSessionCheck> => {
+                if (response.status === 401 || response.status === 403) return { status: 'signed-out' }
+                // A proxy or server error says nothing about the session.
+                if (!response.ok) return { status: 'unknown' }
                 const payload = await response.json()
                 const session = payload?.session ?? null
-                if (session) hydrateMemorySession(session)
-                return session
+                if (!session) return { status: 'signed-out' }
+                hydrateMemorySession(session)
+                return { status: 'signed-in', session }
             })
-            .catch((error) => {
-                console.error('[auth] Failed to restore app session:', error)
-                return null
+            .catch((error): AppSessionCheck => {
+                console.warn('[auth] Could not check the app session:', error)
+                return { status: 'unknown' }
             })
             .finally(() => {
                 restoreInFlight = null
@@ -86,6 +101,26 @@ export async function getAppSession(): Promise<any | null> {
     }
 
     return restoreInFlight
+}
+
+/** Session or null. A failed check also yields null; use checkAppSession() to tell them apart. */
+export async function getAppSession(): Promise<any | null> {
+    const result = await checkAppSession()
+    return result.status === 'signed-in' ? result.session : null
+}
+
+/** Same user and access token: hooks keep their current object so pages do not reload. */
+export function isSameSession(a: any, b: any): boolean {
+    if (!a || !b) return a === b
+    return a.user?.id === b.user?.id && a.access_token === b.access_token
+}
+
+/**
+ * PostgREST answers `.single()` with no matching row as PGRST116: a real
+ * "not found". Any other error (network, timeout) is not an answer.
+ */
+export function isNoRowsError(error: any): boolean {
+    return error?.code === 'PGRST116'
 }
 
 export async function getAppUser(): Promise<any | null> {

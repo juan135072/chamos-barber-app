@@ -19,7 +19,7 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
-import { getAppSession, getAppUser } from '@/lib/app-session'
+import { checkAppSession, isSameSession } from '@/lib/app-session'
 
 export function useSupabaseClient<_T = unknown>() {
     return supabase
@@ -34,45 +34,38 @@ export function useSupabaseClient<_T = unknown>() {
  * Session restoration goes through Chamos' own httpOnly cookies. This avoids
  * calling InsForge's browser /api/auth/refresh endpoint when its in-memory
  * TokenManager is empty after a reload.
+ *
+ * The value keeps its identity until the user or access token changes, so
+ * pages that depend on it do not reload every time the app comes back to the
+ * foreground. When the check cannot reach the server (offline, deploy) the
+ * last known value stays and the check is retried quietly.
  */
 
-export function useUser(): any | null | undefined {
-    const [user, setUser] = useState<any | null | undefined>(undefined)
+const RETRY_MIN_MS = 3000
+const RETRY_MAX_MS = 30000
 
-    useEffect(() => {
-        let cancelled = false
-
-        const check = () => getAppUser().then((currentUser) => {
-            if (cancelled) return
-            setUser(currentUser ?? null)
-        })
-
-        check()
-
-        const onVis = () => {
-            if (document.visibilityState !== 'visible') return
-            check()
-        }
-        document.addEventListener('visibilitychange', onVis)
-        return () => {
-            cancelled = true
-            document.removeEventListener('visibilitychange', onVis)
-        }
-    }, [])
-
-    return user
-}
-
-export function useSession(): any | null | undefined {
+function useAppSessionState(): any | null | undefined {
     const [session, setSession] = useState<any | null | undefined>(undefined)
 
     useEffect(() => {
         let cancelled = false
+        let retryTimer: ReturnType<typeof setTimeout> | undefined
+        let retryDelay = RETRY_MIN_MS
 
-        const check = () => getAppSession().then((currentSession) => {
-            if (cancelled) return
-            setSession(currentSession ?? null)
-        })
+        const check = () => {
+            clearTimeout(retryTimer)
+            checkAppSession().then((result) => {
+                if (cancelled) return
+                if (result.status === 'unknown') {
+                    retryTimer = setTimeout(check, retryDelay)
+                    retryDelay = Math.min(retryDelay * 2, RETRY_MAX_MS)
+                    return
+                }
+                retryDelay = RETRY_MIN_MS
+                const next = result.status === 'signed-in' ? result.session : null
+                setSession((current: any) => (isSameSession(current, next) ? current : next))
+            })
+        }
 
         check()
 
@@ -81,13 +74,25 @@ export function useSession(): any | null | undefined {
             check()
         }
         document.addEventListener('visibilitychange', onVis)
+        window.addEventListener('online', check)
         return () => {
             cancelled = true
+            clearTimeout(retryTimer)
             document.removeEventListener('visibilitychange', onVis)
+            window.removeEventListener('online', check)
         }
     }, [])
 
     return session
+}
+
+export function useUser(): any | null | undefined {
+    const session = useAppSessionState()
+    return session === undefined ? undefined : session?.user ?? null
+}
+
+export function useSession(): any | null | undefined {
+    return useAppSessionState()
 }
 
 export function useSessionContext() {
