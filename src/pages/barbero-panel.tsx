@@ -14,7 +14,7 @@ import DashboardSection from '../components/barbero/DashboardSection'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
 import OneSignalResetButton from '../components/barbero/OneSignalResetButton'
 import { logoutOneSignal } from '@/lib/onesignal-client'
-import { isNoRowsError } from '@/lib/app-session'
+import { checkAppSession, isNoRowsError } from '@/lib/app-session'
 import { BarberoProvider, type BarberoProfile } from '../context/BarberoContext'
 
 
@@ -31,6 +31,8 @@ const BarberoPanelPage: React.FC = () => {
   const { triggerPrompt, setExternalId, permissionStatus } = useOneSignal()
   // Primera carga completa de esta página: vincular OneSignal y mostrar el aviso una sola vez.
   const loadedOnce = useRef(false)
+  // La primera carga falló (p. ej. sin red): al volver o reconectar se reintenta completa.
+  const firstLoadFailed = useRef(false)
   const userId: string | undefined = session?.user?.id
 
   // background: refresco al volver a la app, sin spinner de pantalla completa y
@@ -39,6 +41,12 @@ const BarberoPanelPage: React.FC = () => {
     if (!userId) return
     try {
       if (!background) setLoading(true)
+      // Al volver tras un rato en segundo plano el token en memoria pudo vencer y
+      // useSession lo restaura en este mismo evento: esperar esa restauración.
+      if ((await checkAppSession()).status !== 'signed-in') {
+        if (!loadedOnce.current) firstLoadFailed.current = true
+        return
+      }
       const { data: adminUser, error: adminError } = await supabase
         .from('admin_users')
         .select('barbero_id, rol')
@@ -62,6 +70,7 @@ const BarberoPanelPage: React.FC = () => {
       if (barberoError) throw barberoError
 
       setProfile(barbero)
+      firstLoadFailed.current = false
       if (!loadedOnce.current) {
         loadedOnce.current = true
         // Vincula este dispositivo al barbero (external_id), haya o no permiso de notificaciones.
@@ -74,6 +83,7 @@ const BarberoPanelPage: React.FC = () => {
         return
       }
       console.error('Error loading data:', error)
+      if (!loadedOnce.current) firstLoadFailed.current = true
       toast.error('Error al cargar tus datos')
     } finally {
       if (!background) setLoading(false)
@@ -103,10 +113,13 @@ const BarberoPanelPage: React.FC = () => {
     loadBarberoData()
   }, [sessionState, userId])
 
-  // Al volver a la app o recuperar la conexión, refrescar los datos en segundo plano.
+  // Al volver a la app o recuperar la conexión, refrescar los datos en segundo plano
+  // (o reintentar la primera carga si falló).
   useEffect(() => {
     const refresh = () => {
-      if (document.visibilityState === 'visible' && loadedOnce.current) loadBarberoData({ background: true })
+      if (document.visibilityState !== 'visible') return
+      if (loadedOnce.current) loadBarberoData({ background: true })
+      else if (firstLoadFailed.current) loadBarberoData()
     }
     document.addEventListener('visibilitychange', refresh)
     window.addEventListener('online', refresh)

@@ -4,7 +4,9 @@
 // ================================================================
 
 import { useState, useEffect, useCallback } from 'react'
+import toast from 'react-hot-toast'
 import { supabase } from '../lib/supabase'
+import { checkAppSession } from '../lib/app-session'
 import { getChileHoy } from '../lib/date-utils'
 import type { Cita, RealtimePayload } from '../types/barber-app'
 
@@ -27,6 +29,10 @@ export function useCitasRealtime(barberoId: string | null) {
         setLoading(true)
         setError(null)
       }
+
+      // Al volver tras un rato en segundo plano el token en memoria pudo vencer y
+      // se restaura en este mismo evento: esperar esa restauración antes de consultar.
+      if (silent && (await checkAppSession()).status !== 'signed-in') return
 
       const hoy = getChileHoy()
 
@@ -145,8 +151,12 @@ export function useCitasRealtime(barberoId: string | null) {
           })
           setLastUpdate(new Date())
 
-          // Mostrar notificación (opcional)
-          showNotification('Nueva cita', `${newRecord.cliente_nombre}`)
+          // Con la app a la vista, un aviso dentro de la app. Sin notificación del
+          // sistema: el push de OneSignal ya avisa de la reserva (serían dos) y el
+          // service worker de OneSignal no sabe abrir una notificación que no es suya.
+          if (document.visibilityState === 'visible') {
+            toast(`Nueva cita: ${newRecord.cliente_nombre}`, { icon: '✂️' })
+          }
         }
         break
 
@@ -172,22 +182,6 @@ export function useCitasRealtime(barberoId: string | null) {
         }
         break
     }
-  }
-
-  // Función auxiliar para notificaciones.
-  // `new Notification()` lanza "Illegal constructor" en Chrome Android: se usa el
-  // service worker registrado (OneSignal) y, si no hay ninguno, no se muestra nada.
-  const showNotification = (title: string, body: string) => {
-    if (!('Notification' in window) || Notification.permission !== 'granted' || !('serviceWorker' in navigator)) return
-    navigator.serviceWorker.getRegistration()
-      .then((registration) => registration?.showNotification(title, {
-        body,
-        icon: '/android-chrome-192x192.png',
-        badge: '/favicon-32x32.png',
-        tag: 'barber-app-cita',
-        requireInteraction: false
-      }))
-      .catch((err) => console.warn('Notificación local omitida:', err))
   }
 
   // Función para refrescar manualmente
