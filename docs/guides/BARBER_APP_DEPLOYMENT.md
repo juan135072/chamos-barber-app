@@ -90,11 +90,19 @@
 - UI y permisos: `/src/components/providers/OneSignalProvider.tsx`
 - Servidor: `/src/lib/onesignal.ts` → `sendNotificationToBarber()`
 
-#### **Fallback Nativo** ✅
-- Web Push API integrada
-- `requestNativeNotificationPermission()`
-- `showLocalNotification()`
-- Funciona sin OneSignal
+#### **Con la app abierta** ✅
+- Una cita nueva de hoy muestra un aviso dentro de la app (toast), no una
+  notificación del sistema: el push de OneSignal ya avisa de la reserva.
+
+#### **Antes de desplegar (configuración del dueño)**
+- Panel de OneSignal en "Custom Code": con "Typical Site" el panel ignora las
+  opciones del código (slidedown automático y push de bienvenida en inglés).
+- Redirección `www.chamosbarber.com` → `https://chamosbarber.com` (OneSignal solo
+  acepta el dominio sin www). Las cookies de sesión y la app instalada quedan
+  atadas al dominio donde se abrieron: quien instaló la app desde `www` debe
+  borrarla de la pantalla de inicio, instalarla de nuevo desde
+  `https://chamosbarber.com` e iniciar sesión otra vez, antes de revisar sus
+  suscripciones en OneSignal.
 
 ---
 
