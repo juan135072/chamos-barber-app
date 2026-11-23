@@ -12,7 +12,8 @@ const { notifyBookingCreated, notifyBookingCancelled } = require('../src/lib/boo
 
 const cita = { id: 'cita-1', barbero_id: 'barbero-1', cliente_nombre: 'Ana', fecha: '2099-01-05', hora: '10:30:00' }
 
-test('a booking finishes while the push is still in flight', async () => {
+// The deadline makes a booking that waits for the push fail instead of hanging the suite.
+test('a booking finishes while the push is still in flight', { timeout: 1000 }, async () => {
   pushes.length = 0
   pushBehaviour = () => new Promise(() => {})
   await notifyBookingCreated({}, cita, { barberoId: 'barbero-1', barberoNombre: 'Carlos', clienteNombre: 'Ana', fecha: '2099-01-05', hora: '10:30' })

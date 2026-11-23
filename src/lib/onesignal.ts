@@ -6,7 +6,9 @@
  * Referencia: https://documentation.onesignal.com/reference/create-message
  *
  * OneSignal responde 200 incluso cuando no envía nada ("Message Not Sent":
- * id vacío + errors). Solo un id no vacío significa que el push salió.
+ * id vacío + errors). Solo un id no vacío significa que OneSignal aceptó y creó
+ * el mensaje; no prueba que haya llegado a un dispositivo (eso lo dicen los
+ * contadores del mensaje en el panel o en la API "View message").
  */
 
 const ONESIGNAL_API_URL = 'https://api.onesignal.com/notifications'
@@ -34,10 +36,10 @@ export interface PushClassification {
     partial?: boolean
 }
 
-/** URL absoluta que abre el push; una relativa no sirve fuera del sitio. */
+/** URL absoluta https que abre el push; una relativa no sirve fuera del sitio. */
 export function barberPushUrl(siteUrl: string | undefined = process.env.NEXT_PUBLIC_SITE_URL): string {
     const base = (siteUrl || '').trim().replace(/\/+$/, '')
-    return `${/^https?:\/\/[^/]/i.test(base) ? base : DEFAULT_SITE_URL}${BARBER_LANDING_PATH}`
+    return `${/^https:\/\/[^/]/i.test(base) ? base : DEFAULT_SITE_URL}${BARBER_LANDING_PATH}`
 }
 
 export function buildBarberPushPayload(appId: string, barberId: string, title: string, message: string, siteUrl?: string) {
@@ -74,7 +76,8 @@ function describeErrors(errors: unknown): string {
 
 export function classifyPushResponse(status: number, body: any): PushClassification {
     const id = typeof body?.id === 'string' ? body.id.trim() : ''
-    const reason = describeErrors(body?.errors)
+    // `warnings` acompaña a un envío aceptado (p. ej. suscripciones desuscritas).
+    const reason = [describeErrors(body?.errors), describeErrors(body?.warnings)].filter(Boolean).join('; ')
 
     if (status < 200 || status >= 300) {
         return { delivered: false, reason: `HTTP ${status}${reason ? `: ${reason}` : ''}` }
@@ -82,7 +85,7 @@ export function classifyPushResponse(status: number, body: any): PushClassificat
     if (!id) {
         return { delivered: false, reason: reason || 'OneSignal no devolvió id de mensaje' }
     }
-    // Con id el mensaje salió a al menos un dispositivo; errors lista los omitidos.
+    // Con id OneSignal aceptó el mensaje; errors/warnings listan lo que omitió.
     return reason ? { delivered: true, id, reason, partial: true } : { delivered: true, id }
 }
 
@@ -116,6 +119,13 @@ export async function sendNotificationToBarber(
         return { success: false, status, reason, error: reason }
     }
 
+    const unconfirmed = (status?: number): PushResult => {
+        // Sin respuesta OneSignal puede seguir procesando el pedido: el push quizá sí sale.
+        const reason = `sin respuesta de OneSignal en ${timeoutMs} ms (resultado desconocido)`
+        console.warn(`⚠️ [OneSignal] Push sin confirmar para el barbero ${cleanBarberId}: ${reason}`)
+        return { success: false, status, reason, error: reason }
+    }
+
     const appId = process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID || DEFAULT_APP_ID
     const payload = buildBarberPushPayload(appId, cleanBarberId, title, message)
     const controller = new AbortController()
@@ -135,6 +145,8 @@ export async function sendNotificationToBarber(
         })
 
         const body = await response.json().catch(() => null)
+        // El corte pudo llegar con la respuesta ya recibida, mientras se leía el cuerpo.
+        if (body === null && controller.signal.aborted) return unconfirmed(response.status)
         const result = classifyPushResponse(response.status, body)
 
         if (!result.delivered) return notDelivered(result.reason || 'sin detalle', response.status)
@@ -146,9 +158,8 @@ export async function sendNotificationToBarber(
         }
         return { success: true, id: result.id, status: response.status, partial: result.partial }
     } catch (error: any) {
-        return notDelivered(controller.signal.aborted
-            ? `sin respuesta de OneSignal en ${timeoutMs} ms`
-            : `error de red: ${error?.message || String(error)}`)
+        if (controller.signal.aborted) return unconfirmed()
+        return notDelivered(`error de red: ${error?.message || String(error)}`)
     } finally {
         clearTimeout(timer)
     }
