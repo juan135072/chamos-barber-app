@@ -160,6 +160,10 @@ export function useBarberAppAuth() {
     await logoutOneSignal()
     try {
       await supabase.auth.signOut()
+      // Una verificación iniciada antes (o su reintento) ya no puede devolver la sesión.
+      latestCheck.current++
+      checkInFlight.current = false
+      clearTimeout(retryTimer.current)
       sessionRef.current = null
       setSession(null)
       router.push('/chamos-acceso')

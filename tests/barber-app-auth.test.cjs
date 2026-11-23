@@ -232,6 +232,38 @@ test('the 5-minute check does not start a second request while one is pending', 
   assert.equal(checks.length, 3)
 }))
 
+test('logging out discards a session check that started before it', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+  // Back to the app just before tapping "Cerrar sesión": that check is still pending.
+  fire('visibilitychange')
+  assert.equal(checks.length, 2)
+  await auth.render().logout()
+  assert.equal(auth.render().session, null)
+  assert.deepEqual(redirects, ['/chamos-acceso'])
+
+  // Its answer arrives after the logout: the session stays closed.
+  checks[1](signedIn)
+  await flush()
+  await advance(60000)
+  assert.equal(auth.render().session, null)
+  assert.deepEqual(redirects, ['/chamos-acceso'])
+}))
+
+test('logging out cancels a pending retry', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  fire('visibilitychange')
+  checks[1]({ status: 'unknown' })
+  await flush()
+  // A 3 s retry is waiting when the barber logs out.
+  await auth.render().logout()
+  await advance(60000)
+  assert.equal(checks.length, 2)
+  assert.deepEqual(redirects, ['/chamos-acceso'])
+}))
+
 test('a confirmed sign-out still clears the session and redirects to login after 2 s', scenario(async (auth) => {
   checks[0]({ status: 'signed-out' })
   await flush()
