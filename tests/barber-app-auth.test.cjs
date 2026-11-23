@@ -191,7 +191,8 @@ test('a pending retry is cancelled when a newer check starts', scenario(async ()
   // The 3 s retry is waiting; coming back to the app starts a check that stays pending.
   fire('visibilitychange')
   assert.equal(checks.length, 2)
-  await advance(60000)
+  // Before that check would time out (20 s), nothing else runs.
+  await advance(19000)
   assert.equal(checks.length, 2)
 }))
 
@@ -207,28 +208,66 @@ test('a stale "unknown" answer schedules no retry', scenario(async (auth) => {
   assert.equal(auth.render().session.barberoId, 'barbero-1')
 }))
 
-test('a stale answer keeps the newest check pending, so the 5-minute check stays skipped', scenario(async () => {
-  fire('visibilitychange')
-  checks[0](signedIn)
-  await flush()
-  await advance(5 * 60 * 1000)
-  assert.equal(checks.length, 2, 'the newest check is still pending')
+test('a first session check that never answers times out after 20 s and is retried', scenario(async (auth) => {
+  // The request hangs (no answer at all): the spinner must not stay forever.
+  await advance(20000 - 1)
+  assert.equal(checks.length, 1)
+  await advance(1)
+  assert.equal(auth.render().loading, true)
+  assert.deepEqual(redirects, [])
+  answer = signedIn
+  await advance(3000 - 1)
+  assert.equal(checks.length, 1, 'retries on the usual 3 s schedule')
+  await advance(1)
+  assert.equal(checks.length, 2)
+  const state = auth.render()
+  assert.equal(state.session.barberoId, 'barbero-1')
+  assert.equal(state.loading, false)
 }))
 
-test('the 5-minute check does not start a second request while one is pending', scenario(async (auth) => {
-  assert.equal(checks.length, 1)
-  await advance(5 * 60 * 1000)
-  assert.equal(checks.length, 1)
-
+test('a check that hangs while signed in times out, so an expired session is still detected', scenario(async (auth) => {
   checks[0](signedIn)
   await flush()
   assert.equal(auth.render().session.barberoId, 'barbero-1')
-  answer = signedIn
-  await advance(5 * 60 * 1000)
+  fire('visibilitychange')
   assert.equal(checks.length, 2)
-  // Reconnecting always checks again.
-  fire('online')
+  await advance(20000)
+  assert.equal(auth.render().session.barberoId, 'barbero-1', 'a timeout is not a sign-out')
+  answer = { status: 'signed-out' }
+  await advance(3000)
+  assert.equal(checks.length, 3)
+  await advance(2000)
+  assert.equal(auth.render().session, null)
+  assert.deepEqual(redirects, ['/chamos-acceso'])
+}))
+
+test('a stale answer cannot leave the app unchecked: the newest check still times out and retries', scenario(async (auth) => {
+  fire('visibilitychange')
+  checks[0](signedIn)
   await flush()
+  await advance(20000)
+  answer = signedIn
+  await advance(3000)
+  assert.equal(checks.length, 3)
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+}))
+
+test('the 5-minute check does not start a second request while one is pending', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+  // A reconnect 5 s before the 5-minute check starts a request that is still pending at the tick.
+  await advance(5 * 60 * 1000 - 5000)
+  fire('online')
+  assert.equal(checks.length, 2)
+  await advance(5000)
+  assert.equal(checks.length, 2)
+
+  // Once it answers, the next 5-minute check runs again.
+  answer = signedIn
+  checks[1](signedIn)
+  await flush()
+  await advance(5 * 60 * 1000)
   assert.equal(checks.length, 3)
 }))
 

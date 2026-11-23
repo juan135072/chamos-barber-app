@@ -16,6 +16,21 @@ type AuthOutcome =
   | { status: 'denied'; message: string }
   | { status: 'transient' }
 
+// A check that never answers (a hung request or auth lock) counts as a network
+// failure: it is retried on the backoff schedule instead of blocking every later check.
+const CHECK_TIMEOUT_MS = 20000
+
+function withTimeout(check: Promise<AuthOutcome>): Promise<AuthOutcome> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<AuthOutcome>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`La verificación de sesión del barbero no respondió en ${CHECK_TIMEOUT_MS / 1000} s; se reintentará.`)
+      resolve({ status: 'transient' })
+    }, CHECK_TIMEOUT_MS)
+  })
+  return Promise.race([check, timeout]).finally(() => clearTimeout(timer))
+}
+
 async function resolveBarberoSession(): Promise<AuthOutcome> {
   const denied = (message: string): AuthOutcome => ({ status: 'denied', message })
 
@@ -119,7 +134,7 @@ export function useBarberAppAuth() {
 
     let outcome: AuthOutcome
     try {
-      outcome = await resolveBarberoSession()
+      outcome = await withTimeout(resolveBarberoSession())
     } catch (err) {
       console.warn('No se pudo verificar la sesión del barbero:', err)
       outcome = { status: 'transient' }

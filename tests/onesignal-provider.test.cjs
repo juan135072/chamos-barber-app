@@ -191,10 +191,18 @@ test('a browser prompt left open past 30 s shows a neutral hint, and its answer 
   const provider = await readyProvider(sdk)
   primaryButton(provider.tree).props.onClick()
 
-  mock.timers.tick(30000)
-  await flush()
+  const warnings = []
+  const realWarn = console.warn
+  console.warn = (message) => warnings.push(message)
+  try {
+    mock.timers.tick(30000)
+    await flush()
+  } finally {
+    console.warn = realWarn
+  }
   provider.render()
   assert.deepEqual(toasts, [])
+  assert.equal(warnings.filter((message) => /sin respuesta tras 30 s/.test(message)).length, 1, 'the stall is logged once')
   assert.match(textOf(overlay(provider.tree)), /Si no ves el aviso del navegador/)
   // Still waiting on the same request: tapping again asks nothing new.
   const waiting = primaryButton(provider.tree)

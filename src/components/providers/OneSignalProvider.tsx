@@ -173,7 +173,11 @@ export default function OneSignalProvider({
     const request = startPermissionRequest(OneSignal)
 
     setIsRequesting(true)
-    const slow = setTimeout(() => setRequestSlow(true), PERMISSION_SLOW_MS)
+    const slow = setTimeout(() => {
+      // Logged so a stalled SDK request can be told apart in field reports.
+      console.warn(`⚠️ [OneSignal] La solicitud de permisos sigue sin respuesta tras ${PERMISSION_SLOW_MS / 1000} s`)
+      setRequestSlow(true)
+    }, PERMISSION_SLOW_MS)
     request
       .then((accepted) => {
         const status = resolvePermissionStatus(OneSignal.Notifications.permission, readNativePermission())
