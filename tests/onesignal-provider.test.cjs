@@ -213,6 +213,60 @@ test('a browser prompt left open past 30 s shows a neutral hint, and its answer 
   assert.equal(overlay(provider.tree), null)
 }))
 
+test('an opt-in tap calls optIn() inside the tap, and a second tap does not opt in again', withTimers(async () => {
+  browser({ nativePermission: 'granted' })
+  const sdk = fakeSdk({ permission: true, optedIn: false })
+  const provider = await readyProvider(sdk)
+  const button = primaryButton(provider.tree)
+  button.props.onClick()
+  assert.deepEqual(sdk.calls, ['optIn'])
+  button.props.onClick()
+  await flush()
+  assert.deepEqual(sdk.calls, ['optIn', 'requestPermission'])
+}))
+
+test('a request answered before 30 s leaves no hint behind, gives one toast and allows a new tap', withTimers(async () => {
+  browser({ nativePermission: 'granted' })
+  const sdk = fakeSdk({ permission: true, optedIn: true })
+  const provider = await readyProvider(sdk)
+  primaryButton(provider.tree).props.onClick()
+  await flush()
+  sdk.pending[0].resolve(false)
+  await flush()
+  // Long after the answer, the slow-request timer must not show its hint.
+  mock.timers.tick(120000)
+  await flush()
+  provider.render()
+  assert.doesNotMatch(textOf(overlay(provider.tree)), /Si no ves el aviso del navegador/)
+  assert.deepEqual(toasts, [['error', 'No pudimos activar las notificaciones en este dispositivo. Inténtalo de nuevo.']])
+  primaryButton(provider.tree).props.onClick()
+  await flush()
+  assert.deepEqual(sdk.calls, ['requestPermission', 'requestPermission'])
+}))
+
+test('a request that fails after the 30 s hint gives one error toast, clears the hint and frees the button', withTimers(async () => {
+  browser({ nativePermission: 'granted' })
+  const sdk = fakeSdk({ permission: true, optedIn: true })
+  const provider = await readyProvider(sdk)
+  primaryButton(provider.tree).props.onClick()
+  mock.timers.tick(45000)
+  await flush()
+  assert.match(textOf(overlay(provider.render())), /Si no ves el aviso del navegador/)
+
+  const realError = console.error
+  console.error = () => {}
+  try {
+    sdk.pending[0].reject(new Error('push service error'))
+    await flush()
+  } finally {
+    console.error = realError
+  }
+  provider.render()
+  assert.deepEqual(toasts, [['error', 'No pudimos activar las notificaciones. Inténtalo de nuevo.']])
+  assert.doesNotMatch(textOf(overlay(provider.tree)), /Si no ves el aviso del navegador/)
+  assert.equal(primaryButton(provider.tree).props.disabled, false)
+}))
+
 test('allowed but without a push token: opt in, subscribe, and offer a retry if it still fails', withTimers(async () => {
   browser({ nativePermission: 'granted' })
   const sdk = fakeSdk({ permission: true, optedIn: false })

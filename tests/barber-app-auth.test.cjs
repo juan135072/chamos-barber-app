@@ -166,6 +166,55 @@ test('an older check that answers last cannot sign the barber out', scenario(asy
   assert.deepEqual(redirects, [])
 }))
 
+test('an older signed-in answer that arrives after a newer sign-out cannot bring the session back', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+  fire('visibilitychange')
+  fire('online')
+  assert.equal(checks.length, 3)
+  checks[2]({ status: 'signed-out' })
+  await flush()
+  checks[1](signedIn)
+  await flush()
+  await advance(2000)
+  const state = auth.render()
+  assert.equal(state.session, null)
+  assert.equal(state.error, 'No hay sesión activa')
+  assert.deepEqual(redirects, ['/chamos-acceso'])
+}))
+
+test('a pending retry is cancelled when a newer check starts', scenario(async () => {
+  checks[0]({ status: 'unknown' })
+  await flush()
+  await advance(1000)
+  // The 3 s retry is waiting; coming back to the app starts a check that stays pending.
+  fire('visibilitychange')
+  assert.equal(checks.length, 2)
+  await advance(60000)
+  assert.equal(checks.length, 2)
+}))
+
+test('a stale "unknown" answer schedules no retry', scenario(async (auth) => {
+  fire('visibilitychange')
+  assert.equal(checks.length, 2)
+  checks[0]({ status: 'unknown' })
+  await flush()
+  checks[1](signedIn)
+  await flush()
+  await advance(60000)
+  assert.equal(checks.length, 2)
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+}))
+
+test('a stale answer keeps the newest check pending, so the 5-minute check stays skipped', scenario(async () => {
+  fire('visibilitychange')
+  checks[0](signedIn)
+  await flush()
+  await advance(5 * 60 * 1000)
+  assert.equal(checks.length, 2, 'the newest check is still pending')
+}))
+
 test('the 5-minute check does not start a second request while one is pending', scenario(async (auth) => {
   assert.equal(checks.length, 1)
   await advance(5 * 60 * 1000)
