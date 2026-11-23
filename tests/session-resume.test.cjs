@@ -1,7 +1,9 @@
 // Coming back to the app with a flaky network must not look like a logout.
 require('./load-typescript.cjs')
 const test = require('node:test')
+const { mock } = require('node:test')
 const assert = require('node:assert/strict')
+const React = require('react')
 
 let native = null
 let respond = async () => { throw new Error('offline') }
@@ -65,4 +67,44 @@ test('only a PostgREST "no rows" error is a real not-found', () => {
   assert.equal(isNoRowsError({ code: 'PGRST116', message: 'JSON object requested, multiple (or no) rows returned' }), true)
   assert.equal(isNoRowsError({ code: '', message: 'TypeError: Failed to fetch' }), false)
   assert.equal(isNoRowsError(null), false)
+})
+
+test('useSession retries an unanswered check quietly at 3 s, 6 s, 12 s … up to 30 s', async () => {
+  native = null
+  let requests = 0
+  respond = async () => { requests++; throw new TypeError('Failed to fetch') }
+  global.window.addEventListener = () => {}
+  global.window.removeEventListener = () => {}
+  global.document = { visibilityState: 'visible', addEventListener() {}, removeEventListener() {} }
+  const { useSession } = require('../src/lib/insforge-react.ts')
+  const flush = () => new Promise((resolve) => setImmediate(resolve))
+
+  mock.timers.enable({ apis: ['setTimeout'] })
+  const saved = { useState: React.useState, useEffect: React.useEffect }
+  const cleanups = []
+  React.useState = (initial) => [initial, () => {}]
+  React.useEffect = (fn) => { cleanups.push(fn()) }
+  try {
+    useSession()
+  } finally {
+    Object.assign(React, saved)
+  }
+  try {
+    await quietly(async () => {
+      await flush()
+      assert.equal(requests, 1)
+      for (const delay of [3000, 6000, 12000, 24000, 30000, 30000]) {
+        const before = requests
+        mock.timers.tick(delay - 1)
+        await flush()
+        assert.equal(requests, before, `no retry before ${delay} ms`)
+        mock.timers.tick(1)
+        await flush()
+        assert.equal(requests, before + 1, `retry after ${delay} ms`)
+      }
+    })
+  } finally {
+    cleanups.forEach((cleanup) => cleanup?.())
+    mock.timers.reset()
+  }
 })

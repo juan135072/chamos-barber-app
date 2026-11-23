@@ -41,8 +41,31 @@ export function useSupabaseClient<_T = unknown>() {
  * last known value stays and the check is retried quietly.
  */
 
-const RETRY_MIN_MS = 3000
-const RETRY_MAX_MS = 30000
+// Quiet retry schedule for session checks that got no answer (offline, deploy):
+// 3 s, 6 s, 12 s, 24 s, then every 30 s. Shared with useBarberAppAuth.
+export const RETRY_MIN_MS = 3000
+export const RETRY_MAX_MS = 30000
+
+export interface RetryBackoff {
+    /** Delay before the next retry; each call doubles the following one, up to RETRY_MAX_MS. */
+    next(): number
+    /** After an answer: the next failure starts over at RETRY_MIN_MS. */
+    reset(): void
+}
+
+export function createRetryBackoff(): RetryBackoff {
+    let delay = RETRY_MIN_MS
+    return {
+        next() {
+            const current = delay
+            delay = Math.min(delay * 2, RETRY_MAX_MS)
+            return current
+        },
+        reset() {
+            delay = RETRY_MIN_MS
+        },
+    }
+}
 
 function useAppSessionState(): any | null | undefined {
     const [session, setSession] = useState<any | null | undefined>(undefined)
@@ -50,18 +73,17 @@ function useAppSessionState(): any | null | undefined {
     useEffect(() => {
         let cancelled = false
         let retryTimer: ReturnType<typeof setTimeout> | undefined
-        let retryDelay = RETRY_MIN_MS
+        const backoff = createRetryBackoff()
 
         const check = () => {
             clearTimeout(retryTimer)
             checkAppSession().then((result) => {
                 if (cancelled) return
                 if (result.status === 'unknown') {
-                    retryTimer = setTimeout(check, retryDelay)
-                    retryDelay = Math.min(retryDelay * 2, RETRY_MAX_MS)
+                    retryTimer = setTimeout(check, backoff.next())
                     return
                 }
-                retryDelay = RETRY_MIN_MS
+                backoff.reset()
                 const next = result.status === 'signed-in' ? result.session : null
                 setSession((current: any) => (isSameSession(current, next) ? current : next))
             })
