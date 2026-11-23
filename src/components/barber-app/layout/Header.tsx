@@ -20,7 +20,7 @@ export default function Header({ barbero }: HeaderProps) {
     barbero.disponibilidad
   )
 
-  const { permissionStatus, triggerPrompt, repairSubscription } = useOneSignal()
+  const { permissionStatus, triggerPrompt } = useOneSignal()
 
   const handleToggle = async () => {
     await toggleDisponibilidad(!disponibilidad)
@@ -60,9 +60,8 @@ export default function Header({ barbero }: HeaderProps) {
             <button
               className={`action-btn notification-status ${permissionStatus}`}
               onClick={triggerPrompt}
-              onDoubleClick={repairSubscription}
               title={
-                permissionStatus === 'granted' ? 'Notificaciones activas (Doble clic para reiniciar si fallan)' :
+                permissionStatus === 'granted' ? 'Notificaciones activas' :
                   permissionStatus === 'denied' ? 'Notificaciones bloqueadas' :
                     'Activar notificaciones'
               }

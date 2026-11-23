@@ -4,7 +4,6 @@ import { useRouter } from 'next/router'
 import { useEffect, useState, type FormEvent } from 'react'
 import Link from 'next/link'
 import type { Database } from '@/lib/database.types'
-import { useOneSignal } from '../components/providers/OneSignalProvider'
 import toast from 'react-hot-toast'
 import { useTenant } from '@/context/TenantContext'
 import { getServerAccess, persistAppSession } from '@/lib/server-access'
@@ -13,7 +12,6 @@ function Login() {
   const session = useSession()
   const supabase = useSupabaseClient<Database>()
   const router = useRouter()
-  const { setExternalId } = useOneSignal()
   const { tenant, loading: tenantLoading } = useTenant()
 
   // Local form state (replaces the @supabase/auth-ui-react <Auth /> widget)
@@ -36,7 +34,7 @@ function Login() {
     }
 
     if (user.rol === 'barbero') {
-      if (user.barbero_id) setExternalId(user.barbero_id)
+      // /barbero-panel vincula el dispositivo en OneSignal al cargar el perfil.
       await router.push('/barbero-panel')
       return
     }

@@ -13,6 +13,7 @@ import { Bell, BellOff } from 'lucide-react'
 import DashboardSection from '../components/barbero/DashboardSection'
 import { useOneSignal } from '../components/providers/OneSignalProvider'
 import OneSignalResetButton from '../components/barbero/OneSignalResetButton'
+import { logoutOneSignal } from '@/lib/onesignal-client'
 import { BarberoProvider, type BarberoProfile } from '../context/BarberoContext'
 
 
@@ -26,7 +27,7 @@ const BarberoPanelPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'perfil' | 'citas' | 'ganancias' | 'seguridad' | 'dashboard' | 'asistencia'>('dashboard')
   const [isStandalone, setIsStandalone] = useState(false)
 
-  const { triggerPrompt, setExternalId } = useOneSignal()
+  const { triggerPrompt, setExternalId, permissionStatus } = useOneSignal()
 
   const loadBarberoData = useCallback(async () => {
     if (!session?.user?.id) return
@@ -53,6 +54,7 @@ const BarberoPanelPage: React.FC = () => {
       if (barberoError) throw barberoError
 
       setProfile(barbero)
+      // Cada carga vincula este dispositivo al barbero, haya o no permiso de notificaciones.
       setExternalId(barbero.id)
       setTimeout(() => triggerPrompt(), 5000)
     } catch (error) {
@@ -80,18 +82,11 @@ const BarberoPanelPage: React.FC = () => {
     loadBarberoData()
   }, [session])
 
-  // Obtener estado de OneSignal
-  const { permissionStatus, triggerPrompt: osTriggerPrompt, repairSubscription } = useOneSignal()
-
   // Icono dinámico según el estado de permisos
   const NotificationBell = () => {
     return (
       <button
-        onClick={() => {
-          console.log('🔔 Clic manual en campana')
-          triggerPrompt()
-        }}
-        onDoubleClick={repairSubscription}
+        onClick={triggerPrompt}
         style={{
           padding: '0.5rem',
           borderRadius: '50%',
@@ -108,7 +103,8 @@ const BarberoPanelPage: React.FC = () => {
           cursor: 'pointer',
           animation: permissionStatus === 'default' ? 'pulse 2s infinite' : 'none'
         }}
-        title="Estado de notificaciones (Doble clic para reparar)"
+        title={permissionStatus === 'granted' ? 'Notificaciones activas' : 'Activar notificaciones'}
+        aria-label="Estado de notificaciones"
       >
         {permissionStatus === 'granted' ? <Bell size={20} /> : <BellOff size={20} />}
       </button>
@@ -117,6 +113,8 @@ const BarberoPanelPage: React.FC = () => {
 
 
   const handleLogout = async () => {
+    // Desvincular este dispositivo del barbero antes de limpiar datos (acotado, nunca bloquea).
+    await logoutOneSignal()
     try {
       // Limpiar datos locales preventivamente
       if (typeof window !== 'undefined') {
@@ -363,7 +361,7 @@ const BarberoPanelPage: React.FC = () => {
             </nav>
           )}
 
-          {/* OneSignal Reset Button */}
+          {/* OneSignal Reset Button (solo con ?debug=true o en desarrollo) */}
           <OneSignalResetButton />
         </div>
       </div>

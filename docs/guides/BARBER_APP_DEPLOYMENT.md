@@ -83,14 +83,12 @@
 ### 4️⃣ **Notificaciones Push** 🚧 (Placeholder)
 
 #### **OneSignal Config** ✅
-- Archivo: `/src/lib/onesignal-config.ts`
-- Configuración lista para usar
-- Funciones:
-  - `initOneSignal()` - Inicializar SDK
-  - `requestNotificationPermission()` - Solicitar permisos
-  - `setUserTag()` - Etiquetar usuarios
-  - `sendPushNotification()` - Enviar desde servidor
-  - `showLocalNotification()` - Fallback nativo
+- Navegador: `/src/lib/onesignal-client.ts` (Web SDK v16 vía `OneSignalDeferred`)
+  - `loadOneSignal()` - Carga e inicializa el SDK una sola vez por página
+  - `linkOneSignalUser()` - `OneSignal.login(barberos.id)` en cada carga del barbero
+  - `logoutOneSignal()` - `OneSignal.logout()` al cerrar sesión
+- UI y permisos: `/src/components/providers/OneSignalProvider.tsx`
+- Servidor: `/src/lib/onesignal.ts` → `sendNotificationToBarber()`
 
 #### **Fallback Nativo** ✅
 - Web Push API integrada

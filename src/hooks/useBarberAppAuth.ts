@@ -6,6 +6,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
+import { logoutOneSignal } from '../lib/onesignal-client'
 import type { BarberoSession } from '../types/barber-app'
 
 export function useBarberAppAuth() {
@@ -105,6 +106,8 @@ export function useBarberAppAuth() {
   }
 
   const logout = async () => {
+    // Desvincular este dispositivo del barbero en OneSignal (acotado, nunca bloquea)
+    await logoutOneSignal()
     try {
       await supabase.auth.signOut()
       setSession(null)

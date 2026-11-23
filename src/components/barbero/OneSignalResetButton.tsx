@@ -2,15 +2,24 @@
  * =====================================================
  * ☢️ ONE SIGNAL RESET BUTTON
  * =====================================================
- * Botón para resetear OneSignal cuando hay problemas
+ * Botón para resetear OneSignal cuando hay problemas.
+ * Herramienta de debug: borra service workers e IndexedDB (incluida la
+ * identidad de OneSignal), así que solo se muestra en desarrollo o con
+ * ?debug=true en la URL, nunca a los barberos en uso normal.
  */
 
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 export default function OneSignalResetButton() {
     const [showInfo, setShowInfo] = useState(false)
+    const [showDebug, setShowDebug] = useState(false)
+
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search)
+        setShowDebug(process.env.NODE_ENV === 'development' || urlParams.get('debug') === 'true')
+    }, [])
 
     const nuclearReset = async () => {
         if (!confirm('⚠️ RESETEO DE NOTIFICACIONES ⚠️\n\n¿No te llegan las notificaciones?\n\nEste botón solucionará el problema, pero:\n• Se cerrarán todas las pestañas de esta página\n• Tendrás que volver a aceptar los permisos\n\n¿Continuar?')) {
@@ -58,6 +67,10 @@ export default function OneSignalResetButton() {
             console.error('❌ [RESET] Error:', error)
             alert('Error al resetear. Por favor contacta a soporte.')
         }
+    }
+
+    if (!showDebug) {
+        return null
     }
 
     return (
