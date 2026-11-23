@@ -5,6 +5,10 @@
  * Every email is trimmed and lowercased before it is written, because the
  * login lookup in /api/auth/access compares emails case-sensitively.
  * Generated passwords are returned to the caller once and never logged.
+ *
+ * A login is only ever created fresh: an email that already has an auth user
+ * is refused, never adopted, so a shop admin can never take over (or receive
+ * the password of) an account it did not create.
  */
 import { randomInt } from 'crypto'
 import {
@@ -13,7 +17,6 @@ import {
     adminGetUserByEmail,
     adminGetUserById,
     adminRawSql,
-    adminSetUserPassword,
 } from '@/lib/insforge-admin'
 import { emailService } from '../../lib/email-service'
 
@@ -23,6 +26,8 @@ type AdminClient = any
 export type Failure = { ok: false; status: number; error: string }
 
 export const EMAIL_IN_USE = 'Ese email ya lo usa otra cuenta de acceso. Usa otro email.'
+export const AUTH_EMAIL_TAKEN =
+    'Ese correo ya tiene una cuenta de acceso creada antes. Pide al administrador del sistema que la libere o usa otro correo.'
 const ACCOUNT_FAILED = 'No se pudo crear la cuenta de acceso. Intenta de nuevo.'
 
 export function normalizeEmail(value: unknown): string | null {
@@ -141,16 +146,14 @@ export async function removeBarber(admin: AdminClient, comercioId: string, barbe
 }
 
 /**
- * Checks that `email` can get a new login account in the shop. Returns the id
- * of an orphan auth user to adopt (one left with no admin_users row by an
- * earlier failed creation), or null when a new auth user must be created.
+ * Checks that `email` can get a new login account in the shop: no staff row
+ * of the shop uses it and no auth user exists with it (whoever owns it).
  */
 export async function checkAccountEmail(
     admin: AdminClient,
     comercioId: string,
     email: string
-): Promise<{ ok: true; adoptUserId: string | null } | Failure> {
-    const inUse: Failure = { ok: false, status: 409, error: EMAIL_IN_USE }
+): Promise<{ ok: true } | Failure> {
     const { data: cuentas, error } = await admin
         .from('admin_users')
         .select('id')
@@ -158,19 +161,12 @@ export async function checkAccountEmail(
         .eq('email', email)
         .limit(1)
     if (error) throw error
-    if ((cuentas ?? []).length > 0) return inUse
+    if ((cuentas ?? []).length > 0) return { ok: false, status: 409, error: EMAIL_IN_USE }
 
     const { data, error: authError } = await adminGetUserByEmail(email)
     if (authError) throw authError
-    const user = data.user
-    if (!user) return { ok: true, adoptUserId: null }
-    if (user.is_project_admin) return inUse
-    // A staff row in any shop means the auth user is in use: never adopt it.
-    // This guard looks the known id up across shops and reads nothing else.
-    const { data: linked, error: linkedError } = await admin.from('admin_users').select('id').eq('id', user.id).limit(1)
-    if (linkedError) throw linkedError
-    if ((linked ?? []).length > 0) return inUse
-    return { ok: true, adoptUserId: user.id }
+    if (data.user) return { ok: false, status: 409, error: AUTH_EMAIL_TAKEN }
+    return { ok: true }
 }
 
 /**
@@ -192,43 +188,30 @@ export type BarberForAccount = {
 }
 
 /**
- * Creates the auth user (or adopts the orphan from checkAccountEmail) and
- * links it to the barber with an admin_users row of role 'barbero'. If the
- * link fails, deletes the auth user only when this call created it.
+ * Creates a new auth user and links it to the barber with an admin_users row
+ * of rol 'barbero'. If the link fails, deletes that auth user, which this
+ * call created.
  */
 export async function openBarberAccount(
     admin: AdminClient,
-    input: { comercioId: string; barbero: BarberForAccount; email: string; adoptUserId: string | null }
+    input: { comercioId: string; barbero: BarberForAccount; email: string }
 ): Promise<{ ok: true; userId: string; email: string; password: string } | Failure> {
-    const { comercioId, barbero, email, adoptUserId } = input
+    const { comercioId, barbero, email } = input
     const password = generateTemporaryPassword()
-    let userId: string
-    let created = false
 
-    if (adoptUserId) {
-        const { updated, error } = await adminSetUserPassword(adoptUserId, password, { onlyUnlinked: true })
-        if (error) {
-            console.error('[staff-accounts] adopting auth user failed', { userId: adoptUserId, message: error.message })
-            return { ok: false, status: 500, error: ACCOUNT_FAILED }
-        }
-        if (!updated) return { ok: false, status: 409, error: EMAIL_IN_USE }
-        userId = adoptUserId
-    } else {
-        const { data, error } = await adminCreateUser({
-            email,
-            password,
-            email_confirm: true,
-            user_metadata: { nombre: barbero.nombre, apellido: barbero.apellido, rol: 'barbero' },
-        })
-        if (error || !data.user) {
-            console.error('[staff-accounts] auth user creation failed', { message: error?.message ?? 'no user returned' })
-            return (error as any)?.statusCode === 409
-                ? { ok: false, status: 409, error: EMAIL_IN_USE }
-                : { ok: false, status: 500, error: ACCOUNT_FAILED }
-        }
-        userId = data.user.id
-        created = true
+    const { data, error } = await adminCreateUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { nombre: barbero.nombre, apellido: barbero.apellido, rol: 'barbero' },
+    })
+    if (error || !data.user) {
+        console.error('[staff-accounts] auth user creation failed', { message: error?.message ?? 'no user returned' })
+        return (error as any)?.statusCode === 409
+            ? { ok: false, status: 409, error: AUTH_EMAIL_TAKEN }
+            : { ok: false, status: 500, error: ACCOUNT_FAILED }
     }
+    const userId = data.user.id
 
     const { error: linkError } = await admin.from('admin_users').insert({
         id: userId,
@@ -241,11 +224,9 @@ export async function openBarberAccount(
     })
     if (linkError) {
         console.error('[staff-accounts] account link failed', { userId, barberoId: barbero.id, code: linkError.code ?? null, message: linkError.message ?? null })
-        if (created) {
-            const { error: deleteError } = await adminDeleteUser(userId)
-            if (deleteError) console.error('[staff-accounts] rollback: auth user delete failed', { userId, message: deleteError.message })
-            else console.info('[staff-accounts] rollback: auth user deleted', { userId })
-        }
+        const { error: deleteError } = await adminDeleteUser(userId)
+        if (deleteError) console.error('[staff-accounts] rollback: auth user delete failed', { userId, message: deleteError.message })
+        else console.info('[staff-accounts] rollback: auth user deleted', { userId })
         return linkError.code === '23505'
             ? { ok: false, status: 409, error: EMAIL_IN_USE }
             : { ok: false, status: 500, error: ACCOUNT_FAILED }

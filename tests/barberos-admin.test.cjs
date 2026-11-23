@@ -62,11 +62,10 @@ stubModule('../src/lib/insforge-admin.ts', {
   },
   async adminGetUserById(id) { return { data: { user: auth.users.find((u) => u.id === id) ?? null }, error: null } },
   async adminGetUserByEmail(email) { return { data: { user: auth.users.find((u) => u.email === email) ?? null }, error: null } },
-  async adminSetUserPassword(id, password, { onlyUnlinked = false } = {}) {
+  async adminSetUserPassword(id, password) {
     const user = auth.users.find((u) => u.id === id && !u.is_project_admin)
-    const linked = (db.tables.admin_users || []).some((a) => a.id === id)
-    if (!user || (onlyUnlinked && linked)) return { updated: false, error: null }
-    auth.passwords.push({ id, password, onlyUnlinked })
+    if (!user) return { updated: false, error: null }
+    auth.passwords.push({ id, password })
     return { updated: true, error: null }
   },
   async adminRawSql(query, params) {
@@ -167,7 +166,7 @@ test('adminGetUserByEmail looks the auth user up by its stored email', async () 
   const { result, sent } = await withRawSql([user], () => realAdmin.adminGetUserByEmail('ana@chamos.test'))
   assert.deepEqual(result, { data: { user }, error: null })
   assert.equal(sent.length, 1)
-  assert.match(sent[0].body.query, /FROM auth\.users WHERE email = \$1/)
+  assert.match(sent[0].body.query, /FROM auth\.users WHERE lower\(email\) = \$1/)
   assert.deepEqual(sent[0].body.params, ['ana@chamos.test'])
 })
 
@@ -182,13 +181,6 @@ test('adminSetUserPassword stores a bcrypt hash and never touches a project admi
   assert.equal(params[0], id)
   assert.notEqual(params[1], 'Chamosabc!1234')
   assert.ok(bcrypt.compareSync('Chamosabc!1234', params[1]), 'the stored value is a bcrypt hash of the password')
-})
-
-test('adminSetUserPassword with onlyUnlinked refuses users that have a staff row', async () => {
-  const id = randomUUID()
-  const { result, sent } = await withRawSql([], () => realAdmin.adminSetUserPassword(id, 'Chamosabc!1234', { onlyUnlinked: true }))
-  assert.deepEqual(result, { updated: false, error: null })
-  assert.match(sent[0].body.query, /NOT EXISTS \(SELECT 1 FROM public\.admin_users a WHERE a\.id = \$1\)/)
 })
 
 // --- T2 / S1: crear-con-cuenta ---------------------------------------------
@@ -247,28 +239,20 @@ test('an email already used by an active barber or by a login account gives a 40
   assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length], [0, 0, 0])
 })
 
-test('an orphan auth user with the same email is adopted with a new password', async () => {
-  const orphan = { id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }
-  setup({ users: [orphan] })
-  const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
-  assert.equal(res.statusCode, 200)
-  assert.equal(auth.created.length, 0)
-  assert.deepEqual(auth.passwords, [{ id: orphan.id, password: res.body.password, onlyUnlinked: true }])
-  assert.equal(inserts('admin_users')[0].id, orphan.id)
-  assert.equal(res.body.cuenta_creada, true)
-})
+const TAKEN = 'Ese correo ya tiene una cuenta de acceso creada antes. Pide al administrador del sistema que la libere o usa otro correo.'
 
-test('an auth user with a staff row in any shop, or a project admin, is never adopted', async () => {
+test('an email that already has an auth user is refused, whoever owns it, and nothing is written', async () => {
   for (const [user, rows] of [
+    [{ id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }, () => []],
     [{ id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }, (id) => [{ id, email: 'x@otro.test', nombre: 'X', rol: 'admin', activo: true, comercio_id: OTHER_TENANT, barbero_id: null }]],
     [{ id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: true }, () => []],
   ]) {
     setup({ users: [user], admin_users: rows(user.id) })
     const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
     assert.equal(res.statusCode, 409)
-    assert.match(res.body.error, /otra cuenta/)
+    assert.equal(res.body.error, TAKEN)
     assert.equal(res.body.password, undefined)
-    assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length], [0, 0, 0])
+    assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length, auth.deleted.length, mail.sent.length], [0, 0, 0, 0, 0])
   }
 })
 
@@ -358,21 +342,14 @@ test('a barber without an account gets one, and its password is returned once', 
   assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
 })
 
-test('creating access adopts an orphan auth user, and refuses one that is in use', async () => {
+test('creating access refuses an email that already has an auth user', async () => {
   const b = barbero()
-  const orphan = { id: randomUUID(), email: b.email, is_project_admin: false }
-  setup({ barberos: [b], users: [orphan] })
-  let res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
-  assert.equal(res.statusCode, 200)
-  assert.deepEqual(auth.passwords, [{ id: orphan.id, password: res.body.password, onlyUnlinked: true }])
-  assert.equal(inserts('admin_users')[0].id, orphan.id)
-  assert.equal(auth.created.length, 0)
-
-  setup({ barberos: [b], users: [orphan], admin_users: [{ id: orphan.id, email: 'otro@otro.test', nombre: 'X', rol: 'admin', activo: true, comercio_id: OTHER_TENANT, barbero_id: null }] })
-  res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  setup({ barberos: [b], users: [{ id: randomUUID(), email: b.email, is_project_admin: false }] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
   assert.equal(res.statusCode, 409)
+  assert.equal(res.body.error, TAKEN)
   assert.equal(res.body.password, undefined)
-  assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length], [0, 0, 0])
+  assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length, mail.sent.length], [0, 0, 0, 0])
 })
 
 test('a barber without an email gets a hint to add one first', async () => {
@@ -393,7 +370,7 @@ test('"Nueva contraseña" sets a new temporary password on the barber account', 
   assert.equal(res.statusCode, 200)
   assert.equal(res.getHeader('cache-control'), 'no-store')
   assert.deepEqual(res.body, { success: true, accion: 'nueva', email: b.email, password: auth.passwords[0]?.password })
-  assert.deepEqual(auth.passwords, [{ id: cuenta.id, password: res.body.password, onlyUnlinked: false }], 'the account with the barber email')
+  assert.deepEqual(auth.passwords, [{ id: cuenta.id, password: res.body.password }], 'the account with the barber email')
   assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
   assert.deepEqual([db.calls.inserts.length, auth.created.length], [0, 0])
 })
@@ -720,4 +697,16 @@ test('without RESEND_API_KEY the email service never prints passwords', async ()
   assert.ok(output.length > 0, 'dev mode still says an email would have been sent')
   assert.ok(output.some((line) => line.includes('ana@chamos.test')))
   assert.ok(!output.some((line) => line.includes('Chamossecreto!1234')), 'no password in the console')
+})
+
+// --- Verifier probe: no adoption -------------------------------------------
+
+test('V7 S1: an existing auth user is neither adopted nor deleted, and no barber is left', async () => {
+  const orphan = { id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }
+  setup({ users: [orphan] })
+  db.fail['admin_users.insert'] = { code: '42501', message: 'permission denied' }
+  const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 409)
+  assert.deepEqual([auth.deleted, auth.passwords, auth.users.map((u) => u.id)], [[], [], [orphan.id]])
+  assert.equal(db.tables.barberos.length, 0)
 })

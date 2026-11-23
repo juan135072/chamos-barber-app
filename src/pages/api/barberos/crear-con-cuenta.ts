@@ -48,11 +48,9 @@ export default async function handler(
       const conflict = await findEmailConflict(admin, comercioId, email)
       if (conflict) return res.status(409).json({ error: conflict })
     }
-    let adoptUserId: string | null = null
     if (crearCuenta) {
       const check = await checkAccountEmail(admin, comercioId, email!)
       if (!check.ok) return res.status(check.status).json({ error: check.error })
-      adoptUserId = check.adoptUserId
     }
 
     const created = await insertBarber(admin, comercioId, { ...fields, email })
@@ -73,7 +71,6 @@ export default async function handler(
       comercioId,
       barbero: nuevoBarbero,
       email: email!,
-      adoptUserId,
     })
 
     if (!account.ok) {

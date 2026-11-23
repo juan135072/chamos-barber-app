@@ -1,5 +1,6 @@
 // API Route: login credentials for an existing barber (admin only).
-// accion 'crear': creates the account of a barber that has none.
+// accion 'crear': creates a new account for a barber that has none;
+//   an email that already has an auth user is refused, never adopted.
 // accion 'nueva': generates a new temporary password for its account.
 // Either way the password is returned once, in this response only.
 import type { NextApiRequest, NextApiResponse } from 'next'
@@ -54,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const check = await checkAccountEmail(admin, comercioId, email)
       if (!check.ok) return res.status(check.status).json({ error: check.error })
-      const account = await openBarberAccount(admin, { comercioId, barbero, email, adoptUserId: check.adoptUserId })
+      const account = await openBarberAccount(admin, { comercioId, barbero, email })
       if (!account.ok) return res.status(account.status).json({ error: account.error })
       // Only a new account is emailed; "Nueva contraseña" is shown to the admin alone.
       const emailEnviado = await sendCredentialsEmail({

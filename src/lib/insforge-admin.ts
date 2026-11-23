@@ -99,8 +99,8 @@ export async function adminGetUserById(
 }
 
 /**
- * Look up an auth user by email. InsForge stores auth emails lowercased, so
- * pass a trimmed, lowercased address.
+ * Look up an auth user by email, case-insensitively (auth.users has an index
+ * on lower(email)). Pass a trimmed, lowercased address.
  */
 export async function adminGetUserByEmail(
     email: string
@@ -110,7 +110,7 @@ export async function adminGetUserByEmail(
             `SELECT id, email, email_verified, created_at, updated_at,
                     profile, metadata, COALESCE(is_anonymous,false) AS is_anonymous,
                     COALESCE(is_project_admin,false) AS is_project_admin
-             FROM auth.users WHERE email = $1 LIMIT 1`,
+             FROM auth.users WHERE lower(email) = $1 LIMIT 1`,
             [email]
         )
         return { data: { user: rows[0] ?? null }, error: null }
@@ -122,23 +122,17 @@ export async function adminGetUserByEmail(
 /**
  * Set a user's password directly by storing its bcrypt hash in auth.users,
  * the hash InsForge sign-in and adminVerifyPassword compare against.
- * Never changes a project admin. With `onlyUnlinked`, it also refuses a user
- * that has any admin_users row (used to adopt an orphan auth user).
- * `updated` is false when no user matched.
+ * Never changes a project admin. `updated` is false when no user matched.
  */
 export async function adminSetUserPassword(
     userId: string,
-    password: string,
-    options: { onlyUnlinked?: boolean } = {}
+    password: string
 ): Promise<{ updated: boolean; error: Error | null }> {
     try {
         const hash = await bcrypt.hash(password, 10)
-        const unlinked = options.onlyUnlinked
-            ? 'AND NOT EXISTS (SELECT 1 FROM public.admin_users a WHERE a.id = $1)'
-            : ''
         const { rows } = await adminRawSql<{ id: string }>(
             `UPDATE auth.users SET password = $2, updated_at = now()
-             WHERE id = $1 AND NOT COALESCE(is_project_admin, false) ${unlinked}
+             WHERE id = $1 AND NOT COALESCE(is_project_admin, false)
              RETURNING id`,
             [userId, hash]
         )
