@@ -204,3 +204,101 @@ test('permission status separates blocked from not asked yet', () => {
   assert.equal(client.resolvePermissionStatus(false, 'default'), 'default')
   assert.equal(client.resolvePermissionStatus(undefined, null), 'default')
 })
+
+test('a device allowed by the browser only counts as active with a push token', () => {
+  const { client } = freshClient()
+  // Subscribing failed or the barber opted out: "Activar" stays offered.
+  assert.equal(client.resolveDeviceStatus('granted', false), 'default')
+  assert.equal(client.resolveDeviceStatus('granted', true), 'granted')
+  assert.equal(client.resolveDeviceStatus('denied', false), 'denied')
+  assert.equal(client.resolveDeviceStatus('default', false), 'default')
+})
+
+test('a tap prompts, opts in or subscribes depending on what the browser already allows', () => {
+  const { client } = freshClient()
+  assert.equal(client.planPermissionRequest(false, false), 'prompt')
+  assert.equal(client.planPermissionRequest(undefined, true), 'prompt')
+  // Allowed but opted out: optIn() first, then requestPermission() if still no token.
+  assert.equal(client.planPermissionRequest(true, false), 'opt-in')
+  // Allowed and opted in, but no token yet: requestPermission() subscribes without asking.
+  assert.equal(client.planPermissionRequest(true, true), 'subscribe')
+})
+
+function requestSdk({ permission = false, optedIn = false, token = null, tokenAfterOptIn = null } = {}) {
+  const calls = []
+  const sdk = {
+    calls,
+    Notifications: {
+      permission,
+      requestPermission: () => { calls.push('requestPermission'); return Promise.resolve(true) },
+    },
+    User: {
+      PushSubscription: {
+        optedIn,
+        token,
+        optIn: async () => {
+          calls.push('optIn')
+          sdk.User.PushSubscription.optedIn = true
+          sdk.User.PushSubscription.token = tokenAfterOptIn
+        },
+      },
+    },
+  }
+  return sdk
+}
+
+test('a permission request asks the browser inside the tap and opts in before subscribing', async () => {
+  const { client } = freshClient()
+
+  // Not allowed yet: the browser prompt opens before the call returns (user gesture).
+  const prompt = requestSdk()
+  const asked = client.startPermissionRequest(prompt)
+  assert.deepEqual(prompt.calls, ['requestPermission'])
+  assert.equal(await asked, true)
+
+  // Opted out and optIn() does not bring a token back: subscribe afterwards.
+  const optedOut = requestSdk({ permission: true })
+  assert.equal(await client.startPermissionRequest(optedOut), true)
+  assert.deepEqual(optedOut.calls, ['optIn', 'requestPermission'])
+
+  // optIn() restored the token: nothing else to ask.
+  const restored = requestSdk({ permission: true, tokenAfterOptIn: 'push-token' })
+  assert.equal(await client.startPermissionRequest(restored), true)
+  assert.deepEqual(restored.calls, ['optIn'])
+
+  // Opted in without a token: subscribe only.
+  const noToken = requestSdk({ permission: true, optedIn: true })
+  await client.startPermissionRequest(noToken)
+  assert.deepEqual(noToken.calls, ['requestPermission'])
+
+  // An SDK that throws gives a rejected request, never an exception in the tap.
+  const broken = requestSdk()
+  broken.Notifications.requestPermission = () => { throw new Error('IndexedDB unavailable') }
+  await assert.rejects(client.startPermissionRequest(broken), /IndexedDB unavailable/)
+})
+
+test('the outcome of a finished request decides the toast', () => {
+  const { client } = freshClient()
+  // accepted = what requestPermission() resolved; false = allowed but subscribing failed.
+  assert.equal(client.classifyPermissionResult(true, 'granted', true), 'subscribed')
+  assert.equal(client.classifyPermissionResult(undefined, 'granted', true), 'subscribed')
+  assert.equal(client.classifyPermissionResult(true, 'granted', false), 'subscribed')
+  assert.equal(client.classifyPermissionResult(undefined, 'granted', false), 'not-subscribed')
+  assert.equal(client.classifyPermissionResult(false, 'granted', true), 'not-subscribed')
+  // The barber closed the browser prompt without choosing.
+  assert.equal(client.classifyPermissionResult(false, 'default', false), 'dismissed')
+  assert.equal(client.classifyPermissionResult(false, 'denied', false), 'blocked')
+})
+
+test('the notifications overlay picks one view for every state', () => {
+  const { client } = freshClient()
+  assert.equal(client.resolvePromptView('unsupported', 'ios-install', 'default'), 'ios-install')
+  assert.equal(client.resolvePromptView('unsupported', 'ios-update', 'default'), 'ios-update')
+  assert.equal(client.resolvePromptView('unsupported', 'unsupported', 'default'), 'unsupported')
+  // The SDK itself said this browser has no web push.
+  assert.equal(client.resolvePromptView('unsupported', 'supported', 'default'), 'unsupported')
+  assert.equal(client.resolvePromptView('failed', 'supported', 'default'), 'failed')
+  assert.equal(client.resolvePromptView('ready', 'supported', 'denied'), 'blocked')
+  assert.equal(client.resolvePromptView('ready', 'supported', 'default'), 'ask')
+  assert.equal(client.resolvePromptView('loading', 'supported', 'default'), 'ask')
+})

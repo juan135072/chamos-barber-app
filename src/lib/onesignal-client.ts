@@ -101,6 +101,78 @@ export function hasPushSubscription(sdk: any): boolean {
 }
 
 // ----------------------------------------------------------------
+// Permission flow decisions (pure, used by OneSignalProvider)
+// ----------------------------------------------------------------
+
+/**
+ * The state the app shows for this device. Allowed by the browser but without
+ * a OneSignal push token (subscribing failed or the barber opted out) is not
+ * active yet, so "Activar" stays offered.
+ */
+export function resolveDeviceStatus(permission: PermissionStatus, subscribed: boolean): PermissionStatus {
+  return permission === 'granted' && !subscribed ? 'default' : permission
+}
+
+/**
+ * How a tap gets this device subscribed:
+ *   prompt    → not allowed yet: the browser asks.
+ *   opt-in    → allowed but opted out: optIn(), then requestPermission() if
+ *               there is still no push token.
+ *   subscribe → allowed and opted in without a token: requestPermission()
+ *               subscribes; it does not ask again once permission is granted.
+ */
+export type PermissionRequestPlan = 'prompt' | 'opt-in' | 'subscribe'
+
+export function planPermissionRequest(sdkPermission: unknown, optedIn: unknown): PermissionRequestPlan {
+  if (sdkPermission !== true) return 'prompt'
+  return optedIn === true ? 'subscribe' : 'opt-in'
+}
+
+/**
+ * Starts the request for a tap. With the 'prompt' plan the browser prompt is
+ * asked before this returns: browsers ignore permission requests made after an
+ * await, so callers must not await anything before calling it. Resolves with
+ * what requestPermission() resolved (false = allowed but the device could not
+ * subscribe); an SDK that throws gives a rejected promise.
+ */
+export function startPermissionRequest(sdk: any): Promise<unknown> {
+  try {
+    const plan = planPermissionRequest(sdk.Notifications.permission, sdk.User?.PushSubscription?.optedIn)
+    if (plan === 'prompt') return Promise.resolve(sdk.Notifications.requestPermission())
+    // Already allowed, so no browser prompt and awaiting is fine.
+    const optIn = plan === 'opt-in' ? sdk.User.PushSubscription.optIn() : undefined
+    return Promise.resolve(optIn).then(() => hasPushSubscription(sdk) || sdk.Notifications.requestPermission())
+  } catch (error) {
+    return Promise.reject(error)
+  }
+}
+
+/**
+ * Outcome of a finished request, from what it resolved (`accepted`), the
+ * browser permission afterwards and whether the device now has a push token:
+ *   subscribed     → success toast, the overlay closes.
+ *   not-subscribed → allowed but no push token: retry toast, the overlay stays.
+ *   dismissed      → the prompt was closed without choosing: the overlay closes.
+ *   blocked        → denied: the overlay shows how to unblock.
+ */
+export type PermissionOutcome = 'subscribed' | 'not-subscribed' | 'dismissed' | 'blocked'
+
+export function classifyPermissionResult(accepted: unknown, status: PermissionStatus, active: boolean): PermissionOutcome {
+  if (status === 'granted') return accepted !== false && (active || accepted === true) ? 'subscribed' : 'not-subscribed'
+  return status === 'denied' ? 'blocked' : 'dismissed'
+}
+
+export type SdkState = 'idle' | 'loading' | 'ready' | 'unsupported' | 'failed'
+export type PromptView = 'ios-install' | 'ios-update' | 'unsupported' | 'failed' | 'blocked' | 'ask'
+
+/** Which content the notifications overlay shows. */
+export function resolvePromptView(sdkState: SdkState, pushSupport: PushSupport, status: PermissionStatus): PromptView {
+  if (sdkState === 'unsupported') return pushSupport === 'ios-install' || pushSupport === 'ios-update' ? pushSupport : 'unsupported'
+  if (sdkState === 'failed') return 'failed'
+  return status === 'denied' ? 'blocked' : 'ask'
+}
+
+// ----------------------------------------------------------------
 // SDK lifecycle
 // ----------------------------------------------------------------
 
