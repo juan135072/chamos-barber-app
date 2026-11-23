@@ -315,3 +315,85 @@ test('a confirmed sign-out still clears the session and redirects to login after
   await advance(1)
   assert.deepEqual(redirects, ['/chamos-acceso'])
 }))
+
+test('a timed-out check frees the 5-minute check, which replaces the pending retry', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  await advance(278000)
+  fire('visibilitychange')
+  await advance(20000) // times out at 298 s; its retry is due at 301 s
+  answer = signedIn
+  await advance(2000)
+  assert.equal(checks.length, 3, 'the 5-minute check runs at 300 s')
+  await advance(30000)
+  assert.equal(checks.length, 3, 'the pending retry was replaced, not doubled')
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+}))
+
+test('a timed-out check that answers late changes nothing (before its retry starts)', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  fire('visibilitychange')
+  await advance(20000)
+  checks[1]({ status: 'signed-out' })
+  await flush()
+  answer = signedIn
+  await advance(3000)
+  assert.equal(checks.length, 3)
+  await advance(2000)
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+  assert.deepEqual(redirects, [])
+}))
+
+test('a timed-out check that answers late changes nothing (after its retry started)', scenario(async (auth) => {
+  await advance(20000)
+  await advance(3000)
+  assert.equal(checks.length, 2)
+  checks[0]({ status: 'signed-out' })
+  await flush()
+  await advance(2000)
+  let state = auth.render()
+  assert.equal(state.loading, true)
+  assert.equal(state.error, null)
+  assert.deepEqual(redirects, [])
+  checks[1](signedIn)
+  await flush()
+  state = auth.render()
+  assert.equal(state.session.barberoId, 'barbero-1')
+  assert.equal(state.loading, false)
+}))
+
+test('the timeout of a superseded check schedules no retry', scenario(async () => {
+  await advance(10000)
+  fire('visibilitychange')
+  await advance(10000)
+  await advance(9999)
+  assert.equal(checks.length, 2)
+  await advance(1)
+  await advance(3000)
+  assert.equal(checks.length, 3)
+  await advance(5999)
+  assert.equal(checks.length, 3)
+}))
+
+test('a timeout after logout neither retries nor restores the session', scenario(async (auth) => {
+  checks[0](signedIn)
+  await flush()
+  fire('visibilitychange')
+  await auth.render().logout()
+  answer = signedIn
+  await advance(20000)
+  await advance(60000)
+  assert.equal(checks.length, 2)
+  assert.equal(auth.render().session, null)
+  assert.deepEqual(redirects, ['/chamos-acceso'])
+}))
+
+test('a check that answers in time leaves no timeout behind', scenario(async () => {
+  const warnings = []
+  console.warn = (message) => warnings.push(String(message))
+  checks[0](signedIn)
+  await flush()
+  await advance(60000)
+  assert.deepEqual(warnings.filter((message) => /no respondió/.test(message)), [])
+}))

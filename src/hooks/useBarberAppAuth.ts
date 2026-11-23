@@ -16,15 +16,17 @@ type AuthOutcome =
   | { status: 'denied'; message: string }
   | { status: 'transient' }
 
-// A check that never answers (a hung request or auth lock) counts as a network
-// failure: it is retried on the backoff schedule instead of blocking every later check.
+// A check that never answers counts as a network failure: it is retried on the
+// backoff schedule instead of blocking every later check (the 5-minute one included).
+// The session restore in app-session.ts is shared and has no timeout of its own, so
+// while that one request hangs, the retries wait on it; the database lookups do restart.
 const CHECK_TIMEOUT_MS = 20000
 
 function withTimeout(check: Promise<AuthOutcome>): Promise<AuthOutcome> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<AuthOutcome>((resolve) => {
     timer = setTimeout(() => {
-      console.warn(`La verificación de sesión del barbero no respondió en ${CHECK_TIMEOUT_MS / 1000} s; se reintentará.`)
+      console.warn(`La verificación de sesión del barbero no respondió en ${CHECK_TIMEOUT_MS / 1000} s.`)
       resolve({ status: 'transient' })
     }, CHECK_TIMEOUT_MS)
   })
