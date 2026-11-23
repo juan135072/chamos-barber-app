@@ -18,6 +18,7 @@ import CitasList from '../../components/barber-app/citas/CitasList'
 import LoadingSpinner from '../../components/barber-app/shared/LoadingSpinner'
 import ModalCobro from '../../components/barber-app/cobro/ModalCobro'
 import toast from 'react-hot-toast'
+import { getChileHoy } from '@/lib/date-utils'
 
 export default function BarberAppPage() {
   const router = useRouter()
@@ -27,8 +28,8 @@ export default function BarberAppPage() {
   )
   const { metricas, loading: metricasLoading } = useMetricasDiarias(session?.barberoId || null)
 
-  // Calcular la próxima cita
-  const hoyStr = new Date().toISOString().split('T')[0]
+  // Calcular la próxima cita (mismo "hoy" de Chile con que useCitasRealtime carga las citas)
+  const hoyStr = getChileHoy()
   const proximaCita = citas
     ? citas
       .filter(c => c.fecha === hoyStr && (c.estado === 'pendiente' || c.estado === 'confirmada'))

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
-import { getChileHoy } from '@/lib/date-utils'
+import { addDays, chileDateRange, finDeMes, getChileHoy, inicioDeMes } from '@/lib/date-utils'
 import { usePermissions } from '@/hooks/usePermissions'
 import toast from 'react-hot-toast'
 
@@ -39,20 +39,14 @@ export default function GananciasTab() {
       let fin = fechaFin
 
       if (tipoFiltro === 'mes') {
-        const fecha = new Date(fechaInicio)
-        inicio = new Date(fecha.getFullYear(), fecha.getMonth(), 1)
-          .toISOString()
-          .split('T')[0]
-        fin = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0)
-          .toISOString()
-          .split('T')[0]
+        inicio = inicioDeMes(fechaInicio)
+        fin = finDeMes(fechaInicio)
       } else if (tipoFiltro === 'dia') {
         fin = fechaInicio
       }
 
-      // Crear fechas con hora para incluir todo el día (sin Z para respetar timezone local)
-      const fechaInicioCompleta = `${inicio}T00:00:00`
-      const fechaFinCompleta = `${fin}T23:59:59`
+      // Días completos de Chile como instantes UTC, igual que el resumen de caja del POS
+      const rango = chileDateRange(inicio, fin)
 
       const [
         { data: facturas, error: errorFacturas },
@@ -62,8 +56,8 @@ export default function GananciasTab() {
           .from('facturas')
           .select('barbero_id, total, comision_barbero, ingreso_casa, porcentaje_comision')
           .eq('comercio_id', usuario!.comercio_id)
-          .gte('created_at', fechaInicioCompleta)
-          .lte('created_at', fechaFinCompleta)
+          .gte('created_at', rango.start)
+          .lt('created_at', rango.end)
           .eq('anulada', false)
           .order('created_at', { ascending: false }),
         (supabase as any)
@@ -173,9 +167,7 @@ export default function GananciasTab() {
   }
 
   const setAyer = () => {
-    const hoy = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Santiago' }))
-    hoy.setDate(hoy.getDate() - 1)
-    const fecha = hoy.toISOString().split('T')[0]
+    const fecha = addDays(getChileHoy(), -1)
     setFechaInicio(fecha)
     setFechaFin(fecha)
     setTipoFiltro('dia')

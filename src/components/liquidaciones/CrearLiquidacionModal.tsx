@@ -16,6 +16,7 @@ import {
   crearLiquidacion,
   formatCLP
 } from '@/lib/supabase-liquidaciones'
+import { addDays, finDeMes, getChileHoy, inicioDeMes } from '@/lib/date-utils'
 
 interface Props {
   barbero: BarberoResumen
@@ -48,12 +49,9 @@ export default function CrearLiquidacionModal({
   // Establecer fechas por defecto (mes actual)
   useEffect(() => {
     if (isOpen && !fechaInicio && !fechaFin) {
-      const hoy = new Date()
-      const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-      const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
-
-      setFechaInicio(primerDia.toISOString().split('T')[0])
-      setFechaFin(ultimoDia.toISOString().split('T')[0])
+      const hoy = getChileHoy()
+      setFechaInicio(inicioDeMes(hoy))
+      setFechaFin(finDeMes(hoy))
     }
   }, [isOpen, fechaInicio, fechaFin])
 
@@ -214,11 +212,9 @@ export default function CrearLiquidacionModal({
             <div className="flex flex-wrap gap-2 mt-3">
               <button
                 onClick={() => {
-                  const hoy = new Date()
-                  const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
-                  const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0)
-                  setFechaInicio(primerDia.toISOString().split('T')[0])
-                  setFechaFin(ultimoDia.toISOString().split('T')[0])
+                  const hoy = getChileHoy()
+                  setFechaInicio(inicioDeMes(hoy))
+                  setFechaFin(finDeMes(hoy))
                 }}
                 className="text-xs px-3 py-1 rounded-full transition-colors"
                 style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}
@@ -230,11 +226,9 @@ export default function CrearLiquidacionModal({
               </button>
               <button
                 onClick={() => {
-                  const hoy = new Date()
-                  const primerDia = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1)
-                  const ultimoDia = new Date(hoy.getFullYear(), hoy.getMonth(), 0)
-                  setFechaInicio(primerDia.toISOString().split('T')[0])
-                  setFechaFin(ultimoDia.toISOString().split('T')[0])
+                  const finMesAnterior = addDays(inicioDeMes(getChileHoy()), -1)
+                  setFechaInicio(inicioDeMes(finMesAnterior))
+                  setFechaFin(finMesAnterior)
                 }}
                 className="text-xs px-3 py-1 rounded-full transition-colors"
                 style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}
@@ -246,11 +240,10 @@ export default function CrearLiquidacionModal({
               </button>
               <button
                 onClick={() => {
-                  const hoy = new Date()
-                  const hace7dias = new Date(hoy)
-                  hace7dias.setDate(hace7dias.getDate() - 7)
-                  setFechaInicio(hace7dias.toISOString().split('T')[0])
-                  setFechaFin(hoy.toISOString().split('T')[0])
+                  // Día de hoy en Chile: en UTC, desde las 21:00 el período terminaba mañana
+                  const hoy = getChileHoy()
+                  setFechaInicio(addDays(hoy, -7))
+                  setFechaFin(hoy)
                 }}
                 className="text-xs px-3 py-1 rounded-full transition-colors"
                 style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}

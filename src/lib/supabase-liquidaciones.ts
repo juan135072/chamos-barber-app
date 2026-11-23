@@ -7,6 +7,7 @@
  */
 
 import { supabase } from './supabase'
+import { formatFechaSolo, formatInstante, parseFechaSolo } from './date-utils'
 
 // =====================================================
 // TIPOS
@@ -381,25 +382,23 @@ export function formatCLP(amount: number | string): string {
 }
 
 /**
- * Formatear fecha
+ * Formatear fecha. Acepta columnas DATE ('YYYY-MM-DD', p. ej. fecha_inicio),
+ * que se muestran tal cual, y timestamptz (created_at, fecha_pago), que se
+ * muestran en hora de Chile.
  */
+function formatFechaLiquidacion(fecha: string, options: Intl.DateTimeFormatOptions): string {
+  return parseFechaSolo(fecha) ? formatFechaSolo(fecha, options) : formatInstante(fecha, options)
+}
+
 export function formatFecha(fecha: string): string {
-  return new Date(fecha).toLocaleDateString('es-CL', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+  return formatFechaLiquidacion(fecha, { year: 'numeric', month: 'long', day: 'numeric' })
 }
 
 /**
  * Formatear fecha corta
  */
 export function formatFechaCorta(fecha: string): string {
-  return new Date(fecha).toLocaleDateString('es-CL', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  })
+  return formatFechaLiquidacion(fecha, { year: 'numeric', month: '2-digit', day: '2-digit' })
 }
 
 /**

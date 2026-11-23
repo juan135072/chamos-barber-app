@@ -3,6 +3,7 @@ import { useSession, useSupabaseClient } from '@/lib/insforge-react'
 import { useRouter } from 'next/router'
 import Head from 'next/head'
 import { chamosSupabase } from '@/lib/supabase-helpers'
+import { getChileHoy } from '@/lib/date-utils'
 import type { Database } from '@/lib/database.types'
 import { useTenant } from '@/context/TenantContext'
 import Logo from '../components/shared/Logo'
@@ -143,7 +144,7 @@ export default function AdminPage() {
       const citasArray = (citasData || []) as Cita[]
       setCitas(citasArray)
 
-      const today = new Date().toISOString().split('T')[0]
+      const today = getChileHoy()
       setStats({
         totalCitas: citasArray.length,
         citasHoy: citasArray.filter((c: Cita) => c.fecha === today).length,

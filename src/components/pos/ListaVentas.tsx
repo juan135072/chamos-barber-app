@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase, UsuarioConPermisos } from '@/lib/supabase'
-import { getChileHoy, chileDateRange } from '@/lib/date-utils'
+import { getChileHoy, chileDateRange, formatFechaSolo } from '@/lib/date-utils'
 import { generarEImprimirFactura, obtenerDatosFactura } from './FacturaTermica'
 import ModalCobrarCita from './ModalCobrarCita'
 import ModalEditarBarberoVenta from './ModalEditarBarberoVenta'
@@ -381,7 +381,7 @@ export default function ListaVentas({ usuario, recargar, onActualizado, sesionCa
                           PENDIENTE
                         </span>
                         <span className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                          {new Date(cita.fecha).toLocaleDateString('es-ES', { month: 'short', day: 'numeric' })} - {cita.hora}
+                          {formatFechaSolo(cita.fecha)} - {cita.hora}
                         </span>
                       </div>
 

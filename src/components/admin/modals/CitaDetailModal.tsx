@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { Plus, Trash, Save, Loader2 } from 'lucide-react'
 import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
+import { formatFechaSolo } from '@/lib/date-utils'
 
 type Servicio = Database['public']['Tables']['servicios']['Row']
 type Cita = Database['public']['Tables']['citas']['Row'] & {
@@ -168,7 +169,7 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
                     <div>
                         <p className="text-xs text-gray-500 uppercase font-bold mb-1">Fecha y Hora</p>
                         <p className="text-white font-medium">
-                            {new Date(cita.fecha).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                            {formatFechaSolo(cita.fecha, { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                         <p className="text-amber-500 font-bold">{cita.hora.substring(0, 5)}</p>
                     </div>

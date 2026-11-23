@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase, Database } from '@/lib/supabase'
 import toast from 'react-hot-toast'
+import { addDays, chileDateRange, fechaEnZona, finDeMes, formatFechaSolo, getChileHoy, inicioDeMes } from '@/lib/date-utils'
 
 type Factura = Database['public']['Tables']['facturas']['Row']
 
@@ -19,12 +20,8 @@ interface GananciasSectionProps {
 export default function GananciasSection({ barberoId }: GananciasSectionProps) {
   const [ganancias, setGanancias] = useState<GananciaDia[]>([])
   const [loading, setLoading] = useState(true)
-  const [fechaInicio, setFechaInicio] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
-  const [fechaFin, setFechaFin] = useState<string>(
-    new Date().toISOString().split('T')[0]
-  )
+  const [fechaInicio, setFechaInicio] = useState<string>(getChileHoy)
+  const [fechaFin, setFechaFin] = useState<string>(getChileHoy)
   const [tipoFiltro, setTipoFiltro] = useState<'dia' | 'rango' | 'mes'>('dia')
 
   useEffect(() => {
@@ -42,28 +39,22 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
       let fin = fechaFin
 
       if (tipoFiltro === 'mes') {
-        const fecha = new Date(fechaInicio)
-        inicio = new Date(fecha.getFullYear(), fecha.getMonth(), 1)
-          .toISOString()
-          .split('T')[0]
-        fin = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0)
-          .toISOString()
-          .split('T')[0]
+        inicio = inicioDeMes(fechaInicio)
+        fin = finDeMes(fechaInicio)
       } else if (tipoFiltro === 'dia') {
         fin = fechaInicio
       }
 
-      // Crear fechas con hora para incluir todo el día
-      const fechaInicioCompleta = `${inicio}T00:00:00.000Z`
-      const fechaFinCompleta = `${fin}T23:59:59.999Z`
+      // Días completos de Chile como instantes UTC (un día UTC empieza a las 21:00 de Chile)
+      const rango = chileDateRange(inicio, fin)
 
       // Obtener facturas del barbero en el rango de fechas (solo las no anuladas)
       const { data: facturas, error: errorFacturas } = await (supabase as any)
         .from('facturas')
         .select('*')
         .eq('barbero_id', barberoId)
-        .gte('created_at', fechaInicioCompleta)
-        .lte('created_at', fechaFinCompleta)
+        .gte('created_at', rango.start)
+        .lt('created_at', rango.end)
         .eq('anulada', false)
         .order('created_at', { ascending: false })
 
@@ -89,7 +80,7 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
         const gananciasMap = new Map<string, GananciaDia>()
 
         facturas?.forEach((factura: Factura) => {
-          const fecha = factura.created_at.split('T')[0]
+          const fecha = fechaEnZona(factura.created_at)
           const existing = gananciasMap.get(fecha)
 
           if (existing) {
@@ -149,30 +140,27 @@ export default function GananciasSection({ barberoId }: GananciasSectionProps) {
   }
 
   const setHoy = () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     setFechaInicio(hoy)
     setFechaFin(hoy)
     setTipoFiltro('dia')
   }
 
   const setAyer = () => {
-    const ayer = new Date()
-    ayer.setDate(ayer.getDate() - 1)
-    const fecha = ayer.toISOString().split('T')[0]
+    const fecha = addDays(getChileHoy(), -1)
     setFechaInicio(fecha)
     setFechaFin(fecha)
     setTipoFiltro('dia')
   }
 
   const setMesActual = () => {
-    const hoy = new Date().toISOString().split('T')[0]
+    const hoy = getChileHoy()
     setFechaInicio(hoy)
     setTipoFiltro('mes')
   }
 
   const formatearFecha = (fecha: string) => {
-    const date = new Date(fecha + 'T12:00:00')
-    return date.toLocaleDateString('es-ES', {
+    return formatFechaSolo(fecha, {
       weekday: 'short',
       day: '2-digit',
       month: 'short',

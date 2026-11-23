@@ -975,11 +975,14 @@ export const chamosSupabase = {
   },
 
   getFacturasSinCierre: async (fechaInicio: string, fechaFin: string) => {
+    // Días completos de Chile como instantes UTC (no los días de la zona de la base)
+    const { chileDateRange } = await import('../src/lib/date-utils')
+    const rango = chileDateRange(fechaInicio, fechaFin)
     const { data, error } = await supabase
       .from('facturas')
       .select('*')
-      .gte('created_at', `${fechaInicio}T00:00:00`)
-      .lte('created_at', `${fechaFin}T23:59:59`)
+      .gte('created_at', rango.start)
+      .lt('created_at', rango.end)
       .is('cierre_caja_id', null)
       .eq('anulada', false)
 

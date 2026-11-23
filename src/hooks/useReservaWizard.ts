@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import type { Database } from '@/lib/database.types'
-import { getChileHoy, getChileAhora } from '@/lib/date-utils'
+import { addDays, getChileHoy, horaMasMinutos } from '@/lib/date-utils'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
 type Servicio = Database['public']['Tables']['servicios']['Row']
@@ -154,16 +154,8 @@ export function useReservaWizard() {
   const calculateEndTime = (startTime: string) => {
     if (!startTime) return ''
     const { duracionServicios } = calcularTotales()
-    const [hours, minutes] = startTime.split(':').map(Number)
-    const date = getChileAhora()
-    date.setHours(hours)
-    date.setMinutes(minutes + (duracionServicios || 30))
-    return date.toLocaleTimeString('es-CL', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: false,
-      timeZone: 'America/Santiago'
-    }).substring(0, 5)
+    // Aritmética de reloj (hora de Chile): no depende de la zona del navegador
+    return horaMasMinutos(startTime, duracionServicios || 30)
   }
 
   const handleSubmit = async () => {
@@ -221,11 +213,7 @@ export function useReservaWizard() {
   }
 
   const getMinDate = () => getChileHoy()
-  const getMaxDate = () => {
-    const maxDate = new Date()
-    maxDate.setDate(maxDate.getDate() + 30)
-    return maxDate.toISOString().split('T')[0]
-  }
+  const getMaxDate = () => addDays(getChileHoy(), 30)
 
   return {
     currentStep,

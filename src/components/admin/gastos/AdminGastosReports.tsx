@@ -4,12 +4,12 @@ import { toast } from 'react-hot-toast'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import * as XLSX from 'xlsx'
-import { format } from 'date-fns'
+import { formatFechaSoloNumerica, getChileHoy } from '@/lib/date-utils'
 import { es } from 'date-fns/locale'
 
 export default function AdminGastosReports() {
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
-    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
+    const [startDate, setStartDate] = useState(getChileHoy)
+    const [endDate, setEndDate] = useState(getChileHoy)
     const [loading, setLoading] = useState(false)
 
     const fetchReportData = async () => {
@@ -57,7 +57,7 @@ export default function AdminGastosReports() {
 
         // Table
         const tableData = data.map((item: any) => [
-            format(new Date(item.fecha), 'dd/MM/yyyy'),
+            formatFechaSoloNumerica(item.fecha),
             item.descripcion,
             item.categoria?.nombre || '-',
             item.tipo,
