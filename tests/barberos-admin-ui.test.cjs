@@ -144,3 +144,88 @@ test('the barber list shows a load error instead of "No hay barberos registrados
   barberosHook = { barberos: [], loading: false, error: null, refetch: async () => {} }
   assert.ok(JSON.stringify(render(BarberosTab, {}).tree).includes('No hay barberos registrados'))
 })
+
+// --- T3 / S2: access buttons in the barber list -----------------------------
+
+const ConfirmDialog = require('../src/components/admin/shared/ConfirmDialog.tsx').default
+// BarberosTab useState order: selectedBarbero, showModal, showDeleteDialog,
+// showPermanentDeleteModal, barberoToDelete, deleting, cuentas, cuentasError,
+// cuentasVersion, accesoPendiente, generandoAcceso, credenciales.
+const TAB = { CUENTAS: 6, CUENTAS_ERROR: 7, ACCESO: 9, CREDENCIALES: 11 }
+const conCuenta = { id: 'b-con', nombre: 'Gustavo', apellido: 'Díaz', email: 'gustavo@chamos.test', activo: true }
+const sinCuenta = { id: 'b-sin', nombre: 'Franco', apellido: 'Soto', email: 'franco@chamos.test', activo: true }
+const sinEmail = { id: 'b-email', nombre: 'Hingover', apellido: 'Ruiz', email: null, activo: true }
+const cuentas = { 'b-con': { barbero_id: 'b-con', email: 'gustavo@chamos.test', activo: true, rol: 'barbero' } }
+const lista = { barberos: [conCuenta, sinCuenta, sinEmail], loading: false, error: null, refetch: async () => {} }
+const generada = { email: 'gustavo@chamos.test', password: 'Chamosabcdefgh!1234', accion: 'nueva' }
+
+test('each barber offers "Crear acceso" or "Nueva contraseña", or asks for an email first', () => {
+  reset(); barberosHook = lista
+  const { tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: cuentas })
+  // React.Children.toArray prefixes keys, e.g. '.1:$b-con'.
+  const row = (id) => find(tree, (n) => n.type === 'tr' && String(n.key).endsWith('$' + id))
+  const button = (id, title) => find(row(id), (n) => n.type === 'button' && n.props.title === title)
+  assert.ok(button('b-con', 'Nueva contraseña'))
+  assert.equal(button('b-con', 'Crear acceso'), null)
+  assert.ok(button('b-sin', 'Crear acceso'))
+  assert.equal(button('b-sin', 'Nueva contraseña'), null)
+  assert.equal(button('b-email', 'Crear acceso') || button('b-email', 'Nueva contraseña'), null)
+  assert.ok(JSON.stringify(row('b-email')).includes('Agrega un email'))
+  assert.ok(!/Resetear Contraseña|Email enviado|Se envió un email/.test(JSON.stringify(tree)), 'no reset-email copy')
+
+  button('b-con', 'Nueva contraseña').props.onClick()
+  button('b-sin', 'Crear acceso').props.onClick()
+  assert.deepEqual(setters.filter(([i]) => i === TAB.ACCESO).map(([, v]) => v), [{ barbero: conCuenta, accion: 'nueva' }, { barbero: sinCuenta, accion: 'crear' }])
+})
+
+test('confirming "Nueva contraseña" shows the generated password once', async () => {
+  reset(); barberosHook = lista
+  const calls = []
+  helpers.generarCredencialesBarbero = async (...args) => { calls.push(args); return generada }
+  const { tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: cuentas, [TAB.ACCESO]: { barbero: conCuenta, accion: 'nueva' } })
+  const dialog = find(tree, (n) => n.type === ConfirmDialog && n.props.title === 'Nueva contraseña')
+  assert.equal(dialog.props.isOpen, true)
+  assert.match(dialog.props.message, /Gustavo Díaz/)
+  assert.match(dialog.props.message, /una sola vez/)
+  await dialog.props.onConfirm()
+  assert.deepEqual(calls, [['b-con', 'nueva']])
+  const shown = setters.filter(([i]) => i === TAB.CREDENCIALES).map(([, v]) => v)
+  assert.equal(shown.length, 1)
+  assert.deepEqual([shown[0].email, shown[0].password], [generada.email, generada.password])
+  assert.ok(!toasts.some(([kind]) => kind === 'error'))
+
+  const modal = find(render(BarberosTab, {}, { [TAB.CREDENCIALES]: shown[0] }).tree, (n) => n.type === CredencialesModal)
+  assert.deepEqual([modal.props.email, modal.props.password], [generada.email, generada.password])
+  assert.equal(find(render(BarberosTab, {}).tree, (n) => n.type === CredencialesModal), null)
+})
+
+test('a refused credential request shows the server error and no password', async () => {
+  reset(); barberosHook = lista
+  helpers.generarCredencialesBarbero = async () => { throw new Error('Este barbero aún no tiene acceso. Usa "Crear acceso".') }
+  const { tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: {}, [TAB.ACCESO]: { barbero: sinCuenta, accion: 'nueva' } })
+  await find(tree, (n) => n.type === ConfirmDialog && n.props.title === 'Nueva contraseña').props.onConfirm()
+  assert.deepEqual(setters.filter(([i]) => i === TAB.CREDENCIALES), [])
+  assert.deepEqual(toasts.filter(([kind]) => kind === 'error').map(([, m]) => m), ['Este barbero aún no tiene acceso. Usa "Crear acceso".'])
+})
+
+test('the list says when it cannot tell which barbers have access', () => {
+  reset(); barberosHook = lista
+  const { tree } = render(BarberosTab, {}, { [TAB.CUENTAS_ERROR]: 'No se pudieron cargar las cuentas de acceso.' })
+  const text = JSON.stringify(tree)
+  assert.ok(text.includes('No se pudo verificar qué barberos tienen acceso'))
+  assert.equal(find(tree, (n) => n.type === 'button' && (n.props.title === 'Crear acceso' || n.props.title === 'Nueva contraseña')), null)
+})
+
+test('the credential helpers call the admin endpoints and surface their errors', async () => {
+  stubModule('../lib/initSupabase.ts', { supabase: {} })
+  const { chamosSupabase } = require('../lib/supabase-helpers.ts')
+  const sent = []
+  global.fetch = async (url, options = {}) => {
+    sent.push([url, options.method || 'GET', options.body && JSON.parse(options.body)])
+    if (url === '/api/barberos/cuentas') return { ok: true, status: 200, json: async () => ({ cuentas: [cuentas['b-con']] }) }
+    return { ok: false, status: 409, json: async () => ({ error: 'Este barbero ya tiene acceso. Usa "Nueva contraseña".' }) }
+  }
+  assert.deepEqual(await chamosSupabase.getCuentasBarberos(), [cuentas['b-con']])
+  await assert.rejects(chamosSupabase.generarCredencialesBarbero('b-con', 'crear'), /ya tiene acceso/)
+  assert.deepEqual(sent, [['/api/barberos/cuentas', 'GET', undefined], ['/api/barberos/credenciales', 'POST', { barberoId: 'b-con', accion: 'crear' }]])
+})

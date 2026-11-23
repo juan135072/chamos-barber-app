@@ -170,6 +170,17 @@ export async function checkAccountEmail(
     return { ok: true, adoptUserId: user.id }
 }
 
+/**
+ * The login account to act on among those linked to a barber: the only one,
+ * or the one with the barber's email. Null when it is ambiguous or missing.
+ */
+export function pickBarberAccount<T extends { email?: string | null }>(accounts: T[], barberEmail: unknown): T | null {
+    if (accounts.length === 1) return accounts[0]
+    const email = normalizeEmail(barberEmail)
+    const matches = email ? accounts.filter((account) => normalizeEmail(account.email) === email) : []
+    return matches.length === 1 ? matches[0] : null
+}
+
 export type BarberForAccount = {
     id: string
     nombre?: string | null

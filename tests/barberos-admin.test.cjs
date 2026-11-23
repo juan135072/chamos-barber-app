@@ -325,3 +325,118 @@ test('create gives a 409 for an email of a deactivated barber', async () => {
   assert.match(res.body.error, /Carolina Rojas.*desactivado/)
   assert.deepEqual(db.calls.inserts, [])
 })
+
+// --- T3 / S2: credentials for existing barbers ------------------------------
+
+const cuentaDe = (b, overrides = {}) => ({ id: randomUUID(), email: b.email, nombre: `${b.nombre} ${b.apellido}`, rol: 'barbero', activo: true, comercio_id: TENANT, barbero_id: b.id, ...overrides })
+const usuarioDe = (cuenta, overrides = {}) => ({ id: cuenta.id, email: cuenta.email, is_project_admin: false, ...overrides })
+
+test('a barber without an account gets one, and its password is returned once', async () => {
+  const b = barbero({ email: 'Luis@Chamos.test' })
+  setup({ barberos: [b] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.getHeader('cache-control'), 'no-store')
+  assert.equal(auth.created.length, 1)
+  assert.equal(auth.created[0].email, 'luis@chamos.test')
+  assert.deepEqual(inserts('admin_users'), [{ id: auth.created[0].id, email: 'luis@chamos.test', nombre: 'Ana Pérez', rol: 'barbero', barbero_id: b.id, comercio_id: TENANT, activo: true }])
+  assert.deepEqual(res.body, { success: true, accion: 'crear', cuenta_creada: true, email: 'luis@chamos.test', password: auth.created[0].password })
+  assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
+})
+
+test('creating access adopts an orphan auth user, and refuses one that is in use', async () => {
+  const b = barbero()
+  const orphan = { id: randomUUID(), email: b.email, is_project_admin: false }
+  setup({ barberos: [b], users: [orphan] })
+  let res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(auth.passwords, [{ id: orphan.id, password: res.body.password, onlyUnlinked: true }])
+  assert.equal(inserts('admin_users')[0].id, orphan.id)
+  assert.equal(auth.created.length, 0)
+
+  setup({ barberos: [b], users: [orphan], admin_users: [{ id: orphan.id, email: 'otro@otro.test', nombre: 'X', rol: 'admin', activo: true, comercio_id: OTHER_TENANT, barbero_id: null }] })
+  res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 409)
+  assert.equal(res.body.password, undefined)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length], [0, 0, 0])
+})
+
+test('a barber without an email gets a hint to add one first', async () => {
+  const b = barbero({ email: null })
+  setup({ barberos: [b] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 400)
+  assert.match(res.body.error, /Agrega un email/)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length], [0, 0])
+})
+
+test('"Nueva contraseña" sets a new temporary password on the barber account', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  const segunda = cuentaDe(b, { email: 'ana.vieja@chamos.test' })
+  setup({ barberos: [b], admin_users: [segunda, cuenta], users: [usuarioDe(segunda), usuarioDe(cuenta)] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.getHeader('cache-control'), 'no-store')
+  assert.deepEqual(res.body, { success: true, accion: 'nueva', email: b.email, password: auth.passwords[0]?.password })
+  assert.deepEqual(auth.passwords, [{ id: cuenta.id, password: res.body.password, onlyUnlinked: false }], 'the account with the barber email')
+  assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length], [0, 0])
+})
+
+test('no password is generated for another role, the admin itself, or another shop', async () => {
+  const b = barbero()
+  for (const cuenta of [cuentaDe(b, { rol: 'admin' }), cuentaDe(b, { id: ADMIN })]) {
+    setup({ barberos: [b], admin_users: cuenta.id === ADMIN ? [] : [cuenta], users: [usuarioDe(cuenta)] })
+    if (cuenta.id === ADMIN) Object.assign(db.tables.admin_users[0], { barbero_id: b.id })
+    const res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
+    assert.equal(res.statusCode, 409)
+    assert.match(res.body.error, /propio perfil/)
+    assert.equal(res.body.password, undefined)
+    assert.deepEqual(auth.passwords, [])
+  }
+  const ajeno = barbero({ comercio_id: OTHER_TENANT })
+  setup({ barberos: [ajeno], admin_users: [cuentaDe(ajeno, { comercio_id: OTHER_TENANT })] })
+  const res = await call('credenciales', { barberoId: ajeno.id, accion: 'nueva' })
+  assert.equal(res.statusCode, 404)
+  assert.deepEqual([auth.passwords.length, db.calls.inserts.length], [0, 0])
+})
+
+test('the requested action must match whether the barber has an account', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)] })
+  let res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /ya tiene acceso/)
+  setup({ barberos: [b] })
+  res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /aún no tiene acceso/)
+  assert.deepEqual([auth.passwords.length, auth.created.length, db.calls.inserts.length], [0, 0, 0])
+})
+
+test('only an admin can generate credentials', async () => {
+  const b = barbero()
+  setup({ barberos: [b] })
+  db.tables.admin_users[0].rol = 'cajero'
+  const res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 403)
+  assert.deepEqual([auth.created.length, db.calls.inserts.length], [0, 0])
+})
+
+test('cuentas lists the barber accounts of the shop, without secrets', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta, cuentaDe(barbero(), { comercio_id: OTHER_TENANT })] })
+  const res = await call('cuentas', undefined, { method: 'GET' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { cuentas: [{ barbero_id: b.id, email: b.email, activo: true, rol: 'barbero' }] })
+})
+
+test('reset-password no longer promises an email that cannot be completed', async () => {
+  setup()
+  const res = await call('reset-password', { barberoId: randomUUID() })
+  assert.equal(res.statusCode, 410)
+  assert.match(res.body.error, /Nueva contraseña/)
+})

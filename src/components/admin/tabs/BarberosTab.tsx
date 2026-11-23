@@ -1,15 +1,15 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { chamosSupabase } from '@/lib/supabase-helpers'
-import { supabase } from '@/lib/supabase'
 import type { Database } from '@/lib/database.types'
-import Modal from '../shared/Modal'
 import ConfirmDialog from '../shared/ConfirmDialog'
-import BarberoModal from '../modals/BarberoModal'
+import BarberoModal, { CredencialesModal } from '../modals/BarberoModal'
 import PermanentDeleteModal from '../modals/PermanentDeleteModal'
 import toast from 'react-hot-toast'
 import { useBarberos } from '@/hooks/useBarberos'
 
 type Barbero = Database['public']['Tables']['barberos']['Row']
+type CuentaBarbero = { barbero_id: string; email: string; activo: boolean; rol: string }
+type AccionAcceso = 'crear' | 'nueva'
 
 const BarberosTab: React.FC = () => {
   // Sin soloActivos → devuelve todos (activos e inactivos) para gestión admin
@@ -21,11 +21,30 @@ const BarberosTab: React.FC = () => {
   const [barberoToDelete, setBarberoToDelete] = useState<Barbero | null>(null)
   const [deleting, setDeleting] = useState(false)
 
-  // Estados para Reset Password
-  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false)
-  const [barberoToReset, setBarberoToReset] = useState<Barbero | null>(null)
-  const [resettingPassword, setResettingPassword] = useState(false)
-  const [resetSent, setResetSent] = useState(false)
+  // Login accounts by barbero_id; null until loaded.
+  const [cuentas, setCuentas] = useState<Record<string, CuentaBarbero> | null>(null)
+  const [cuentasError, setCuentasError] = useState<string | null>(null)
+  const [cuentasVersion, setCuentasVersion] = useState(0)
+  // "Crear acceso" / "Nueva contraseña" waiting for confirmation, and its result (shown once).
+  const [accesoPendiente, setAccesoPendiente] = useState<{ barbero: Barbero; accion: AccionAcceso } | null>(null)
+  const [generandoAcceso, setGenerandoAcceso] = useState(false)
+  const [credenciales, setCredenciales] = useState<{ email: string; password: string; accion: AccionAcceso; nombre: string } | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    chamosSupabase.getCuentasBarberos()
+      .then((lista) => {
+        if (cancelled) return
+        setCuentas(Object.fromEntries(lista.map((cuenta) => [cuenta.barbero_id, cuenta])))
+        setCuentasError(null)
+      })
+      .catch((error: any) => {
+        if (!cancelled) setCuentasError(error?.message || 'No se pudieron cargar las cuentas de acceso')
+      })
+    return () => { cancelled = true }
+  }, [cuentasVersion])
+
+  const reloadCuentas = () => setCuentasVersion((version) => version + 1)
 
   const handleCreate = () => {
     setSelectedBarbero(null)
@@ -97,53 +116,24 @@ const BarberosTab: React.FC = () => {
     }
   }
 
-  const handleResetPassword = (barbero: Barbero) => {
-    setBarberoToReset(barbero)
-    setResetSent(false)
-    setShowResetPasswordModal(true)
+  const confirmAcceso = async () => {
+    if (!accesoPendiente) return
+    const { barbero, accion } = accesoPendiente
+    try {
+      setGenerandoAcceso(true)
+      const result = await chamosSupabase.generarCredencialesBarbero(barbero.id, accion)
+      setCredenciales({ ...result, nombre: `${barbero.nombre} ${barbero.apellido}` })
+      setAccesoPendiente(null)
+    } catch (error: any) {
+      toast.error(error.message || 'No se pudieron generar las credenciales')
+    } finally {
+      setGenerandoAcceso(false)
+    }
   }
 
-  const confirmResetPassword = async () => {
-    if (!barberoToReset) return
-
-    console.log('🔑 FRONTEND: Reseteando contraseña para barbero:', barberoToReset.id)
-
-    try {
-      setResettingPassword(true)
-      
-      // Obtener el admin user ID actual
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) {
-        throw new Error('No se pudo obtener el usuario admin')
-      }
-
-      const response = await fetch('/api/barberos/reset-password', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${(supabase as any).tokenManager?.getAccessToken?.() || ''}`
-              },
-              body: JSON.stringify({
-                barberoId: barberoToReset.id
-              })
-            })
-
-      const data = await response.json()
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Error enviando email de reset')
-      }
-
-      setResetSent(true)
-      toast.success('Email de reseteo enviado al barbero')
-    } catch (error: any) {
-      console.error('❌ FRONTEND: Error resetting password:', error)
-      toast.error(error.message || 'Error al resetear contraseña')
-      setShowResetPasswordModal(false)
-      setBarberoToReset(null)
-    } finally {
-      setResettingPassword(false)
-    }
+  const closeCredenciales = () => {
+    setCredenciales(null)
+    reloadCuentas()
   }
 
   const handleToggleActive = async (barbero: Barbero) => {
@@ -171,6 +161,7 @@ const BarberosTab: React.FC = () => {
   const handleModalSuccess = () => {
     setShowModal(false)
     loadBarberos()
+    reloadCuentas()
   }
 
   if (loading) {
@@ -200,6 +191,13 @@ const BarberosTab: React.FC = () => {
           Nuevo Barbero
         </button>
       </div>
+
+      {cuentasError && (
+        <div className="mb-4 p-3 rounded-lg text-sm text-red-400" style={{ border: '1px solid rgba(239, 68, 68, 0.4)' }}>
+          No se pudo verificar qué barberos tienen acceso: {cuentasError}{' '}
+          <button onClick={reloadCuentas} className="underline">Reintentar</button>
+        </div>
+      )}
 
       <div className="shadow rounded-lg overflow-x-auto" style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
         <table className="min-w-full" style={{ borderTop: '1px solid var(--border-color)' }}>
@@ -319,17 +317,32 @@ const BarberosTab: React.FC = () => {
                         <i className="fas fa-edit"></i>
                       </button>
 
-                      {/* Botón Reset Password */}
-                      {barbero.email && (
+                      {/* Acceso: crear la cuenta o generar una contraseña temporal */}
+                      {cuentas && (cuentas[barbero.id] ? (
                         <button
-                          onClick={() => handleResetPassword(barbero)}
-                          className="text-blue-400 hover:text-blue-300"
+                          onClick={() => setAccesoPendiente({ barbero, accion: 'nueva' })}
+                          className="text-blue-400 hover:text-blue-300 text-xs"
                           style={{ transition: 'var(--transition)' }}
-                          title="Resetear Contraseña"
+                          title="Nueva contraseña"
                         >
-                          <i className="fas fa-key"></i>
+                          <i className="fas fa-key mr-1"></i>
+                          Nueva contraseña
                         </button>
-                      )}
+                      ) : barbero.email ? (
+                        <button
+                          onClick={() => setAccesoPendiente({ barbero, accion: 'crear' })}
+                          className="text-blue-400 hover:text-blue-300 text-xs"
+                          style={{ transition: 'var(--transition)' }}
+                          title="Crear acceso"
+                        >
+                          <i className="fas fa-user-plus mr-1"></i>
+                          Crear acceso
+                        </button>
+                      ) : (
+                        <span className="text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+                          Agrega un email para crear su acceso
+                        </span>
+                      ))}
                       
                       {/* Dropdown Menu for Delete Options */}
                       <div className="relative group">
@@ -426,148 +439,30 @@ const BarberosTab: React.FC = () => {
         loading={deleting}
       />
 
-      {/* Modal para Reset Password */}
-      {showResetPasswordModal && barberoToReset && (
-        <Modal
-          isOpen={showResetPasswordModal}
-          onClose={() => {
-            setShowResetPasswordModal(false)
-            setBarberoToReset(null)
-            setResetSent(false)
-          }}
-          title="Resetear Contraseña"
-        >
-          <div className="space-y-4">
-            {!resetSent ? (
-              <>
-                <p style={{ color: 'var(--text-primary)' }}>
-                  ¿Estás seguro de resetear la contraseña de:
-                </p>
-                <div 
-                  className="p-4 rounded-lg"
-                  style={{ 
-                    backgroundColor: 'var(--bg-tertiary)',
-                    border: '1px solid var(--border-color)'
-                  }}
-                >
-                  <div className="flex items-center space-x-3">
-                    <img
-                      src={barberoToReset.imagen_url || 'https://via.placeholder.com/40'}
-                      alt={`${barberoToReset.nombre} ${barberoToReset.apellido}`}
-                      className="w-12 h-12 rounded-full object-cover"
-                      style={{ border: '2px solid var(--border-color)' }}
-                    />
-                    <div>
-                      <div className="font-bold" style={{ color: 'var(--text-primary)' }}>
-                        {barberoToReset.nombre} {barberoToReset.apellido}
-                      </div>
-                      <div className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                        {barberoToReset.email}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div 
-                  className="p-3 rounded-lg flex items-start space-x-2"
-                  style={{ 
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)'
-                  }}
-                >
-                  <i className="fas fa-info-circle text-blue-400 mt-0.5"></i>
-                  <div className="text-sm text-blue-400">
-                    Se generará una nueva contraseña segura automáticamente.
-                    La contraseña actual dejará de funcionar.
-                  </div>
-                </div>
-                <div className="flex justify-end space-x-2 pt-4">
-                  <button
-                    onClick={() => {
-                      setShowResetPasswordModal(false)
-                      setBarberoToReset(null)
-                    }}
-                    className="px-4 py-2 rounded-lg"
-                    style={{ 
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--text-primary)',
-                      border: '1px solid var(--border-color)'
-                    }}
-                    disabled={resettingPassword}
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={confirmResetPassword}
-                    className="px-4 py-2 rounded-lg text-white"
-                    style={{ backgroundColor: '#3b82f6' }}
-                    disabled={resettingPassword}
-                  >
-                    {resettingPassword ? (
-                      <>
-                        <i className="fas fa-spinner fa-spin mr-2"></i>
-                        Reseteando...
-                      </>
-                    ) : (
-                      <>
-                        <i className="fas fa-key mr-2"></i>
-                        Resetear Contraseña
-                      </>
-                    )}
-                  </button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div
-                  className="p-4 rounded-lg text-center"
-                  style={{
-                    backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                    border: '1px solid rgba(59, 130, 246, 0.3)'
-                  }}
-                >
-                  <i className="fas fa-envelope-circle-check text-blue-400 text-4xl mb-3"></i>
-                  <h3 className="text-lg font-bold text-blue-400 mb-2">
-                    Email enviado
-                  </h3>
-                  <p className="text-sm text-blue-300">
-                    Se envió un email a <strong>{barberoToReset.email}</strong> con instrucciones para crear una nueva contraseña.
-                  </p>
-                </div>
+      {/* Confirmación de "Crear acceso" / "Nueva contraseña" */}
+      <ConfirmDialog
+        isOpen={!!accesoPendiente}
+        onClose={() => setAccesoPendiente(null)}
+        onConfirm={confirmAcceso}
+        title={accesoPendiente?.accion === 'nueva' ? 'Nueva contraseña' : 'Crear acceso'}
+        message={accesoPendiente?.accion === 'nueva'
+          ? `Se generará una contraseña temporal para ${accesoPendiente.barbero.nombre} ${accesoPendiente.barbero.apellido}. Su contraseña actual dejará de funcionar y la nueva se mostrará una sola vez.`
+          : `Se creará el acceso de ${accesoPendiente?.barbero.nombre} ${accesoPendiente?.barbero.apellido} con el email ${accesoPendiente?.barbero.email} y una contraseña temporal que se mostrará una sola vez.`}
+        confirmText={accesoPendiente?.accion === 'nueva' ? 'Generar contraseña' : 'Crear acceso'}
+        type="info"
+        loading={generandoAcceso}
+      />
 
-                <div
-                  className="p-3 rounded-lg flex items-start space-x-2"
-                  style={{
-                    backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                    border: '1px solid rgba(59, 130, 246, 0.2)'
-                  }}
-                >
-                  <i className="fas fa-info-circle text-blue-400 mt-0.5"></i>
-                  <div className="text-sm text-blue-300">
-                    Si el barbero no recibe el email, revisá la carpeta de spam.
-                  </div>
-                </div>
-
-                <div className="flex justify-end pt-4">
-                  <button
-                    onClick={() => {
-                      setResetSent(false)
-                      setShowResetPasswordModal(false)
-                      setBarberoToReset(null)
-                    }}
-                    className="px-4 py-2 rounded-lg"
-                    style={{
-                      backgroundColor: 'var(--accent-color)',
-                      color: '#000'
-                    }}
-                  >
-                    <i className="fas fa-check mr-2"></i>
-                    Entendido
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </Modal>
+      {/* Credenciales generadas: se muestran una sola vez */}
+      {credenciales && (
+        <CredencialesModal
+          isOpen
+          onClose={closeCredenciales}
+          titulo={credenciales.accion === 'nueva' ? 'Nueva contraseña generada' : 'Acceso creado'}
+          mensaje={`Credenciales de ${credenciales.nombre}`}
+          email={credenciales.email}
+          password={credenciales.password}
+        />
       )}
     </div>
   )
