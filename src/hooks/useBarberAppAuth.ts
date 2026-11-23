@@ -8,15 +8,30 @@ import { useRouter } from 'next/router'
 import { supabase } from '../lib/supabase'
 import { checkAppSession, isNoRowsError } from '../lib/app-session'
 import { logoutOneSignal } from '../lib/onesignal-client'
+import { createRetryBackoff } from '../lib/insforge-react'
 import type { BarberoSession } from '../types/barber-app'
-
-// Sin conexión o servidor caído no es un cierre de sesión: se reintenta en silencio.
-const RETRY_MS = 5000
 
 type AuthOutcome =
   | { status: 'ok'; session: BarberoSession }
   | { status: 'denied'; message: string }
   | { status: 'transient' }
+
+// A check that never answers counts as a network failure: it is retried on the
+// backoff schedule instead of blocking every later check (the 5-minute one included).
+// The session restore in app-session.ts is shared and has no timeout of its own, so
+// while that one request hangs, the retries wait on it; the database lookups do restart.
+const CHECK_TIMEOUT_MS = 20000
+
+function withTimeout(check: Promise<AuthOutcome>): Promise<AuthOutcome> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const timeout = new Promise<AuthOutcome>((resolve) => {
+    timer = setTimeout(() => {
+      console.warn(`La verificación de sesión del barbero no respondió en ${CHECK_TIMEOUT_MS / 1000} s.`)
+      resolve({ status: 'transient' })
+    }, CHECK_TIMEOUT_MS)
+  })
+  return Promise.race([check, timeout]).finally(() => clearTimeout(timer))
+}
 
 async function resolveBarberoSession(): Promise<AuthOutcome> {
   const denied = (message: string): AuthOutcome => ({ status: 'denied', message })
@@ -71,13 +86,21 @@ export function useBarberAppAuth() {
   const [error, setError] = useState<string | null>(null)
   const sessionRef = useRef<BarberoSession | null>(null)
   const retryTimer = useRef<ReturnType<typeof setTimeout>>()
+  // Sin conexión o servidor caído no es un cierre de sesión: se reintenta en
+  // silencio con el mismo calendario que useSession (3 s, 6 s, 12 s … 30 s).
+  const backoff = useRef(createRetryBackoff())
+  // Solo la verificación más reciente puede cambiar el estado: una más vieja
+  // que responde tarde (p. ej. "sin sesión" de antes del login) se descarta.
+  const latestCheck = useRef(0)
+  const checkInFlight = useRef(false)
   const mounted = useRef(true)
 
   useEffect(() => {
     mounted.current = true
     checkAuth()
 
-    // Re-check on tab focus or reconnect — catches expired sessions when the user returns to the tab
+    // Re-check on tab focus or reconnect — catches expired sessions when the user returns to the tab.
+    // These start a fresh check even if one is pending: that one may hang from the background or offline.
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') checkAuth()
     }
@@ -85,7 +108,7 @@ export function useBarberAppAuth() {
     window.addEventListener('online', checkAuth)
 
     // Periodic check every 5 minutes — redirects if the refresh token has expired
-    const interval = setInterval(checkAuth, 5 * 60 * 1000)
+    const interval = setInterval(checkIfIdle, 5 * 60 * 1000)
 
     return () => {
       mounted.current = false
@@ -96,7 +119,13 @@ export function useBarberAppAuth() {
     }
   }, [])
 
+  const checkIfIdle = () => {
+    if (!checkInFlight.current) checkAuth()
+  }
+
   const checkAuth = async () => {
+    const check = ++latestCheck.current
+    checkInFlight.current = true
     clearTimeout(retryTimer.current)
     // Después de la primera verificación, las siguientes corren en segundo plano (sin spinner).
     const background = sessionRef.current !== null
@@ -107,18 +136,20 @@ export function useBarberAppAuth() {
 
     let outcome: AuthOutcome
     try {
-      outcome = await resolveBarberoSession()
+      outcome = await withTimeout(resolveBarberoSession())
     } catch (err) {
       console.warn('No se pudo verificar la sesión del barbero:', err)
       outcome = { status: 'transient' }
     }
-    if (!mounted.current) return
+    if (!mounted.current || check !== latestCheck.current) return
+    checkInFlight.current = false
 
     if (outcome.status === 'transient') {
       // Mantener la sesión actual (o el spinner inicial) y reintentar.
-      retryTimer.current = setTimeout(checkAuth, RETRY_MS)
+      retryTimer.current = setTimeout(checkAuth, backoff.current.next())
       return
     }
+    backoff.current.reset()
 
     if (outcome.status === 'ok') {
       // Mismo contenido = mismo objeto: evita re-renderizar y recargar la agenda.
@@ -146,6 +177,10 @@ export function useBarberAppAuth() {
     await logoutOneSignal()
     try {
       await supabase.auth.signOut()
+      // Una verificación iniciada antes (o su reintento) ya no puede devolver la sesión.
+      latestCheck.current++
+      checkInFlight.current = false
+      clearTimeout(retryTimer.current)
       sessionRef.current = null
       setSession(null)
       router.push('/chamos-acceso')

@@ -3,18 +3,20 @@
  * 🔔 ONESIGNAL PROVIDER
  * =====================================================
  * Inicializa OneSignal (Web SDK v16) y maneja permisos de notificaciones.
- * La carga, login y logout viven en @/lib/onesignal-client.
+ * La carga, login y logout, y las decisiones del flujo de permisos (estado,
+ * pedido, resultado y vista del overlay), viven en @/lib/onesignal-client.
  */
 
 'use client'
 
-import React, { useEffect, useState, createContext, useContext, useCallback } from 'react'
+import React, { useEffect, useRef, useState, createContext, useContext, useCallback } from 'react'
 import { Bell, BellOff, Smartphone, X } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import toast from 'react-hot-toast'
 import {
   ONESIGNAL_APP_ID,
   canRetryOneSignalLoad,
+  classifyPermissionResult,
   detectPushSupport,
   getReadyOneSignal,
   hasPushSubscription,
@@ -22,13 +24,15 @@ import {
   loadOneSignal,
   readNativePermission,
   readPushEnvironment,
+  resolveDeviceStatus,
   resolvePermissionStatus,
+  resolvePromptView,
   sendOneSignalTags,
+  startPermissionRequest,
   type PermissionStatus,
   type PushSupport,
+  type SdkState,
 } from '@/lib/onesignal-client'
-
-type SdkState = 'idle' | 'loading' | 'ready' | 'unsupported' | 'failed'
 
 interface OneSignalContextType {
   initialized: boolean
@@ -62,9 +66,10 @@ const isDev = process.env.NODE_ENV === 'development'
 
 // Only for the UI: past this the overlay offers a retry instead of waiting.
 const SDK_UI_TIMEOUT_MS = 20000
-// An SDK that never finished starting (e.g. IndexedDB unavailable on iOS) never
-// settles its requests: past this the button is freed again.
-const PERMISSION_STUCK_MS = 30000
+// The browser prompt can stay open as long as the barber wants, and an SDK that
+// never finished starting (e.g. IndexedDB unavailable on iOS) never settles its
+// requests: past this the overlay only adds a neutral hint, no error.
+const PERMISSION_SLOW_MS = 30000
 
 export default function OneSignalProvider({
   children,
@@ -78,7 +83,10 @@ export default function OneSignalProvider({
   const [subscribed, setSubscribed] = useState(false)
   const [showPrompt, setShowPrompt] = useState(false)
   const [isRequesting, setIsRequesting] = useState(false)
+  const [requestSlow, setRequestSlow] = useState(false)
   const [loadAttempt, setLoadAttempt] = useState(0)
+  // Set inside the tap itself, so a second tap sees it before React re-renders.
+  const requestInFlight = useRef(false)
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith('/admin')
 
@@ -146,7 +154,7 @@ export default function OneSignalProvider({
   // Allowed by the browser but this device has no push token in OneSignal
   // (subscribing failed or the barber opted out): the overlay stays available
   // so the barber can tap "Activar" again.
-  const permissionStatus: PermissionStatus = permission === 'granted' && !subscribed ? 'default' : permission
+  const permissionStatus = resolveDeviceStatus(permission, subscribed)
 
   // Manejar autoPrompt (desactivado explícitamente en admin para evitar molestias)
   useEffect(() => {
@@ -158,57 +166,48 @@ export default function OneSignalProvider({
   // Runs inside the tap: browsers ignore permission requests made after an await.
   const requestPermission = useCallback(() => {
     const OneSignal = getReadyOneSignal()
-    if (!OneSignal || isRequesting) return
-
-    // Resolves false when the browser allowed notifications but the device
-    // could not subscribe (no push service, worker download failed).
-    let request: Promise<unknown>
-    try {
-      if (OneSignal.Notifications.permission === true) {
-        // Already allowed, so no browser prompt and awaiting is fine. optIn() only
-        // clears an opt-out; requestPermission() is what subscribes the device,
-        // and it does not ask again once permission is granted.
-        const subscription = OneSignal.User.PushSubscription
-        request = Promise.resolve(subscription.optedIn ? undefined : subscription.optIn())
-          .then(() => hasPushSubscription(OneSignal) || OneSignal.Notifications.requestPermission())
-      } else {
-        request = Promise.resolve(OneSignal.Notifications.requestPermission())
-      }
-    } catch (error) {
-      request = Promise.reject(error)
-    }
+    // One request at a time: a second tap while the browser prompt may still be
+    // open must not ask again nor add a second outcome toast.
+    if (!OneSignal || requestInFlight.current) return
+    requestInFlight.current = true
+    const request = startPermissionRequest(OneSignal)
 
     setIsRequesting(true)
-    const stuck = setTimeout(() => {
-      setIsRequesting(false)
-      toast.error('Las notificaciones no responden. Cierra la app y vuelve a abrirla.')
-    }, PERMISSION_STUCK_MS)
+    const slow = setTimeout(() => {
+      // Logged so a stalled SDK request can be told apart in field reports.
+      console.warn(`⚠️ [OneSignal] La solicitud de permisos sigue sin respuesta tras ${PERMISSION_SLOW_MS / 1000} s`)
+      setRequestSlow(true)
+    }, PERMISSION_SLOW_MS)
     request
       .then((accepted) => {
         const status = resolvePermissionStatus(OneSignal.Notifications.permission, readNativePermission())
         const active = hasPushSubscription(OneSignal)
         setPermission(status)
         setSubscribed(active)
-        if (status === 'granted' && accepted !== false && (active || accepted === true)) {
+        const outcome = classifyPermissionResult(accepted, status, active)
+        if (outcome === 'subscribed') {
           setShowPrompt(false)
           toast.success('¡Listo! Te avisaremos cuando tengas nuevas citas.')
-        } else if (status === 'granted') {
+        } else if (outcome === 'not-subscribed') {
           // Allowed, but there is still no push token: keep the overlay to retry.
           toast.error('No pudimos activar las notificaciones en este dispositivo. Inténtalo de nuevo.')
-        } else if (status === 'default') {
+        } else if (outcome === 'dismissed') {
           // The barber closed the browser prompt without choosing.
           setShowPrompt(false)
         }
+        // 'blocked': the overlay switches to the unblock instructions.
       })
       .catch((error) => {
         console.error('❌ [OneSignal] Error solicitando permisos:', error)
         toast.error('No pudimos activar las notificaciones. Inténtalo de nuevo.')
       })
       .finally(() => {
-        clearTimeout(stuck)
+        clearTimeout(slow)
+        requestInFlight.current = false
         setIsRequesting(false)
+        setRequestSlow(false)
       })
-  }, [isRequesting])
+  }, [])
 
   // Función para cerrar el prompt
   const dismissPrompt = useCallback(() => {
@@ -241,34 +240,36 @@ export default function OneSignalProvider({
   }, [])
 
   const overlayVisible = enabled && showPrompt && !isAdminRoute && permissionStatus !== 'granted'
+  const view = resolvePromptView(sdkState, pushSupport, permissionStatus)
 
   const renderPromptContent = () => {
-    if (sdkState === 'unsupported') {
-      if (pushSupport === 'ios-install') {
-        return {
-          icon: <Smartphone size={48} />,
-          title: 'Instala la app en tu iPhone',
-          body: (
-            <>
-              <p className="onesignal-prompt-message">
-                En iPhone, las notificaciones solo funcionan desde la app instalada en tu pantalla de inicio.
-              </p>
-              <ol className="onesignal-prompt-steps">
-                <li>Abre <strong>chamosbarber.com</strong> en Safari.</li>
-                <li>Toca <strong>Compartir</strong> y elige <strong>«Agregar a inicio»</strong>.</li>
-                <li>Abre la app desde el ícono y permite las notificaciones.</li>
-              </ol>
-            </>
-          ),
-          actions: <button className="onesignal-btn onesignal-btn-primary" onClick={dismissPrompt}>Entendido</button>,
-        }
+    if (view === 'ios-install') {
+      return {
+        icon: <Smartphone size={48} />,
+        title: 'Instala la app en tu iPhone',
+        body: (
+          <>
+            <p className="onesignal-prompt-message">
+              En iPhone, las notificaciones solo funcionan desde la app instalada en tu pantalla de inicio.
+            </p>
+            <ol className="onesignal-prompt-steps">
+              <li>Abre <strong>chamosbarber.com</strong> en Safari.</li>
+              <li>Toca <strong>Compartir</strong> y elige <strong>«Agregar a inicio»</strong>.</li>
+              <li>Abre la app desde el ícono y permite las notificaciones.</li>
+            </ol>
+          </>
+        ),
+        actions: <button className="onesignal-btn onesignal-btn-primary" onClick={dismissPrompt}>Entendido</button>,
       }
+    }
+
+    if (view === 'ios-update' || view === 'unsupported') {
       return {
         icon: <BellOff size={48} />,
         title: 'Notificaciones no disponibles',
         body: (
           <p className="onesignal-prompt-message">
-            {pushSupport === 'ios-update'
+            {view === 'ios-update'
               ? 'Tu iPhone necesita iOS 16.4 o superior para recibir notificaciones. Actualízalo en Ajustes > General > Actualización de software.'
               : 'Este navegador no admite notificaciones. Abre chamosbarber.com en Chrome, Edge, Firefox o Safari actualizado.'}
           </p>
@@ -277,7 +278,7 @@ export default function OneSignalProvider({
       }
     }
 
-    if (sdkState === 'failed') {
+    if (view === 'failed') {
       return {
         icon: <BellOff size={48} />,
         title: 'No pudimos cargar las notificaciones',
@@ -295,7 +296,7 @@ export default function OneSignalProvider({
       }
     }
 
-    if (permissionStatus === 'denied') {
+    if (view === 'blocked') {
       return {
         icon: <BellOff size={48} />,
         title: 'Notificaciones bloqueadas',
@@ -313,9 +314,16 @@ export default function OneSignalProvider({
       icon: <Bell size={48} />,
       title: 'Activa las notificaciones',
       body: (
-        <p className="onesignal-prompt-message">
-          Recibe un aviso al instante cada vez que te reserven, reagenden o cancelen una cita.
-        </p>
+        <>
+          <p className="onesignal-prompt-message">
+            Recibe un aviso al instante cada vez que te reserven, reagenden o cancelen una cita.
+          </p>
+          {requestSlow && (
+            <p className="onesignal-prompt-hint" role="status">
+              Si no ves el aviso del navegador para permitir las notificaciones, cierra la app y vuelve a abrirla.
+            </p>
+          )}
+        </>
       ),
       actions: (
         <>
@@ -361,7 +369,7 @@ export default function OneSignalProvider({
               <X size={20} />
             </button>
 
-            <div className={`onesignal-prompt-icon ${permissionStatus === 'denied' && sdkState === 'ready' ? 'bg-red-500' : ''}`}>
+            <div className={`onesignal-prompt-icon ${view === 'blocked' ? 'bg-red-500' : ''}`}>
               {prompt.icon}
             </div>
 
@@ -454,6 +462,14 @@ export default function OneSignalProvider({
           color: rgba(255, 255, 255, 0.8);
           text-align: center;
           margin-bottom: 2rem;
+        }
+
+        .onesignal-prompt-hint {
+          font-size: 0.875rem;
+          line-height: 1.5;
+          color: rgba(255, 255, 255, 0.65);
+          text-align: center;
+          margin: -1.25rem 0 1.5rem;
         }
 
         .onesignal-prompt-steps {
