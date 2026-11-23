@@ -537,3 +537,97 @@ test('deactivating a barber also deactivates its login account, only in the shop
   assert.equal(db.tables.admin_users.find((a) => a.id === cuenta.id).activo, false)
   assert.equal(db.tables.admin_users.find((a) => a.id === ajena.id).activo, true)
 })
+
+// --- T5 / S4: edits through the server -------------------------------------
+
+const editar = (barberoId, updates) => call('update', { barberoId, updates }, { method: 'PUT' })
+
+test('an activo change in an edit also updates the login account, only in the shop', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  const ajena = cuentaDe(b, { comercio_id: OTHER_TENANT, email: 'ajena@otro.test' })
+  setup({ barberos: [b], admin_users: [cuenta, ajena] })
+  const res = await editar(b.id, { nombre: 'Ana María', activo: false })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual([db.tables.barberos[0].nombre, db.tables.barberos[0].activo], ['Ana María', false])
+  assert.equal(db.tables.admin_users.find((a) => a.id === cuenta.id).activo, false)
+  assert.equal(db.tables.admin_users.find((a) => a.id === ajena.id).activo, true)
+})
+
+test('an email change of a barber with an account moves the three emails in one statement', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)] })
+  const res = await editar(b.id, { nombre: 'Ana', email: '  Ana.Nueva@Chamos.TEST ' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(auth.sql.length, 1)
+  assert.deepEqual(auth.sql[0].params, [b.id, TENANT, 'ana.nueva@chamos.test', cuenta.id])
+  assert.match(auth.sql[0].query, /UPDATE public\.barberos SET email = \$3/)
+  assert.match(auth.sql[0].query, /UPDATE public\.admin_users SET email = \$3/)
+  assert.match(auth.sql[0].query, /UPDATE auth\.users SET email = \$3/)
+  assert.deepEqual([db.tables.barberos[0].email, db.tables.admin_users.find((a) => a.id === cuenta.id).email, auth.users[0].email], ['ana.nueva@chamos.test', 'ana.nueva@chamos.test', 'ana.nueva@chamos.test'])
+  assert.equal(res.body.barbero.email, 'ana.nueva@chamos.test')
+})
+
+test('an email used by another barber or account gives a 409 and changes nothing', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  for (const otros of [
+    { barberos: [barbero({ nombre: 'Franco', apellido: 'Soto', email: 'franco@chamos.test', slug: 'franco-soto' })], admin_users: [] },
+    { barberos: [], admin_users: [{ id: randomUUID(), email: 'franco@chamos.test', nombre: 'Caja', rol: 'cajero', activo: true, comercio_id: TENANT, barbero_id: null }] },
+  ]) {
+    setup({ barberos: [b, ...otros.barberos], admin_users: [cuenta, ...otros.admin_users], users: [usuarioDe(cuenta)] })
+    const res = await editar(b.id, { email: 'Franco@Chamos.test', nombre: 'Otra' })
+    assert.equal(res.statusCode, 409)
+    assert.match(res.body.error, /Franco Soto|otra cuenta de acceso/)
+    assert.deepEqual([auth.sql.length, db.calls.updates.length], [0, 0])
+    assert.deepEqual([db.tables.barberos[0].email, db.tables.barberos[0].nombre], [b.email, b.nombre])
+  }
+})
+
+test('a unique violation inside the email statement gives a 409 and changes nothing', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta), { id: randomUUID(), email: 'huerfano@chamos.test', is_project_admin: false }] })
+  const { result: res } = await capturingErrors(() => editar(b.id, { email: 'huerfano@chamos.test', nombre: 'Otra' }))
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /otra cuenta de acceso/)
+  assert.deepEqual(db.calls.updates, [])
+  assert.deepEqual([db.tables.barberos[0].email, db.tables.barberos[0].nombre, auth.users[0].email], [b.email, b.nombre, b.email])
+})
+
+test('an email change of a barber without an account only updates the barber, normalized', async () => {
+  const b = barbero()
+  setup({ barberos: [b] })
+  const res = await editar(b.id, { email: ' Nueva@Chamos.TEST ' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(auth.sql.length, 0)
+  assert.equal(db.tables.barberos[0].email, 'nueva@chamos.test')
+})
+
+test('an edit to a taken name gets a free slug', async () => {
+  const b = barbero({ slug: 'ana-perez' })
+  setup({ barberos: [b, barbero({ nombre: 'Luis', apellido: 'Díaz', email: 'luis@chamos.test', slug: 'luis-diaz' })] })
+  const res = await editar(b.id, { nombre: 'Luis', apellido: 'Díaz', slug: 'luis-diaz' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(db.tables.barberos[0].slug, 'luis-diaz-2')
+  setup({ barberos: [b] })
+  await editar(b.id, { nombre: 'Ana', slug: 'ana-perez' })
+  assert.equal(db.tables.barberos[0].slug, 'ana-perez', 'its own slug is not taken')
+})
+
+test('an admin edit keeps its response and stays within the shop', async () => {
+  const b = barbero()
+  const ajeno = barbero({ comercio_id: OTHER_TENANT, slug: 'ajeno' })
+  setup({ barberos: [b, ajeno] })
+  const res = await editar(b.id, { telefono: '+56911112222', porcentaje_comision: 60, comercio_id: OTHER_TENANT })
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.body.success, true)
+  assert.equal(res.body.message, 'Barbero actualizado exitosamente')
+  assert.deepEqual([res.body.barbero.telefono, res.body.barbero.porcentaje_comision, res.body.barbero.comercio_id], ['+56911112222', 60, TENANT])
+  assert.ok(res.body.barbero.updated_at)
+
+  const other = await editar(ajeno.id, { telefono: '+56900000000' })
+  assert.notEqual(other.statusCode, 200)
+  assert.equal(db.tables.barberos.find((x) => x.id === ajeno.id).telefono, undefined)
+})

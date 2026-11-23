@@ -251,3 +251,17 @@ test('a partial permanent delete warns that the login account was left behind', 
     assert.equal(reloads, 1)
   }
 })
+
+// --- T5 / S4: edits through the server -------------------------------------
+
+test('editing a barber goes through /api/barberos/update, not a browser update', async () => {
+  reset(); formValues = { ...datos, activo: false }
+  const updated = []
+  helpers.updateBarbero = async (...args) => { updated.push(args); return { id: 'b1' } }
+  await submit({ ...modalProps, barbero: { id: 'b1', nombre: 'Ana', apellido: 'Pérez', email: 'ana@chamos.test', activo: true, especialidades: [] } })
+  assert.deepEqual(browser.writes, [])
+  assert.equal(updated.length, 1)
+  assert.equal(updated[0][0], 'b1')
+  assert.deepEqual([updated[0][1].email, updated[0][1].activo, updated[0][1].slug], ['Ana@Chamos.test', false, 'ana-perez'])
+  assert.ok(toasts.some(([kind]) => kind === 'success'))
+})

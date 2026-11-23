@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import Modal from '../shared/Modal'
-import { supabase } from '@/lib/supabase'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
@@ -216,13 +215,8 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
       }
 
       if (isEdit && barbero) {
-        // Editar barbero existente
-        const { error } = await (supabase
-          .from('barberos') as any)
-          .update(barberoData)
-          .eq('id', barbero.id)
-
-        if (error) throw error
+        // Editar barbero existente (el servidor sincroniza su cuenta de acceso)
+        await chamosSupabase.updateBarbero(barbero.id, barberoData)
         toast.success('Barbero actualizado exitosamente')
         
         reset()

@@ -12,6 +12,7 @@ import {
     adminDeleteUser,
     adminGetUserByEmail,
     adminGetUserById,
+    adminRawSql,
     adminSetUserPassword,
 } from '@/lib/insforge-admin'
 
@@ -281,4 +282,64 @@ export async function deleteOrphanAuthUsers(
         else deleted.push(userId)
     }
     return { deleted, failed }
+}
+
+// One statement, so the barber email, its login row and its auth user change
+// together or not at all (a unique violation aborts all three). The target
+// CTE requires the account to be linked to the barber in the shop and not to
+// be a project admin; otherwise nothing is updated.
+const CHANGE_EMAIL_SQL = `
+WITH target AS (
+    SELECT au.id
+    FROM public.admin_users au
+    JOIN auth.users uu ON uu.id = au.id
+    WHERE au.id = $4 AND au.barbero_id = $1 AND au.comercio_id = $2
+      AND NOT COALESCE(uu.is_project_admin, false)
+), b AS (
+    UPDATE public.barberos SET email = $3, updated_at = now()
+    WHERE id = $1 AND comercio_id = $2 AND EXISTS (SELECT 1 FROM target)
+    RETURNING id
+), a AS (
+    UPDATE public.admin_users SET email = $3, updated_at = now()
+    WHERE id IN (SELECT id FROM target)
+    RETURNING id
+), u AS (
+    UPDATE auth.users SET email = $3, updated_at = now()
+    WHERE id IN (SELECT id FROM target)
+    RETURNING id
+)
+SELECT (SELECT count(*) FROM b)::int AS barberos,
+       (SELECT count(*) FROM a)::int AS cuentas,
+       (SELECT count(*) FROM u)::int AS usuarios`
+
+function isUniqueViolation(error: unknown): boolean {
+    return /23505|duplicate key|unique constraint/i.test(String((error as any)?.message ?? error))
+}
+
+/**
+ * Changes the email of a barber that has a login account: barberos.email,
+ * admin_users.email and auth.users.email, atomically. `email` must already
+ * be normalized.
+ */
+export async function changeBarberEmail(input: {
+    comercioId: string
+    barberoId: string
+    accountId: string
+    email: string
+}): Promise<{ ok: true } | Failure> {
+    const { comercioId, barberoId, accountId, email } = input
+    try {
+        const { rows } = await adminRawSql<{ barberos: number; cuentas: number; usuarios: number }>(
+            CHANGE_EMAIL_SQL,
+            [barberoId, comercioId, email, accountId]
+        )
+        const counts = rows?.[0]
+        if (counts?.barberos === 1 && counts.cuentas === 1 && counts.usuarios === 1) return { ok: true }
+        console.warn('[staff-accounts] email change matched nothing', { barberoId, accountId, counts: counts ?? null })
+        return { ok: false, status: 409, error: 'El barbero o su cuenta cambiaron mientras guardabas. Recarga la lista e intenta de nuevo.' }
+    } catch (error: any) {
+        if (isUniqueViolation(error)) return { ok: false, status: 409, error: EMAIL_IN_USE }
+        console.error('[staff-accounts] email change failed', { barberoId, accountId, message: error?.message ?? String(error) })
+        return { ok: false, status: 500, error: 'No se pudo cambiar el email. Intenta de nuevo.' }
+    }
 }
