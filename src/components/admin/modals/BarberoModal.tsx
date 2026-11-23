@@ -49,7 +49,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
   const [loading, setLoading] = useState(false)
   const [crearCuenta, setCrearCuenta] = useState(true) // Por defecto, crear cuenta
   // Credentials of the account the server just created; shown once.
-  const [credenciales, setCredenciales] = useState<{ email: string; password: string } | null>(null)
+  const [credenciales, setCredenciales] = useState<{ email: string; password: string; emailEnviado: boolean } | null>(null)
   const [especialidades, setEspecialidades] = useState<string[]>(barbero?.especialidades || [])
   const [nuevaEspecialidad, setNuevaEspecialidad] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -248,7 +248,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
             throw new Error(result.error || 'No se pudo crear la cuenta de acceso')
           }
 
-          setCredenciales({ email: result.email, password: result.password })
+          setCredenciales({ email: result.email, password: result.password, emailEnviado: result.email_enviado === true })
           toast.success('Barbero y cuenta creados exitosamente')
         } else {
           // Crear solo barbero sin cuenta
@@ -766,6 +766,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
           mensaje="Barbero y cuenta de usuario creados"
           email={credenciales.email}
           password={credenciales.password}
+          emailEnviado={credenciales.emailEnviado}
         />
       )}
     </Modal>
@@ -779,10 +780,12 @@ interface CredencialesModalProps {
   mensaje: string
   email: string
   password: string
+  /** The server also emailed these credentials to the barber. */
+  emailEnviado?: boolean
 }
 
 /** Shows a login email and its temporary password once. */
-export const CredencialesModal: React.FC<CredencialesModalProps> = ({ isOpen, onClose, titulo, mensaje, email, password }) => (
+export const CredencialesModal: React.FC<CredencialesModalProps> = ({ isOpen, onClose, titulo, mensaje, email, password, emailEnviado = false }) => (
   <Modal
     isOpen={isOpen}
     onClose={onClose}
@@ -801,6 +804,11 @@ export const CredencialesModal: React.FC<CredencialesModalProps> = ({ isOpen, on
         <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
           Copia la contraseña ahora: no se volverá a mostrar.
         </p>
+        {emailEnviado && (
+          <p className="text-sm mt-1" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+            También se envió por correo a {email}.
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">

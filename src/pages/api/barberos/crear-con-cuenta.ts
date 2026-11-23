@@ -10,6 +10,7 @@ import {
   normalizeEmail,
   openBarberAccount,
   removeBarber,
+  sendCredentialsEmail,
 } from '@/lib/staff-accounts'
 
 export default async function handler(
@@ -85,6 +86,14 @@ export default async function handler(
       })
     }
 
+    // Best-effort: the account stays and the admin sees the password either way.
+    const emailEnviado = await sendCredentialsEmail({
+      email: account.email,
+      password: account.password,
+      nombre: nuevoBarbero.nombre,
+      apellido: nuevoBarbero.apellido,
+    })
+
     res.setHeader('Cache-Control', 'no-store')
     return res.status(200).json({
       success: true,
@@ -92,6 +101,7 @@ export default async function handler(
       cuenta_creada: true,
       email: account.email,
       password: account.password,
+      email_enviado: emailEnviado,
       message: 'Barbero y cuenta de usuario creados exitosamente'
     })
 

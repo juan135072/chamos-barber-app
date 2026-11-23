@@ -17,6 +17,7 @@ process.env.INSFORGE_API_KEY = 'ik_test_nonsecret'
 // The ones under test only use rawsql over fetch, not the SDK client.
 stubModule('@insforge/sdk', { createClient() { throw new Error('SDK client not used in these tests') } })
 const realAdmin = require('../src/lib/insforge-admin.ts')
+const { EmailService } = require('../lib/email-service.ts')
 
 const TENANT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
 const OTHER_TENANT = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
@@ -32,6 +33,18 @@ stubModule('../src/lib/supabase-server.ts', {
 })
 
 // In-memory auth.users. Like InsForge, signUp refuses an email that exists.
+// Credentials email (lib/email-service.ts): records each send; can fail.
+const mail = { sent: [], fail: null }
+stubModule('../lib/email-service.ts', {
+  emailService: {
+    async sendCredentials(credentials) {
+      mail.sent.push(credentials)
+      if (mail.fail === 'throw') throw new Error('Resend unavailable')
+      return mail.fail !== 'false'
+    },
+  },
+})
+
 stubModule('../src/lib/insforge-admin.ts', {
   async adminCreateUser({ email, password }) {
     if (auth.failCreate) return { data: { user: null }, error: auth.failCreate }
@@ -86,6 +99,7 @@ const unique = (code, message) => ({ code, message })
 /** Fake DB with the shop admin, its unique constraints and the barber triggers. */
 function setup({ barberos = [], admin_users = [], users = [], ...options } = {}) {
   Object.assign(auth, { users: structuredClone(users), created: [], deleted: [], passwords: [], sql: [], failCreate: null, failDelete: null, failSql: null })
+  Object.assign(mail, { sent: [], fail: null })
   db = createFakeDb({
     tables: {
       admin_users: [{ id: ADMIN, email: 'admin@chamos.test', nombre: 'Admin', rol: 'admin', activo: true, comercio_id: TENANT, barbero_id: null }, ...structuredClone(admin_users)],
@@ -340,7 +354,7 @@ test('a barber without an account gets one, and its password is returned once', 
   assert.equal(auth.created.length, 1)
   assert.equal(auth.created[0].email, 'luis@chamos.test')
   assert.deepEqual(inserts('admin_users'), [{ id: auth.created[0].id, email: 'luis@chamos.test', nombre: 'Ana Pérez', rol: 'barbero', barbero_id: b.id, comercio_id: TENANT, activo: true }])
-  assert.deepEqual(res.body, { success: true, accion: 'crear', cuenta_creada: true, email: 'luis@chamos.test', password: auth.created[0].password })
+  assert.deepEqual(res.body, { success: true, accion: 'crear', cuenta_creada: true, email: 'luis@chamos.test', password: auth.created[0].password, email_enviado: true })
   assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
 })
 
@@ -630,4 +644,80 @@ test('an admin edit keeps its response and stays within the shop', async () => {
   const other = await editar(ajeno.id, { telefono: '+56900000000' })
   assert.notEqual(other.statusCode, 200)
   assert.equal(db.tables.barberos.find((x) => x.id === ajeno.id).telefono, undefined)
+})
+
+// --- T7: the credentials email, best-effort ---------------------------------
+
+test('a created account emails its credentials once, from both create routes', async () => {
+  setup()
+  let res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.body.email_enviado, true)
+  assert.deepEqual(mail.sent, [{ email: 'ana.perez@example.com', password: res.body.password, nombre: 'Ana', apellido: 'Pérez' }])
+
+  const b = barbero({ nombre: 'Luis', apellido: 'Díaz', email: 'luis@chamos.test' })
+  setup({ barberos: [b] })
+  res = await call('credenciales', { barberoId: b.id, accion: 'crear' })
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.body.email_enviado, true)
+  assert.deepEqual(mail.sent, [{ email: 'luis@chamos.test', password: res.body.password, nombre: 'Luis', apellido: 'Díaz' }])
+})
+
+test('"Nueva contraseña" never emails the password', async () => {
+  const b = barbero()
+  const cuenta = cuentaDe(b)
+  setup({ barberos: [b], admin_users: [cuenta], users: [usuarioDe(cuenta)] })
+  const res = await call('credenciales', { barberoId: b.id, accion: 'nueva' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(mail.sent, [])
+  assert.equal(res.body.email_enviado, undefined)
+})
+
+test('a failed email keeps the account and still returns the password', async () => {
+  for (const fail of ['throw', 'false']) {
+    setup()
+    mail.fail = fail
+    const { result: res } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+    assert.equal(res.statusCode, 200)
+    assert.equal(res.body.cuenta_creada, true)
+    assert.equal(res.body.email_enviado, false)
+    assert.equal(res.body.password, auth.created[0].password)
+    assert.deepEqual([db.tables.barberos.length, inserts('admin_users').length, db.calls.deletes.length, auth.deleted.length], [1, 1, 0, 0])
+
+    const b = barbero({ email: 'luis@chamos.test' })
+    setup({ barberos: [b] })
+    mail.fail = fail
+    const { result: other } = await capturingErrors(() => call('credenciales', { barberoId: b.id, accion: 'crear' }))
+    assert.equal(other.statusCode, 200)
+    assert.equal(other.body.email_enviado, false)
+    assert.equal(other.body.password, auth.created[0].password)
+    assert.equal(inserts('admin_users').length, 1)
+  }
+})
+
+test('no email is sent when the account is not created', async () => {
+  setup({ fail: { 'admin_users.insert': { code: 'XX000', message: 'insert failed' } } })
+  const { result: res } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+  assert.equal(res.statusCode, 500)
+  assert.deepEqual(mail.sent, [])
+})
+
+test('without RESEND_API_KEY the email service never prints passwords', async () => {
+  const saved = process.env.RESEND_API_KEY
+  delete process.env.RESEND_API_KEY
+  const output = []
+  const originals = { log: console.log, warn: console.warn, error: console.error, info: console.info }
+  for (const level of Object.keys(originals)) console[level] = (...args) => output.push(args.map(String).join(' '))
+  try {
+    const service = new EmailService()
+    const credentials = { email: 'ana@chamos.test', password: 'Chamossecreto!1234', nombre: 'Ana', apellido: 'Pérez' }
+    assert.equal(await service.sendCredentials(credentials), true)
+    assert.equal(await service.sendPasswordReset(credentials), true)
+  } finally {
+    Object.assign(console, originals)
+    if (saved !== undefined) process.env.RESEND_API_KEY = saved
+  }
+  assert.ok(output.length > 0, 'dev mode still says an email would have been sent')
+  assert.ok(output.some((line) => line.includes('ana@chamos.test')))
+  assert.ok(!output.some((line) => line.includes('Chamossecreto!1234')), 'no password in the console')
 })

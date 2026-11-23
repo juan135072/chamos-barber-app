@@ -79,7 +79,7 @@ async function submit(props, overrides = {}) {
 
 test('creating with an account asks the server only, and shows the credentials it created', async () => {
   reset(); formValues = datos
-  const sent = respond(200, { success: true, cuenta_creada: true, email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234' })
+  const sent = respond(200, { success: true, cuenta_creada: true, email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234', email_enviado: true })
   const setters = await submit(modalProps)
   assert.equal(browser.getUser, 0, 'no browser getUser precheck')
   assert.deepEqual(browser.writes, [])
@@ -87,7 +87,7 @@ test('creating with an account asks the server only, and shows the credentials i
   assert.equal(sent[0].url, '/api/barberos/crear-con-cuenta')
   assert.equal(sent[0].body.crearCuenta, true)
   assert.equal(sent[0].body.adminId, undefined)
-  assert.deepEqual(setters.filter(([i]) => i === CREDENCIALES).map(([, v]) => v), [{ email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234' }])
+  assert.deepEqual(setters.filter(([i]) => i === CREDENCIALES).map(([, v]) => v), [{ email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234', emailEnviado: true }])
   assert.ok(toasts.some(([kind]) => kind === 'success'))
 })
 
@@ -264,4 +264,26 @@ test('editing a barber goes through /api/barberos/update, not a browser update',
   assert.equal(updated[0][0], 'b1')
   assert.deepEqual([updated[0][1].email, updated[0][1].activo, updated[0][1].slug], ['Ana@Chamos.test', false, 'ana-perez'])
   assert.ok(toasts.some(([kind]) => kind === 'success'))
+})
+
+// --- T7: the credentials email ----------------------------------------------
+
+test('the credentials modal says when the credentials were also emailed', async () => {
+  const credenciales = { isOpen: true, onClose() {}, titulo: 'Acceso', mensaje: 'Listo', email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234' }
+  assert.ok(JSON.stringify(CredencialesModal({ ...credenciales, emailEnviado: true })).includes('También se envió por correo'))
+  assert.ok(!JSON.stringify(CredencialesModal({ ...credenciales, emailEnviado: false })).includes('También se envió por correo'))
+
+  reset(); barberosHook = lista
+  helpers.generarCredencialesBarbero = async () => ({ ...generada, accion: 'crear', emailEnviado: true })
+  const { tree, setters } = render(BarberosTab, {}, { [TAB.CUENTAS]: {}, [TAB.ACCESO]: { barbero: sinCuenta, accion: 'crear' } })
+  await find(tree, (n) => n.type === ConfirmDialog && n.props.title === 'Crear acceso').props.onConfirm()
+  const shown = setters.filter(([i]) => i === TAB.CREDENCIALES).map(([, v]) => v)[0]
+  const modal = find(render(BarberosTab, {}, { [TAB.CREDENCIALES]: shown }).tree, (n) => n.type === CredencialesModal)
+  assert.equal(modal.props.emailEnviado, true)
+})
+
+test('the credential helper reports whether the email was sent', async () => {
+  const { chamosSupabase } = require('../lib/supabase-helpers.ts')
+  global.fetch = async () => ({ ok: true, status: 200, json: async () => ({ success: true, accion: 'crear', email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234', email_enviado: true }) })
+  assert.deepEqual(await chamosSupabase.generarCredencialesBarbero('b1', 'crear'), { email: 'ana@chamos.test', password: 'Chamosabcdefgh!1234', accion: 'crear', emailEnviado: true })
 })

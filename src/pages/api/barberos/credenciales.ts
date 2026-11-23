@@ -11,6 +11,7 @@ import {
   normalizeEmail,
   openBarberAccount,
   pickBarberAccount,
+  sendCredentialsEmail,
 } from '@/lib/staff-accounts'
 
 const UUID_RE = /^[0-9a-f-]{36}$/i
@@ -55,7 +56,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!check.ok) return res.status(check.status).json({ error: check.error })
       const account = await openBarberAccount(admin, { comercioId, barbero, email, adoptUserId: check.adoptUserId })
       if (!account.ok) return res.status(account.status).json({ error: account.error })
-      return res.status(200).json({ success: true, accion, cuenta_creada: true, email: account.email, password: account.password })
+      // Only a new account is emailed; "Nueva contraseña" is shown to the admin alone.
+      const emailEnviado = await sendCredentialsEmail({
+        email: account.email,
+        password: account.password,
+        nombre: barbero.nombre,
+        apellido: barbero.apellido,
+      })
+      return res.status(200).json({ success: true, accion, cuenta_creada: true, email: account.email, password: account.password, email_enviado: emailEnviado })
     }
 
     if (accion === 'crear') return res.status(409).json({ error: 'Este barbero ya tiene acceso. Usa "Nueva contraseña".' })

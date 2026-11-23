@@ -28,7 +28,7 @@ const BarberosTab: React.FC = () => {
   // "Crear acceso" / "Nueva contraseña" waiting for confirmation, and its result (shown once).
   const [accesoPendiente, setAccesoPendiente] = useState<{ barbero: Barbero; accion: AccionAcceso } | null>(null)
   const [generandoAcceso, setGenerandoAcceso] = useState(false)
-  const [credenciales, setCredenciales] = useState<{ email: string; password: string; accion: AccionAcceso; nombre: string } | null>(null)
+  const [credenciales, setCredenciales] = useState<{ email: string; password: string; accion: AccionAcceso; emailEnviado: boolean; nombre: string } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -468,6 +468,7 @@ const BarberosTab: React.FC = () => {
           mensaje={`Credenciales de ${credenciales.nombre}`}
           email={credenciales.email}
           password={credenciales.password}
+          emailEnviado={credenciales.emailEnviado}
         />
       )}
     </div>

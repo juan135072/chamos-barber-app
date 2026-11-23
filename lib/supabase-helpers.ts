@@ -174,7 +174,7 @@ export const chamosSupabase = {
     if (!response.ok || !result.password) {
       throw new Error(result.error || 'No se pudieron generar las credenciales')
     }
-    return { email: result.email as string, password: result.password as string, accion }
+    return { email: result.email as string, password: result.password as string, accion, emailEnviado: result.email_enviado === true }
   },
 
   // Servicios

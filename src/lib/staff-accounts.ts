@@ -15,6 +15,7 @@ import {
     adminRawSql,
     adminSetUserPassword,
 } from '@/lib/insforge-admin'
+import { emailService } from '../../lib/email-service'
 
 /** Supabase-shaped admin client from createPagesAdminClient(). */
 type AdminClient = any
@@ -250,6 +251,32 @@ export async function openBarberAccount(
             : { ok: false, status: 500, error: ACCOUNT_FAILED }
     }
     return { ok: true, userId, email, password }
+}
+
+/**
+ * Emails the credentials of an account that was just created. Best-effort:
+ * a failure is logged without secrets and reported as false; it never undoes
+ * the account, and the admin still sees the password once.
+ */
+export async function sendCredentialsEmail(input: {
+    email: string
+    password: string
+    nombre?: string | null
+    apellido?: string | null
+}): Promise<boolean> {
+    try {
+        const sent = await emailService.sendCredentials({
+            email: input.email,
+            password: input.password,
+            nombre: input.nombre ?? '',
+            apellido: input.apellido ?? '',
+        })
+        if (!sent) console.warn('[staff-accounts] credentials email was not sent')
+        return sent === true
+    } catch (error: any) {
+        console.error('[staff-accounts] credentials email failed', { message: error?.message ?? String(error) })
+        return false
+    }
 }
 
 /**
