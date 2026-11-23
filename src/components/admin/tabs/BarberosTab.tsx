@@ -13,7 +13,7 @@ type Barbero = Database['public']['Tables']['barberos']['Row']
 
 const BarberosTab: React.FC = () => {
   // Sin soloActivos → devuelve todos (activos e inactivos) para gestión admin
-  const { barberos, loading, refetch: loadBarberos } = useBarberos()
+  const { barberos, loading, error: loadError, refetch: loadBarberos } = useBarberos()
   const [selectedBarbero, setSelectedBarbero] = useState<Barbero | null>(null)
   const [showModal, setShowModal] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
@@ -226,7 +226,20 @@ const BarberosTab: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {barberos.length === 0 ? (
+            {loadError ? (
+              <tr>
+                <td colSpan={6} className="px-6 py-4 text-center text-red-400">
+                  <p>No se pudieron cargar los barberos: {loadError}</p>
+                  <button
+                    onClick={() => loadBarberos()}
+                    className="mt-2 px-3 py-1 text-sm rounded-md"
+                    style={{ border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                  >
+                    Reintentar
+                  </button>
+                </td>
+              </tr>
+            ) : barberos.length === 0 ? (
               <tr>
                 <td colSpan={6} className="px-6 py-4 text-center" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
                   No hay barberos registrados

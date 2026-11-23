@@ -1,7 +1,6 @@
 import { requireStaff, barberFields } from '@/lib/server-authorization'
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { createPagesAdminClient } from '@/lib/supabase-server'
-import { createPagesServerClient } from '@/lib/supabase-server'
+import { findEmailConflict, insertBarber, normalizeEmail } from '@/lib/staff-accounts'
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,50 +13,29 @@ export default async function handler(
   try {
     const actor = await requireStaff(req, res, ['admin'])
     if (!actor) return
-    const barberoData = req.body
+    const fields = barberFields(req.body)
 
-    console.log('🎯 CREATE BARBERO REQUEST:', {
-      nombre: barberoData.nombre,
-      apellido: barberoData.apellido,
-      email: barberoData.email
-    })
-
-    if (!barberoData.nombre || !barberoData.apellido) {
+    if (!fields.nombre || !fields.apellido) {
       return res.status(400).json({ error: 'nombre y apellido son requeridos' })
     }
 
-    // Crear cliente de Supabase con service_role key para bypasear RLS
-    const supabase = actor.admin
-
-    // Crear barbero
-    console.log('💾 Insertando barbero en base de datos...')
-    const { data: barbero, error: barberoError } = await supabase
-      .from('barberos')
-      .insert([{ ...barberFields(barberoData), comercio_id: actor.access.comercio_id }])
-      .select()
-      .single()
-
-    if (barberoError) {
-      console.error('❌ Error creating barbero:', barberoError)
-      return res.status(400).json({ 
-        error: 'Error al crear barbero',
-        details: barberoError.message 
-      })
+    const email = normalizeEmail(fields.email)
+    if (email) {
+      const conflict = await findEmailConflict(actor.admin, actor.access.comercio_id, email)
+      if (conflict) return res.status(409).json({ error: conflict })
     }
 
-    console.log('✅ Barbero creado:', barbero)
+    const created = await insertBarber(actor.admin, actor.access.comercio_id, { ...fields, email })
+    if (!created.ok) return res.status(created.status).json({ error: created.error })
 
-    return res.status(201).json({ 
+    return res.status(201).json({
       success: true,
-      barbero,
+      barbero: created.barbero,
       message: 'Barbero creado exitosamente'
     })
 
   } catch (error: any) {
-    console.error('❌ Error en create barbero:', error)
-    return res.status(500).json({ 
-      error: 'Error interno del servidor',
-      details: error.message 
-    })
+    console.error('❌ Error en create barbero:', error?.message ?? error)
+    return res.status(500).json({ error: 'No se pudo crear el barbero. Intenta de nuevo.' })
   }
 }

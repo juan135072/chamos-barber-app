@@ -1,0 +1,327 @@
+// Admin barber management API: create a barber with or without a login
+// account, credentials for existing barbers, permanent delete and edits.
+// Routes run against the fake DB and an in-memory stand-in for the InsForge
+// auth helpers in src/lib/insforge-admin.ts.
+require('./load-typescript.cjs')
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { randomUUID } = require('node:crypto')
+const bcrypt = require('bcryptjs')
+const { createFakeDb, createResponse, stubModule } = require('./fake-db.cjs')
+
+process.env.NEXT_PUBLIC_INSFORGE_BASE_URL = 'https://insforge.invalid'
+process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY = 'public-anon'
+process.env.INSFORGE_API_KEY = 'ik_test_nonsecret'
+
+// The real helpers are loaded before the stub replaces them for the routes.
+// The ones under test only use rawsql over fetch, not the SDK client.
+stubModule('@insforge/sdk', { createClient() { throw new Error('SDK client not used in these tests') } })
+const realAdmin = require('../src/lib/insforge-admin.ts')
+
+const TENANT = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+const OTHER_TENANT = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'
+const ADMIN = '00000000-0000-4000-8000-000000000001'
+
+let db
+const auth = { users: [], created: [], deleted: [], passwords: [], sql: [], failCreate: null, failDelete: null, failSql: null }
+
+stubModule('../src/lib/supabase-server.ts', {
+  createPagesAdminClient: () => db,
+  async getUserFromBearer() { return { data: { user: { id: ADMIN } }, error: null } },
+  createPagesServerClient: () => ({ auth: { async getSession() { return { data: { session: null } } } } }),
+})
+
+// In-memory auth.users. Like InsForge, signUp refuses an email that exists.
+stubModule('../src/lib/insforge-admin.ts', {
+  async adminCreateUser({ email, password }) {
+    if (auth.failCreate) return { data: { user: null }, error: auth.failCreate }
+    if (auth.users.some((u) => u.email === email)) return { data: { user: null }, error: Object.assign(new Error('User already exists'), { statusCode: 409 }) }
+    const user = { id: randomUUID(), email, is_project_admin: false }
+    auth.users.push(user)
+    auth.created.push({ id: user.id, email, password })
+    return { data: { user }, error: null }
+  },
+  async adminDeleteUser(id) {
+    if (auth.failDelete) return { data: { user: null }, error: auth.failDelete }
+    auth.users = auth.users.filter((u) => u.id !== id)
+    auth.deleted.push(id)
+    return { data: { user: null }, error: null }
+  },
+  async adminGetUserById(id) { return { data: { user: auth.users.find((u) => u.id === id) ?? null }, error: null } },
+  async adminGetUserByEmail(email) { return { data: { user: auth.users.find((u) => u.email === email) ?? null }, error: null } },
+  async adminSetUserPassword(id, password, { onlyUnlinked = false } = {}) {
+    const user = auth.users.find((u) => u.id === id && !u.is_project_admin)
+    const linked = (db.tables.admin_users || []).some((a) => a.id === id)
+    if (!user || (onlyUnlinked && linked)) return { updated: false, error: null }
+    auth.passwords.push({ id, password, onlyUnlinked })
+    return { updated: true, error: null }
+  },
+  async adminRawSql(query, params) {
+    auth.sql.push({ query, params })
+    if (auth.failSql) throw auth.failSql
+    if (/UPDATE auth\.users SET email = \$3/.test(query)) return changeEmails(params)
+    throw new Error(`unexpected SQL in test: ${query}`)
+  },
+})
+
+// Emulates the single statement that moves a barber's email together with
+// its login row and auth user, including the unique constraints it can hit.
+function changeEmails([barberoId, comercioId, email, accountId]) {
+  const account = db.tables.admin_users.find((a) => a.id === accountId && a.barbero_id === barberoId && a.comercio_id === comercioId)
+  const user = auth.users.find((u) => u.id === accountId && !u.is_project_admin)
+  const barbero = db.tables.barberos.find((b) => b.id === barberoId && b.comercio_id === comercioId)
+  if (!account || !user || !barbero) return { rows: [{ barberos: 0, cuentas: 0, usuarios: 0 }], rowCount: 1 }
+  const taken = db.tables.barberos.some((b) => b.comercio_id === comercioId && b.email === email && b.id !== barberoId)
+    || db.tables.admin_users.some((a) => a.comercio_id === comercioId && a.email === email && a.id !== accountId)
+    || auth.users.some((u) => u.email === email && u.id !== accountId)
+  if (taken) throw new Error('InsForge rawsql 400: duplicate key value violates unique constraint (23505)')
+  barbero.email = email
+  account.email = email
+  user.email = email
+  return { rows: [{ barberos: 1, cuentas: 1, usuarios: 1 }], rowCount: 1 }
+}
+
+const unique = (code, message) => ({ code, message })
+
+/** Fake DB with the shop admin, its unique constraints and the barber triggers. */
+function setup({ barberos = [], admin_users = [], users = [], ...options } = {}) {
+  Object.assign(auth, { users: structuredClone(users), created: [], deleted: [], passwords: [], sql: [], failCreate: null, failDelete: null, failSql: null })
+  db = createFakeDb({
+    tables: {
+      admin_users: [{ id: ADMIN, email: 'admin@chamos.test', nombre: 'Admin', rol: 'admin', activo: true, comercio_id: TENANT, barbero_id: null }, ...structuredClone(admin_users)],
+      barberos: structuredClone(barberos),
+      horarios_atencion: [],
+    },
+    onInsert(table, row) {
+      const rows = db.tables[table] || []
+      if (table === 'barberos') {
+        if (rows.some((b) => b.comercio_id === row.comercio_id && b.slug === row.slug)) return unique('23505', 'duplicate key value violates unique constraint "barberos_comercio_id_slug_key"')
+        if (row.email && rows.some((b) => b.comercio_id === row.comercio_id && b.email === row.email)) return unique('23505', 'duplicate key value violates unique constraint "barberos_comercio_id_email_key"')
+        // AFTER INSERT trigger app_new_barber_hours: 7 schedule rows.
+        row.id = randomUUID()
+        for (let dia = 0; dia < 7; dia++) db.tables.horarios_atencion.push({ id: randomUUID(), barbero_id: row.id, dia_semana: dia })
+      }
+      if (table === 'admin_users' && rows.some((a) => a.comercio_id === row.comercio_id && a.email === row.email)) return unique('23505', 'duplicate key value violates unique constraint "admin_users_comercio_id_email_key"')
+      return null
+    },
+    onDelete(table, matched) {
+      // horarios_atencion references barberos ON DELETE CASCADE.
+      if (table === 'barberos') {
+        const ids = matched.map((b) => b.id)
+        db.tables.horarios_atencion = db.tables.horarios_atencion.filter((h) => !ids.includes(h.barbero_id))
+      }
+      return null
+    },
+    ...options,
+  })
+  return db
+}
+
+async function call(route, body, { method = 'POST' } = {}) {
+  const handler = require(`../src/pages/api/barberos/${route}.ts`).default
+  const res = createResponse()
+  await handler({ method, headers: { authorization: 'Bearer valid' }, body }, res)
+  return res
+}
+
+/** Captures console.error calls made while `fn` runs. */
+async function capturingErrors(fn) {
+  const saved = console.error
+  const logged = []
+  console.error = (...args) => logged.push(args)
+  try { return { result: await fn(), logged } } finally { console.error = saved }
+}
+
+const barbero = (overrides = {}) => ({ id: randomUUID(), nombre: 'Ana', apellido: 'Pérez', email: 'ana@chamos.test', slug: 'ana-perez', activo: true, comercio_id: TENANT, ...overrides })
+const nuevo = { nombre: 'Ana', apellido: 'Pérez', email: '  Ana.Perez@Example.COM ', slug: 'ana-perez', porcentaje_comision: 50, activo: true }
+const inserts = (table) => db.calls.inserts.filter((i) => i.table === table).map((i) => i.row)
+
+// --- Real helpers in src/lib/insforge-admin.ts ------------------------------
+
+async function withRawSql(rows, fn) {
+  const saved = global.fetch
+  const sent = []
+  global.fetch = async (url, options) => {
+    sent.push({ url: String(url), body: JSON.parse(options.body), authorization: options.headers.Authorization })
+    return new Response(JSON.stringify({ rows, rowCount: rows.length }), { status: 200, headers: { 'content-type': 'application/json' } })
+  }
+  try { return { result: await fn(), sent } } finally { global.fetch = saved }
+}
+
+test('adminGetUserByEmail looks the auth user up by its stored email', async () => {
+  const user = { id: randomUUID(), email: 'ana@chamos.test', is_project_admin: false }
+  const { result, sent } = await withRawSql([user], () => realAdmin.adminGetUserByEmail('ana@chamos.test'))
+  assert.deepEqual(result, { data: { user }, error: null })
+  assert.equal(sent.length, 1)
+  assert.match(sent[0].body.query, /FROM auth\.users WHERE email = \$1/)
+  assert.deepEqual(sent[0].body.params, ['ana@chamos.test'])
+})
+
+test('adminSetUserPassword stores a bcrypt hash and never touches a project admin', async () => {
+  const id = randomUUID()
+  const { result, sent } = await withRawSql([{ id }], () => realAdmin.adminSetUserPassword(id, 'Chamosabc!1234'))
+  assert.deepEqual(result, { updated: true, error: null })
+  const { query, params } = sent[0].body
+  assert.match(query, /UPDATE auth\.users SET password = \$2/)
+  assert.match(query, /NOT COALESCE\(is_project_admin, false\)/)
+  assert.doesNotMatch(query, /admin_users/)
+  assert.equal(params[0], id)
+  assert.notEqual(params[1], 'Chamosabc!1234')
+  assert.ok(bcrypt.compareSync('Chamosabc!1234', params[1]), 'the stored value is a bcrypt hash of the password')
+})
+
+test('adminSetUserPassword with onlyUnlinked refuses users that have a staff row', async () => {
+  const id = randomUUID()
+  const { result, sent } = await withRawSql([], () => realAdmin.adminSetUserPassword(id, 'Chamosabc!1234', { onlyUnlinked: true }))
+  assert.deepEqual(result, { updated: false, error: null })
+  assert.match(sent[0].body.query, /NOT EXISTS \(SELECT 1 FROM public\.admin_users a WHERE a\.id = \$1\)/)
+})
+
+// --- T2 / S1: crear-con-cuenta ---------------------------------------------
+
+test('creating a barber with an account stores lowercased emails and returns the credentials once', async () => {
+  setup()
+  const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 200)
+  const [row] = inserts('barberos')
+  assert.equal(row.email, 'ana.perez@example.com')
+  assert.equal(row.comercio_id, TENANT)
+  assert.equal(auth.created.length, 1)
+  assert.equal(auth.created[0].email, 'ana.perez@example.com')
+  const [cuenta] = inserts('admin_users')
+  assert.deepEqual(cuenta, { id: auth.created[0].id, email: 'ana.perez@example.com', nombre: 'Ana Pérez', rol: 'barbero', barbero_id: row.id, comercio_id: TENANT, activo: true })
+  assert.equal(res.body.success, true)
+  assert.equal(res.body.cuenta_creada, true)
+  assert.equal(res.body.email, 'ana.perez@example.com')
+  assert.equal(res.body.barbero.id, row.id)
+  assert.equal(res.body.password, auth.created[0].password)
+  assert.match(res.body.password, /^Chamos[a-z0-9]{8}![0-9]{4}$/)
+  assert.equal(res.getHeader('cache-control'), 'no-store')
+})
+
+test('a repeated name gets the next free slug instead of failing', async () => {
+  setup({ barberos: [barbero({ email: 'otra@chamos.test' }), barbero({ email: 'tercera@chamos.test', slug: 'ana-perez-2' })] })
+  const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 200)
+  assert.equal(inserts('barberos')[0].slug, 'ana-perez-3')
+  assert.equal(res.body.barbero.slug, 'ana-perez-3')
+  assert.equal(res.body.cuenta_creada, true)
+})
+
+test('an email of a deactivated barber gives a 409 that says to reactivate that barber', async () => {
+  setup({ barberos: [barbero({ nombre: 'Carolina', apellido: 'Rojas', email: 'ana.perez@example.com', slug: 'carolina-rojas', activo: false })] })
+  const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /Carolina Rojas/)
+  assert.match(res.body.error, /desactivado/)
+  assert.match(res.body.error, /Reactívalo/)
+  assert.equal(res.body.password, undefined)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length], [0, 0])
+})
+
+test('an email already used by an active barber or by a login account gives a 409', async () => {
+  setup({ barberos: [barbero({ email: 'ana.perez@example.com', slug: 'ana' })] })
+  let res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /Ana Pérez/)
+
+  setup({ admin_users: [{ id: randomUUID(), email: 'ana.perez@example.com', nombre: 'Cajera', rol: 'cajero', activo: true, comercio_id: TENANT, barbero_id: null }] })
+  res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /cuenta de acceso/)
+  assert.equal(res.body.password, undefined)
+  assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length], [0, 0, 0])
+})
+
+test('an orphan auth user with the same email is adopted with a new password', async () => {
+  const orphan = { id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }
+  setup({ users: [orphan] })
+  const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+  assert.equal(res.statusCode, 200)
+  assert.equal(auth.created.length, 0)
+  assert.deepEqual(auth.passwords, [{ id: orphan.id, password: res.body.password, onlyUnlinked: true }])
+  assert.equal(inserts('admin_users')[0].id, orphan.id)
+  assert.equal(res.body.cuenta_creada, true)
+})
+
+test('an auth user with a staff row in any shop, or a project admin, is never adopted', async () => {
+  for (const [user, rows] of [
+    [{ id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: false }, (id) => [{ id, email: 'x@otro.test', nombre: 'X', rol: 'admin', activo: true, comercio_id: OTHER_TENANT, barbero_id: null }]],
+    [{ id: randomUUID(), email: 'ana.perez@example.com', is_project_admin: true }, () => []],
+  ]) {
+    setup({ users: [user], admin_users: rows(user.id) })
+    const res = await call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true })
+    assert.equal(res.statusCode, 409)
+    assert.match(res.body.error, /otra cuenta/)
+    assert.equal(res.body.password, undefined)
+    assert.deepEqual([db.calls.inserts.length, auth.created.length, auth.passwords.length], [0, 0, 0])
+  }
+})
+
+test('if the login row cannot be saved, the barber, its schedules and the new auth user are removed', async () => {
+  setup({ fail: { 'admin_users.insert': { code: 'XX000', message: 'insert failed' } } })
+  const { result: res, logged } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+  assert.equal(res.statusCode, 500)
+  assert.equal(res.body.password, undefined)
+  assert.equal(res.body.cuenta_creada, undefined)
+  assert.match(res.body.error, /No se pudo crear la cuenta de acceso/)
+  assert.deepEqual(db.tables.barberos, [])
+  assert.deepEqual(db.tables.horarios_atencion, [])
+  assert.deepEqual(auth.deleted, [auth.created[0].id])
+  assert.deepEqual(auth.users, [])
+  assert.ok(logged.length > 0, 'the failure is logged')
+  assert.ok(!JSON.stringify(logged).includes(auth.created[0].password), 'the password is never logged')
+})
+
+test('if the auth user cannot be created, the barber is removed and no password is returned', async () => {
+  setup()
+  auth.failCreate = new Error('signUp unavailable')
+  const { result: res } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+  assert.equal(res.statusCode, 500)
+  assert.equal(res.body.password, undefined)
+  assert.match(res.body.error, /No se pudo crear la cuenta de acceso/)
+  assert.deepEqual(db.tables.barberos, [])
+  assert.deepEqual(db.tables.horarios_atencion, [])
+  assert.equal(db.calls.deletes.filter((d) => d.table === 'barberos').length, 1)
+})
+
+test('a failed rollback is logged and the error says the barber was kept', async () => {
+  setup({ fail: { 'admin_users.insert': { code: 'XX000', message: 'insert failed' }, 'barberos.delete': { code: 'XX000', message: 'delete failed' } } })
+  const { result: res, logged } = await capturingErrors(() => call('crear-con-cuenta', { barberoData: nuevo, crearCuenta: true }))
+  assert.equal(res.statusCode, 500)
+  assert.equal(res.body.password, undefined)
+  assert.match(res.body.error, /quedó guardado sin acceso/)
+  assert.ok(JSON.stringify(logged).includes('rollback'), 'the failed rollback is logged')
+})
+
+// --- T2 / S1: create (without an account) -----------------------------------
+
+test('creating a barber without an account normalizes the email and gets a free slug', async () => {
+  setup({ barberos: [barbero({ email: 'otra@chamos.test' })] })
+  const res = await call('create', nuevo)
+  assert.equal(res.statusCode, 201)
+  const [row] = inserts('barberos')
+  assert.deepEqual([row.email, row.slug, row.comercio_id], ['ana.perez@example.com', 'ana-perez-2', TENANT])
+  assert.deepEqual(inserts('admin_users'), [])
+  assert.equal(auth.created.length, 0)
+})
+
+test('create keeps its response and takes the shop from the session, not the body', async () => {
+  setup()
+  const res = await call('create', { nombre: 'Luis', apellido: 'Díaz', comercio_id: OTHER_TENANT, rol: 'admin' })
+  assert.equal(res.statusCode, 201)
+  assert.deepEqual(Object.keys(res.body).sort(), ['barbero', 'message', 'success'])
+  assert.equal(res.body.success, true)
+  assert.equal(res.body.message, 'Barbero creado exitosamente')
+  const [row] = inserts('barberos')
+  assert.deepEqual([row.comercio_id, row.rol, row.nombre, row.apellido], [TENANT, undefined, 'Luis', 'Díaz'])
+  assert.equal(res.body.barbero.id, row.id)
+})
+
+test('create gives a 409 for an email of a deactivated barber', async () => {
+  setup({ barberos: [barbero({ nombre: 'Carolina', apellido: 'Rojas', email: 'ana.perez@example.com', slug: 'carolina-rojas', activo: false })] })
+  const res = await call('create', nuevo)
+  assert.equal(res.statusCode, 409)
+  assert.match(res.body.error, /Carolina Rojas.*desactivado/)
+  assert.deepEqual(db.calls.inserts, [])
+})

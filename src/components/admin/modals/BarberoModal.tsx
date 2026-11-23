@@ -49,8 +49,8 @@ interface BarberoModalProps {
 const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess, barbero }) => {
   const [loading, setLoading] = useState(false)
   const [crearCuenta, setCrearCuenta] = useState(true) // Por defecto, crear cuenta
-  const [passwordGenerada, setPasswordGenerada] = useState<string | null>(null)
-  const [mostrarCredenciales, setMostrarCredenciales] = useState(false)
+  // Credentials of the account the server just created; shown once.
+  const [credenciales, setCredenciales] = useState<{ email: string; password: string } | null>(null)
   const [especialidades, setEspecialidades] = useState<string[]>(barbero?.especialidades || [])
   const [nuevaEspecialidad, setNuevaEspecialidad] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -231,21 +231,15 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
         onSuccess()
         onClose()
       } else {
-        // Crear nuevo barbero
+        // Crear nuevo barbero (el servidor verifica la sesión del admin)
         if (crearCuenta && data.email) {
           // Crear con cuenta de usuario
-          const { data: { user } } = await supabase.auth.getUser()
-          if (!user) {
-            throw new Error('No se pudo obtener el usuario admin')
-          }
-
           const response = await fetch('/api/barberos/crear-con-cuenta', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               barberoData,
-              crearCuenta: true,
-              adminId: user.id
+              crearCuenta: true
             })
           })
 
@@ -255,25 +249,16 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
             throw new Error(result.error || 'Error creando barbero')
           }
 
-          console.log('✅ FRONTEND: Barbero y cuenta creados:', result)
-          
-          if (result.password) {
-            setPasswordGenerada(result.password)
-            setMostrarCredenciales(true)
-            toast.success('Barbero y cuenta creados exitosamente')
-          } else {
-            toast.success('Barbero creado exitosamente')
-            reset()
-            onSuccess()
-            onClose()
+          // Credentials only for an account the server really created.
+          if (result.cuenta_creada !== true || !result.password) {
+            throw new Error(result.error || 'No se pudo crear la cuenta de acceso')
           }
+
+          setCredenciales({ email: result.email, password: result.password })
+          toast.success('Barbero y cuenta creados exitosamente')
         } else {
           // Crear solo barbero sin cuenta
-          const { error } = await (supabase
-            .from('barberos') as any)
-            .insert(barberoData)
-
-          if (error) throw error
+          await chamosSupabase.createBarbero(barberoData)
           toast.success('Barbero creado exitosamente (sin cuenta de usuario)')
           
           reset()
@@ -290,8 +275,7 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
   }
 
   const handleCloseCredenciales = () => {
-    setMostrarCredenciales(false)
-    setPasswordGenerada(null)
+    setCredenciales(null)
     reset()
     onSuccess()
     onClose()
@@ -736,8 +720,8 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
                   Crear cuenta de usuario para este barbero
                 </span>
                 <p className="mt-1 text-xs" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                  {emailValue 
-                    ? 'Se generará una contraseña segura automáticamente y se enviará al email del barbero'
+                  {emailValue
+                    ? 'Se generará una contraseña temporal que verás una sola vez'
                     : 'Debes ingresar un email válido para crear la cuenta de usuario'
                   }
                 </p>
@@ -780,131 +764,152 @@ const BarberoModal: React.FC<BarberoModalProps> = ({ isOpen, onClose, onSuccess,
       </form>
 
       {/* Modal de Credenciales Generadas */}
-      {mostrarCredenciales && passwordGenerada && (
-        <Modal
-          isOpen={mostrarCredenciales}
+      {credenciales && (
+        <CredencialesModal
+          isOpen
           onClose={handleCloseCredenciales}
-          title="✅ Cuenta Creada Exitosamente"
-          size="md"
-        >
-          <div className="space-y-6">
-            <div className="p-4 rounded-lg text-center" style={{ 
-              backgroundColor: 'rgba(34, 197, 94, 0.1)',
-              border: '1px solid #22c55e'
-            }}>
-              <i className="fas fa-check-circle text-5xl mb-3" style={{ color: '#22c55e' }}></i>
-              <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
-                Barbero y cuenta de usuario creados
-              </h3>
-              <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
-                Se ha enviado un email con las credenciales al barbero
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Email de acceso
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={emailValue || ''}
-                    readOnly
-                    className="flex-1 px-3 py-2 border rounded-md"
-                    style={{ 
-                      borderColor: 'var(--border-color)',
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(emailValue || '')
-                      toast.success('Email copiado')
-                    }}
-                    className="px-4 py-2 rounded-md"
-                    style={{ 
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--accent-color)',
-                      border: '1px solid var(--accent-color)'
-                    }}
-                  >
-                    <i className="fas fa-copy"></i>
-                  </button>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
-                  Contraseña temporal
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={passwordGenerada}
-                    readOnly
-                    className="flex-1 px-3 py-2 border rounded-md font-mono text-sm"
-                    style={{ 
-                      borderColor: 'var(--accent-color)',
-                      backgroundColor: 'rgba(212, 175, 55, 0.1)',
-                      color: 'var(--text-primary)'
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(passwordGenerada)
-                      toast.success('Contraseña copiada')
-                    }}
-                    className="px-4 py-2 rounded-md"
-                    style={{ 
-                      backgroundColor: 'var(--accent-color)',
-                      color: 'var(--bg-primary)'
-                    }}
-                  >
-                    <i className="fas fa-copy"></i>
-                  </button>
-                </div>
-                <p className="mt-2 text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
-                  El barbero podrá cambiar esta contraseña desde su panel de control
-                </p>
-              </div>
-            </div>
-
-            <div className="p-3 rounded-lg" style={{ 
-              backgroundColor: 'rgba(59, 130, 246, 0.1)',
-              border: '1px solid #3b82f6'
-            }}>
-              <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
-                <i className="fas fa-info-circle mr-2" style={{ color: '#3b82f6' }}></i>
-                <strong>Importante:</strong> Guarda estas credenciales o envíaselas al barbero. Podrá iniciar sesión en:
-              </p>
-              <p className="text-sm mt-2 font-mono" style={{ color: 'var(--accent-color)' }}>
-                https://chamosbarber.com/chamos-acceso
-              </p>
-            </div>
-
-            <div className="flex justify-end">
-              <button
-                type="button"
-                onClick={handleCloseCredenciales}
-                className="px-6 py-2 rounded-md font-medium"
-                style={{ 
-                  backgroundColor: 'var(--accent-color)',
-                  color: 'var(--bg-primary)'
-                }}
-              >
-                Entendido
-              </button>
-            </div>
-          </div>
-        </Modal>
+          titulo="✅ Cuenta Creada Exitosamente"
+          mensaje="Barbero y cuenta de usuario creados"
+          email={credenciales.email}
+          password={credenciales.password}
+        />
       )}
     </Modal>
   )
 }
+
+interface CredencialesModalProps {
+  isOpen: boolean
+  onClose: () => void
+  titulo: string
+  mensaje: string
+  email: string
+  password: string
+}
+
+/** Shows a login email and its temporary password once. */
+export const CredencialesModal: React.FC<CredencialesModalProps> = ({ isOpen, onClose, titulo, mensaje, email, password }) => (
+  <Modal
+    isOpen={isOpen}
+    onClose={onClose}
+    title={titulo}
+    size="md"
+  >
+    <div className="space-y-6">
+      <div className="p-4 rounded-lg text-center" style={{ 
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        border: '1px solid #22c55e'
+      }}>
+        <i className="fas fa-check-circle text-5xl mb-3" style={{ color: '#22c55e' }}></i>
+        <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--text-primary)' }}>
+          {mensaje}
+        </h3>
+        <p className="text-sm" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
+          Copia la contraseña ahora: no se volverá a mostrar.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+            Email de acceso
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={email}
+              readOnly
+              className="flex-1 px-3 py-2 border rounded-md"
+              style={{ 
+                borderColor: 'var(--border-color)',
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--text-primary)'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(email)
+                toast.success('Email copiado')
+              }}
+              className="px-4 py-2 rounded-md"
+              style={{ 
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--accent-color)',
+                border: '1px solid var(--accent-color)'
+              }}
+            >
+              <i className="fas fa-copy"></i>
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-2" style={{ color: 'var(--text-primary)' }}>
+            Contraseña temporal
+          </label>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={password}
+              readOnly
+              className="flex-1 px-3 py-2 border rounded-md font-mono text-sm"
+              style={{ 
+                borderColor: 'var(--accent-color)',
+                backgroundColor: 'rgba(212, 175, 55, 0.1)',
+                color: 'var(--text-primary)'
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                navigator.clipboard.writeText(password)
+                toast.success('Contraseña copiada')
+              }}
+              className="px-4 py-2 rounded-md"
+              style={{ 
+                backgroundColor: 'var(--accent-color)',
+                color: 'var(--bg-primary)'
+              }}
+            >
+              <i className="fas fa-copy"></i>
+            </button>
+          </div>
+          <p className="mt-2 text-xs" style={{ color: 'var(--text-primary)', opacity: 0.6 }}>
+            Entrégasela al barbero para que inicie sesión con su email.
+          </p>
+        </div>
+      </div>
+
+      <div className="p-3 rounded-lg" style={{ 
+        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+        border: '1px solid #3b82f6'
+      }}>
+        <p className="text-sm" style={{ color: 'var(--text-primary)' }}>
+          <i className="fas fa-info-circle mr-2" style={{ color: '#3b82f6' }}></i>
+          <strong>Importante:</strong> Guarda estas credenciales o envíaselas al barbero. Podrá iniciar sesión en:
+        </p>
+        <p className="text-sm mt-2 font-mono" style={{ color: 'var(--accent-color)' }}>
+          https://chamosbarber.com/chamos-acceso
+        </p>
+      </div>
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={onClose}
+          className="px-6 py-2 rounded-md font-medium"
+          style={{ 
+            backgroundColor: 'var(--accent-color)',
+            color: 'var(--bg-primary)'
+          }}
+        >
+          Entendido
+        </button>
+      </div>
+    </div>
+  </Modal>
+)
 
 export default BarberoModal
 
