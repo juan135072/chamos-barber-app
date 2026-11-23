@@ -1,6 +1,7 @@
 import { createPagesAdminClient } from '@/lib/supabase-server'
 import { ChatMemory } from './redis';
 import { normalizePhone } from '@/lib/phone-utils';
+import { getChileHoy } from '@/lib/date-utils';
 
 // Helper para inicializar Supabase de forma segura
 const getSupabaseAdmin = () => {
@@ -443,8 +444,8 @@ async function executeCheckAvailability(args: any) {
     const { data: svc } = await supabase.from('servicios').select('duracion_minutos').eq('id', args.servicio_id).single();
     const duracion = svc?.duracion_minutos || 30;
 
-    // FECHA OBLIGATORIA: Si no viene, usamos hoy
-    const fechaFinal = args.fecha || new Date().toISOString().split('T')[0];
+    // FECHA OBLIGATORIA: Si no viene, usamos hoy en Chile (el servidor corre en UTC)
+    const fechaFinal = args.fecha || getChileHoy();
 
     console.log(`[GUSTAVO-IA] 🔍 Buscando disponibilidad para Barbero ${barberoIdStr} en ${fechaFinal}`);
 
@@ -545,8 +546,8 @@ async function executeListClientAppointments(args: any) {
 
     console.log(`[GUSTAVO-IA] 🔍 Buscando citas para: ${phoneNormalized}, ${phoneWith56}, ${phoneRaw}`);
 
-    // Buscamos citas futuras o de hoy
-    const today = new Date().toISOString().split('T')[0];
+    // Buscamos citas futuras o de hoy (día de Chile, no de UTC)
+    const today = getChileHoy();
 
     const { data: citas, error } = await supabase
       .from('citas')

@@ -3,6 +3,7 @@ import { createPagesAdminClient } from '@/lib/supabase-server'
 import { ChatMemory } from '@/lib/redis';
 import { generateChatResponse } from '@/lib/ai-agent';
 import { sendMessageToChatwoot } from '@/lib/chatwoot';
+import { addDays, getChileHoy, instanteDesdeHoraLocal } from '@/lib/date-utils';
 
 const supabase = createPagesAdminClient();
 
@@ -15,18 +16,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         console.log('[WORKER] Iniciando chequeo de confirmaciones proactivas...');
 
-        // 2. Buscar citas PENDIENTES para hoy y mañana — solo citas con tenant asignado
+        // 2. Buscar citas PENDIENTES para hoy y mañana — solo citas con tenant asignado.
+        // "Hoy" es el día de Chile: el servidor corre en UTC, donde desde las 21:00
+        // (20:00 en invierno) ya es mañana.
         const now = new Date();
-        const tomorrow = new Date(now);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const hoy = getChileHoy(now);
 
         const { data: appointments, error } = await supabase
             .from('citas')
             .select('*, comercio_id')
             .eq('estado', 'pendiente')
             .not('comercio_id', 'is', null)
-            .gte('fecha', now.toISOString().split('T')[0])
-            .lte('fecha', tomorrow.toISOString().split('T')[0]);
+            .gte('fecha', hoy)
+            .lte('fecha', addDays(hoy, 1));
 
         if (error) throw error;
         if (!appointments || appointments.length === 0) {
@@ -48,10 +50,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             // 4. Lógica de Disparo (Proactivo/Costo Cero)
-            const apptDate = new Date(`${appt.fecha}T${appt.hora}`);
+            // fecha y hora de la cita son hora de Chile, no del servidor
+            const apptDate = instanteDesdeHoraLocal(appt.fecha, String(appt.hora));
             const lastMsgDate = new Date(window.last_incoming_at);
 
-            const hoursToAppt = (apptDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+            const hoursToAppt = apptDate ? (apptDate.getTime() - now.getTime()) / (1000 * 60 * 60) : NaN;
             const hoursSinceLastMsg = (now.getTime() - lastMsgDate.getTime()) / (1000 * 60 * 60);
 
             let shouldTrigger = false;

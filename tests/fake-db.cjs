@@ -46,6 +46,11 @@ class Query {
   gte(column, value) { this.filters.push([column, 'gte', value, (row) => row[column] >= value]); return this }
   lt(column, value) { this.filters.push([column, 'lt', value, (row) => row[column] < value]); return this }
   lte(column, value) { this.filters.push([column, 'lte', value, (row) => row[column] <= value]); return this }
+  // Only the "not is null" form the routes use.
+  not(column, operator, value) {
+    if (operator !== 'is' || value !== null) throw new Error(`fake-db: not(${column}, ${operator}) is not supported`)
+    this.filters.push([column, 'not.is', value, (row) => row[column] != null]); return this
+  }
   // PostgREST "or" expressions are recorded, not evaluated.
   or(expression) { this.db.calls.or.push({ table: this.table, expression }); return this }
   order(column, { ascending = true } = {}) { this.orders.push([column, ascending]); return this }
