@@ -108,3 +108,143 @@ test('useSession retries an unanswered check quietly at 3 s, 6 s, 12 s … up to
     mock.timers.reset()
   }
 })
+
+// --- The restore request has its own limit: 20 s, 40 s, 80 s ----------------
+
+const flush = () => new Promise((resolve) => setImmediate(resolve))
+const hang = () => new Promise(() => {})
+
+// A definitive answer puts the limit of the restore request back at 20 s.
+async function startOver() {
+  native = null
+  respond = reply(200, { session: null })
+  assert.deepEqual(await checkAppSession(), { status: 'signed-out' })
+}
+
+// Starts a check against the current `respond` and records when it settles.
+function watch(promise = checkAppSession()) {
+  const state = { settled: false, result: undefined }
+  promise.then((result) => { state.settled = true; state.result = result })
+  return state
+}
+
+async function withMockedTimeouts(run) {
+  mock.timers.enable({ apis: ['setTimeout'] })
+  try { return await quietly(run) } finally { mock.timers.reset() }
+}
+
+async function tick(ms) {
+  mock.timers.tick(ms)
+  await flush()
+}
+
+async function timesOutAfter(limit) {
+  respond = hang
+  const check = watch()
+  await tick(limit - 1)
+  assert.equal(check.settled, false, `still waiting just before ${limit} ms`)
+  await tick(1)
+  assert.deepEqual(check.result, { status: 'unknown', timedOut: true }, `gives up at ${limit} ms`)
+}
+
+test('the timeout ladder doubles from 20 s up to 80 s and starts over on reset', () => {
+  const { createTimeoutLadder } = require('../src/lib/timeout-ladder.ts')
+  const ladder = createTimeoutLadder()
+  const seen = [ladder.current()]
+  for (let i = 0; i < 4; i++) { ladder.timedOut(); seen.push(ladder.current()) }
+  assert.deepEqual(seen, [20000, 40000, 80000, 80000, 80000])
+  ladder.reset()
+  assert.equal(ladder.current(), 20000)
+})
+
+test('a restore that never answers gives up after 20 s, aborts its request and frees the next check', async () => {
+  await startOver()
+  const signals = []
+  respond = (url, options) => { signals.push(options.signal); return hang() }
+  await withMockedTimeouts(async () => {
+    const first = watch()
+    const joined = watch()
+    assert.equal(signals.length, 1, 'both callers share one request')
+    await tick(19999)
+    assert.deepEqual([first.settled, joined.settled, signals[0].aborted], [false, false, false])
+    await tick(1)
+    // Every caller that joined gets the answer, and it is not a sign-out.
+    assert.deepEqual(first.result, { status: 'unknown', timedOut: true })
+    assert.deepEqual(joined.result, { status: 'unknown', timedOut: true })
+    assert.equal(signals[0].aborted, true)
+
+    // The hung request no longer blocks: the next check sends a new one.
+    const next = watch()
+    assert.equal(signals.length, 2)
+    assert.equal(signals[1].aborted, false)
+    await tick(40000)
+    assert.equal(next.settled, true)
+  })
+})
+
+test('the limit of the restore grows 20 s, 40 s, 80 s, 80 s while it keeps timing out', async () => {
+  await startOver()
+  await withMockedTimeouts(async () => {
+    for (const limit of [20000, 40000, 80000, 80000]) await timesOutAfter(limit)
+  })
+})
+
+test('only an answer starts the limit over at 20 s; a failed request neither lengthens nor resets it', async () => {
+  await startOver()
+  await withMockedTimeouts(async () => {
+    // A quick failure is not a timeout: the limit stays at 20 s.
+    respond = async () => { throw new TypeError('Failed to fetch') }
+    assert.deepEqual(await checkAppSession(), { status: 'unknown' })
+    await timesOutAfter(20000)
+    // Nor does a failure bring a longer limit back down.
+    respond = reply(503, { error: 'Service Unavailable' })
+    assert.deepEqual(await checkAppSession(), { status: 'unknown' })
+    await timesOutAfter(40000)
+    // Signed out and signed in are answers: both start over.
+    respond = reply(401, { error: 'Unauthorized' })
+    assert.deepEqual(await checkAppSession(), { status: 'signed-out' })
+    await timesOutAfter(20000)
+    respond = reply(200, { session: fresh })
+    assert.equal((await checkAppSession()).status, 'signed-in')
+    native = null
+    await timesOutAfter(20000)
+  })
+})
+
+test('an answer in time leaves no timer behind', async () => {
+  await startOver()
+  await withMockedTimeouts(async () => {
+    const warnings = []
+    console.warn = (...args) => warnings.push(args.join(' '))
+    const signals = []
+    respond = async (url, options) => { signals.push(options.signal); return { status: 200, ok: true, json: async () => ({ session: null }) } }
+    assert.deepEqual(await checkAppSession(), { status: 'signed-out' })
+    await tick(80000)
+    assert.equal(signals[0].aborted, false, 'the answered request is not aborted later')
+    assert.deepEqual(warnings, [])
+  })
+})
+
+test('an answer that arrives after the limit changes nothing', async () => {
+  await startOver()
+  await withMockedTimeouts(async () => {
+    let answer
+    respond = () => new Promise((resolve) => { answer = resolve })
+    const check = watch()
+    await tick(20000)
+    assert.deepEqual(check.result, { status: 'unknown', timedOut: true })
+    answer({ status: 200, ok: true, json: async () => ({ session: fresh }) })
+    await flush()
+    assert.equal(native, null, 'the abandoned request does not fill the in-memory session')
+  })
+})
+
+test('older callers get null from getAppSession() when the restore times out', async () => {
+  await startOver()
+  respond = hang
+  await withMockedTimeouts(async () => {
+    const pending = getAppSession()
+    await tick(20000)
+    assert.equal(await pending, null)
+  })
+})

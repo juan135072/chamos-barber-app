@@ -397,3 +397,101 @@ test('a check that answers in time leaves no timeout behind', scenario(async () 
   await advance(60000)
   assert.deepEqual(warnings.filter((message) => /no respondió/.test(message)), [])
 }))
+
+// --- The limit of a check grows while it keeps timing out: 20 s, 40 s, 80 s --
+
+// The pending check is abandoned `limit` ms from now (not sooner, not later)
+// and retried `retry` ms after that. The retry timer only starts once the
+// timeout has been handled, after the tick that reaches it: stopping 1 ms
+// short first makes a timeout that came sooner start its retry early.
+async function abandonedAfter(limit, retry) {
+  const before = checks.length
+  await advance(limit - 1)
+  await advance(1)
+  await advance(retry - 1)
+  assert.equal(checks.length, before, `no retry before ${limit} + ${retry} ms`)
+  await advance(1)
+  assert.equal(checks.length, before + 1, `gave up after ${limit} ms and retried ${retry} ms later`)
+}
+
+test('a check that keeps timing out gets 20 s, then 40 s, then 80 s, and never more than 80 s', scenario(async () => {
+  const warnings = []
+  console.warn = (message) => warnings.push(String(message))
+  const timeouts = () => warnings.filter((message) => /no respondió/.test(message))
+  // Every check hangs; each retry comes 3 s, 6 s, 12 s, 24 s after its timeout.
+  let seen = 0
+  for (const [limit, retry] of [[20000, 3000], [40000, 6000], [80000, 12000], [80000, 24000]]) {
+    const before = checks.length
+    await advance(limit - 1)
+    assert.equal(timeouts().length, seen, `still waiting just before ${limit} ms`)
+    await advance(1)
+    assert.equal(timeouts().length, ++seen, `gives up at ${limit} ms`)
+    await advance(retry)
+    assert.equal(checks.length, before + 1, `retried ${retry} ms later`)
+  }
+  assert.deepEqual(timeouts().map((message) => message.match(/en (\d+) s/)[1]), ['20', '40', '80', '80'], 'each warning names the limit that was used')
+}))
+
+test('an answer that needs 30 s loads on the second attempt, which waits 40 s', scenario(async (auth) => {
+  await advance(20000) // the first attempt gets no answer in 20 s
+  await advance(3000)
+  assert.equal(checks.length, 2)
+  await advance(30000) // a 20 s limit would have abandoned this attempt 10 s ago
+  checks[1](signedIn)
+  await flush()
+  const state = auth.render()
+  assert.equal(state.session?.barberoId, 'barbero-1')
+  assert.equal(state.loading, false)
+  assert.equal(checks.length, 2)
+}))
+
+test('a signed-in answer brings the limit back to 20 s', scenario(async (auth) => {
+  await advance(20000) // the limit is now 40 s
+  answer = signedIn
+  await advance(3000)
+  assert.equal(auth.render().session.barberoId, 'barbero-1')
+  // Later a check hangs: it is abandoned after 20 s, not after 40 s.
+  answer = null
+  fire('visibilitychange')
+  assert.equal(checks.length, 3)
+  await abandonedAfter(20000, 3000)
+}))
+
+test('a signed-out answer brings the limit back to 20 s too', scenario(async (auth) => {
+  await advance(20000) // the limit is now 40 s
+  answer = { status: 'signed-out' }
+  await advance(3000)
+  assert.equal(auth.render().error, 'No hay sesión activa')
+  answer = null
+  fire('visibilitychange')
+  assert.equal(checks.length, 3)
+  await abandonedAfter(20000, 3000)
+}))
+
+test('a quick "unknown" answer does not lengthen the limit', scenario(async () => {
+  checks[0]({ status: 'unknown' })
+  await flush()
+  await advance(3000) // the retry hangs
+  assert.equal(checks.length, 2)
+  await abandonedAfter(20000, 6000)
+}))
+
+test('a session restore that timed out on its own lengthens the limit', scenario(async () => {
+  // app-session gave up on its request and says so with timedOut.
+  checks[0]({ status: 'unknown', timedOut: true })
+  await flush()
+  await advance(3000) // the retry hangs
+  assert.equal(checks.length, 2)
+  await abandonedAfter(40000, 6000)
+}))
+
+test('the timeout of a superseded check does not lengthen the limit', scenario(async () => {
+  await advance(10000)
+  fire('visibilitychange') // check 2 replaces check 1
+  await advance(10000) // check 1 reaches its 20 s limit: stale, ignored
+  checks[1]({ status: 'unknown' }) // check 2 fails quickly, without a timeout
+  await flush()
+  await advance(3000) // the retry (check 3) hangs
+  assert.equal(checks.length, 3)
+  await abandonedAfter(20000, 6000)
+}))

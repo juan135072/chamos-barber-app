@@ -1,18 +1,25 @@
 import { supabase } from '@/lib/supabase'
+import { createTimeoutLadder } from '@/lib/timeout-ladder'
 
 /**
  * Result of asking whether the user is signed in:
  *   signed-in  → session restored (memory or app cookie)
  *   signed-out → the server answered that there is no session
  *   unknown    → no answer (offline, timeout, 5xx during a deploy). Callers
- *                must not treat this as a logout.
+ *                must not treat this as a logout. `timedOut` is set when the
+ *                restore request was abandoned at its limit, as opposed to
+ *                failing quickly.
  */
 export type AppSessionCheck =
     | { status: 'signed-in'; session: any }
     | { status: 'signed-out' }
-    | { status: 'unknown' }
+    | { status: 'unknown'; timedOut?: boolean }
 
 let restoreInFlight: Promise<AppSessionCheck> | null = null
+
+// Limit of the shared restore request. It grows while the request keeps timing
+// out (20 s, 40 s, 80 s) and starts over once the server answers.
+const restoreTimeout = createTimeoutLadder()
 
 function getTokenManager(): any {
     return (supabase as any)?._insforge?.tokenManager ?? null
@@ -75,32 +82,66 @@ export async function checkAppSession(): Promise<AppSessionCheck> {
     if (typeof window === 'undefined') return { status: 'signed-out' }
 
     if (!restoreInFlight) {
-        restoreInFlight = fetch('/api/auth/session', {
-            method: 'GET',
-            credentials: 'same-origin',
-            cache: 'no-store',
-            headers: { Accept: 'application/json' },
+        restoreInFlight = restoreSession().finally(() => {
+            restoreInFlight = null
         })
-            .then(async (response): Promise<AppSessionCheck> => {
-                if (response.status === 401 || response.status === 403) return { status: 'signed-out' }
-                // A proxy or server error says nothing about the session.
-                if (!response.ok) return { status: 'unknown' }
-                const payload = await response.json()
-                const session = payload?.session ?? null
-                if (!session) return { status: 'signed-out' }
-                hydrateMemorySession(session)
-                return { status: 'signed-in', session }
-            })
-            .catch((error): AppSessionCheck => {
-                console.warn('[auth] Could not check the app session:', error)
-                return { status: 'unknown' }
-            })
-            .finally(() => {
-                restoreInFlight = null
-            })
     }
 
     return restoreInFlight
+}
+
+/**
+ * One request to /api/auth/session with its own limit. A request that never
+ * answers is aborted at the limit and reported as "unknown", so it cannot
+ * block the checks that come after it. The limit does not depend on fetch
+ * rejecting: the timer itself settles the check.
+ */
+function restoreSession(): Promise<AppSessionCheck> {
+    const controller = new AbortController()
+    const limit = restoreTimeout.current()
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const request = fetch('/api/auth/session', {
+        method: 'GET',
+        credentials: 'same-origin',
+        cache: 'no-store',
+        headers: { Accept: 'application/json' },
+        signal: controller.signal,
+    })
+        .then(async (response): Promise<AppSessionCheck> => {
+            if (response.status === 401 || response.status === 403) return { status: 'signed-out' }
+            // A proxy or server error says nothing about the session.
+            if (!response.ok) return { status: 'unknown' }
+            const payload = await response.json()
+            const session = payload?.session ?? null
+            if (!session) return { status: 'signed-out' }
+            // Abandoned at the limit: its answer no longer counts, not even to fill the memory.
+            if (controller.signal.aborted) return { status: 'unknown' }
+            hydrateMemorySession(session)
+            return { status: 'signed-in', session }
+        })
+        .catch((error): AppSessionCheck => {
+            // The abort at the limit was already reported by the timer.
+            if (!controller.signal.aborted) console.warn('[auth] Could not check the app session:', error)
+            return { status: 'unknown' }
+        })
+
+    const timeout = new Promise<AppSessionCheck>((resolve) => {
+        timer = setTimeout(() => {
+            restoreTimeout.timedOut()
+            console.warn(`[auth] The app session check did not answer in ${limit / 1000} s.`)
+            resolve({ status: 'unknown', timedOut: true })
+            controller.abort()
+        }, limit)
+    })
+
+    return Promise.race([request, timeout])
+        .then((result) => {
+            // Only an answer from the server starts the limit over.
+            if (result.status !== 'unknown') restoreTimeout.reset()
+            return result
+        })
+        .finally(() => clearTimeout(timer))
 }
 
 /** Session or null. A failed check also yields null; use checkAppSession() to tell them apart. */
