@@ -3,6 +3,8 @@ import { useSupabaseClient } from '@/lib/insforge-react'
 import type { Database } from '@/lib/database.types'
 import toast from 'react-hot-toast'
 import { getDynamicHoy, formatFechaChile } from '@/lib/date-utils'
+import { isActiveEstado } from '@/lib/booking/change-policy'
+import ReagendarCitaModal from '../modals/ReagendarCitaModal'
 
 type Cita = Database['public']['Tables']['citas']['Row'] & {
   barberos?: { nombre: string; apellido: string }
@@ -19,6 +21,7 @@ export default function CitasTab() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showConfirm, setShowConfirm] = useState(false)
   const [errorBorrado, setErrorBorrado] = useState<string | null>(null)
+  const [citaReagendar, setCitaReagendar] = useState<Cita | null>(null)
 
   useEffect(() => {
     loadCitas()
@@ -402,6 +405,17 @@ export default function CitasTab() {
                     </select>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {/* Only a pendiente or confirmada appointment can move; the server checks it again. */}
+                    {isActiveEstado(cita.estado) && (
+                      <button
+                        onClick={() => setCitaReagendar(cita)}
+                        className="hover:opacity-70"
+                        style={{ color: 'var(--accent-color)' }}
+                        title="Reagendar cita"
+                      >
+                        <i className="fas fa-calendar-alt"></i>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleDeleteCita(cita.id)}
                       className="text-red-600 hover:text-red-900 ml-4"
@@ -421,6 +435,17 @@ export default function CitasTab() {
       <div className="mt-4 text-sm text-center" style={{ color: 'var(--text-primary)', opacity: 0.7 }}>
         Mostrando {citasFiltradas.length} de {citas.length} citas
       </div>
+
+      {/* Mounted per appointment, so it starts from that appointment's barber and day. */}
+      {citaReagendar && (
+        <ReagendarCitaModal
+          key={citaReagendar.id}
+          isOpen
+          cita={citaReagendar}
+          onClose={() => setCitaReagendar(null)}
+          onSuccess={loadCitas}
+        />
+      )}
     </div>
   )
 }

@@ -65,8 +65,11 @@ export async function notifyBookingRescheduled(
       `La cita de ${previous.cliente_nombre} del ${formatFechaDynamic(previous.fecha, timeZone)} a las ${shortHora(previous.hora)} fue reasignada a otro barbero.`)
   }
 
+  // A customer's move returns to 'pendiente'; a staff move keeps the estado, so a
+  // confirmed booking must not ask its barber to confirm again.
+  const confirmar = updated.estado === 'pendiente' ? ' Queda pendiente de tu confirmación.' : ''
   pushSafely(updated.barbero_id, 'Cita reagendada 🔄', () =>
-    `Hola ${notice.barberoNombre || 'Barbero'}, la cita de ${updated.cliente_nombre} quedó para el ${formatFechaDynamic(updated.fecha, timeZone)} a las ${shortHora(updated.hora)}. Queda pendiente de tu confirmación.`)
+    `Hola ${notice.barberoNombre || 'Barbero'}, la cita de ${updated.cliente_nombre} quedó para el ${formatFechaDynamic(updated.fecha, timeZone)} a las ${shortHora(updated.hora)}.${confirmar}`)
 }
 
 export async function notifyBookingCancelled(db: any, previous: any, updated: any, timeZone: string = DEFAULT_TIMEZONE): Promise<void> {

@@ -156,6 +156,7 @@ const horariosDisponibles = horarios.filter(h => {
 - ✅ Filtro por estado
 - ✅ Filtro por rango de fechas
 - ✅ Actualizar estado de cualquier cita
+- ✅ Reagendar citas pendientes o confirmadas (ver [Reagendar (admin)](#reagendar-admin))
 - ✅ Eliminar citas con confirmación
 - ✅ Vista en tabla responsive
 
@@ -456,6 +457,80 @@ const handleUpdateEstado = async (citaId: string, nuevoEstado: string) => {
   ))}
 </div>
 ```
+
+## Reagendar (admin)
+
+Staff can move a `pendiente` or `confirmada` appointment to another day, time
+or barber from the admin panel. The move is checked like a new booking and is
+written only by the server, never by the browser.
+
+**Where**: the calendar icon in the Acciones column of the Citas tab, and the
+"Reagendar" link under Fecha y Hora in the appointment detail of the dashboard
+calendar. Both open `src/components/admin/modals/ReagendarCitaModal.tsx`.
+
+### Flow
+
+1. The modal starts on the appointment's barber and day (today, if that day
+   already passed) and asks the server for the slots of that day.
+2. Staff chooses a barber, a date from today to 30 days ahead (Chile time) and
+   a free slot. Slots that cannot be taken are disabled and say why.
+3. The server validates and moves the appointment, and the list or calendar
+   reloads. A refusal shows the server's message and changes nothing.
+
+### Route `/api/admin/citas/reagendar`
+
+Roles `admin` and `cajero`. The business always comes from the signed-in staff
+row, never from the request.
+
+| Method | Input | Answer |
+|---|---|---|
+| `GET` | `?cita_id&fecha[&barbero_id]` | `{ success, slots: [{ hora, disponible, motivo }] }` |
+| `POST` | `{ cita_id, fecha, hora, barbero_id? }` | `{ success, cita: { id, fecha, hora, barbero_id, estado } }` |
+
+A refusal answers `{ error, message, code }`. `message` is Spanish and is
+shown to staff as it is.
+
+| Status | `code` | When |
+|---|---|---|
+| 400 | `DATOS_INVALIDOS` | Invalid id, date or hour, or a date outside today to +30 days. |
+| 400 | `BARBERO_REQUERIDO` | The appointment has no barber and none was chosen. |
+| 400 | `BARBERO_NO_DISPONIBLE` | The barber is inactive or belongs to another business. |
+| 400 | `MISMO_HORARIO` | Same barber, day and hour as now. |
+| 404 | `CITA_NO_ENCONTRADA` | No such appointment in this business. |
+| 409 | `CITA_NO_MODIFICABLE` | The appointment is `cancelada` or `completada`. |
+| 409 | `HORARIO_NO_DISPONIBLE` | The availability function refuses the slot; the message names the reason. |
+| 409 | `RACE_CONDITION` | Someone took the slot between the check and the write. |
+| 500 | `ERROR_INTERNO` | Unexpected error. No detail is exposed. |
+
+### Rules
+
+- **Same availability as a new booking.** `get_horarios_disponibles` decides
+  (barber hours, breaks, blocks, other appointments, past times) for the
+  appointment's own duration. There is no override: for an exception, first
+  change the barber's hours, break or block in Horarios.
+- **Own range.** With the same barber and day, the times the appointment
+  itself occupies are offered (10:00 to 10:30) when nothing else overlaps.
+  The slot list and the move judge every time the same way.
+- **Late arrivals.** An appointment whose time already passed can still be
+  moved, only to a free future slot. Customers cannot: the bot API locks an
+  appointment once it starts.
+- **The estado is kept.** A `confirmada` appointment stays `confirmada`.
+- **What changes.** Only `fecha`, `hora`, `barbero_id` and `updated_by` (the
+  staff user). Services, `items` and `precio_final` stay as booked.
+- **No barber.** An appointment without a barber, or whose barber is no longer
+  active, needs one to be chosen first.
+- **Who is told.** Barbers get the realtime event and the push; the previous
+  barber too when the appointment changes hands. The customer gets no message.
+- **Trace.** Each move writes one server log line,
+  `[booking] staff reschedule {cita_id, staff_user_id, from, to}`, with ids,
+  dates and times only.
+
+The shared code is `src/lib/booking/change.ts` (`rescheduleBookingAsStaff`,
+`staffMoveSlots`). The customer path of the bot API (`rescheduleBooking`, see
+`docs/bot-api.md`) runs the same mover with its own rules.
+
+Tests: `tests/admin-reagendar.test.cjs` (route) and
+`tests/reagendar-ui.test.cjs` (modal and entry points).
 
 ## 🔒 Seguridad
 
