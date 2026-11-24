@@ -1,6 +1,8 @@
-// /barber-app agenda: resume refetch and new-booking notice, with React hooks faked.
+// /barber-app agenda: resume refetch, new-booking notice and rescheduled citas,
+// with React hooks faked.
 require('./load-typescript.cjs')
 const test = require('node:test')
+const { mock } = require('node:test')
 const assert = require('node:assert/strict')
 const React = require('react')
 const { stubModule } = require('./fake-db.cjs')
@@ -128,4 +130,82 @@ test('a new booking today shows an in-app notice, never a second system notifica
   global.document.visibilityState = 'visible'
   assert.deepEqual(toasts, [])
   assert.deepEqual(systemNotifications, [])
+})
+
+// The agenda is the list of today's citas of one barber (the first useState).
+// Staff and customers can move a cita to another day, time or barber, and the
+// barber app learns it from an UPDATE event.
+const HOY = '2026-11-23'
+const MANANA = '2026-11-24'
+const agenda = [
+  { id: 'a', barbero_id: 'barbero-1', fecha: HOY, hora: '10:00:00', estado: 'confirmada', cliente_nombre: 'Ana' },
+  { id: 'b', barbero_id: 'barbero-1', fecha: HOY, hora: '12:00:00', estado: 'pendiente', cliente_nombre: 'Beto' },
+]
+
+// Mounts the hook recording what its realtime handler does to the agenda, and
+// returns `citas` after `event`. "Now" is 21:30 on 23 Nov 2026 in Chile, when
+// the UTC day is already the 24th, so the result must not depend on TZ.
+async function agendaAfter(event, citas) {
+  mock.timers.enable({ apis: ['Date'], now: Date.parse('2026-11-24T00:30:00Z') })
+  try {
+    const updates = []
+    const effects = []
+    let index = 0
+    React.useState = (initial) => { const i = index++; return [initial, (next) => { if (i === 0) updates.push(next) }] }
+    React.useCallback = (fn) => fn
+    React.useEffect = (fn) => { effects.push(fn) }
+    return await quietly(() => {
+      useCitasRealtime('barbero-1')
+      effects.forEach((effect) => effect())
+      updates.length = 0
+      realtimeHandler(event)
+      return updates.reduce((list, update) => (typeof update === 'function' ? update(list) : update), citas)
+    })
+  } finally {
+    mock.timers.reset()
+  }
+}
+
+test('a cita rescheduled to another day leaves the agenda of today', async () => {
+  const moved = { ...agenda[0], fecha: MANANA, hora: '16:00:00' }
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: moved, old: agenda[0] }, agenda), [agenda[1]])
+})
+
+test('a cita rescheduled into today joins the agenda in time order, without a new-booking notice', async () => {
+  const arriving = { id: 'c', barbero_id: 'barbero-1', fecha: HOY, hora: '11:00:00', estado: 'confirmada', cliente_nombre: 'Caro' }
+  toasts.length = 0
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: arriving, old: { ...arriving, fecha: MANANA, hora: '09:00:00' } }, agenda), [agenda[0], arriving, agenda[1]])
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: { ...arriving, hora: '09:30:00' } }, agenda), [{ ...arriving, hora: '09:30:00' }, ...agenda])
+  // The 24th is tomorrow in Chile, although it is already today in UTC.
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: { ...arriving, fecha: MANANA } }, agenda), agenda)
+  assert.deepEqual(toasts, [])
+})
+
+test('a cita moved to another time today is listed at its new time', async () => {
+  const later = { ...agenda[0], hora: '13:00:00' }
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: later, old: agenda[0] }, agenda), [agenda[1], later])
+})
+
+test('other updates still change a listed cita in place and ignore unknown ones', async () => {
+  // A full row with the same day and time: an estado change.
+  const done = { ...agenda[0], estado: 'completada' }
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: done }, agenda), [done, agenda[1]])
+  // An event without fecha, like the fallback published after an estado change.
+  const partial = { id: 'b', barbero_id: 'barbero-1', comercio_id: null, estado: 'cancelada' }
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: partial }, agenda), [agenda[0], { ...agenda[1], comercio_id: null, estado: 'cancelada' }])
+  // A list loaded yesterday keeps its citas when only their estado changes.
+  const stale = agenda.map((cita) => ({ ...cita, fecha: '2026-11-22' }))
+  assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: { ...stale[0], estado: 'completada' } }, stale), [{ ...stale[0], estado: 'completada' }, stale[1]])
+  // Citas that are not listed and do not belong to today.
+  for (const unknown of [{ id: 'z', fecha: MANANA, hora: '09:00:00' }, { id: 'z', estado: 'cancelada' }]) {
+    assert.deepEqual(await agendaAfter({ eventType: 'UPDATE', new: unknown }, agenda), agenda)
+  }
+})
+
+test('new and deleted citas keep working as before', async () => {
+  const booked = { id: 'c', barbero_id: 'barbero-1', fecha: HOY, hora: '11:00:00', estado: 'pendiente', cliente_nombre: 'Caro' }
+  assert.deepEqual(await agendaAfter({ eventType: 'INSERT', new: booked }, agenda), [agenda[0], booked, agenda[1]])
+  assert.deepEqual(await agendaAfter({ eventType: 'INSERT', new: { ...booked, fecha: MANANA } }, agenda), agenda)
+  // What the previous barber receives when a cita is reassigned.
+  assert.deepEqual(await agendaAfter({ eventType: 'DELETE', new: null, old: agenda[0] }, agenda), [agenda[1]])
 })

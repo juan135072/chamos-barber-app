@@ -2,6 +2,7 @@ import React, { useState } from 'react'
 import Layout from '../components/Layout'
 import { formatPhoneInput, normalizePhone, getPhonePlaceholder, getPhoneHint } from '@/lib/phone-utils'
 import PhoneInput from '../components/PhoneInput'
+import BusinessHoursText from '../components/shared/BusinessHoursText'
 import toast from 'react-hot-toast'
 import { instanteDesdeHoraLocal } from '@/lib/date-utils'
 
@@ -562,7 +563,7 @@ const ConsultarPage: React.FC = () => {
                         </a>
                       </div>
                       <p className="text-xs text-white/50 mt-8 font-medium tracking-wide">
-                        Horario de atención: Lunes a Viernes 10:00 - 20:30 | Sábado 10:00 - 21:00 | Domingo Cerrado
+                        <BusinessHoursText />
                       </p>
                     </div>
                   </>

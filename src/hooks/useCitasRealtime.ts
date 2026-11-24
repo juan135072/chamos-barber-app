@@ -164,11 +164,24 @@ export function useCitasRealtime(barberoId: string | null) {
         // Cita actualizada
         if (newRecord) {
           console.log('📝 Cita actualizada:', newRecord)
-          setCitas((prevCitas) =>
-            prevCitas.map((cita) =>
-              cita.id === newRecord.id ? { ...cita, ...newRecord } : cita
-            )
-          )
+          // The list is today's agenda, and a cita can be rescheduled to another
+          // day, time or barber. Events without `fecha` only refresh a listed cita.
+          const porHora = (a: Cita, b: Cita) => (a.hora ?? '').localeCompare(b.hora ?? '')
+          setCitas((prevCitas) => {
+            const listada = prevCitas.find((cita) => cita.id === newRecord.id)
+            if (!listada) {
+              // Moved into today, or reassigned to this barber: it joins the agenda.
+              return newRecord.fecha && esHoy(newRecord.fecha) ? [...prevCitas, newRecord].sort(porHora) : prevCitas
+            }
+            // Moved to another day: it leaves the agenda.
+            if (newRecord.fecha && newRecord.fecha !== listada.fecha && !esHoy(newRecord.fecha)) {
+              return prevCitas.filter((cita) => cita.id !== newRecord.id)
+            }
+            // Anything else changes it in place; a new time moves it in the list.
+            return prevCitas
+              .map((cita) => (cita.id === newRecord.id ? { ...cita, ...newRecord } : cita))
+              .sort(porHora)
+          })
           setLastUpdate(new Date())
         }
         break
