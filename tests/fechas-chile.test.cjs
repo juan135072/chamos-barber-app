@@ -149,13 +149,15 @@ test('liquidation dates: DATE columns keep their day, timestamps show the Chile 
 })
 
 // Guard: the patterns that caused the bug must not come back. Each one turns a
-// UTC instant or UTC midnight into the wrong Chile day.
+// UTC instant or UTC midnight into the wrong Chile day, or asks for a date
+// column that does not exist.
 const FORBIDDEN = [
   [/toISOString\(\)\.split\(['"]T['"]\)/, 'UTC date of an instant: use getChileHoy()/fechaEnZona()'],
   [/new Date\(\s*[\w.?!]+\.(fecha|fecha_inicio|fecha_fin|ultima_cita|ultima_liquidacion_fecha)\s*\)/, 'DATE column parsed as UTC midnight: use formatFechaSolo()'],
   [/created_at\.split\(/, 'UTC date of created_at: use fechaEnZona()'],
   [/T23:59:59/, 'offset-less end of day: use chileDateRange()'],
   [/new Date\(`\$\{[^}]+\}T\$\{/, 'Chile wall time parsed in the runtime zone: use instanteDesdeHoraLocal()'],
+  [/['"`]fecha_hora['"`]/, 'citas has fecha + hora, there is no fecha_hora column'],
 ]
 function sourceFiles(dir) {
   return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

@@ -3,7 +3,7 @@
 // Historial completo con filtros
 // ================================================================
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { Calendar, DollarSign, TrendingUp, Users } from 'lucide-react'
@@ -13,12 +13,14 @@ import BarberAppLayout from '../../components/barber-app/layout/BarberAppLayout'
 import LoadingSpinner from '../../components/barber-app/shared/LoadingSpinner'
 import EmptyState from '../../components/barber-app/shared/EmptyState'
 import type { Cita } from '../../types/barber-app'
+import { cargarHistorial, resumirHistorial, type HistorialStats } from '../../lib/barber-historial'
+import { formatFechaSolo } from '../../lib/date-utils'
 
-interface HistorialStats {
-  total_citas: number
-  total_ganancia: number
-  promedio_cita: number
-  total_clientes: number
+const ESTADO_LABEL: Record<string, string> = {
+  pendiente: 'Pendiente',
+  confirmada: 'Confirmada',
+  completada: 'Completada',
+  cancelada: 'Cancelada'
 }
 
 export default function HistoryPage() {
@@ -32,73 +34,33 @@ export default function HistoryPage() {
     total_clientes: 0
   })
   const [loading, setLoading] = useState(true)
+  const [errorCarga, setErrorCarga] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<'todos' | 'completadas' | 'canceladas'>('todos')
 
-  // Cargar historial
-  useEffect(() => {
-    if (!session?.barberoId) return
+  // Load the history; "Reintentar" runs this again after a failed load
+  const barberoId = session?.barberoId
+  const cargar = useCallback(async () => {
+    if (!barberoId) return
 
-    const fetchHistorial = async () => {
-      try {
-        setLoading(true)
+    try {
+      setLoading(true)
 
-        // Obtener citas históricas (últimos 30 días)
-        const { data: citasData, error: citasError } = await supabase
-          .from('citas')
-          .select(`
-            id,
-            barbero_id,
-            servicio_id,
-            cliente_nombre,
-            cliente_email,
-            cliente_telefono,
-            fecha_hora,
-            duracion,
-            estado,
-            notas,
-            created_at,
-            updated_at,
-            servicios:servicio_id (
-              nombre,
-              precio,
-              duracion
-            )
-          `)
-          .eq('barbero_id', session.barberoId)
-          .gte('fecha_hora', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-          .order('fecha_hora', { ascending: false })
-
-        if (citasError) throw citasError
-
-        // Transformar datos
-        const citasTransformadas: Cita[] = (citasData || []).map((cita: any) => ({
-          ...cita,
-          servicio_nombre: cita.servicios?.nombre || 'Sin servicio',
-          servicio_precio: cita.servicios?.precio || 0
-        }))
-
-        setCitas(citasTransformadas)
-
-        // Calcular estadísticas
-        const citasCompletadas = citasTransformadas.filter(c => c.estado === 'completada')
-        const totalGanancia = citasCompletadas.reduce((sum, c) => sum + (c.servicio_precio || 0), 0)
-        const clientesUnicos = new Set(citasCompletadas.map(c => c.cliente_email)).size
-
-        setStats({
-          total_citas: citasTransformadas.length,
-          total_ganancia: totalGanancia,
-          promedio_cita: citasCompletadas.length > 0 ? totalGanancia / citasCompletadas.length : 0,
-          total_clientes: clientesUnicos
-        })
-      } catch (err) {
-        console.error('Error al cargar historial:', err)
-      } finally {
-        setLoading(false)
-      }
+      // Last 30 Chile days, by the real columns: fecha (DATE) + hora (TIME)
+      const historial = await cargarHistorial(supabase, barberoId)
+      setCitas(historial)
+      setStats(resumirHistorial(historial))
+      setErrorCarga(null)
+    } catch (err) {
+      console.error('Error al cargar historial:', err)
+      setErrorCarga('No se pudo cargar el historial. Intenta de nuevo.')
+    } finally {
+      setLoading(false)
     }
+  }, [barberoId])
 
-    fetchHistorial()
-  }, [session?.barberoId])
+  useEffect(() => {
+    cargar()
+  }, [cargar])
 
   // Filtrar citas
   const citasFiltradas = citas.filter(cita => {
@@ -108,25 +70,10 @@ export default function HistoryPage() {
     return true
   })
 
-  // Formatear fecha
-  const formatFecha = (fechaHora?: string) => {
-    if (!fechaHora) return 'Fecha no disp.'
-
-    try {
-      const date = new Date(fechaHora)
-      if (isNaN(date.getTime())) return 'Fecha inválida'
-
-      return new Intl.DateTimeFormat('es-CL', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      }).format(date)
-    } catch (e) {
-      return 'Error de fecha'
-    }
-  }
+  // fecha is a DATE and hora a TIME: printed as stored, never through the device
+  // time zone (e.g. "23 nov 2026, 18:00")
+  const formatFecha = (cita: Cita) =>
+    `${formatFechaSolo(cita.fecha, { day: '2-digit', month: 'short', year: 'numeric' })}, ${(cita.hora || '').slice(0, 5)}`
 
   // Formatear dinero
   const formatMoney = (amount: number) => {
@@ -242,6 +189,13 @@ export default function HistoryPage() {
           {/* Lista de citas históricas */}
           {loading ? (
             <LoadingSpinner text="Cargando historial..." />
+          ) : errorCarga ? (
+            <EmptyState
+              icon="alert"
+              title="Error"
+              message={errorCarga}
+              action={{ label: 'Reintentar', onClick: cargar }}
+            />
           ) : citasFiltradas.length === 0 ? (
             <EmptyState
               icon="calendar"
@@ -259,13 +213,13 @@ export default function HistoryPage() {
                     </div>
                     <div className="history-badge">
                       <span className={`badge ${cita.estado}`}>
-                        {cita.estado === 'completada' ? 'Completada' : 'Cancelada'}
+                        {ESTADO_LABEL[cita.estado] ?? cita.estado}
                       </span>
                     </div>
                   </div>
                   <div className="history-details">
-                    <p className="history-date">{formatFecha(cita.fecha_hora)}</p>
-                    {cita.estado === 'completada' && cita.servicio_precio && (
+                    <p className="history-date">{formatFecha(cita)}</p>
+                    {cita.estado === 'completada' && !!cita.servicio_precio && (
                       <p className="history-price">{formatMoney(cita.servicio_precio)}</p>
                     )}
                   </div>
@@ -376,6 +330,11 @@ export default function HistoryPage() {
             border-left: 4px solid #ef4444;
           }
 
+          .history-card.pendiente,
+          .history-card.confirmada {
+            border-left: 4px solid #9ca3af;
+          }
+
           .history-header {
             display: flex;
             align-items: flex-start;
@@ -412,6 +371,12 @@ export default function HistoryPage() {
           .badge.cancelada {
             background: rgba(239, 68, 68, 0.15);
             color: #ef4444;
+          }
+
+          .badge.pendiente,
+          .badge.confirmada {
+            background: rgba(156, 163, 175, 0.15);
+            color: #d1d5db;
           }
 
           .history-details {
