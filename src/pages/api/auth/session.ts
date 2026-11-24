@@ -15,7 +15,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const result = await supabase.auth.getSession()
         // The auth backend did not answer. That is not "signed out": the cookies
         // stay in place and the browser keeps what it has and asks again.
-        if (result?.unavailable) return unavailable(res)
+        if (result?.unavailable) {
+            // One line for operations: the backend status only, never a token or its text.
+            console.error('[auth/session] Auth backend unavailable, answered 503', { status: result.error?.statusCode ?? null })
+            return unavailable(res)
+        }
         const session = result?.data?.session ?? null
 
         if (!session?.user || !session?.access_token) {

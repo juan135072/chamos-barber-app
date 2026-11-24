@@ -98,6 +98,15 @@ async function silently(run) {
   try { return await run() } finally { console.error = realError }
 }
 
+/** Runs `run` with the console silenced and returns its result with the error lines it logged. */
+async function logging(run) {
+  const real = { log: console.log, error: console.error }
+  const errors = []
+  console.log = () => {}
+  console.error = (...args) => errors.push(args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' '))
+  try { return [await run(), errors] } finally { Object.assign(console, real) }
+}
+
 for (const [name, respond] of [
   ['a network failure', down],
   ['a 503', async () => Response.json({ error: 'SERVICE_UNAVAILABLE' }, { status: 503 })],
@@ -145,12 +154,31 @@ test('a refused refresh is still an answer: no session, cookies cleared, not una
 test('/api/auth/session answers 503 and keeps the cookies when the auth backend is down', async () => {
   global.fetch = down
   for (const cookie of [REFRESH_ONLY, BOTH]) {
-    const res = await sessionRoute({ cookie })
+    const [res, logged] = await logging(() => sessionRoute({ cookie }))
     assert.equal(res.statusCode, 503)
     assert.equal(typeof res.body.error, 'string')
     assert.equal('session' in res.body, false, 'never "session: null", which the browser reads as signed out')
     assert.equal(cookies(res), undefined)
     assert.equal(res.getHeader('Cache-Control'), 'no-store, no-cache, must-revalidate')
+    // One line for operations: the backend status, no token and no backend text.
+    assert.equal(logged.length, 1)
+    assert.match(logged[0], /^\[auth\/session\] .*503.*"status":0/)
+    assert.doesNotMatch(logged[0], /valid-refresh|expired-access|fetch failed/)
+  }
+})
+
+test('/api/asistencia/marcar answers with a fixed text, never with the auth backend error', async () => {
+  const handler = require('../src/pages/api/asistencia/marcar.ts').default
+  for (const respond of [
+    down,
+    async () => Response.json({ error: 'INTERNAL', message: 'pg: password authentication failed for user "postgres"' }, { status: 500 }),
+    refused,
+  ]) {
+    global.fetch = respond
+    const res = createResponse()
+    await logging(() => settled(() => handler({ method: 'POST', headers: { cookie: REFRESH_ONLY }, body: { clave: 'ABC-123' } }, res)))
+    assert.equal(res.statusCode, 401)
+    assert.deepEqual(res.body, { error: 'No autenticado', debug: 'Sin sesión' })
   }
 })
 

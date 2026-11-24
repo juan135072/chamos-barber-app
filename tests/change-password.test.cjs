@@ -270,3 +270,34 @@ test('simultaneous attempts cannot get past the limit', async () => {
   assert.deepEqual(results.map((res) => res.statusCode).sort(), [401, 401, 401, 401, 401, 429, 429, 429, 429, 429])
   assert.equal(comparisons().length, 5, 'only five passwords were compared')
 })
+
+test('an account whose password is never compared (a project admin) does not use up attempts', async () => {
+  setup({ rol: 'admin', projectAdmin: true })
+  for (let i = 0; i < 8; i++) {
+    const res = await call(right)
+    assert.equal(res.statusCode, 403, `request ${i + 1}`)
+    assert.equal(res.body.error, 'Esta cuenta no puede cambiar su contraseña desde aquí')
+  }
+  assert.deepEqual(comparisons(), [])
+})
+
+test('an attempt is given back only inside the window it was taken in', () => {
+  const { takeAttempt, returnAttempt } = require('../src/lib/security/rateLimit.ts')
+  clearRateLimitStore()
+  mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 24, 15, 0, 0) })
+  try {
+    const old = takeAttempt('test:user', 2, 60000)
+    assert.equal(old.allowed, true)
+    mock.timers.tick(60000) // that window is over
+    const current = takeAttempt('test:user', 2, 60000)
+    assert.deepEqual([current.allowed, takeAttempt('test:user', 2, 60000).allowed], [true, true])
+    // A late return belongs to the old window: the new one keeps both of its attempts.
+    returnAttempt('test:user', old.windowEnd)
+    assert.equal(takeAttempt('test:user', 2, 60000).allowed, false)
+    // An attempt of the current window does come back, exactly once per return.
+    returnAttempt('test:user', current.windowEnd)
+    assert.deepEqual([takeAttempt('test:user', 2, 60000).allowed, takeAttempt('test:user', 2, 60000).allowed], [true, false])
+  } finally {
+    mock.timers.reset()
+  }
+})

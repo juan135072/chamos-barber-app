@@ -233,13 +233,14 @@ export function withRateLimit(
  * same in-memory store. At most `maxAttempts` are allowed per window, and the
  * window starts with the first attempt. Checking and counting happen in one
  * synchronous step, so requests that arrive together cannot share the last
- * attempt. `retryAfter` is the number of seconds until the window ends.
+ * attempt. `retryAfter` is the number of seconds until the window ends, and
+ * `windowEnd` identifies the window for returnAttempt.
  */
 export function takeAttempt(
   key: string,
   maxAttempts: number,
   windowMs: number
-): { allowed: boolean; retryAfter: number } {
+): { allowed: boolean; retryAfter: number; windowEnd: number } {
   const now = Date.now()
   let entry = requestStore.get(key)
 
@@ -249,11 +250,26 @@ export function takeAttempt(
   }
 
   if (entry.count >= maxAttempts) {
-    return { allowed: false, retryAfter: Math.ceil((entry.resetTime - now) / 1000) }
+    return { allowed: false, retryAfter: Math.ceil((entry.resetTime - now) / 1000), windowEnd: entry.resetTime }
   }
 
   entry.count++
-  return { allowed: true, retryAfter: 0 }
+  return { allowed: true, retryAfter: 0, windowEnd: entry.resetTime }
+}
+
+/**
+ * Gives back one attempt taken with takeAttempt, for a check that could not
+ * run (for example, the database did not answer), so it does not count
+ * against the limit. `windowEnd` is the one takeAttempt returned: an attempt
+ * of a window that already ended is not given back to the next one. The
+ * window keeps its start; an entry left with no attempts is removed.
+ */
+export function returnAttempt(key: string, windowEnd: number) {
+  const entry = requestStore.get(key)
+  if (!entry || entry.resetTime !== windowEnd || entry.count <= 0) return
+
+  entry.count--
+  if (entry.count === 0) requestStore.delete(key)
 }
 
 /**

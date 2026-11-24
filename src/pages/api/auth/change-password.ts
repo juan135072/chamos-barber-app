@@ -11,11 +11,13 @@ import {
   adminSetUserPassword,
   adminVerifyPassword,
 } from '@/lib/insforge-admin'
-import { clearAttempts, takeAttempt } from '@/lib/security/rateLimit'
+import { clearAttempts, returnAttempt, takeAttempt } from '@/lib/security/rateLimit'
 
 // Attempts are counted per user, not per IP: the whole shop shares one address,
 // so an IP limit would lock every staff member out together. The count is kept
 // in memory (the site runs as one container) and a deploy starts it over.
+// Only a wrong password counts: a check that could not run (a backend or
+// database error) gives its attempt back.
 const MAX_ATTEMPTS = 5
 const ATTEMPT_WINDOW_MS = 15 * 60 * 1000
 
@@ -30,6 +32,10 @@ export default async function handler(
   const actor = await requireStaff(req, res, ['admin', 'cajero', 'barbero'])
   if (!actor) return
   const userId = actor.user.id
+
+  // The attempt this request holds. It stays counted only when the password
+  // was compared and was wrong; any other outcome gives it back (see finally).
+  let held: { key: string; windowEnd: number } | null = null
 
   try {
     const { userId: requestedUserId, currentPassword, newPassword } = req.body ?? {}
@@ -69,6 +75,7 @@ export default async function handler(
         error: `Demasiados intentos. Vuelve a intentarlo en ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}.`
       })
     }
+    held = { key: attemptKey, windowEnd: attempt.windowEnd }
 
     // PASO 1: Verificar que el usuario exista (y que no sea un admin del proyecto)
     const { data: getUserData, error: getUserError } = await adminGetUserById(userId)
@@ -91,6 +98,8 @@ export default async function handler(
     }
 
     if (!valid) {
+      // A real wrong-password answer: this attempt counts.
+      held = null
       return res.status(401).json({ error: 'La contraseña actual es incorrecta' })
     }
 
@@ -107,6 +116,7 @@ export default async function handler(
     }
 
     // The user proved they know the password: earlier wrong guesses no longer count.
+    held = null
     clearAttempts(attemptKey)
 
     console.log('✅ [Change Password] Contraseña actualizada:', userId)
@@ -121,5 +131,9 @@ export default async function handler(
     return res.status(500).json({
       error: 'Error cambiando contraseña'
     })
+  } finally {
+    // The password was not compared (the user lookup, the comparison or the
+    // update failed, or the account is never checked here): give the attempt back.
+    if (held) returnAttempt(held.key, held.windowEnd)
   }
 }

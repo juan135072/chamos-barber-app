@@ -36,9 +36,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             console.error('❌ [marcar-asistencia] No autenticado. Error:', authError)
             // Debug de cookies
             console.log('🧪 [API-MARCAR] Cookies recibidas:', req.headers.cookie ? 'SÍ' : 'NO')
+            // A fixed text: the error can carry what the auth backend said, which
+            // stays in the server log above and never goes to the browser.
             return res.status(401).json({
                 error: 'No autenticado',
-                debug: authError?.message || 'Sin sesión'
+                debug: 'Sin sesión'
             })
         }
 
