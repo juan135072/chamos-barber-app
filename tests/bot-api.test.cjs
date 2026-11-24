@@ -218,6 +218,18 @@ test('barberos gives each barber the week of their own rows', async () => {
   assert.deepEqual(db.calls.selects.find((s) => s.table === 'horarios_atencion').filters, [['barbero_id', 'in', [carlos, luis]]])
 })
 
+test('horario_semanal names the days exactly as the agent matches them, with HH:MM times', async () => {
+  db.tables.sitio_configuracion = liveHours()
+  db.tables.horarios_atencion = [0, 1, 2, 3, 4, 5, 6].map((day) => schedule(carlos, day, { pausa_inicio: '14:00:00', pausa_fin: '14:30:00' }))
+  const week = (await call(barberos)).body.data[0].horario_semanal
+  // The agent looks each day up by this name, accents included. The escapes pin the
+  // precomposed letters (é U+00E9, á U+00E1) whatever the encoding of this file.
+  assert.deepEqual(week.map((day) => day.dia), ['lunes', 'martes', 'mi\u00e9rcoles', 'jueves', 'viernes', 's\u00e1bado', 'domingo'])
+  for (const day of week) {
+    for (const time of [day.desde, day.hasta, day.pausa.desde, day.pausa.hasta]) assert.match(time, /^([01]\d|2[0-3]):[0-5]\d$/, day.dia)
+  }
+})
+
 test('barberos follows the panel: new hours change the week on the next request', async () => {
   db.tables.sitio_configuracion = liveHours()
   db.tables.horarios_atencion = [0, 1, 2, 3, 4, 5, 6].map((day) => schedule(carlos, day))
