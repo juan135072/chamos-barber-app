@@ -8,7 +8,7 @@ const pushes = []
 let pushBehaviour = () => new Promise(() => {})
 stubModule('../src/lib/realtime-publish.ts', { async publishCitaChange() {} })
 stubModule('../src/lib/onesignal.ts', { sendNotificationToBarber(...args) { pushes.push(args); return pushBehaviour() } })
-const { notifyBookingCreated, notifyBookingCancelled } = require('../src/lib/booking/notify.ts')
+const { notifyBookingCreated, notifyBookingCancelled, notifyBookingRescheduled } = require('../src/lib/booking/notify.ts')
 
 const cita = { id: 'cita-1', barbero_id: 'barbero-1', cliente_nombre: 'Ana', fecha: '2099-01-05', hora: '10:30:00' }
 
@@ -35,4 +35,18 @@ test('a failing push is logged and never reaches the booking', async () => {
   }
   assert.equal(pushes.length, 1)
   assert.match(errors[0], /push notification failed/)
+})
+
+// A customer's reschedule goes back to pendiente; a staff move keeps the estado.
+test('the reschedule push asks the barber to confirm only while the booking is pendiente', async () => {
+  pushes.length = 0
+  pushBehaviour = async () => ({ success: true })
+  const moved = { ...cita, fecha: '2099-01-06', hora: '11:00:00' }
+  for (const estado of ['pendiente', 'confirmada']) {
+    await notifyBookingRescheduled({}, { ...cita, estado: 'confirmada' }, { ...moved, estado }, { barberoNombre: 'Carlos' })
+  }
+  assert.deepEqual(pushes, [
+    ['barbero-1', 'Cita reagendada 🔄', 'Hola Carlos, la cita de Ana quedó para el martes, 6 de enero de 2099 a las 11:00. Queda pendiente de tu confirmación.'],
+    ['barbero-1', 'Cita reagendada 🔄', 'Hola Carlos, la cita de Ana quedó para el martes, 6 de enero de 2099 a las 11:00.'],
+  ])
 })

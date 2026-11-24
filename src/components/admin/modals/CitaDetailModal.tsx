@@ -6,6 +6,8 @@ import { Plus, Trash, Save, Loader2 } from 'lucide-react'
 import { useFormatCurrency } from '@/context/ConfigContext'
 import toast from 'react-hot-toast'
 import { formatFechaSolo } from '@/lib/date-utils'
+import { isActiveEstado } from '@/lib/booking/change-policy'
+import ReagendarCitaModal from './ReagendarCitaModal'
 
 type Servicio = Database['public']['Tables']['servicios']['Row']
 type Cita = Database['public']['Tables']['citas']['Row'] & {
@@ -26,6 +28,7 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
     const [servicios, setServicios] = useState<Servicio[]>([])
     const [isSaving, setIsSaving] = useState(false)
     const [loadingServicios, setLoadingServicios] = useState(false)
+    const [reagendando, setReagendando] = useState(false)
     const formatCurrency = useFormatCurrency()
 
     useEffect(() => {
@@ -172,6 +175,16 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
                             {formatFechaSolo(cita.fecha, { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                         <p className="text-amber-500 font-bold">{cita.hora.substring(0, 5)}</p>
+                        {/* Only a pendiente or confirmada appointment can move; the server checks it again. */}
+                        {isActiveEstado(cita.estado) && (
+                            <button
+                                type="button"
+                                onClick={() => setReagendando(true)}
+                                className="mt-2 text-xs font-bold text-amber-500 hover:text-amber-400 underline"
+                            >
+                                <i className="fas fa-calendar-alt mr-1"></i>Reagendar
+                            </button>
+                        )}
                     </div>
                 </div>
 
@@ -263,6 +276,21 @@ const CitaDetailModal: React.FC<CitaDetailModalProps> = ({ isOpen, onClose, cita
                     </div>
                 </div>
             </div>
+
+            {/* Mounted per appointment, so it starts from this one's barber and day. */}
+            {reagendando && (
+                <ReagendarCitaModal
+                    key={cita.id}
+                    isOpen
+                    cita={cita}
+                    onClose={() => setReagendando(false)}
+                    onSuccess={() => {
+                        // This detail still shows the old date: refresh its owner and close it.
+                        if (onUpdate) onUpdate()
+                        onClose()
+                    }}
+                />
+            )}
         </Modal>
     )
 }
