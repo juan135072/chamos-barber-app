@@ -141,7 +141,129 @@ test('BOT_COMERCIO_SLUG selects the tenant', async () => {
 
 test('barberos lists only active barbers of the bot tenant', async () => {
   const res = await call(barberos)
-  assert.deepEqual(res.body.data, [{ id: carlos, nombre: 'Carlos', apellido: 'Pérez', especialidades: ['Fade'], descripcion: 'Senior' }])
+  // The fields that existed before horario_semanal keep their values.
+  assert.deepEqual(res.body.data.map(({ horario_semanal, ...barber }) => barber), [{ id: carlos, nombre: 'Carlos', apellido: 'Pérez', especialidades: ['Fade'], descripcion: 'Senior' }])
+})
+
+// The panel values on 2026-11-23: Sunday open with its own hours.
+const liveHours = (comercio_id = tenant) => Object.entries({
+  horario_apertura: '10:30', horario_cierre: '20:00',
+  horario_sabado_apertura: '10:30', horario_sabado_cierre: '20:00',
+  horario_domingo_apertura: '12:00', horario_domingo_cierre: '17:00', horario_domingo_activo: 'true',
+  intervalo_citas: '30',
+}).map(([clave, valor]) => ({ comercio_id, clave, valor }))
+const setting = (clave) => db.tables.sitio_configuracion.find((row) => row.comercio_id === tenant && row.clave === clave)
+/** horarios_atencion row: dia_semana is 0 = Sunday … 6 = Saturday. */
+const schedule = (barbero_id, dia_semana, extra = {}) => ({
+  id: `${barbero_id}-${dia_semana}`, barbero_id, comercio_id: tenant, dia_semana,
+  hora_inicio: '10:30:00', hora_fin: '20:00:00', activo: true, pausa_inicio: null, pausa_fin: null, ...extra,
+})
+const HOURS_KEYS = [
+  'horario_apertura', 'horario_cierre', 'horario_sabado_apertura', 'horario_sabado_cierre',
+  'horario_domingo_apertura', 'horario_domingo_cierre', 'horario_domingo_activo', 'intervalo_citas',
+]
+
+test('barberos adds each barber week from the schedule rows and the panel hours', async () => {
+  db.tables.sitio_configuracion = [
+    ...liveHours(),
+    { comercio_id: tenant, clave: 'pos_clave_seguridad', valor: '9999' },
+    { comercio_id: other, clave: 'horario_apertura', valor: '06:00' },
+    { comercio_id: other, clave: 'horario_domingo_activo', valor: 'false' },
+  ]
+  db.tables.horarios_atencion = [
+    schedule(carlos, 0, { hora_inicio: '12:00:00', hora_fin: '17:00:00' }),
+    schedule(carlos, 1),
+    schedule(carlos, 2, { pausa_inicio: '14:00:00', pausa_fin: '15:00:00' }),
+    schedule(carlos, 3, { activo: false }),
+    schedule(carlos, 4, { hora_inicio: '09:00:00', hora_fin: '22:00:00' }), // wider than the shop hours
+    schedule(carlos, 5, { hora_inicio: '12:00:00', hora_fin: '18:00:00' }),
+    // No Saturday row. Rows of an inactive and of a foreign barber never show up.
+    schedule(pedro, 6),
+    { ...schedule(ajeno, 6), comercio_id: other },
+  ]
+  const res = await call(barberos)
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body.data, [{
+    id: carlos, nombre: 'Carlos', apellido: 'Pérez', especialidades: ['Fade'], descripcion: 'Senior',
+    horario_semanal: [
+      { dia: 'lunes', atiende: true, desde: '10:30', hasta: '20:00', pausa: null },
+      { dia: 'martes', atiende: true, desde: '10:30', hasta: '20:00', pausa: { desde: '14:00', hasta: '15:00' } },
+      { dia: 'miércoles', atiende: false, desde: null, hasta: null, pausa: null },
+      { dia: 'jueves', atiende: true, desde: '10:30', hasta: '20:00', pausa: null },
+      { dia: 'viernes', atiende: true, desde: '12:00', hasta: '18:00', pausa: null },
+      { dia: 'sábado', atiende: false, desde: null, hasta: null, pausa: null },
+      { dia: 'domingo', atiende: true, desde: '12:00', hasta: '17:00', pausa: null },
+    ],
+  }])
+  assert.deepEqual(Object.keys(res.body.data[0]), ['id', 'nombre', 'apellido', 'especialidades', 'descripcion', 'horario_semanal'])
+  // Only the listed barbers' rows and this tenant's hours keys are read.
+  assert.deepEqual(db.calls.selects.find((s) => s.table === 'horarios_atencion').filters, [['barbero_id', 'in', [carlos]]])
+  assert.deepEqual(db.calls.selects.find((s) => s.table === 'sitio_configuracion').filters, [['comercio_id', 'eq', tenant], ['clave', 'in', HOURS_KEYS]])
+})
+
+test('barberos gives each barber the week of their own rows', async () => {
+  const luis = '77777777-7777-4777-8777-777777777777'
+  db.tables.barberos.push({ id: luis, nombre: 'Luis', apellido: null, especialidades: null, descripcion: null, activo: true, comercio_id: tenant })
+  db.tables.sitio_configuracion = liveHours()
+  db.tables.horarios_atencion = [
+    schedule(luis, 1, { hora_inicio: '12:00:00', hora_fin: '16:00:00' }),
+    ...[2, 3, 4, 5, 6].map((day) => schedule(carlos, day)),
+  ]
+  const { data } = (await call(barberos)).body
+  const working = (barber) => barber.horario_semanal.filter((day) => day.atiende).map((day) => `${day.dia} ${day.desde}-${day.hasta}`)
+  assert.deepEqual(data.map((barber) => barber.nombre), ['Carlos', 'Luis'])
+  assert.deepEqual(working(data[0]), ['martes', 'miércoles', 'jueves', 'viernes', 'sábado'].map((dia) => `${dia} 10:30-20:00`))
+  assert.deepEqual(working(data[1]), ['lunes 12:00-16:00'])
+  assert.deepEqual(data[1], { id: luis, nombre: 'Luis', apellido: null, especialidades: [], descripcion: null, horario_semanal: data[1].horario_semanal })
+  assert.deepEqual(db.calls.selects.find((s) => s.table === 'horarios_atencion').filters, [['barbero_id', 'in', [carlos, luis]]])
+})
+
+test('horario_semanal names the days exactly as the agent matches them, with HH:MM times', async () => {
+  db.tables.sitio_configuracion = liveHours()
+  db.tables.horarios_atencion = [0, 1, 2, 3, 4, 5, 6].map((day) => schedule(carlos, day, { pausa_inicio: '14:00:00', pausa_fin: '14:30:00' }))
+  const week = (await call(barberos)).body.data[0].horario_semanal
+  // The agent looks each day up by this name, accents included. The escapes pin the
+  // precomposed letters (é U+00E9, á U+00E1) whatever the encoding of this file.
+  assert.deepEqual(week.map((day) => day.dia), ['lunes', 'martes', 'mi\u00e9rcoles', 'jueves', 'viernes', 's\u00e1bado', 'domingo'])
+  for (const day of week) {
+    for (const time of [day.desde, day.hasta, day.pausa.desde, day.pausa.hasta]) assert.match(time, /^([01]\d|2[0-3]):[0-5]\d$/, day.dia)
+  }
+})
+
+test('barberos follows the panel: new hours change the week on the next request', async () => {
+  db.tables.sitio_configuracion = liveHours()
+  db.tables.horarios_atencion = [0, 1, 2, 3, 4, 5, 6].map((day) => schedule(carlos, day))
+  const week = async () => (await call(barberos)).body.data[0].horario_semanal
+  const before = await week()
+  assert.deepEqual(before[0], { dia: 'lunes', atiende: true, desde: '10:30', hasta: '20:00', pausa: null })
+  assert.deepEqual(before[6], { dia: 'domingo', atiende: true, desde: '12:00', hasta: '17:00', pausa: null })
+
+  // The owner closes Sundays and moves the weekday closing time in the panel.
+  setting('horario_domingo_activo').valor = 'false'
+  setting('horario_cierre').valor = '19:00'
+  const after = await week()
+  assert.deepEqual(after[0], { dia: 'lunes', atiende: true, desde: '10:30', hasta: '19:00', pausa: null })
+  assert.deepEqual(after[5], { dia: 'sábado', atiende: true, desde: '10:30', hasta: '20:00', pausa: null })
+  assert.deepEqual(after[6], { dia: 'domingo', atiende: false, desde: null, hasta: null, pausa: null })
+})
+
+test('barberos keeps listing barbers, without the week, when the schedule cannot be read', async (t) => {
+  const logged = t.mock.method(console, 'error', () => {})
+  const listed = { success: true, data: [{ id: carlos, nombre: 'Carlos', apellido: 'Pérez', especialidades: ['Fade'], descripcion: 'Senior' }] }
+  // Neither guessed hours nor a failed list: the field is left out and the error is logged.
+  for (const table of ['horarios_atencion', 'sitio_configuracion']) {
+    seed({ fail: { [`${table}.select`]: { message: 'relation "secret_table" does not exist' } } })
+    db.tables.horarios_atencion = [1, 2, 3, 4, 5].map((day) => schedule(carlos, day))
+    const res = await call(barberos)
+    assert.deepEqual([res.statusCode, res.body], [200, listed], table)
+  }
+  assert.equal(logged.mock.callCount(), 2)
+
+  seed()
+  db.tables.barberos = db.tables.barberos.filter((barber) => barber.id !== carlos)
+  const empty = await call(barberos)
+  assert.deepEqual([empty.statusCode, empty.body], [200, { success: true, data: [] }])
+  assert.equal(db.calls.selects.some((s) => s.table === 'horarios_atencion'), false, 'no barbers, no schedule lookup')
 })
 
 test('info returns calendar hours with database defaults and never private settings', async () => {
@@ -158,6 +280,25 @@ test('info returns calendar hours with database defaults and never private setti
     enlaces: { google_maps: null, instagram: 'https://instagram.com/chamos', facebook: null, whatsapp: null },
   })
   assert.doesNotMatch(JSON.stringify(res.body), /9999|No soy yo/)
+})
+
+test('info quotes the Sunday hours when the panel opens Sundays, and follows a later change', async () => {
+  db.tables.sitio_configuracion = [...liveHours(), { comercio_id: other, clave: 'horario_domingo_cierre', valor: '23:00' }]
+  const res = await call(info)
+  assert.deepEqual(res.body.data.horarios, {
+    semana: { abierto: true, apertura: '10:30', cierre: '20:00' },
+    sabado: { abierto: true, apertura: '10:30', cierre: '20:00' },
+    domingo: { abierto: true, apertura: '12:00', cierre: '17:00' },
+  })
+  assert.equal(res.body.data.intervalo_citas_minutos, 30)
+
+  // The owner edits the panel: the next request answers the new hours.
+  setting('horario_domingo_cierre').valor = '18:00'
+  setting('horario_sabado_apertura').valor = ''
+  setting('horario_apertura').valor = '09:30'
+  const { horarios: updated } = (await call(info)).body.data
+  assert.deepEqual(updated.domingo, { abierto: true, apertura: '12:00', cierre: '18:00' })
+  assert.deepEqual(updated.sabado, { abierto: true, apertura: '09:30', cierre: '20:00' })
 })
 
 test('horarios validates dates against the 30-day booking window', async () => {

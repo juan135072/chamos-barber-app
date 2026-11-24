@@ -3,6 +3,7 @@ import { chamosSupabase } from '@/lib/supabase-helpers'
 import toast from 'react-hot-toast'
 import { getAppSession } from '@/lib/app-session'
 import { validateSettings } from '@/lib/settings-validation'
+import { DEFAULT_CLOSE, DEFAULT_OPEN } from '@/lib/business-hours'
 
 interface ConfigItem {
   clave: string
@@ -55,8 +56,8 @@ const ConfiguracionTab: React.FC = () => {
         })
       }
       for (const prefix of ['horario_sabado', 'horario_domingo']) {
-        configMap[`${prefix}_apertura`] ||= configMap.horario_apertura || '10:30'
-        configMap[`${prefix}_cierre`] ||= configMap.horario_cierre || '20:00'
+        configMap[`${prefix}_apertura`] ||= configMap.horario_apertura || DEFAULT_OPEN
+        configMap[`${prefix}_cierre`] ||= configMap.horario_cierre || DEFAULT_CLOSE
       }
       configMap.horario_domingo_activo ||= 'false'
       setConfig(configMap)
