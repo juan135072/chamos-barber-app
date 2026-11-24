@@ -119,7 +119,8 @@ export default function CitasTab() {
         // Usamos una pequeña notificación manual si es posible, pero evitamos alert()
         console.log('Borrado completado con éxito');
       } else {
-        setErrorBorrado(data?.message || 'Error desconocido del servidor');
+        // A refusal comes as { success: false, error: '…' }
+        setErrorBorrado(data?.error || 'Error desconocido del servidor');
       }
 
     } catch (err: any) {
