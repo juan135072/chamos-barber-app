@@ -18,6 +18,7 @@ messages below are exactly what the server sends.
 | Customer wants to… | Calls |
 |---|---|
 | Know address, hours, links | `GET /api/bot/info` |
+| Know which days a barber works | `GET /api/bot/barberos` (`horario_semanal`) |
 | Book | `GET /api/bot/servicios` → `GET /api/bot/barberos` → `POST /api/bot/horarios` → `POST /api/bot/citas` |
 | Be greeted / see their bookings | `GET /api/bot/citas?telefono=…` |
 | Move a booking | `GET /api/bot/citas?telefono=…` → `POST /api/bot/horarios` → `POST /api/bot/citas/reagendar` |
@@ -38,6 +39,7 @@ messages below are exactly what the server sends.
 | Services | `servicios_ids` is 1–20 service UUIDs. Repeating an id means quantity (`[corte, corte]` = 2× Corte). |
 | Prices | Always taken from the catalog. The API ignores any price sent by the client. |
 | Caching | Responses carry `Cache-Control: no-store`. |
+| Opening hours | Read from the admin panel on every request (`info.horarios`, `barberos[].horario_semanal`, availability). The server keeps no copy, so after the owner edits the hours the next call answers the new ones. The agent must not keep one either. |
 | Rate limits | No per-IP limit for authenticated bot calls. The per-customer active-booking limit applies (see below). |
 
 Request handling order: key check (`503`/`401`) → method (`405`) → tenant
@@ -179,6 +181,11 @@ Business data and the general opening hours used by the booking calendar.
 - `semana` is Monday–Friday. Saturday/Sunday fall back to the weekday hours
   when not configured; the defaults (`10:30`–`20:00`, 30 min) match the
   database. `domingo.abierto` is the "Sunday open" switch.
+- With Sundays open, Sunday carries its own hours, for example
+  `"domingo": { "abierto": true, "apertura": "12:00", "cierre": "17:00" }`.
+  When `abierto` is `false` the times are still sent and must be ignored.
+- The hours are read from the admin panel on every request: after the owner
+  changes them, the next call returns the new values.
 - Text fields and links are `null` when not configured. Individual barbers can
   still be off or on a break: availability is the source of truth.
 
@@ -198,15 +205,52 @@ Active services, ordered by name.
 ### `GET /api/bot/barberos`
 
 Active barbers, ordered by name. `especialidades` is always an array.
+`horario_semanal` is the week the barber works: exactly 7 objects, Monday to
+Sunday.
 
 ```json
 {
   "success": true,
   "data": [
-    { "id": "11111111-1111-4111-8111-111111111111", "nombre": "Carlos", "apellido": "Pérez", "especialidades": ["Fade"], "descripcion": "Especialista en degradados" }
+    {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "nombre": "Carlos",
+      "apellido": "Pérez",
+      "especialidades": ["Fade"],
+      "descripcion": "Especialista en degradados",
+      "horario_semanal": [
+        { "dia": "lunes",     "atiende": true,  "desde": "10:30", "hasta": "20:00", "pausa": null },
+        { "dia": "martes",    "atiende": true,  "desde": "10:30", "hasta": "20:00", "pausa": { "desde": "14:00", "hasta": "15:00" } },
+        { "dia": "miércoles", "atiende": false, "desde": null,    "hasta": null,    "pausa": null },
+        { "dia": "jueves",    "atiende": true,  "desde": "10:30", "hasta": "20:00", "pausa": null },
+        { "dia": "viernes",   "atiende": true,  "desde": "10:30", "hasta": "20:00", "pausa": null },
+        { "dia": "sábado",    "atiende": true,  "desde": "10:30", "hasta": "20:00", "pausa": null },
+        { "dia": "domingo",   "atiende": true,  "desde": "12:00", "hasta": "17:00", "pausa": null }
+      ]
+    }
   ]
 }
 ```
+
+In this example the shop opens on Sundays from 12:00 to 17:00, and the barber
+takes Wednesdays off and has a break on Tuesdays.
+
+| Field | Notes |
+|---|---|
+| `dia` | `lunes`, `martes`, `miércoles`, `jueves`, `viernes`, `sábado`, `domingo`, always in that order. |
+| `atiende` | `true` when the shop opens that weekday, the barber has an active schedule row for it, and the barber's hours overlap the shop's. |
+| `desde` / `hasta` | `HH:MM`: the barber's hours clipped to the shop's general hours (the ones in `GET /api/bot/info`). Both are `null` when `atiende` is `false`. |
+| `pausa` | `{ "desde": "HH:MM", "hasta": "HH:MM" }` when the barber has a break inside those hours (clipped to them), otherwise `null`. Always `null` when `atiende` is `false`. |
+
+- The week is built on every request from the admin panel: the general hours
+  (Configuración) and each barber's schedule (Horarios). After a change there,
+  the next call returns the new week.
+- It is the usual week, not availability: blocked dates and existing bookings
+  are not part of it. Before offering a time, call `POST /api/bot/horarios`.
+- `horario_semanal` can be missing: the server leaves it out when it cannot
+  read the schedule (the barbers are still listed), and servers older than this
+  field never send it. A client must treat a missing week as "unknown", not as
+  "does not work".
 
 ### `POST /api/bot/horarios`
 
