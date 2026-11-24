@@ -483,7 +483,7 @@ export default function AdminLiquidacionesPanel() {
               <option value="" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Todos los estados</option>
               <option value="pendiente" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Pendientes</option>
               <option value="pagada" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Pagadas</option>
-              <option value="cancelada" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Canceladas</option>
+              <option value="anulada" style={{ backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)' }}>Anuladas</option>
             </select>
           </div>
         </div>

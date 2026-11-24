@@ -57,7 +57,7 @@ export interface Liquidacion {
   cantidad_servicios: number // Count of invoices
   porcentaje_comision: number
   total_comision: number
-  estado: 'pendiente' | 'pagada' | 'cancelada'
+  estado: 'pendiente' | 'pagada' | 'cancelada' | 'anulada' // the database voids a liquidation as 'anulada'
   metodo_pago?: 'efectivo' | 'transferencia' | 'mixto'
   monto_efectivo: number
   monto_transferencia: number
