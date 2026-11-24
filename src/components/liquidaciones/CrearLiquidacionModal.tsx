@@ -16,7 +16,7 @@ import {
   crearLiquidacion,
   formatCLP
 } from '@/lib/supabase-liquidaciones'
-import { addDays, finDeMes, getChileHoy, inicioDeMes } from '@/lib/date-utils'
+import { addDays, getChileHoy, inicioDeMes } from '@/lib/date-utils'
 
 interface Props {
   barbero: BarberoResumen
@@ -46,12 +46,13 @@ export default function CrearLiquidacionModal({
     total_comision: number
   } | null>(null)
 
-  // Establecer fechas por defecto (mes actual)
+  // Default period: from the 1st of the month to today, in Chile. It never ends in
+  // the future: the sales of those days do not exist yet.
   useEffect(() => {
     if (isOpen && !fechaInicio && !fechaFin) {
       const hoy = getChileHoy()
       setFechaInicio(inicioDeMes(hoy))
-      setFechaFin(finDeMes(hoy))
+      setFechaFin(hoy)
     }
   }, [isOpen, fechaInicio, fechaFin])
 
@@ -63,14 +64,21 @@ export default function CrearLiquidacionModal({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fechaInicio, fechaFin, isOpen])
 
-  const handleCalcular = async () => {
-    if (!fechaInicio || !fechaFin) {
-      setError('Debes seleccionar ambas fechas')
-      return
-    }
+  // Why the period can't be previewed or liquidated, or null when it can. The dates
+  // are 'YYYY-MM-DD' days, so they compare as text without going through Date.
+  const validarPeriodo = (): string | null => {
+    if (!fechaInicio || !fechaFin) return 'Debes seleccionar ambas fechas'
+    if (fechaFin < fechaInicio) return 'La fecha fin debe ser posterior a la fecha inicio'
+    if (fechaFin > getChileHoy()) return 'La fecha fin no puede ser posterior a hoy'
+    return null
+  }
 
-    if (new Date(fechaFin) < new Date(fechaInicio)) {
-      setError('La fecha fin debe ser posterior a la fecha inicio')
+  const handleCalcular = async () => {
+    const periodoInvalido = validarPeriodo()
+    if (periodoInvalido) {
+      // Drop the preview of the previous period: it would leave "Crear" enabled
+      setComisiones(null)
+      setError(periodoInvalido)
       return
     }
 
@@ -89,15 +97,22 @@ export default function CrearLiquidacionModal({
       if (resultado.total_ventas === 0) {
         setError('No hay ventas en este período para liquidar')
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error calculando comisiones:', err)
-      setError('Error al calcular comisiones')
+      setComisiones(null)
+      setError(err?.message ? `Error al calcular comisiones: ${err.message}` : 'Error al calcular comisiones')
     } finally {
       setCalculando(false)
     }
   }
 
   const handleCrear = async () => {
+    const periodoInvalido = validarPeriodo()
+    if (periodoInvalido) {
+      setError(periodoInvalido)
+      return
+    }
+
     if (!comisiones || comisiones.total_ventas === 0) {
       setError('No hay comisiones para liquidar')
       return
@@ -214,7 +229,7 @@ export default function CrearLiquidacionModal({
                 onClick={() => {
                   const hoy = getChileHoy()
                   setFechaInicio(inicioDeMes(hoy))
-                  setFechaFin(finDeMes(hoy))
+                  setFechaFin(hoy)
                 }}
                 className="text-xs px-3 py-1 rounded-full transition-colors"
                 style={{ backgroundColor: 'rgba(59, 130, 246, 0.2)', color: '#93c5fd', border: '1px solid rgba(59, 130, 246, 0.3)' }}

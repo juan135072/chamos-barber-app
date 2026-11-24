@@ -142,3 +142,21 @@ test('a new expense entered at 21:30 Chile is stored with today', () => at(CHILE
   await find(tree, (n) => n.type === 'form').props.onSubmit({ preventDefault() {} })
   assert.deepEqual(db.calls.inserts.map(({ table, row }) => [table, row.fecha]), [['gastos', '2026-11-23']])
 }))
+
+test('operating cost reads the expenses of the Chile month, also at 21:30 on its last day', async () => {
+  const AdminCostoOperativo = require('../src/components/admin/gastos/AdminCostoOperativo.tsx').default
+  const gastosRange = (iso) => at(iso, async () => {
+    db = createFakeDb()
+    const effects = []
+    const originalState = React.useState, originalEffect = React.useEffect
+    React.useState = (initial) => [initial, () => {}]
+    React.useEffect = (fn) => { effects.push(fn) }
+    try { AdminCostoOperativo() } finally { React.useState = originalState; React.useEffect = originalEffect }
+    effects.forEach((fn) => fn())
+    await new Promise((resolve) => setImmediate(resolve))
+    return db.calls.selects.find((select) => select.table === 'gastos').filters
+  })
+  const NOVEMBER = [['fecha', 'gte', '2026-11-01'], ['fecha', 'lte', '2026-11-30']]
+  assert.deepEqual(await gastosRange('2026-11-15T15:00:00Z'), NOVEMBER, 'mid-month at noon')
+  assert.deepEqual(await gastosRange('2026-12-01T00:30:00Z'), NOVEMBER, '30 nov 21:30 in Chile, already December in UTC')
+})
