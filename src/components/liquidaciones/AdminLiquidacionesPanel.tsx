@@ -542,7 +542,7 @@ export default function AdminLiquidacionesPanel() {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm" style={{ color: 'var(--text-primary)' }}>
-                    {liquidacion.total_ventas}
+                    {formatCLP(liquidacion.total_ventas)}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className="font-bold" style={{ color: '#22c55e' }}>

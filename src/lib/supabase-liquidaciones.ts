@@ -160,12 +160,24 @@ export async function calcularComisionesPendientes(
     throw error
   }
 
-  // La función retorna un array con un registro
-  return data && data.length > 0 ? data[0] : {
-    total_ventas: 0,
-    cantidad_servicios: 0,
-    porcentaje_comision: 50,
-    total_comision: 0
+  // The function returns an array with one row. The database calls the count
+  // total_ventas and the amount monto_total_vendido; in the app total_ventas is
+  // the amount, as in the liquidaciones table.
+  const fila = data && data.length > 0 ? data[0] : null
+  if (!fila) {
+    return {
+      total_ventas: 0,
+      cantidad_servicios: 0,
+      porcentaje_comision: 50,
+      total_comision: 0
+    }
+  }
+
+  return {
+    total_ventas: Number(fila.monto_total_vendido ?? 0),
+    cantidad_servicios: Number(fila.total_ventas ?? 0),
+    porcentaje_comision: Number(fila.porcentaje_comision ?? 0),
+    total_comision: Number(fila.total_comision ?? 0)
   }
 }
 
@@ -428,6 +440,8 @@ export function getEstadoLabel(estado: string): string {
       return 'Pagada'
     case 'cancelada':
       return 'Cancelada'
+    case 'anulada':
+      return 'Anulada'
     default:
       return estado
   }

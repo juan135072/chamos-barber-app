@@ -160,7 +160,7 @@ export default function PagarLiquidacionModal({
               </div>
               <div>
                 <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Total Ventas</p>
-                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{liquidacion.total_ventas}</p>
+                <p className="font-medium" style={{ color: 'var(--text-primary)' }}>{formatCLP(liquidacion.total_ventas)}</p>
               </div>
               <div>
                 <p style={{ color: 'var(--text-primary)', opacity: 0.7 }}>Comisión (%)</p>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { format, startOfMonth, endOfMonth, differenceInMinutes, parse } from 'date-fns'
+import { differenceInMinutes, parse } from 'date-fns'
+import { finDeMes, getChileHoy, inicioDeMes } from '@/lib/date-utils'
 import toast from 'react-hot-toast'
 
 interface Gasto {
@@ -36,15 +37,15 @@ export default function AdminCostoOperativo() {
     const loadData = async () => {
         setLoading(true)
         try {
-            const start = startOfMonth(new Date())
-            const end = endOfMonth(new Date())
+            // Current month in Chile (gastos.fecha is a DATE), whatever the device time zone
+            const hoy = getChileHoy()
 
             // 1. Cargar Gastos del mes actual
             const { data: gastosData, error: gastosError } = await (supabase as any)
                 .from('gastos')
                 .select('monto')
-                .gte('fecha', format(start, 'yyyy-MM-dd'))
-                .lte('fecha', format(end, 'yyyy-MM-dd'))
+                .gte('fecha', inicioDeMes(hoy))
+                .lte('fecha', finDeMes(hoy))
 
             if (gastosError) throw gastosError
             const sumGastos = (gastosData as Gasto[])?.reduce((acc, g) => acc + Number(g.monto), 0) || 0
