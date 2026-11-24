@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { chamosSupabase } from '@/lib/supabase-helpers'
 import toast from 'react-hot-toast'
-import { getAppSession } from '@/lib/app-session'
+import { checkAppSession } from '@/lib/app-session'
 import { validateSettings } from '@/lib/settings-validation'
 import { DEFAULT_CLOSE, DEFAULT_OPEN } from '@/lib/business-hours'
 
@@ -82,10 +82,15 @@ const ConfiguracionTab: React.FC = () => {
       values.horario_domingo_activo = config.horario_domingo_activo || 'false'
       const invalid = validateSettings(values)
       if (invalid) throw new Error(invalid)
-      const session = await getAppSession()
-      if (!session) throw new Error('Inicia sesión nuevamente')
+      // Only a definitive "signed out" asks to log in again. When the session
+      // check gets no answer (a slow link, a 503, no network), the request
+      // still goes out with the session cookies, as posRequest does, and the
+      // server answers for itself.
+      const check = await checkAppSession()
+      if (check.status === 'signed-out') throw new Error('Inicia sesión nuevamente')
+      const token = check.status === 'signed-in' ? check.session?.access_token : null
       const response = await fetch('/api/admin/configuracion', {
-        method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${session.access_token}` },
+        method: 'PUT', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
         body: JSON.stringify(values),
       })
       const result = await response.json()
