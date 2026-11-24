@@ -27,7 +27,7 @@
     "@google/generative-ai": "^0.24.1",
     "@gsap/react": "^2.1.2",
     "@hookform/resolvers": "^5.2.2",
-    "@insforge/sdk": "^1.2.7",
+    "@insforge/sdk": "1.2.7",
     "@splinetool/react-spline": "^4.1.0",
     "@types/pg": "^8.20.0",
     "ai": "^6.0.37",
@@ -42,7 +42,7 @@
     "jspdf-autotable": "^5.0.7",
     "lucide-react": "^1.11.0",
     "motion": "^12.38.0",
-    "next": "^16.0.8",
+    "next": "^16.4.6",
     "pg": "^8.20.0",
     "postcss": "^8.4.32",
     "react": "^18.2.0",
@@ -53,7 +53,7 @@
     "tailwindcss": "3.4.19",
     "winston": "^3.19.0",
     "xlsx": "file:vendor/xlsx-0.20.3.tgz",
-    "zod": "^4.1.13"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -64,9 +64,14 @@
     "dotenv": "^17.2.3",
     "eslint": "^8.56.0",
     "eslint-config-next": "14.0.4",
-    "sharp": "^0.35.4",
+    "sharp": "^0.35.5",
     "supabase": ">=1.8.1",
     "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "@insforge/shared-schemas": {
+      "zod": "$zod"
+    }
   },
   "keywords": [
     "barberia",
