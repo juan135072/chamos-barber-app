@@ -16,8 +16,13 @@ REVOKE INSERT, UPDATE, DELETE, TRUNCATE ON public.usuarios_con_permisos, public.
   public.ventas_diarias_por_barbero, public.cierre_caja_diario FROM authenticated;
 
 -- A backup copy that was readable by everyone, without row-level security.
-ALTER TABLE public.comercios_bak_20261018 ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.comercios_bak_20261018 FROM anon, authenticated;
+-- It was created by hand in production, so other environments may not have it.
+DO $$ BEGIN
+  IF to_regclass('public.comercios_bak_20261018') IS NOT NULL THEN
+    ALTER TABLE public.comercios_bak_20261018 ENABLE ROW LEVEL SECURITY;
+    REVOKE ALL ON public.comercios_bak_20261018 FROM anon, authenticated;
+  END IF;
+END $$;
 
 -- Functions that run with the owner's rights and never check who calls them.
 -- Only the server uses these three, with the project key.
