@@ -13,29 +13,26 @@ LANGUAGE sql STABLE SECURITY DEFINER SET search_path='' AS $$
     (SELECT NULLIF(c.timezone, '') FROM public.comercios c WHERE c.id = p_comercio),
     'America/Santiago'))::date;
 $$;
-REVOKE ALL ON FUNCTION public.app_local_date(timestamptz, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.app_local_date(timestamptz, uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.app_local_date(timestamptz, uuid) TO authenticated, project_admin;
 
+-- One rule for the whole module: a sale is pending while it is not voided and
+-- belongs to no liquidation, and its commission is the one recorded on the sale.
+-- Before, the preview skipped sales inside the dates of a paid liquidation and
+-- summed recorded commissions, while crear_liquidacion took unlinked sales and
+-- applied the barber's current percentage, so the two could disagree.
 CREATE OR REPLACE FUNCTION public.calcular_comisiones_pendientes(p_barbero_id uuid, p_fecha_inicio date DEFAULT NULL::date, p_fecha_fin date DEFAULT NULL::date)
  RETURNS TABLE(total_ventas bigint, monto_total_vendido numeric, porcentaje_comision numeric, total_comision numeric)
  LANGUAGE plpgsql
  STABLE
 AS $function$
 DECLARE
-  v_porcentaje   NUMERIC;
   v_comercio     UUID;
   v_hoy          DATE;
   v_fecha_inicio DATE;
   v_fecha_fin    DATE;
 BEGIN
-  SELECT b.porcentaje_comision, b.comercio_id
-  INTO   v_porcentaje, v_comercio
-  FROM   public.barberos b
-  WHERE  b.id = p_barbero_id;
-
-  IF v_porcentaje IS NULL THEN
-    v_porcentaje := 50.00;
-  END IF;
+  SELECT b.comercio_id INTO v_comercio FROM public.barberos b WHERE b.id = p_barbero_id;
 
   v_hoy          := public.app_local_date(now(), v_comercio);
   v_fecha_inicio := COALESCE(p_fecha_inicio, DATE_TRUNC('month', v_hoy)::DATE);
@@ -45,21 +42,17 @@ BEGIN
   SELECT
     COUNT(*)::BIGINT,
     COALESCE(SUM(f.total), 0),
-    v_porcentaje,
+    -- Effective percentage of the period: recorded commissions over sales.
+    CASE WHEN COALESCE(SUM(f.total), 0) > 0
+         THEN ROUND(100 * COALESCE(SUM(f.comision_barbero), 0) / SUM(f.total), 2)
+         ELSE 0::numeric END,
     COALESCE(SUM(f.comision_barbero), 0)
   FROM public.facturas f
   WHERE f.barbero_id = p_barbero_id
-    AND public.app_local_date(f.created_at, f.comercio_id) >= v_fecha_inicio
-    AND public.app_local_date(f.created_at, f.comercio_id) <= v_fecha_fin
     AND f.anulada = false
-    AND NOT EXISTS (
-      SELECT 1
-      FROM   public.liquidaciones l
-      WHERE  l.barbero_id = p_barbero_id
-        AND  l.estado = 'pagada'
-        AND  public.app_local_date(f.created_at, f.comercio_id) >= l.fecha_inicio
-        AND  public.app_local_date(f.created_at, f.comercio_id) <= l.fecha_fin
-    );
+    AND f.liquidacion_id IS NULL
+    AND public.app_local_date(f.created_at, f.comercio_id) >= v_fecha_inicio
+    AND public.app_local_date(f.created_at, f.comercio_id) <= v_fecha_fin;
 END;
 $function$;
 
@@ -111,6 +104,11 @@ BEGIN
 END;
 $function$;
 
+-- The functions below ran with an empty search_path and called
+-- get_my_comercio_id() unqualified, so they failed at runtime ("function
+-- get_my_comercio_id() does not exist"): creating, numbering and paying a
+-- liquidation were all broken. They run with the owner's rights, so they also
+-- enforce the admin-only rule of the table policy themselves.
 CREATE OR REPLACE FUNCTION public.crear_liquidacion(p_barbero_id uuid, p_fecha_inicio date, p_fecha_fin date)
  RETURNS uuid
  LANGUAGE plpgsql
@@ -120,29 +118,29 @@ AS $function$
 DECLARE
   v_comercio_id uuid;
   v_liquidacion_id uuid;
-  v_numero_liquidacion varchar(50);
-  v_total_ventas decimal(10,2);
+  v_total_ventas numeric(10,2);
   v_cantidad_servicios integer;
-  v_porcentaje_comision decimal(5,2);
-  v_total_comision decimal(10,2);
+  v_total_comision numeric(10,2);
+  v_porcentaje numeric(5,2);
   v_facturas_ids uuid[];
 BEGIN
   v_comercio_id := public.get_my_comercio_id();
-  -- Runs with the owner's rights, so it enforces the same rule as the table policy.
   IF NOT public.app_has_role(ARRAY['admin']) THEN
     RAISE EXCEPTION 'Solo un administrador puede crear liquidaciones';
   END IF;
   IF p_fecha_fin < p_fecha_inicio THEN
     RAISE EXCEPTION 'La fecha fin debe ser posterior a la fecha inicio';
   END IF;
-  SELECT porcentaje_comision INTO v_porcentaje_comision
-  FROM public.barberos
+  -- One liquidation at a time per shop: keeps the number unique and stops two
+  -- requests from taking the same sales.
+  PERFORM 1 FROM public.comercios WHERE id = v_comercio_id FOR UPDATE;
+  PERFORM 1 FROM public.barberos
   WHERE id = p_barbero_id AND comercio_id = v_comercio_id AND activo = true;
   IF NOT FOUND THEN
     RAISE EXCEPTION 'Barbero no encontrado, inactivo o no pertenece a tu comercio';
   END IF;
-  SELECT COALESCE(COUNT(*), 0), COALESCE(SUM(total), 0), ARRAY_AGG(id)
-  INTO v_cantidad_servicios, v_total_ventas, v_facturas_ids
+  SELECT COUNT(*), COALESCE(SUM(total), 0), COALESCE(SUM(comision_barbero), 0), ARRAY_AGG(id)
+  INTO v_cantidad_servicios, v_total_ventas, v_total_comision, v_facturas_ids
   FROM public.facturas
   WHERE barbero_id = p_barbero_id AND comercio_id = v_comercio_id
     AND public.app_local_date(created_at, comercio_id) BETWEEN p_fecha_inicio AND p_fecha_fin
@@ -150,18 +148,15 @@ BEGIN
   IF v_cantidad_servicios = 0 OR v_total_ventas = 0 THEN
     RAISE EXCEPTION 'No hay ventas en el período seleccionado para liquidar';
   END IF;
-  v_total_comision := (v_total_ventas * v_porcentaje_comision / 100);
-  SELECT 'LIQ-' || LPAD((COUNT(*) + 1)::TEXT, 6, '0')
-  INTO v_numero_liquidacion
-  FROM public.liquidaciones WHERE comercio_id = v_comercio_id;
+  v_porcentaje := ROUND(100 * v_total_comision / v_total_ventas, 2);
   INSERT INTO public.liquidaciones (
     numero_liquidacion, barbero_id, fecha_inicio, fecha_fin, total_ventas,
     cantidad_servicios, porcentaje_comision, total_comision, facturas_ids,
-    estado, comercio_id, created_at
+    estado, comercio_id, creado_por, created_at
   ) VALUES (
-    v_numero_liquidacion, p_barbero_id, p_fecha_inicio, p_fecha_fin, v_total_ventas,
-    v_cantidad_servicios, v_porcentaje_comision, v_total_comision, v_facturas_ids,
-    'pendiente', v_comercio_id, NOW()
+    public.generar_numero_liquidacion(), p_barbero_id, p_fecha_inicio, p_fecha_fin, v_total_ventas,
+    v_cantidad_servicios, v_porcentaje, v_total_comision, v_facturas_ids,
+    'pendiente', v_comercio_id, auth.uid(), NOW()
   )
   RETURNING id INTO v_liquidacion_id;
   UPDATE public.facturas
@@ -171,9 +166,6 @@ BEGIN
 END;
 $function$;
 
--- These functions run with an empty search_path, so their unqualified call to
--- get_my_comercio_id() failed at runtime ("function get_my_comercio_id() does not
--- exist"): creating, numbering and paying a liquidation were all broken.
 CREATE OR REPLACE FUNCTION public.pagar_liquidacion(p_liquidacion_id uuid, p_metodo_pago character varying, p_monto_efectivo numeric DEFAULT 0, p_monto_transferencia numeric DEFAULT 0, p_numero_transferencia character varying DEFAULT NULL::character varying, p_notas text DEFAULT NULL::text)
  RETURNS boolean
  LANGUAGE plpgsql
@@ -191,7 +183,8 @@ BEGIN
   END IF;
   SELECT total_comision INTO v_total_comision
   FROM public.liquidaciones
-  WHERE id = p_liquidacion_id AND comercio_id = v_comercio_id AND estado = 'pendiente';
+  WHERE id = p_liquidacion_id AND comercio_id = v_comercio_id AND estado = 'pendiente'
+  FOR UPDATE;
   IF v_total_comision IS NULL THEN
     RAISE EXCEPTION 'Liquidación no encontrada o ya pagada';
   END IF;
@@ -199,6 +192,7 @@ BEGIN
   IF v_total_pago != v_total_comision THEN
     RAISE EXCEPTION 'El monto (%) no coincide con la comisión (%)', v_total_pago, v_total_comision;
   END IF;
+  -- The notes typed in the panel were received and never stored.
   UPDATE public.liquidaciones SET
     estado = 'pagada', metodo_pago = p_metodo_pago,
     monto_efectivo = p_monto_efectivo, monto_transferencia = p_monto_transferencia,
@@ -305,9 +299,8 @@ $function$;
 DROP FUNCTION IF EXISTS public.crear_liquidacion(uuid, date, date, uuid);
 DROP FUNCTION IF EXISTS public.pagar_liquidacion(uuid, character varying, numeric, numeric, character varying, text, uuid);
 
--- Daily views by local day. security_invoker makes them obey the row-level security of
--- facturas, barberos and liquidaciones: before, the public anon key was enough to read
--- the daily sales of the shop and the commissions of each barber through them.
+-- Daily views by local day. security_invoker makes them obey the row-level
+-- security of the tables they read instead of running with the owner's rights.
 CREATE OR REPLACE VIEW public.ventas_diarias_por_barbero WITH (security_invoker = true) AS
  SELECT b.id AS barbero_id,
     (b.nombre::text || ' '::text) || b.apellido::text AS barbero_nombre,
@@ -335,7 +328,8 @@ CREATE OR REPLACE VIEW public.cierre_caja_diario WITH (security_invoker = true) 
 
 -- The old definition joined facturas and liquidaciones side by side, so every total was
 -- multiplied by the number of rows on the other side (a barber with 4 liquidations showed
--- 4 times the real sales). Each side is aggregated on its own now.
+-- 4 times the real sales). Each side is aggregated on its own now, and the pending
+-- commissions follow the same rule as the functions above.
 CREATE OR REPLACE VIEW public.barberos_resumen WITH (security_invoker = true) AS
  SELECT b.id,
     b.nombre,
@@ -354,11 +348,7 @@ CREATE OR REPLACE VIEW public.barberos_resumen WITH (security_invoker = true) AS
      LEFT JOIN LATERAL ( SELECT count(*) AS total_ventas,
             sum(f.total) AS total_vendido,
             sum(f.comision_barbero) AS comisiones_generadas,
-            sum(f.comision_barbero) FILTER (WHERE NOT (EXISTS ( SELECT 1
-                   FROM public.liquidaciones l
-                  WHERE l.barbero_id = b.id AND l.estado::text = 'pagada'::text
-                    AND public.app_local_date(f.created_at, f.comercio_id) >= l.fecha_inicio
-                    AND public.app_local_date(f.created_at, f.comercio_id) <= l.fecha_fin))) AS comisiones_pendientes
+            sum(f.comision_barbero) FILTER (WHERE f.liquidacion_id IS NULL) AS comisiones_pendientes
            FROM public.facturas f
           WHERE f.barbero_id = b.id AND f.anulada = false) v ON true
      LEFT JOIN LATERAL ( SELECT sum(l.total_comision) FILTER (WHERE l.estado::text = 'pagada'::text) AS comisiones_pagadas,
@@ -366,17 +356,6 @@ CREATE OR REPLACE VIEW public.barberos_resumen WITH (security_invoker = true) AS
            FROM public.liquidaciones l
           WHERE l.barbero_id = b.id) p ON true;
 
--- Staff list with permissions: only the server reads it, with the project key.
-ALTER VIEW public.usuarios_con_permisos SET (security_invoker = true);
-
-REVOKE ALL ON public.ventas_diarias_por_barbero, public.cierre_caja_diario, public.barberos_resumen, public.usuarios_con_permisos FROM anon;
-REVOKE INSERT, UPDATE, DELETE ON public.ventas_diarias_por_barbero, public.cierre_caja_diario, public.barberos_resumen, public.usuarios_con_permisos FROM authenticated;
-
--- A backup copy that was readable by everyone, without row-level security.
-ALTER TABLE public.comercios_bak_20261018 ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON public.comercios_bak_20261018 FROM anon, authenticated;
-
-RESET ROLE;
--- Created by an earlier migration under the database superuser.
-ALTER FUNCTION public.app_normalize_email() OWNER TO project_admin;
+-- The API caches function signatures; two were dropped above.
+NOTIFY pgrst, 'reload schema';
 COMMIT;
