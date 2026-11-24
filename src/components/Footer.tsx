@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import Link from 'next/link'
 import { Share2, MapPin, Phone, Mail } from 'lucide-react'
 import { Logo } from './shared/Logo'
-import { chamosSupabase } from '@/lib/supabase-helpers'
 import { useTenant } from '@/context/TenantContext'
+import { usePublicConfig } from '@/hooks/usePublicConfig'
+import { HOURS_UNKNOWN, generalHours, hoursRows } from '@/lib/business-hours'
 
 // SVG brand icons (lucide-react no incluye iconos de marcas registradas)
 const FacebookIcon = () => (
@@ -24,64 +25,23 @@ const TikTokIcon = () => (
   </svg>
 )
 
-interface Horarios {
-  semana: string
-  sabado: string
-  domingo: string
-}
-
 const SOCIAL_LINK_CLASS = "w-10 h-10 rounded bg-white/5 border border-white/10 flex items-center justify-center text-white/40 hover:border-[var(--tenant-primary)] transition-all"
+
+// Shown until the shop sets its own links in the admin panel.
+const DEFAULT_FACEBOOK = 'https://web.facebook.com/people/Chamos-Barberia/61553216854694/'
+const DEFAULT_INSTAGRAM = 'https://www.instagram.com/chamosbarber_shop/?hl=es-la'
 
 const Footer: React.FC = () => {
   const { tenant } = useTenant()
-  const [socialLinks, setSocialLinks] = useState({
-    facebook: 'https://web.facebook.com/people/Chamos-Barberia/61553216854694/',
-    instagram: 'https://www.instagram.com/chamosbarber_shop/?hl=es-la',
-    tiktok: '',
-    whatsapp: '',
-  })
-  const [horarios, setHorarios] = useState<Horarios>({
-    semana: 'Cargando…',
-    sabado: 'Cargando…',
-    domingo: '',
-  })
-
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const data = await chamosSupabase.getConfiguracion()
-        if (!Array.isArray(data)) return
-
-        const cfg: Record<string, string> = {}
-        data.forEach((item: any) => { cfg[item.clave] = item.valor || '' })
-
-        setSocialLinks(prev => ({
-          facebook:  cfg.facebook_url       || prev.facebook,
-          instagram: cfg.instagram_url      || prev.instagram,
-          tiktok:    cfg.tiktok_url         || prev.tiktok,
-          whatsapp:  cfg.whatsapp_numero    || prev.whatsapp,
-        }))
-
-        const apertura = cfg.horario_apertura         || '10:30'
-        const cierre   = cfg.horario_cierre           || '20:00'
-        const sabAper  = cfg.horario_sabado_apertura  || apertura
-        const sabCier  = cfg.horario_sabado_cierre    || cierre
-        const domingo = cfg.horario_domingo_activo === 'true'
-          ? `${cfg.horario_domingo_apertura || apertura} — ${cfg.horario_domingo_cierre || cierre}`
-          : ''
-
-        setHorarios({
-          semana: `${apertura} — ${cierre}`,
-          sabado: `${sabAper} — ${sabCier}`,
-          domingo,
-        })
-      } catch (error) {
-        console.error('Error loading footer config:', error)
-      }
-    }
-
-    loadConfig()
-  }, [])
+  // Null while the panel configuration is unknown (still loading, or the read failed).
+  const config = usePublicConfig()
+  const socialLinks = {
+    facebook: config?.facebook_url || DEFAULT_FACEBOOK,
+    instagram: config?.instagram_url || DEFAULT_INSTAGRAM,
+    tiktok: config?.tiktok_url || '',
+  }
+  // Always derived from the panel: no hours are written in this component.
+  const horarios = hoursRows(config ? generalHours(config) : null)
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -169,21 +129,15 @@ const Footer: React.FC = () => {
           <div>
             <h4 className="text-[10px] tracking-ultra mb-8 uppercase" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Horarios del Estudio</h4>
             <ul className="space-y-4 text-[10px] tracking-widest uppercase font-bold">
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-white/20">Lun — Vie</span>
-                <span className="text-white">{horarios.semana}</span>
-              </li>
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-white/20">Sábado</span>
-                <span className="text-white">{horarios.sabado}</span>
-              </li>
-              <li className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-white/20">Domingo</span>
-                {horarios.domingo
-                  ? <span className="text-white">{horarios.domingo}</span>
-                  : <span className="italic" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Cerrado</span>
-                }
-              </li>
+              {horarios.map((row) => (
+                <li key={row.diasCorto} className="flex justify-between border-b border-white/5 pb-2">
+                  <span className="text-white/20">{row.diasCorto}</span>
+                  {row.estado === 'cerrado'
+                    ? <span className="italic" style={{ color: 'var(--tenant-primary, #d4af37)' }}>Cerrado</span>
+                    : <span className="text-white">{row.estado === 'abierto' ? `${row.apertura} — ${row.cierre}` : HOURS_UNKNOWN}</span>
+                  }
+                </li>
+              ))}
             </ul>
           </div>
         </div>
