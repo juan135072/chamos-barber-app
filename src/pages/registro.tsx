@@ -1,8 +1,14 @@
 import { useState } from 'react'
+import type { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 import toast from 'react-hot-toast'
+
+// Shop sign-up is closed unless ONBOARDING_ENABLED is exactly 'true', like
+// /api/onboarding/register: without the flag this page answers 404.
+export const getServerSideProps: GetServerSideProps = async () =>
+  process.env.ONBOARDING_ENABLED === 'true' ? { props: {} } : { notFound: true }
 
 export default function RegistroSaaS() {
   const router = useRouter()

@@ -189,6 +189,30 @@ if (process.env.NODE_ENV === 'production') {
 
 ---
 
+### 5. ONBOARDING_ENABLED
+
+**Type**: Private (server only)  
+**Required**: ❌ No (unset means disabled)  
+**Environments**: only where public shop sign-up should be open
+
+**Description**: opens the public shop sign-up: the page `/registro` and the route `POST /api/onboarding/register`, which create a new shop (`comercios`) and its first admin user.
+
+```env
+# Closed (default): the page and the route answer 404
+ONBOARDING_ENABLED=false
+
+# Open: only this exact value enables it
+ONBOARDING_ENABLED=true
+```
+
+**Behavior**:
+- Any value other than exactly `true` (unset, empty, `TRUE`, `1`) keeps both closed. The route answers 404 before it reads the request.
+- The value is read on each request, so changing it needs a restart of the server, not a new build.
+- Production does not set it: Chamos Barber runs a single shop and nothing links to `/registro`.
+- When it is open, a sign-up creates the shop and its admin row in one database statement (both or neither), an email that already has an account is refused with 409, and a failure deletes only the auth user that the request created.
+
+---
+
 ## 📂 Archivos de Configuración
 
 ### .env.local (Desarrollo Local)

@@ -229,6 +229,41 @@ export function withRateLimit(
 }
 
 /**
+ * Counts one attempt for `key` (for example `change-password:<user id>`) in the
+ * same in-memory store. At most `maxAttempts` are allowed per window, and the
+ * window starts with the first attempt. Checking and counting happen in one
+ * synchronous step, so requests that arrive together cannot share the last
+ * attempt. `retryAfter` is the number of seconds until the window ends.
+ */
+export function takeAttempt(
+  key: string,
+  maxAttempts: number,
+  windowMs: number
+): { allowed: boolean; retryAfter: number } {
+  const now = Date.now()
+  let entry = requestStore.get(key)
+
+  if (!entry || entry.resetTime <= now) {
+    entry = { count: 0, resetTime: now + windowMs }
+    requestStore.set(key, entry)
+  }
+
+  if (entry.count >= maxAttempts) {
+    return { allowed: false, retryAfter: Math.ceil((entry.resetTime - now) / 1000) }
+  }
+
+  entry.count++
+  return { allowed: true, retryAfter: 0 }
+}
+
+/**
+ * Forgets the attempts counted for `key`, for example after a success.
+ */
+export function clearAttempts(key: string) {
+  requestStore.delete(key)
+}
+
+/**
  * Limpiar todas las entradas de rate limit (útil para testing)
  */
 export function clearRateLimitStore() {

@@ -3,6 +3,7 @@
 // 2026-11-23: authenticated with requireStaff. It only changes the caller's own
 // password (any userId in the body must match it) and stores the new bcrypt
 // hash with adminSetUserPassword, instead of sending a reset email.
+// 2026-11-24: the current-password check accepts 5 attempts per 15 minutes.
 import type { NextApiRequest, NextApiResponse } from 'next'
 import { requireStaff } from '@/lib/server-authorization'
 import {
@@ -10,6 +11,13 @@ import {
   adminSetUserPassword,
   adminVerifyPassword,
 } from '@/lib/insforge-admin'
+import { clearAttempts, takeAttempt } from '@/lib/security/rateLimit'
+
+// Attempts are counted per user, not per IP: the whole shop shares one address,
+// so an IP limit would lock every staff member out together. The count is kept
+// in memory (the site runs as one container) and a deploy starts it over.
+const MAX_ATTEMPTS = 5
+const ATTEMPT_WINDOW_MS = 15 * 60 * 1000
 
 export default async function handler(
   req: NextApiRequest,
@@ -49,6 +57,19 @@ export default async function handler(
       })
     }
 
+    // Count the attempt here, before the first await below: requests that
+    // arrive together cannot all get through. Invalid bodies (above) do not count.
+    const attemptKey = `change-password:${userId}`
+    const attempt = takeAttempt(attemptKey, MAX_ATTEMPTS, ATTEMPT_WINDOW_MS)
+    if (!attempt.allowed) {
+      console.warn('⚠️ [Change Password] Attempt limit reached:', { userId })
+      const minutos = Math.ceil(attempt.retryAfter / 60)
+      res.setHeader('Retry-After', String(attempt.retryAfter))
+      return res.status(429).json({
+        error: `Demasiados intentos. Vuelve a intentarlo en ${minutos} ${minutos === 1 ? 'minuto' : 'minutos'}.`
+      })
+    }
+
     // PASO 1: Verificar que el usuario exista (y que no sea un admin del proyecto)
     const { data: getUserData, error: getUserError } = await adminGetUserById(userId)
 
@@ -84,6 +105,9 @@ export default async function handler(
     if (!updated) {
       return res.status(403).json({ error: 'Esta cuenta no puede cambiar su contraseña desde aquí' })
     }
+
+    // The user proved they know the password: earlier wrong guesses no longer count.
+    clearAttempts(attemptKey)
 
     console.log('✅ [Change Password] Contraseña actualizada:', userId)
 
