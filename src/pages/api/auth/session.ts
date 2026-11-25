@@ -12,8 +12,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
         const supabase = createPagesServerClient(req, res)
-        const { data } = await supabase.auth.getSession()
-        const session = data?.session ?? null
+        const result = await supabase.auth.getSession()
+        // The auth backend did not answer. That is not "signed out": the cookies
+        // stay in place and the browser keeps what it has and asks again.
+        if (result?.unavailable) {
+            // One line for operations: the backend status only, never a token or its text.
+            console.error('[auth/session] Auth backend unavailable, answered 503', { status: result.error?.statusCode ?? null })
+            return unavailable(res)
+        }
+        const session = result?.data?.session ?? null
 
         if (!session?.user || !session?.access_token) {
             return res.status(200).json({ session: null })
@@ -33,6 +40,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         })
     } catch (error) {
         console.error('[auth/session] Failed to restore session:', error)
-        return res.status(200).json({ session: null })
+        return unavailable(res)
     }
+}
+
+/**
+ * 503 without a `session` key: checkAppSession() reads any non-2xx answer as
+ * "unknown" and retries, while `{ session: null }` would sign the user out.
+ */
+function unavailable(res: NextApiResponse) {
+    return res.status(503).json({ error: 'No se pudo verificar la sesión' })
 }

@@ -59,6 +59,25 @@ function setCookies(
  */
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
+/**
+ * True when the auth backend gave no answer about the session: a network
+ * failure (the SDK reports status 0), a timeout (408), a rate limit (429) or
+ * a server error (5xx). A refusal such as 401 is an answer and gives false.
+ */
+function isAuthUnavailable(error: unknown): boolean {
+    const status = (error as any)?.statusCode
+    return status === 0 || status === 408 || status === 429 || (typeof status === 'number' && status >= 500)
+}
+
+/**
+ * getSession() result when the auth backend could not be asked. There is no
+ * session to return, but that is not "signed out": the cookies stay untouched
+ * and `unavailable` lets the caller answer 503 instead of ending the session.
+ */
+function unavailableSession(error: unknown) {
+    return { data: { session: null }, error: error ?? null, unavailable: true as const }
+}
+
 function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: NextApiResponse): any {
     return {
         from: (table: string) => client.database.from(table),
@@ -81,6 +100,9 @@ function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: N
             },
             async getSession() {
                 const { data, error } = await client.auth.getCurrentUser()
+                // No answer from the auth backend says nothing about the session.
+                // Do not send the refresh token to a backend that is not answering.
+                if (isAuthUnavailable(error)) return unavailableSession(error)
                 const raw = (data?.user as any) ?? null
                 // If the token is a service-role API key, InsForge returns a
                 // virtual user with id "project-admin-with-api-key". Reject it
@@ -96,6 +118,9 @@ function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: N
                     if (refreshToken) {
                         try {
                             const refreshResult = await client.auth.refreshSession({ refreshToken } as any)
+                            if (isAuthUnavailable((refreshResult as any)?.error)) {
+                                return unavailableSession((refreshResult as any).error)
+                            }
                             const newToken = (refreshResult as any)?.data?.accessToken
                             const newRefreshToken =
                                 (refreshResult as any)?.data?.refreshToken || refreshToken
@@ -106,6 +131,8 @@ function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: N
                                 // getCurrentUser reads that manager again.
                                 client.setAccessToken(newToken)
                                 const retry = await client.auth.getCurrentUser()
+                                // The new token could not be confirmed: the cookies stay as they were.
+                                if (isAuthUnavailable(retry?.error)) return unavailableSession(retry.error)
                                 const retryRaw = (retry?.data?.user as any) ?? null
                                 const retryUser = retryRaw && UUID_RE.test(retryRaw.id) ? retryRaw : null
                                 if (retryUser) {
@@ -126,12 +153,12 @@ function makeSupabaseShape(client: InsForgeClient, req?: NextApiRequest, res?: N
                                 }
                             }
 
-                            // A failed refresh can return an error object without
-                            // throwing. Clear stale cookies so the next login starts clean.
+                            // The refresh was refused (it returns an error object without
+                            // throwing). Clear stale cookies so the next login starts clean.
                             clearAuthCookies(res)
-                        } catch {
-                            // Refresh failed — clear cookies
-                            clearAuthCookies(res)
+                        } catch (refreshError) {
+                            // An exception is not a refusal either: keep the cookies.
+                            return unavailableSession(refreshError)
                         }
                     }
                 }

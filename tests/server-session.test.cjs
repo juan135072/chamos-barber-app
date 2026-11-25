@@ -52,3 +52,172 @@ test('invalid refresh token returns no session and clears stale cookies', async 
   assert.equal(result.data.session, null)
   assert.ok(headers['Set-Cookie'].every(c => c.includes('Max-Age=0')))
 })
+
+// --- An auth backend that does not answer is "unavailable", not "signed out" ---
+
+const { mock } = require('node:test')
+const { createResponse } = require('./fake-db.cjs')
+const down = async () => { throw new TypeError('fetch failed') }
+const refused = async () => Response.json({ error: 'INVALID_REFRESH_TOKEN' }, { status: 401 })
+const cookies = (res) => res.getHeader('Set-Cookie')
+const BOTH = 'insforge_refresh_token=valid-refresh; insforge_access_token=expired-access'
+const REFRESH_ONLY = 'insforge_refresh_token=valid-refresh'
+
+// The SDK waits between retries of a failed GET: those waits run on mocked time.
+async function settled(start) {
+  mock.timers.enable({ apis: ['setTimeout'] })
+  try {
+    let done = false
+    const promise = start().finally(() => { done = true })
+    while (!done) {
+      mock.timers.tick(1000)
+      await new Promise((resolve) => setImmediate(resolve))
+    }
+    return await promise
+  } finally {
+    mock.timers.reset()
+  }
+}
+
+async function getSession(cookie) {
+  const res = createResponse()
+  const result = await settled(() => createPagesServerClient({ headers: { cookie } }, res).auth.getSession())
+  return { result, res }
+}
+
+async function sessionRoute(headers) {
+  const handler = require('../src/pages/api/auth/session.ts').default
+  const res = createResponse()
+  await settled(() => handler({ method: 'GET', headers }, res))
+  return res
+}
+
+async function silently(run) {
+  const realError = console.error
+  console.error = () => {}
+  try { return await run() } finally { console.error = realError }
+}
+
+/** Runs `run` with the console silenced and returns its result with the error lines it logged. */
+async function logging(run) {
+  const real = { log: console.log, error: console.error }
+  const errors = []
+  console.log = () => {}
+  console.error = (...args) => errors.push(args.map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg))).join(' '))
+  try { return [await run(), errors] } finally { Object.assign(console, real) }
+}
+
+for (const [name, respond] of [
+  ['a network failure', down],
+  ['a 503', async () => Response.json({ error: 'SERVICE_UNAVAILABLE' }, { status: 503 })],
+  ['a 429', async () => Response.json({ error: 'RATE_LIMITED' }, { status: 429 })],
+]) {
+  test(`${name} while refreshing keeps both cookies and reports the session as unavailable`, async () => {
+    global.fetch = respond
+    const { result, res } = await getSession(REFRESH_ONLY)
+    assert.equal(result.unavailable, true)
+    assert.equal(result.data.session, null)
+    assert.equal(cookies(res), undefined, 'no cookie is cleared or replaced')
+  })
+}
+
+test('with the auth backend down, an expired access token is not a sign-out and no refresh is attempted', async () => {
+  for (const respond of [down, async () => Response.json({ error: 'BAD_GATEWAY' }, { status: 502 })]) {
+    const paths = []
+    global.fetch = async (url) => { paths.push(new URL(url).pathname); return respond() }
+    const { result, res } = await getSession(BOTH)
+    assert.equal(result.unavailable, true)
+    assert.equal(result.data.session, null)
+    assert.equal(cookies(res), undefined)
+    assert.ok(paths.length > 0 && paths.every((path) => path === '/api/auth/sessions/current'), 'the refresh token is not sent to a backend that is not answering')
+  }
+})
+
+test('a refresh that works but cannot be confirmed leaves the cookies as they were', async () => {
+  global.fetch = async (url) => new URL(url).pathname === '/api/auth/refresh'
+    ? Response.json({ accessToken: 'new-access', refreshToken: 'new-refresh', user })
+    : down()
+  const { result, res } = await getSession(REFRESH_ONLY)
+  assert.equal(result.unavailable, true)
+  assert.equal(result.data.session, null)
+  assert.equal(cookies(res), undefined)
+})
+
+test('a refused refresh is still an answer: no session, cookies cleared, not unavailable', async () => {
+  global.fetch = refused
+  const { result, res } = await getSession('insforge_refresh_token=invalid')
+  assert.equal(result.unavailable, undefined)
+  assert.equal(result.data.session, null)
+  assert.ok(cookies(res).every((c) => c.includes('Max-Age=0')))
+})
+
+test('/api/auth/session answers 503 and keeps the cookies when the auth backend is down', async () => {
+  global.fetch = down
+  for (const cookie of [REFRESH_ONLY, BOTH]) {
+    const [res, logged] = await logging(() => sessionRoute({ cookie }))
+    assert.equal(res.statusCode, 503)
+    assert.equal(typeof res.body.error, 'string')
+    assert.equal('session' in res.body, false, 'never "session: null", which the browser reads as signed out')
+    assert.equal(cookies(res), undefined)
+    assert.equal(res.getHeader('Cache-Control'), 'no-store, no-cache, must-revalidate')
+    // One line for operations: the backend status, no token and no backend text.
+    assert.equal(logged.length, 1)
+    assert.match(logged[0], /^\[auth\/session\] .*503.*"status":0/)
+    assert.doesNotMatch(logged[0], /valid-refresh|expired-access|fetch failed/)
+  }
+})
+
+test('/api/asistencia/marcar answers with a fixed text, never with the auth backend error', async () => {
+  const handler = require('../src/pages/api/asistencia/marcar.ts').default
+  for (const respond of [
+    down,
+    async () => Response.json({ error: 'INTERNAL', message: 'pg: password authentication failed for user "postgres"' }, { status: 500 }),
+    refused,
+  ]) {
+    global.fetch = respond
+    const res = createResponse()
+    await logging(() => settled(() => handler({ method: 'POST', headers: { cookie: REFRESH_ONLY }, body: { clave: 'ABC-123' } }, res)))
+    assert.equal(res.statusCode, 401)
+    assert.deepEqual(res.body, { error: 'No autenticado', debug: 'Sin sesión' })
+  }
+})
+
+test('/api/auth/session answers 503 when the session cannot be checked at all', async () => {
+  const res = await silently(() => sessionRoute({ get cookie() { throw new Error('unreadable request') } }))
+  assert.equal(res.statusCode, 503)
+  assert.equal('session' in res.body, false)
+})
+
+test('/api/auth/session still answers 200 with the session, and 200 with null after a refusal', async () => {
+  global.fetch = async (url, options) => new Headers(options.headers).get('Authorization') === 'Bearer good-access'
+    ? Response.json({ user })
+    : Response.json({ error: 'INVALID_TOKEN' }, { status: 401 })
+  let res = await sessionRoute({ cookie: 'insforge_access_token=good-access; insforge_refresh_token=valid-refresh' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { session: { user, access_token: 'good-access', refresh_token: '', expires_at: 0, expires_in: 0, token_type: 'bearer' } })
+  assert.equal(cookies(res), undefined)
+  assert.equal(res.getHeader('Cache-Control'), 'no-store, no-cache, must-revalidate')
+
+  res = await sessionRoute({ cookie: 'insforge_refresh_token=invalid' })
+  assert.equal(res.statusCode, 200)
+  assert.deepEqual(res.body, { session: null })
+  assert.ok(cookies(res).every((c) => c.includes('Max-Age=0')))
+})
+
+test('requireStaff answers 503 when the auth backend is down, and still 401 after a refusal', async () => {
+  const { requireStaff } = require('../src/lib/server-authorization.ts')
+  await silently(async () => {
+    global.fetch = down
+    let res = createResponse()
+    assert.equal(await settled(() => requireStaff({ headers: { cookie: REFRESH_ONLY } }, res, ['admin'])), null)
+    assert.equal(res.statusCode, 503)
+    assert.deepEqual(res.body, { error: 'No se pudo verificar el acceso', message: 'No se pudo verificar el acceso' })
+    assert.equal(cookies(res), undefined)
+
+    global.fetch = refused
+    res = createResponse()
+    assert.equal(await settled(() => requireStaff({ headers: { cookie: 'insforge_refresh_token=invalid' } }, res, ['admin'])), null)
+    assert.equal(res.statusCode, 401)
+    assert.ok(cookies(res).every((c) => c.includes('Max-Age=0')))
+  })
+})

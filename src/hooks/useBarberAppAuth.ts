@@ -9,26 +9,30 @@ import { supabase } from '../lib/supabase'
 import { checkAppSession, isNoRowsError } from '../lib/app-session'
 import { logoutOneSignal } from '../lib/onesignal-client'
 import { createRetryBackoff } from '../lib/insforge-react'
+import { createTimeoutLadder } from '../lib/timeout-ladder'
 import type { BarberoSession } from '../types/barber-app'
 
 type AuthOutcome =
   | { status: 'ok'; session: BarberoSession }
   | { status: 'denied'; message: string }
-  | { status: 'transient' }
+  // timedOut: the check ran out of time (here or in the session restore), as
+  // opposed to failing quickly. Only that earns the next check a longer limit.
+  | { status: 'transient'; timedOut?: boolean }
 
 // A check that never answers counts as a network failure: it is retried on the
 // backoff schedule instead of blocking every later check (the 5-minute one included).
-// The session restore in app-session.ts is shared and has no timeout of its own, so
-// while that one request hangs, the retries wait on it; the database lookups do restart.
-const CHECK_TIMEOUT_MS = 20000
-
-function withTimeout(check: Promise<AuthOutcome>): Promise<AuthOutcome> {
+// Its limit grows while it keeps timing out (20 s, 40 s, 80 s: see timeout-ladder.ts),
+// because the database lookups start again on every retry: with a fixed limit, a link
+// that needs longer than that for them would never finish the first load. The session
+// restore in app-session.ts is shared and has its own abortable limit on the same
+// ladder, so a request that hangs no longer blocks the retries.
+function withTimeout(check: Promise<AuthOutcome>, limitMs: number): Promise<AuthOutcome> {
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout = new Promise<AuthOutcome>((resolve) => {
     timer = setTimeout(() => {
-      console.warn(`La verificación de sesión del barbero no respondió en ${CHECK_TIMEOUT_MS / 1000} s.`)
-      resolve({ status: 'transient' })
-    }, CHECK_TIMEOUT_MS)
+      console.warn(`La verificación de sesión del barbero no respondió en ${limitMs / 1000} s.`)
+      resolve({ status: 'transient', timedOut: true })
+    }, limitMs)
   })
   return Promise.race([check, timeout]).finally(() => clearTimeout(timer))
 }
@@ -38,7 +42,7 @@ async function resolveBarberoSession(): Promise<AuthOutcome> {
 
   // 1. Verificar sesión (cookie propia de Chamos, no el refresh del SDK)
   const check = await checkAppSession()
-  if (check.status === 'unknown') return { status: 'transient' }
+  if (check.status === 'unknown') return { status: 'transient', timedOut: check.timedOut === true }
   if (check.status === 'signed-out') return denied('No hay sesión activa')
   const authUserId = check.session.user.id
 
@@ -89,6 +93,8 @@ export function useBarberAppAuth() {
   // Sin conexión o servidor caído no es un cierre de sesión: se reintenta en
   // silencio con el mismo calendario que useSession (3 s, 6 s, 12 s … 30 s).
   const backoff = useRef(createRetryBackoff())
+  // Limit of each check: 20 s, doubled (up to 80 s) every time a check runs out of time.
+  const timeouts = useRef(createTimeoutLadder())
   // Solo la verificación más reciente puede cambiar el estado: una más vieja
   // que responde tarde (p. ej. "sin sesión" de antes del login) se descarta.
   const latestCheck = useRef(0)
@@ -136,7 +142,7 @@ export function useBarberAppAuth() {
 
     let outcome: AuthOutcome
     try {
-      outcome = await withTimeout(resolveBarberoSession())
+      outcome = await withTimeout(resolveBarberoSession(), timeouts.current.current())
     } catch (err) {
       console.warn('No se pudo verificar la sesión del barbero:', err)
       outcome = { status: 'transient' }
@@ -145,11 +151,14 @@ export function useBarberAppAuth() {
     checkInFlight.current = false
 
     if (outcome.status === 'transient') {
+      // Only running out of time lengthens the limit; a quick failure (offline) leaves it as is.
+      if (outcome.timedOut) timeouts.current.timedOut()
       // Mantener la sesión actual (o el spinner inicial) y reintentar.
       retryTimer.current = setTimeout(checkAuth, backoff.current.next())
       return
     }
     backoff.current.reset()
+    timeouts.current.reset()
 
     if (outcome.status === 'ok') {
       // Mismo contenido = mismo objeto: evita re-renderizar y recargar la agenda.

@@ -17,7 +17,8 @@ import {
   getRutaPorDefecto,
   Permiso,
 } from '@/lib/supabase';
-import { getAppSession } from '@/lib/app-session';
+import { checkAppSession } from '@/lib/app-session';
+import { createRetryBackoff } from '@/lib/insforge-react';
 import { getServerAccess } from '@/lib/server-access';
 
 export function usePermissions() {
@@ -26,36 +27,59 @@ export function usePermissions() {
   const router = useRouter();
 
   useEffect(() => {
-    cargarUsuario();
-  }, []);
+    let cancelled = false;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    // Same quiet schedule as the session hooks: 3 s, 6 s, 12 s, 24 s, then every 30 s.
+    const backoff = createRetryBackoff();
 
-  const cargarUsuario = async () => {
-    try {
-      // Restore the Chamos session first. The access token lets our own server
-      // validate the caller even if the httpOnly cookie is still being renewed.
-      const session = await getAppSession();
+    const cargarUsuario = async () => {
+      try {
+        // Restore the Chamos session first. The access token lets our own server
+        // validate the caller even if the httpOnly cookie is still being renewed.
+        const check = await checkAppSession();
+        if (cancelled) return;
 
-      if (!session?.user?.email) {
+        // No answer (a slow link that reached the limit of the restore, a 503,
+        // no network) is not a sign-out: keep loading and ask again. The
+        // restore lengthens its own limit on each timeout. Pages redirect to
+        // the login only once loading ends without a user.
+        if (check.status === 'unknown') {
+          retryTimer = setTimeout(cargarUsuario, backoff.next());
+          return;
+        }
+        backoff.reset();
+
+        const session = check.status === 'signed-in' ? check.session : null;
+        if (!session?.user?.email) {
+          setUsuario(null);
+          setCargando(false);
+          return;
+        }
+
+        // Role/access resolution is server-side. The browser no longer queries
+        // admin_users or usuarios_con_permisos directly, avoiding legacy RLS
+        // rules tied to the old Supabase auth UUID.
+        const access = await getServerAccess(session.access_token);
+        if (cancelled) return;
+        setUsuario(access.user as UsuarioConPermisos);
+      } catch (error: any) {
+        if (cancelled) return;
+        console.error('[permissions] Server access check failed:', {
+          code: error?.code ?? null,
+          status: error?.status ?? null,
+          message: error?.message ?? String(error),
+        });
         setUsuario(null);
-        return;
       }
-
-      // Role/access resolution is server-side. The browser no longer queries
-      // admin_users or usuarios_con_permisos directly, avoiding legacy RLS
-      // rules tied to the old Supabase auth UUID.
-      const access = await getServerAccess(session.access_token);
-      setUsuario(access.user as UsuarioConPermisos);
-    } catch (error: any) {
-      console.error('[permissions] Server access check failed:', {
-        code: error?.code ?? null,
-        status: error?.status ?? null,
-        message: error?.message ?? String(error),
-      });
-      setUsuario(null);
-    } finally {
       setCargando(false);
-    }
-  };
+    };
+
+    cargarUsuario();
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+    };
+  }, []);
 
   /**
    * Verifica un permiso específico

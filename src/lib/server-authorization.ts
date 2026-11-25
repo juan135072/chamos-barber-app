@@ -11,9 +11,15 @@ export async function requireStaff(req: NextApiRequest, res: NextApiResponse, ro
       res.status(401).json({ error: 'No autenticado', message: 'No autenticado' })
       return null
     }
-    const user = bearer
-      ? (await getUserFromBearer(bearer)).data?.user
-      : (await createPagesServerClient(req, res).auth.getSession()).data?.session?.user
+    let user
+    if (bearer) {
+      user = (await getUserFromBearer(bearer)).data?.user
+    } else {
+      const result = await createPagesServerClient(req, res).auth.getSession()
+      // The auth backend did not answer: that is a 503 (below), not an invalid session.
+      if (result?.unavailable) throw new Error('Auth backend unavailable')
+      user = result?.data?.session?.user
+    }
     if (!user?.id || !/^[0-9a-f-]{36}$/i.test(user.id)) {
       res.status(401).json({ error: 'Sesión inválida', message: 'Sesión inválida' })
       return null

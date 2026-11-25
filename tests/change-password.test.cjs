@@ -32,6 +32,9 @@ stubModule('../src/lib/supabase-server.ts', {
   async getUserFromBearer(token) { return { data: { user: sessions[token] ?? null }, error: null } },
   createPagesServerClient: () => ({ auth: { async getSession() { return { data: { session: null } } } } }),
 })
+// The attempt limit lives in the in-memory store of the rate limiter.
+stubModule('../src/lib/security/logger.ts', { logRateLimitExceeded() {} })
+const { clearRateLimitStore } = require('../src/lib/security/rateLimit.ts')
 
 // rawsql over auth.users: the three statements the password helpers send.
 global.fetch = async (url, options) => {
@@ -55,6 +58,7 @@ global.fetch = async (url, options) => {
 const handler = require('../src/pages/api/auth/change-password.ts').default
 
 function setup({ rol = 'barbero', activo = true, projectAdmin = false } = {}) {
+  clearRateLimitStore()
   sql = []
   users = [
     { id: SELF, email: 'ana@chamos.test', password: bcrypt.hashSync(ACTUAL, 4), is_project_admin: projectAdmin },
@@ -186,4 +190,114 @@ test('the panel form sends only the passwords, never a user id', async () => {
   try { await find(tree).props.onSubmit({ preventDefault() {} }) } finally { global.fetch = savedFetch }
   assert.deepEqual(sent, [['/api/auth/change-password', { currentPassword: ACTUAL, newPassword: NUEVA }]])
   assert.deepEqual(toasts.map(([kind]) => kind), ['success'])
+})
+
+// --- Attempt limit on the current-password check: 5 per 15 minutes per user --
+
+const { mock } = require('node:test')
+const wrong = { currentPassword: 'Incorrecta!1', newPassword: NUEVA }
+const right = { currentPassword: ACTUAL, newPassword: NUEVA }
+const comparisons = () => sql.filter(({ query }) => /SELECT password FROM auth\.users/.test(query))
+
+async function guessWrong(times) {
+  for (let i = 0; i < times; i++) assert.equal((await call(wrong)).statusCode, 401, `wrong guess ${i + 1} is checked`)
+}
+
+test('the sixth attempt in 15 minutes gets a 429 and checks nothing, even with the right password', async () => {
+  setup()
+  const before = hashOf(SELF)
+  await guessWrong(5)
+  sql = []
+  const res = await call(right)
+  assert.equal(res.statusCode, 429)
+  assert.equal(res.body.error, 'Demasiados intentos. Vuelve a intentarlo en 15 minutos.')
+  const retryAfter = Number(res.getHeader('Retry-After'))
+  assert.ok(Number.isInteger(retryAfter) && retryAfter > 14 * 60 && retryAfter <= 15 * 60, `Retry-After ${res.getHeader('Retry-After')} is in seconds`)
+  assert.deepEqual(sql, [], 'no SQL runs: the password is not even compared')
+  assert.equal(hashOf(SELF), before)
+})
+
+test('the limit is counted per user: another user is not locked out', async () => {
+  setup()
+  sessions.other = { id: OTHER, email: 'otro@chamos.test' }
+  await guessWrong(5)
+  assert.equal((await call(right)).statusCode, 429)
+  const res = await call(right, { authorization: 'Bearer other' })
+  assert.equal(res.statusCode, 200)
+  assert.ok(bcrypt.compareSync(NUEVA, hashOf(OTHER)))
+  assert.ok(bcrypt.compareSync(ACTUAL, hashOf(SELF)), 'the locked user keeps its password')
+})
+
+test('a successful change clears the count', async () => {
+  setup()
+  await guessWrong(4)
+  assert.equal((await call(right)).statusCode, 200, 'the fifth attempt is still checked')
+  // A fresh count: five more wrong guesses are all checked before the limit.
+  await guessWrong(5)
+  assert.equal((await call({ currentPassword: NUEVA, newPassword: 'Otra!234567' })).statusCode, 429)
+})
+
+test('the limit ends 15 minutes after the first attempt', async () => {
+  setup()
+  mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 24, 15, 0, 0) })
+  try {
+    await guessWrong(5)
+    mock.timers.tick(15 * 60 * 1000 - 1000)
+    const res = await call(right)
+    assert.equal(res.statusCode, 429)
+    assert.equal(res.getHeader('Retry-After'), '1')
+    assert.match(res.body.error, /en 1 minuto\.$/)
+    mock.timers.tick(1000)
+    assert.equal((await call(right)).statusCode, 200)
+  } finally {
+    mock.timers.reset()
+  }
+})
+
+test('requests refused before the password check do not use up attempts', async () => {
+  setup()
+  for (let i = 0; i < 8; i++) {
+    assert.equal((await call({ currentPassword: ACTUAL, newPassword: 'corta' })).statusCode, 400)
+    assert.equal((await call({ newPassword: NUEVA })).statusCode, 400)
+    assert.equal((await call({ userId: OTHER, ...right })).statusCode, 403)
+  }
+  assert.equal((await call(right)).statusCode, 200)
+})
+
+test('simultaneous attempts cannot get past the limit', async () => {
+  setup()
+  const results = await Promise.all(Array.from({ length: 10 }, () => call(wrong)))
+  assert.deepEqual(results.map((res) => res.statusCode).sort(), [401, 401, 401, 401, 401, 429, 429, 429, 429, 429])
+  assert.equal(comparisons().length, 5, 'only five passwords were compared')
+})
+
+test('an account whose password is never compared (a project admin) does not use up attempts', async () => {
+  setup({ rol: 'admin', projectAdmin: true })
+  for (let i = 0; i < 8; i++) {
+    const res = await call(right)
+    assert.equal(res.statusCode, 403, `request ${i + 1}`)
+    assert.equal(res.body.error, 'Esta cuenta no puede cambiar su contraseña desde aquí')
+  }
+  assert.deepEqual(comparisons(), [])
+})
+
+test('an attempt is given back only inside the window it was taken in', () => {
+  const { takeAttempt, returnAttempt } = require('../src/lib/security/rateLimit.ts')
+  clearRateLimitStore()
+  mock.timers.enable({ apis: ['Date'], now: Date.UTC(2026, 10, 24, 15, 0, 0) })
+  try {
+    const old = takeAttempt('test:user', 2, 60000)
+    assert.equal(old.allowed, true)
+    mock.timers.tick(60000) // that window is over
+    const current = takeAttempt('test:user', 2, 60000)
+    assert.deepEqual([current.allowed, takeAttempt('test:user', 2, 60000).allowed], [true, true])
+    // A late return belongs to the old window: the new one keeps both of its attempts.
+    returnAttempt('test:user', old.windowEnd)
+    assert.equal(takeAttempt('test:user', 2, 60000).allowed, false)
+    // An attempt of the current window does come back, exactly once per return.
+    returnAttempt('test:user', current.windowEnd)
+    assert.deepEqual([takeAttempt('test:user', 2, 60000).allowed, takeAttempt('test:user', 2, 60000).allowed], [true, false])
+  } finally {
+    mock.timers.reset()
+  }
 })
